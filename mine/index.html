@@ -1,11 +1,199 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Hello GitHub Pages</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポートフォリオ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #e2e8f0;
+            overflow-x: hidden;
+            background-image: url('back.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card-hover-effect {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card-hover-effect:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .button-hover-effect {
+            position: relative;
+            z-index: 1;
+            transition: color 0.4s ease;
+        }
+        .button-hover-effect::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #3b82f6;
+            border-radius: 9999px;
+            z-index: -1;
+            transform: scaleY(0);
+            transform-origin: bottom;
+            transition: transform 0.4s ease;
+        }
+        .button-hover-effect:hover::before {
+            transform: scaleY(1);
+        }
+
+        .card-bg-effect {
+            background-color: rgba(255, 100, 100, 0.3);
+        }
+    </style>
 </head>
-<body>
-  <h1>GitHub Pages から公開！</h1>
-  <p>これはテストページです!cccbb!!!</p>
+<body class="text-gray-200">
+
+    <header class="bg-white/10 backdrop-blur-lg shadow-lg py-6 px-4 md:px-8 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-red-400 drop-shadow-md">ポートフォリオ</h1>
+            <nav>
+                <ul class="flex space-x-4">
+                    <li><a href="#home" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">ホーム</a></li>
+                    <li><a href="#about" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">私について</a></li>
+                    <li><a href="#works" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">制作物</a></li>
+                    <li><a href="#contact" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">お問い合わせ</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main id="app-container" class="container mx-auto mt-10 px-4 md:px-8">
+    </main>
+
+    <footer class="bg-gray-800 text-white py-6 mt-12">
+        <div class="container mx-auto text-center">
+            <p class="text-sm">&copy; 2025 Me. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        const portfolioData = {
+            about: {
+                title: "私について",
+                description: "私はアプリケーションエンジンとして、WindowsアプリケーションとHTML、Pythonを得意としています。",
+                skills: ["C", "C#", "VB.net", "VBA", "HTML", "Python", "SQL Server", "Oracle", "PostgreSQL", "DB2"]
+            },
+            works: {
+                title: "制作物",
+                projects: [
+                    { id: "proj1", title: "HTML", description: "様々なウェブ技術を使って、様々なウェブサイトを制作しました。", details: "https://ilovejapanmynameis.web.fc2.com/menu.html" },
+                    { id: "proj2", title: "Python", description: "Pythonを使った、各種アプリです。", details: "https://note.com/good_lilac166" }
+                ]
+            }
+        };
+
+        const appContainer = document.getElementById('app-container');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        const renderContent = (contentId) => {
+            appContainer.innerHTML = `
+                <div class="flex justify-center items-center h-96">
+                    <div class="animate-spin rounded-full h-20 w-20 border-4 border-t-red-500 border-b-red-500 border-opacity-25"></div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                let htmlContent = '';
+                switch (contentId) {
+                    case 'home':
+                        htmlContent = `
+                            <section id="home" class="card-bg-effect p-8 rounded-xl shadow-2xl fade-in border border-red-400/20">
+                                <h2 class="text-4xl font-extrabold mb-4 text-red-400">ようこそ！</h2>
+                                <p class="text-xl leading-relaxed text-gray-300">このサイトは、私の制作物やスキルを紹介するインタラクティブなポートフォリオです。</p>
+                            </section>
+                        `;
+                        break;
+                    case 'about':
+                        const aboutData = portfolioData.about;
+                        const skillsHtml = aboutData.skills.map(skill => `
+                            <li class="bg-red-600/50 text-white font-medium px-4 py-2 rounded-full backdrop-blur-sm shadow-md">${skill}</li>
+                        `).join('');
+
+                        htmlContent = `
+                            <section id="about" class="card-bg-effect p-8 rounded-xl shadow-2xl fade-in border border-red-400/20">
+                                <h2 class="text-4xl font-extrabold mb-6 text-red-400">${aboutData.title}</h2>
+                                <p class="text-lg leading-relaxed mb-4 text-gray-300">${aboutData.description}</p>
+                                <h3 class="text-2xl font-semibold mb-2 text-red-400">私のスキル</h3>
+                                <ul id="skills-list" class="flex flex-wrap gap-2 text-lg">
+                                    ${skillsHtml}
+                                </ul>
+                            </section>
+                        `;
+                        break;
+                    case 'works':
+                        const worksData = portfolioData.works;
+                        const projectsHtml = worksData.projects.map(project => `
+                            <article class="card-bg-effect p-6 rounded-xl shadow-xl card-hover-effect transition-shadow duration-300 border border-red-400/20">
+                                <h3 class="text-2xl font-semibold mb-2 text-red-400">${project.title}</h3>
+                                <p class="text-lg text-gray-300">${project.description}</p>
+                                <p class="mt-4 text-sm text-blue-300 underline">
+                                    <a href="${project.details}" target="_blank" rel="noopener noreferrer">${project.details}</a>
+                                </p>
+                            </article>
+                        `).join('');
+
+                        htmlContent = `
+                            <section id="works" class="fade-in">
+                                <h2 class="text-4xl font-extrabold mb-6 text-gray-200">${worksData.title}</h2>
+                                <div class="grid md:grid-cols-2 gap-8">
+                                    ${projectsHtml}
+                                </div>
+                            </section>
+                        `;
+                        break;
+                    case 'contact':
+                        htmlContent = `
+                            <section id="contact" class="card-bg-effect p-8 rounded-xl shadow-2xl fade-in border border-red-400/20">
+                                <h2 class="text-4xl font-extrabold mb-6 text-red-400">お問い合わせ</h2>
+                                <p class="text-lg leading-relaxed text-gray-300 mb-6">以下のフォームに必要事項をご入力の上、送信してください。</p>
+                                <div class="w-full h-auto">
+                                    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSe0Og2yYS0LmkJK964eethYtLAGssGnmRwr8Lk64v5TdZvVFw/viewform?embedded=true"
+                                        class="w-full border-0 rounded-xl"
+                                        style="height: 800px; max-height: 85vh;"
+                                        frameborder="0" marginheight="0" marginwidth="0">
+                                        読み込んでいます…
+                                    </iframe>
+                                </div>
+                            </section>
+                        `;
+                        break;
+                    default:
+                        htmlContent = `<p>コンテンツが見つかりませんでした。</p>`;
+                }
+
+                appContainer.innerHTML = htmlContent;
+            }, 500);
+        };
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const contentId = e.target.getAttribute('href').substring(1);
+                renderContent(contentId);
+            });
+        });
+
+        renderContent('home');
+    </script>
 </body>
 </html>
