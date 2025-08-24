@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたはハッキングされた！</title>
+    <style>
+        body {
+            background-color: black;
+            color: lime;
+            font-family: monospace;
+            font-size: 18px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        #terminal {
+            white-space: pre-line;
+        }
+        .blink {
+            animation: blink 1s infinite alternate;
+        }
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <script>
+        async function getIP() {
+            try {
+                let response = await fetch('https://api64.ipify.org?format=json');
+                let data = await response.json();
+                return data.ip;
+            } catch (error) {
+                return "UNKNOWN";
+            }
+        }
+
+        async function startHackingSequence() {
+            let ip = await getIP();
+            let os = navigator.platform;
+            let browser = navigator.userAgent;
+            
+            const messages = [
+                `Connecting to [${ip}]...`,
+                `Bypassing Firewall... [OK]`,
+                `Identifying system... OS: ${os}, Browser: ${browser}`,
+                "Decrypting Password... [OK]",
+                "Accessing Bank Account... [FAIL] (残高: 5円)",
+                "Downloading Personal Data... [OK]",
+                "Analyzing Private Secrets... [OK]",
+                "  - 昨日の晩ごはん：カレー",
+                "  - よく見るYouTube：「猫が箱に入る動画」",
+                "  - 最後に検索したワード：「ハッキングされた時の対処法」",
+                "\n\nERROR: Unauthorized access detected!",
+                "System shutting down in 3...",
+                "System shutting down in 2...",
+                "System shutting down in 1...",
+                "\n\nCongratulations! You have just been pranked! 🎉",
+                "This is a harmless joke site. No data was actually accessed."
+            ];
+
+            let index = 0;
+            function showMessage() {
+                if (index < messages.length) {
+                    document.getElementById("terminal").innerHTML += messages[index] + "\n";
+                    index++;
+                    setTimeout(showMessage, 1000);
+                } else {
+                    document.getElementById("terminal").innerHTML += "<br><span class='blink'>Press F5 to retry</span>";
+                    setTimeout(() => {
+                        window.location.href = "https://www.google.com";
+                    }, 5000); // 5秒後にgoogle.comへ遷移
+                }
+            }
+            showMessage();
+        }
+
+        startHackingSequence();
+    </script>
+</body>
+</html>

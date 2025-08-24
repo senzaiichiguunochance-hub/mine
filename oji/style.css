@@ -1,0 +1,283 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Roboto:wght@400;700&display=swap');
+
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --danger-color: #e74c3c;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --font-family-jp: 'Noto Sans JP', sans-serif;
+    --font-family-en: 'Roboto', sans-serif;
+}
+
+body {
+    font-family: var(--font-family-jp);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background: linear-gradient(to right, #434343 0%, black 100%);
+    color: var(--light-color);
+    perspective: 1000px; /* 3D効果のための視点 */
+}
+
+.hidden {
+    display: none !important;
+}
+
+.screen {
+    width: 90%;
+    max-width: 600px;
+    background: rgba(44, 62, 80, 0.85);
+    padding: 30px 40px;
+    border-radius: 15px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(236, 240, 241, 0.1);
+    text-align: center;
+    transition: transform 0.5s, opacity 0.5s;
+    transform-style: preserve-3d; /* 3D空間を維持 */
+}
+
+.screen.hidden {
+    transform: rotateY(90deg);
+    opacity: 0;
+}
+
+h1 {
+    font-family: var(--font-family-jp);
+    font-weight: 700;
+    font-size: 2.5em;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    text-shadow: 0 0 10px var(--primary-color);
+}
+
+.settings {
+    margin: 30px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    text-align: left;
+}
+
+.setting-group {
+    background: rgba(0,0,0,0.2);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
+.operation-selection label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: var(--light-color);
+}
+
+.operation-selection input[type="checkbox"] {
+    margin-right: 10px;
+    accent-color: var(--primary-color);
+}
+
+select, input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--primary-color);
+    background: var(--dark-color);
+    color: var(--light-color);
+    font-size: 1em;
+    box-sizing: border-box; /* paddingを含めてwidth 100%に */
+}
+
+.btn {
+    display: inline-block;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    font-weight: 700;
+    color: white;
+    background: var(--primary-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn:hover {
+    background: #2980b9;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+#stage-screen {
+    position: relative;
+}
+
+#uncle-position-container {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    margin: 20px auto;
+    border: 2px solid var(--primary-color);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+#uncle {
+    position: absolute;
+    bottom: 0;
+    width: 80px; /* 初期サイズ */
+    height: auto;
+    transform-origin: bottom center;
+    transition: transform 1s cubic-bezier(0.68, -0.55, 0.27, 1.55); /* 不気味な動き */
+    filter: brightness(0.8) contrast(1.2);
+}
+
+#uncle img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+#question-container {
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+}
+
+#question {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: var(--secondary-color);
+    letter-spacing: 2px;
+}
+
+#answer {
+    width: 50%;
+    max-width: 200px;
+    font-size: 2em;
+    text-align: center;
+    padding: 10px;
+    margin-right: 10px;
+}
+
+#item-container {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+#item-container .btn {
+    background: var(--secondary-color);
+}
+#item-container .btn:hover {
+    background: #27ae60;
+}
+
+
+#message {
+    margin-top: 20px;
+    font-size: 1.1em;
+    min-height: 1.5em;
+    color: var(--danger-color);
+    font-weight: 700;
+}
+
+#question-stats {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.1em;
+    background: rgba(0,0,0,0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+#game-over-screen .screen, #game-clear-screen .screen {
+    transform: rotateY(0);
+}
+
+#uncle-closeup {
+    margin: 30px 0;
+    animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+#uncle-closeup img {
+    width: 80%;
+    max-width: 400px;
+    border: 5px solid var(--danger-color);
+    border-radius: 50%;
+    box-shadow: 0 0 30px var(--danger-color);
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+.fireworks {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: -1;
+}
+
+/* 簡単な花火のアニメーション */
+.firework {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--secondary-color);
+    border-radius: 50%;
+    animation: firework-anim 1.5s ease-out forwards;
+}
+
+@keyframes firework-anim {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(20); opacity: 0; }
+}
+
+#restart-button-gameover {
+    background: var(--danger-color);
+}
+#restart-button-gameover:hover {
+    background: #c0392b;
+}
+
+#restart-button-clear {
+    background: var(--secondary-color);
+}
+#restart-button-clear:hover {
+    background: #27ae60;
+}

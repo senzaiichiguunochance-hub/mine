@@ -1,0 +1,173 @@
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap');
+
+:root {
+    --bg-color: #1a1a2e;
+    --board-bg: #16213e;
+    --wall-color: #0f3460;
+    --floor-color: #16213e;
+    --player-color: #e94560;
+    --box-color: #f9a826;
+    --goal-color: rgba(249, 168, 38, 0.3);
+    --font-color: #dcdcdc;
+    --panel-bg: #0f3460;
+}
+
+body {
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--font-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+h1 {
+    font-size: 3em;
+    font-weight: 800;
+    color: var(--player-color);
+    text-shadow: 0 0 10px var(--player-color);
+    margin-bottom: 20px;
+}
+
+#main-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+}
+
+#game-container {
+    flex-shrink: 0;
+}
+
+#game-board {
+    display: grid;
+    border: 5px solid var(--wall-color);
+    background-color: var(--board-bg);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.cell {
+    width: 40px;  /* 元のサイズに戻す */
+    height: 40px; /* 元のサイズに戻す */
+    box-sizing: border-box;
+    transition: transform 0.2s ease, background-color 0.3s ease;
+    position: relative; /* 子要素の配置のため */
+}
+
+.cell.wall {
+    background-color: var(--wall-color);
+    border-radius: 5px;
+}
+
+.cell.floor {
+    background-color: var(--floor-color);
+}
+
+.cell.goal {
+    background-color: var(--goal-color);
+    border-radius: 50%;
+}
+
+/* プレイヤー、箱、ゴール上の箱のスタイルを更新 */
+.cell.player,
+.cell.box,
+.cell.box-on-goal {
+    background-size: 80%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.cell.player {
+    background-color: var(--player-color);
+    border-radius: 50%;
+    transform: scale(0.7);
+    box-shadow: 0 0 15px var(--player-color);
+}
+
+.cell.box {
+    background-color: var(--box-color);
+    border-radius: 8px;
+    transform: scale(0.8);
+    border: 3px solid #a16207;
+}
+
+.cell.box-on-goal {
+    background-color: var(--box-color);
+    border-radius: 8px;
+    transform: scale(0.8);
+    border: 3px solid #a16207;
+    box-shadow: 0 0 20px #fff, 0 0 30px var(--box-color);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(0.85); }
+    100% { transform: scale(0.8); }
+}
+
+#info-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 250px;
+    text-align: left;
+}
+
+#controls, #legend, #rules {
+    background-color: var(--panel-bg);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid var(--wall-color);
+}
+
+#info-panel h2 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--player-color);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    color: var(--player-color);
+}
+
+#reset-button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(45deg, #e94560, #f9a826);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: 800;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#reset-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.legend-item .cell {
+    width: 30px;   /* 凡例のセルサイズは元のまま */
+    height: 30px;  /* 凡例のセルサイズは元のまま */
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.legend-item span {
+    font-weight: bold;
+    font-size: 1.1em;
+}

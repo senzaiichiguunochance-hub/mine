@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>怖いおじさんが来る</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="title-screen" class="screen">
+        <h1>怖いおじさんが来る</h1>
+        <div class="settings">
+            <div class="setting-group">
+                <label>計算の種類 (複数選択可)</label>
+                <div class="operation-selection">
+                    <label><input type="checkbox" name="operation" value="addition" checked> 足し算</label>
+                    <label><input type="checkbox" name="operation" value="subtraction"> 引き算</label>
+                    <label><input type="checkbox" name="operation" value="multiplication"> 掛け算</label>
+                    <label><input type="checkbox" name="operation" value="division"> 割り算</label>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label for="digits">答えの桁数:</label>
+                <select id="digits">
+                    <option value="1">1桁</option>
+                    <option value="2" selected>2桁</option>
+                    <option value="3">3桁</option>
+                    <option value="4">4桁</option>
+                    <option value="5">5桁</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label for="question-count-input">問題数:</label>
+                <input type="number" id="question-count-input" value="10" min="1" max="10">
+            </div>
+            <div class="setting-group">
+                <label for="uncle-position-input">おじさんの初期位置 (遠さ):</label>
+                <input type="number" id="uncle-position-input" value="4" min="1" max="9">
+            </div>
+        </div>
+        <button id="start-button" class="btn">ゲーム開始</button>
+    </div>
+
+    <div id="stage-screen" class="screen hidden">
+        <div id="question-stats">
+            問題: <span id="question-count">1</span> / <span id="total-questions">10</span>
+        </div>
+        <div id="uncle-position-container">
+            <div id="uncle"><img src="ojisan.jpg" alt="おじさん"></div>
+        </div>
+        <div id="question-container">
+            <p id="question">12 + 34 = ?</p>
+            <input type="number" id="answer" placeholder="答え">
+            <button id="submit-button" class="btn">回答</button>
+        </div>
+        <div id="item-container">
+            <button id="item-stop" class="btn" disabled>足止め (0)</button>
+            <button id="item-back" class="btn" disabled>後退 (0)</button>
+        </div>
+        <p id="message"></p>
+    </div>
+
+    <div id="game-over-screen" class="screen hidden">
+        <h1>ゲームオーバー</h1>
+        <div id="uncle-closeup">
+            <img src="gameover.jpg" alt="怖いおじさん">
+        </div>
+        <button id="restart-button-gameover" class="btn">タイトルへ戻る</button>
+    </div>
+
+    <div id="game-clear-screen" class="screen hidden">
+        <div class="fireworks"></div>
+        <h1>ゲームクリア！</h1>
+        <p>おめでとう！おじさんから逃げ切った！</p>
+        <button id="restart-button-clear" class="btn">タイトルへ戻る</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

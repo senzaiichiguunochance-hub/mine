@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIダッシュボード</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Roboto:wght@400;500;700&display=swap');
+
+        :root {
+            --bg-dark: #121212;
+            --primary-surface: #1E1E1E;
+            --secondary-surface: #2C2C2C;
+            --primary-accent: #BB86FC;
+            --secondary-accent: #03DAC6;
+            --primary-text: #E0E0E0;
+            --secondary-text: #A0A0A0;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Roboto', 'Noto Sans JP', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--primary-text);
+        }
+
+        #main-wrapper {
+            display: flex;
+            height: 100vh;
+        }
+
+        #nav {
+            width: 240px;
+            background-color: var(--primary-surface);
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            overflow-y: auto;
+            border-right: 1px solid var(--border-color);
+        }
+
+        #nav h2 {
+            margin: 0 0 20px 0;
+            padding: 0 20px;
+            text-align: center;
+            color: var(--secondary-accent);
+            font-size: 1.8em;
+            font-weight: 700;
+        }
+
+        #nav button {
+            background-color: transparent;
+            color: var(--secondary-text);
+            border: none;
+            padding: 15px 25px;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            font-size: 1em;
+            border-left: 3px solid transparent;
+            transition: background-color 0.3s, color 0.3s, border-left 0.3s;
+        }
+
+        #nav button:hover {
+            background-color: var(--secondary-surface);
+            color: var(--primary-text);
+        }
+        
+        #nav button.active {
+             border-left: 3px solid var(--primary-accent);
+             color: var(--primary-accent);
+             background-color: var(--secondary-surface);
+        }
+
+        #content {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background-color: var(--bg-dark);
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        h1 {
+            border-bottom: 2px solid var(--primary-accent);
+            padding-bottom: 15px;
+            margin-top: 0;
+            margin-bottom: 30px;
+            color: var(--primary-accent);
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .card {
+            background-color: var(--primary-surface);
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .action-btn {
+            background: linear-gradient(45deg, var(--primary-accent), var(--secondary-accent));
+            color: black;
+            font-weight: 700;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(187, 134, 252, 0.3);
+        }
+
+        .action-btn.secondary {
+            background: var(--secondary-surface);
+            color: var(--primary-text);
+        }
+        .action-btn.secondary:hover {
+            box-shadow: 0 5px 15px rgba(3, 218, 198, 0.3);
+        }
+
+        .translation-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--secondary-surface);
+            border-left: 4px solid var(--secondary-accent);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95em;
+        }
+        .translation-box p {
+            margin: 5px 0;
+        }
+        .translation-box strong {
+            color: var(--secondary-accent);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="number"], textarea {
+            border: 1px solid var(--border-color);
+            background-color: var(--secondary-surface);
+            color: var(--primary-text);
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 1em;
+            flex-grow: 1;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        #user-container.card {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        #user-container img {
+            border-radius: 50%;
+            border: 3px solid var(--primary-accent);
+            width: 100px;
+            height: 100px;
+        }
+        
+        #map-container, #cat-image-container, #dog-image-container, #fox-image-container, #randomdogimage-container {
+            width: 100%;
+            min-height: 400px;
+            margin-top: 20px;
+            border-radius: 12px;
+            background-color: var(--secondary-surface);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #cat-image-container img, #dog-image-container img, #fox-image-container img, #randomdogimage-container img {
+            max-width: 100%;
+            max-height: 500px;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        #code-output {
+            background-color: #0D0D0D;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            min-height: 80px;
+            margin-top: 20px;
+        }
+        
+        #myChart {
+            background-color: var(--primary-surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .quiz-options {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .quiz-options button {
+            width: 100%;
+        }
+        
+        #hexcolor-container {
+            width: 150px;
+            height: 150px;
+            border: 2px solid var(--border-color);
+            margin: 20px auto;
+            border-radius: 50%;
+            transition: background-color 0.5s;
+        }
+        #hexcolor-text {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+</head>
+<body>
+    <div id="main-wrapper">
+    <div id="nav">
+        <h2>メニュー</h2>
+        <button onclick="showContent('pokemon')">ポケモン</button>
+        <button onclick="showContent('cocktail')">カクテル</button>
+        <button onclick="showContent('bitcoin')">ビットコイン価格</button>
+        <button onclick="showContent('exchange')">為替レート</button>
+        <button onclick="showContent('usastats')">米国の統計</button>
+        <button onclick="showContent('anime')">アニメ</button>
+        <button onclick="showContent('book')">本</button>
+        <button onclick="showContent('joke')">今日のジョーク</button>
+        <button onclick="showContent('map')">現在地を地図に表示</button>
+        <button onclick="showContent('user')">ランダムなユーザー</button>
+        <button onclick="showContent('number')">数字の豆知識</button>
+        <button onclick="showContent('cat')">ランダムな猫</button>
+        <button onclick="showContent('dadjoke')">ダジャレジョーク</button>
+        <button onclick="showContent('advice')">アドバイス</button>
+        <button onclick="showContent('kanye')">カニエ・ウェストの格言</button>
+        <button onclick="showContent('dog')">ランダムな犬</button>
+        <button onclick="showContent('randomdogimage')">ランダムな犬２</button>
+        <button onclick="showContent('quiz')">ビデオゲームクイズ</button>
+        <button onclick="showContent('coding')">ブラウザでコーディング</button>
+        <button onclick="showContent('graph')">ランダムグラフ</button>
+        <button onclick="showContent('chucknorris')">チャック・ノリスジョーク</button>
+        <button onclick="showContent('catfact')">猫の豆知識</button>
+        <button onclick="showContent('fox')">ランダムなキツネ</button>
+        <button onclick="showContent('hexcolor')">ランダムHEXカラー</button>
+        <button onclick="showContent('mathfact')">数学の豆知識</button>
+        <button onclick="showContent('programmingjoke')">プログラミングジョーク</button>
+        <button onclick="showContent('generaltrivia')">一般トリビア</button>
+    </div>
+
+    <div id="content">
+        <!-- Joke Section -->
+        <div id="joke-content" class="content-section">
+            <h1>今日のジョーク</h1>
+            <button class="action-btn" onclick="getJoke()">新しいジョークを取得</button>
+            <div id="joke-container">
+                <p><strong>原文</strong></p>
+                <p id="joke-setup"></p>
+                <p id="joke-punchline"></p>
+                <hr>
+                <p><strong>日本語訳</strong></p>
+                <p id="joke-setup-ja"></p>
+                <p id="joke-punchline-ja"></p>
+            </div>
+        </div>
+
+        <!-- Map Section -->
+        <div id="map-content" class="content-section">
+            <h1>現在地を地図に表示</h1>
+            <p>お使いのブラウザの位置情報へのアクセスを許可してください。</p>
+            <div id="map-container">地図を読み込み中です...</div>
+        </div>
+
+        <!-- Random User Section -->
+        <div id="user-content" class="content-section">
+            <h1>ランダムなユーザーを生成</h1>
+            <button class="action-btn" onclick="getRandomUser()">新しいユーザーを取得</button>
+            <div id="user-container">
+                <p>上のボタンを押してユーザーを生成してください。</p>
+            </div>
+        </div>
+
+        <!-- Numbers API Section -->
+        <div id="number-content" class="content-section">
+            <h1>数字の豆知識</h1>
+            <div class="card-actions">
+                <input type="number" id="number-input" placeholder="数字を入力">
+                <button class="action-btn" onclick="getSpecificNumberFact()">この数字で検索</button>
+                <button class="action-btn secondary" onclick="getRandomNumberFact()">ランダム</button>
+            </div>
+            <div id="number-fact">ここに豆知識が表示されます...</div>
+        </div>
+
+        <!-- Cat API Section -->
+        <div id="cat-content" class="content-section">
+            <h1>ランダムな猫</h1>
+            <div class="card-actions">
+                <button class="action-btn" onclick="getCatImage()">新しい猫を呼ぶ</button>
+            </div>
+            <div id="cat-image-container">
+                <p>下のボタンを押して猫の画像を表示！</p>
+            </div>
+        </div>
+
+        <!-- Dad Joke Section -->
+        <div id="dadjoke-content" class="content-section">
+            <h1>ダジャレジョーク</h1>
+            <button class="action-btn" onclick="getDadJoke()">新しいダジャレを取得</button>
+            <div id="dadjoke-container">
+                <p id="dadjoke-text"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="dadjoke-text-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advice Slip Section -->
+        <div id="advice-content" class="content-section">
+            <h1>アドバイス</h1>
+            <button class="action-btn" onclick="getAdvice()">新しいアドバイスを取得</button>
+            <div id="advice-container">
+                <p id="advice-text"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="advice-text-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kanye.rest Section -->
+        <div id="kanye-content" class="content-section">
+            <h1>カニエ・ウェストの格言</h1>
+            <button class="action-btn" onclick="getKanyeQuote()">新しい格言を取得</button>
+            <div id="kanye-container">
+                <p id="kanye-quote"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="kanye-quote-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Random Dog API Section -->
+        <div id="dog-content" class="content-section">
+            <h1>ランダムな犬</h1>
+            <button class="action-btn" onclick="getDogImage()">新しい犬を呼ぶ</button>
+            <div id="dog-image-container">
+                <p>下のボタンを押して犬の画像を表示！</p>
+            </div>
+        </div>
+
+        <!-- Random Dog Image (another source) Section -->
+        <div id="randomdogimage-content" class="content-section">
+            <h1>ランダムな犬２</h1>
+            <button class="action-btn" onclick="getRandomDogImageAlt()">新しい犬を呼ぶ</button>
+            <div id="randomdogimage-container">
+                <p>下のボタンを押して犬の画像を表示！</p>
+            </div>
+        </div>
+
+        <!-- Video Game Quiz Section -->
+        <div id="quiz-content" class="content-section">
+            <h1>ビデオゲームクイズ</h1>
+            <button class="action-btn" onclick="getQuizQuestion()">新しい問題を取得</button>
+            <div id="quiz-container">
+                <p><strong>問題:</strong> <span id="quiz-question"></span></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="quiz-question-ja"></span></p>
+                </div>
+                <p><strong>答え:</strong> <span id="quiz-answer"></span></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="quiz-answer-ja"></span></p>
+                </div>
+                <button class="action-btn secondary" onclick="showQuizAnswer()">答えを見る</button>
+            </div>
+        </div>
+
+        <!-- Coding Section -->
+        <div id="coding-content" class="content-section">
+            <h1>ブラウザでコーディング</h1>
+            <p>JavaScriptコードを記述して実行できます。<code>console.log()</code> の出力は下の「出力」エリアに表示されます。</p>
+            <textarea id="code-editor" rows="15" cols="80" style="width: 100%; font-family: monospace; font-size: 14px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;" placeholder="ここにJavaScriptコードを記述してください...">console.log("Hello, World!");
+
+// 例: 1から10までの合計を計算
+let sum = 0;
+for (let i = 1; i <= 10; i++) {
+    sum += i;
+}
+console.log("1から10までの合計: " + sum);</textarea>
+            <button class="action-btn" onclick="runCode()">コードを実行</button>
+            <h2>出力</h2>
+            <pre id="code-output" style="background-color: #f4f4f4; padding: 10px; border: 1px solid #ddd; border-radius: 5px; white-space: pre-wrap; word-break: break-all;">ここにコードの出力が表示されます。</pre>
+        </div>
+
+        <!-- Random Graph Section -->
+        <div id="graph-content" class="content-section">
+            <h1>ランダムグラフ</h1>
+            <button class="action-btn" onclick="generateRandomGraph()">新しいグラフを生成</button>
+            <div style="width: 70%; margin: 20px auto;">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chuck Norris Joke Section -->
+        <div id="chucknorris-content" class="content-section">
+            <h1>チャック・ノリスジョーク</h1>
+            <button class="action-btn" onclick="getChuckNorrisJoke()">新しいジョークを取得</button>
+            <div id="chucknorris-container">
+                <p id="chucknorris-joke"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="chucknorris-joke-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cat Fact Section -->
+        <div id="catfact-content" class="content-section">
+            <h1>猫の豆知識</h1>
+            <button class="action-btn" onclick="getCatFact()">新しい豆知識を取得</button>
+            <div id="catfact-container">
+                <p id="catfact-text"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="catfact-text-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Random Fox Section -->
+        <div id="fox-content" class="content-section">
+            <h1>ランダムなキツネ</h1>
+            <button class="action-btn" onclick="getFoxImage()">新しいキツネを呼ぶ</button>
+            <div id="fox-image-container">
+                <p>下のボタンを押してキツネの画像を表示！</p>
+            </div>
+        </div>
+
+        <!-- Hex Color Section -->
+        <div id="hexcolor-content" class="content-section">
+            <h1>ランダムHEXカラー</h1>
+            <button class="action-btn" onclick="getHexColor()">新しいカラーを生成</button>
+            <div id="hexcolor-container" style="width: 100px; height: 100px; border: 1px solid #ccc; margin: 10px auto;"></div>
+            <p id="hexcolor-text" style="text-align: center;"></p>
+            <div class="translation-box">
+                <p><strong>日本語訳:</strong> <span id="hexcolor-text-ja"></span></p>
+            </div>
+        </div>
+
+        <!-- Math Fact Section -->
+        <div id="mathfact-content" class="content-section">
+            <h1>数学の豆知識</h1>
+            <button class="action-btn" onclick="getMathFact()">新しい豆知識を取得</button>
+            <div id="mathfact-container">
+                <p id="mathfact-text"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="mathfact-text-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Programming Joke Section -->
+        <div id="programmingjoke-content" class="content-section">
+            <h1>プログラミングジョーク</h1>
+            <button class="action-btn" onclick="getProgrammingJoke()">新しいジョークを取得</button>
+            <div id="programmingjoke-container">
+                <p id="programmingjoke-text"></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳:</strong> <span id="programmingjoke-text-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- General Trivia Section -->
+        <div id="generaltrivia-content" class="content-section">
+            <h1>一般トリビア</h1>
+            <button class="action-btn" onclick="getGeneralTrivia()">新しい問題を取得</button>
+            <div id="generaltrivia-container">
+                <p><strong>問題:</strong> <span id="generaltrivia-question"></span></p>
+                <div class="quiz-options" id="generaltrivia-options"></div>
+                <p><strong>答え:</strong> <span id="generaltrivia-answer"></span></p>
+                <div class="translation-box">
+                    <p><strong>日本語訳 (問題):</strong> <span id="generaltrivia-question-ja"></span></p>
+                    <p><strong>日本語訳 (答え):</strong> <span id="generaltrivia-answer-ja"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pokemon Section -->
+        <div id="pokemon-content" class="content-section">
+            <h1>ポケモン</h1>
+            <div class="card-actions">
+                <input type="text" id="pokemon-input" placeholder="ポケモン名またはIDを入力">
+                <button class="action-btn" onclick="getPokemon(document.getElementById('pokemon-input').value)">ポケモンを検索</button>
+                <button class="action-btn secondary" onclick="getRandomPokemon()">ランダム</button>
+            </div>
+            <div id="pokemon-container" class="card"></div>
+        </div>
+
+        <!-- Cocktail Section -->
+        <div id="cocktail-content" class="content-section">
+            <h1>カクテル</h1>
+            <div class="card-actions">
+                <input type="text" id="cocktail-input" placeholder="カクテル名を入力">
+                <button class="action-btn" onclick="getCocktail(document.getElementById('cocktail-input').value)">カクテルを検索</button>
+                <button class="action-btn secondary" onclick="getRandomCocktail()">ランダム</button>
+            </div>
+            <div id="cocktail-container" class="card"></div>
+        </div>
+
+        <!-- Bitcoin Price Section -->
+        <div id="bitcoin-content" class="content-section">
+            <h1>ビットコイン価格</h1>
+            <button class="action-btn" onclick="getBitcoinPrice()">価格を更新</button>
+            <div id="bitcoin-container" class="card"></div>
+        </div>
+
+        <!-- Exchange Rate Section -->
+        <div id="exchange-content" class="content-section">
+            <h1>為替レート</h1>
+            <button class="action-btn" onclick="getExchangeRate()">レートを更新</button>
+            <div id="exchange-container" class="card"></div>
+        </div>
+
+        <!-- Data USA API Section -->
+        <div id="usastats-content" class="content-section">
+            <h1>米国の統計</h1>
+            <button class="action-btn" onclick="getUsaStats()">統計を更新</button>
+            <div id="usastats-container" class="card"></div>
+        </div>
+
+        <!-- Anime Section -->
+        <div id="anime-content" class="content-section">
+            <h1>アニメ</h1>
+            <div class="card-actions">
+                <input type="text" id="anime-input" placeholder="アニメのタイトルを入力">
+                <button class="action-btn" onclick="getAnime(document.getElementById('anime-input').value)">アニメを検索</button>
+                <button class="action-btn secondary" onclick="getRandomAnime()">ランダム</button>
+            </div>
+            <div id="anime-container" class="card"></div>
+        </div>
+
+        <!-- Book Section -->
+        <div id="book-content" class="content-section">
+            <h1>本</h1>
+            <div class="card-actions">
+                <input type="text" id="book-input" placeholder="本のタイトルを入力">
+                <button class="action-btn" onclick="getBook(document.getElementById('book-input').value)">本を検索</button>
+                <button class="action-btn secondary" onclick="getRandomBook()">ランダム</button>
+            </div>
+            <div id="book-container" class="card"></div>
+        </div>
+
+    </div>
+
+    </div>
+
+    <script>
+        const contentSections = document.querySelectorAll('.content-section');
+        const navButtons = document.querySelectorAll('#nav button');
+
+        function showContent(id) {
+            contentSections.forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(id + '-content').classList.add('active');
+
+            // Update active button state
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('onclick') === `showContent('${id}')`) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Special handling for map when it becomes visible
+            if (id === 'map') {
+                showMap();
+            }
+        }
+
+        // --- Joke API ---
+        const jokeSetup = document.getElementById('joke-setup');
+        const jokePunchline = document.getElementById('joke-punchline');
+        const jokeSetupJa = document.getElementById('joke-setup-ja');
+        const jokePunchlineJa = document.getElementById('joke-punchline-ja');
+
+        async function getJoke() {
+            jokeSetup.textContent = '読み込み中...';
+            jokePunchline.textContent = '';
+            jokeSetupJa.textContent = '翻訳中...';
+            jokePunchlineJa.textContent = '';
+
+            try {
+                const response = await fetch('https://official-joke-api.appspot.com/random_joke');
+                const data = await response.json();
+
+                jokeSetup.textContent = data.setup;
+                jokePunchline.textContent = `- ${data.punchline}`;
+
+                // Translate setup and punchline
+                const translatedSetup = await translateText(data.setup);
+                const translatedPunchline = await translateText(data.punchline);
+
+                jokeSetupJa.textContent = translatedSetup;
+                jokePunchlineJa.textContent = `- ${translatedPunchline}`;
+
+            } catch (error) {
+                jokeSetup.textContent = 'ジョークの取得に失敗しました。';
+                jokeSetupJa.textContent = '翻訳に失敗しました。';
+                console.error('Error fetching or translating joke:', error);
+            }
+        }
+
+        async function translateText(textToTranslate) {
+            // MyMemory API is free and does not require an API key
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(textToTranslate)}&langpair=en|ja`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.responseData) {
+                    return data.responseData.translatedText;
+                } else {
+                    return '翻訳できませんでした';
+                }
+            } catch (error) {
+                console.error('Translation error:', error);
+                return '翻訳APIエラー';
+            }
+        }
+
+        // --- Geolocation & OpenStreetMap ---
+        const mapContainer = document.getElementById('map-container');
+        function showMap() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude-0.01},${latitude-0.01},${longitude+0.01},${latitude+0.01}&layer=mapnik&marker=${latitude},${longitude}`;
+                    mapContainer.innerHTML = `<iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="${mapUrl}"></iframe>`;
+                }, error => {
+                    mapContainer.textContent = '位置情報の取得に失敗しました。ブラウザの設定を確認してください。';
+                    console.error('Geolocation error:', error);
+                });
+            } else {
+                mapContainer.textContent = 'お使いのブラウザは位置情報に対応していません。';
+            }
+        }
+
+        // --- Random User API ---
+        const userContainer = document.getElementById('user-container');
+        async function getRandomUser() {
+            userContainer.innerHTML = '<p>読み込み中...';
+            try {
+                const response = await fetch('https://randomuser.me/api/');
+                const data = await response.json();
+                const user = data.results[0];
+                const name = `${user.name.title} ${user.name.first} ${user.name.last}`;
+                userContainer.innerHTML = `
+                    <img src="${user.picture.large}" alt="User photo">
+                    <div>
+                        <h3>${name}</h3>
+                        <p>Email: ${user.email}</p>
+                    </div>
+                `;
+            } catch (error) {
+                userContainer.innerHTML = '<p>ユーザーの取得に失敗しました。</p>';
+                console.error('Error fetching random user:', error);
+            }
+        }
+
+        // --- Numbers API ---
+        const numberFactDiv = document.getElementById('number-fact');
+        const numberInput = document.getElementById('number-input');
+
+        async function fetchAndDisplayNumberFact(url) {
+            numberFactDiv.innerHTML = '<p>読み込み中...';
+            try {
+                const response = await fetch(url);
+                const factText = await response.text();
+                const translatedText = await translateText(factText);
+                numberFactDiv.innerHTML = `
+                    <p>${factText}</p>
+                    <div class="translation-box">
+                        <p><strong>日本語訳:</strong> ${translatedText}</p>
+                    </div>
+                `;
+            } catch (error) {
+                numberFactDiv.textContent = '豆知識の取得に失敗しました。';
+                console.error('Numbers API Error:', error);
+            }
+        }
+
+        function getSpecificNumberFact() {
+            const number = numberInput.value || 'random';
+            fetchAndDisplayNumberFact(`http://numbersapi.com/${number}`);
+        }
+
+        function getRandomNumberFact() {
+            numberInput.value = '';
+            fetchAndDisplayNumberFact('http://numbersapi.com/random/trivia');
+        }
+
+        // --- The Cat API ---
+        const catContainer = document.getElementById('cat-image-container');
+        async function getCatImage() {
+            catContainer.innerHTML = '<p>猫を探しています...</p>';
+            try {
+                const response = await fetch('https://api.thecatapi.com/v1/images/search');
+                const data = await response.json();
+                catContainer.innerHTML = `<img src="${data[0].url}" alt="A cute cat">`;
+            } catch (error) {
+                catContainer.textContent = '猫の画像の取得に失敗しました。';
+                console.error('Cat API Error:', error);
+            }
+        }
+
+        // --- Dad Jokes API ---
+        const dadjokeText = document.getElementById('dadjoke-text');
+        const dadjokeTextJa = document.getElementById('dadjoke-text-ja');
+        async function getDadJoke() {
+            dadjokeText.textContent = '読み込み中...';
+            dadjokeTextJa.textContent = '翻訳中...';
+            try {
+                const response = await fetch('https://icanhazdadjoke.com/', {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                dadjokeText.textContent = data.joke;
+                const translatedJoke = await translateText(data.joke);
+                dadjokeTextJa.textContent = translatedJoke;
+            } catch (error) {
+                dadjokeText.textContent = 'ダジャレの取得に失敗しました。';
+                dadjokeTextJa.textContent = '翻訳に失敗しました。';
+                console.error('Dad Joke API Error:', error);
+            }
+        }
+
+        // --- Advice Slip API ---
+        const adviceText = document.getElementById('advice-text');
+        const adviceTextJa = document.getElementById('advice-text-ja');
+        async function getAdvice() {
+            adviceText.textContent = '読み込み中...';
+            adviceTextJa.textContent = '翻訳中...';
+            try {
+                const response = await fetch('https://api.adviceslip.com/advice');
+                const data = await response.json();
+                adviceText.textContent = data.slip.advice;
+                const translatedAdvice = await translateText(data.slip.advice);
+                adviceTextJa.textContent = translatedAdvice;
+            } catch (error) {
+                adviceText.textContent = 'アドバイスの取得に失敗しました。';
+                adviceTextJa.textContent = '翻訳に失敗しました。';
+                console.error('Advice Slip API Error:', error);
+            }
+        }
+
+        // --- Kanye.rest API ---
+        const kanyeQuoteDiv = document.getElementById('kanye-quote');
+        const kanyeQuoteJaDiv = document.getElementById('kanye-quote-ja');
+        async function getKanyeQuote() {
+            kanyeQuoteDiv.textContent = '読み込み中...';
+            kanyeQuoteJaDiv.textContent = '翻訳中...';
+            try {
+                const response = await fetch('https://api.kanye.rest/');
+                const data = await response.json();
+                kanyeQuoteDiv.textContent = data.quote;
+                const translatedQuote = await translateText(data.quote);
+                kanyeQuoteJaDiv.textContent = translatedQuote;
+            } catch (error) {
+                kanyeQuoteDiv.textContent = '格言の取得に失敗しました。';
+                kanyeQuoteJaDiv.textContent = '翻訳に失敗しました。';
+                console.error('Kanye.rest API Error:', error);
+            }
+        }
+
+        // --- Random Dog API ---
+        const dogContainer = document.getElementById('dog-image-container');
+        async function getDogImage() {
+            dogContainer.innerHTML = '<p>犬を探しています...</p>';
+            try {
+                const response = await fetch('https://dog.ceo/api/breeds/image/random');
+                const data = await response.json();
+                dogContainer.innerHTML = `<img src="${data.message}" alt="A cute dog">`;
+            } catch (error) {
+                dogContainer.textContent = '犬の画像の取得に失敗しました。';
+                console.error('Dog API Error:', error);
+            }
+        }
+
+        // --- Video Game Quiz API ---
+        const quizQuestionSpan = document.getElementById('quiz-question');
+        const quizQuestionJaSpan = document.getElementById('quiz-question-ja');
+        const quizAnswerSpan = document.getElementById('quiz-answer');
+        const quizAnswerJaSpan = document.getElementById('quiz-answer-ja');
+        let currentQuizAnswer = '';
+
+        async function getQuizQuestion() {
+            quizQuestionSpan.textContent = '読み込み中...';
+            quizQuestionJaSpan.textContent = '翻訳中...';
+            quizAnswerSpan.textContent = '';
+            quizAnswerJaSpan.textContent = '';
+            currentQuizAnswer = '';
+
+            try {
+                // category=15 for Video Games, type=boolean for True/False questions
+                const response = await fetch('https://opentdb.com/api.php?amount=1&category=15&type=boolean');
+                const data = await response.json();
+                const question = data.results[0].question;
+                const answer = data.results[0].correct_answer;
+
+                quizQuestionSpan.innerHTML = question; // Use innerHTML to render HTML entities
+                currentQuizAnswer = answer;
+
+                const translatedQuestion = await translateText(question);
+                const translatedAnswer = await translateText(answer);
+
+                quizQuestionJaSpan.innerHTML = translatedQuestion;
+                // quizAnswerJaSpan will be set when showQuizAnswer is called
+
+            } catch (error) {
+                quizQuestionSpan.textContent = '問題の取得に失敗しました。';
+                quizQuestionJaSpan.textContent = '翻訳に失敗しました。';
+                console.error('Quiz API Error:', error);
+            }
+        }
+
+        async function showQuizAnswer() {
+            if (currentQuizAnswer) {
+                quizAnswerSpan.textContent = currentQuizAnswer;
+                const translatedAnswer = await translateText(currentQuizAnswer);
+                quizAnswerJaSpan.textContent = translatedAnswer;
+            }
+        }
+
+        // --- Coding Section ---
+        const codeEditor = document.getElementById('code-editor');
+        const codeOutput = document.getElementById('code-output');
+
+        function runCode() {
+            codeOutput.textContent = ''; // Clear previous output
+
+            // Override console.log to capture output
+            const originalConsoleLog = console.log;
+            console.log = (...args) => {
+                codeOutput.textContent += args.map(arg => String(arg)).join(' ') + '\n';
+            };
+
+            try {
+                eval(codeEditor.value); // Execute the code
+            } catch (error) {
+                codeOutput.textContent += 'Error: ' + error.message + '\n';
+                console.error('Code execution error:', error);
+            }
+            finally {
+                console.log = originalConsoleLog; // Restore original console.log
+            }
+        }
+
+        // --- Random Graph Section ---
+        let myChartInstance = null; // To store the Chart.js instance
+
+        function generateRandomData(numPoints, isScatterOrBubble = false) {
+            const labels = [];
+            const data = [];
+            const backgroundColors = [];
+            const borderColors = [];
+
+            for (let i = 0; i < numPoints; i++) {
+                labels.push(`項目 ${String.fromCharCode(65 + i)}`);
+                const r = Math.floor(Math.random() * 255);
+                const g = Math.floor(Math.random() * 255);
+                const b = Math.floor(Math.random() * 255);
+                const color = `rgba(${r}, ${g}, ${b}, 0.6)`;
+                const borderColor = `rgba(${r}, ${g}, ${b}, 1)`;
+
+                if (isScatterOrBubble) {
+                    data.push({
+                        x: Math.floor(Math.random() * 100) + 1,
+                        y: Math.floor(Math.random() * 100) + 1,
+                        r: Math.floor(Math.random() * 15) + 5 // Radius for bubble chart
+                    });
+                } else {
+                    data.push(Math.floor(Math.random() * 100) + 10); // Random data between 10 and 110
+                }
+                backgroundColors.push(color);
+                borderColors.push(borderColor);
+            }
+            return { labels, data, backgroundColors, borderColors };
+        }
+
+        function generateRandomGraph() {
+            if (myChartInstance) {
+                myChartInstance.destroy(); // Destroy existing chart before creating a new one
+            }
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const chartTypes = ['bar', 'line', 'pie', 'doughnut', 'radar', 'polarArea', 'scatter', 'bubble']; // Added new types
+            const randomChartType = chartTypes[Math.floor(Math.random() * chartTypes.length)];
+            const numDataPoints = Math.floor(Math.random() * 5) + 3; // 3 to 7 data points
+
+            let labels, data, backgroundColors, borderColors;
+
+            if (randomChartType === 'scatter' || randomChartType === 'bubble') {
+                ({ labels, data, backgroundColors, borderColors } = generateRandomData(numDataPoints, true));
+            } else {
+                ({ labels, data, backgroundColors, borderColors } = generateRandomData(numDataPoints));
+            }
+
+            const chartConfig = {
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'ランダムデータ',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: ['pie', 'doughnut', 'polarArea'].includes(randomChartType) // Show legend for these types
+                        }
+                    },
+                    scales: {} // Initialize scales for non-pie/doughnut/polarArea charts
+                }
+            };
+
+            // Specific configurations for each chart type
+            if (randomChartType === 'bar') {
+                chartConfig.type = 'bar';
+                chartConfig.options.scales = {
+                    y: {
+                        beginAtZero: true
+                    }
+                };
+            } else if (randomChartType === 'horizontalBar') { // This was 'bar' with indexAxis: 'y'
+                chartConfig.type = 'bar';
+                chartConfig.options.indexAxis = 'y';
+                chartConfig.options.scales = {
+                    x: {
+                        beginAtZero: true
+                    }
+                };
+            } else if (randomChartType === 'line') {
+                chartConfig.type = 'line';
+                chartConfig.options.scales = {
+                    y: {
+                        beginAtZero: true
+                    }
+                };
+                chartConfig.data.datasets[0].fill = false; // No fill for line chart by default
+                chartConfig.data.datasets[0].tension = 0.1; // Smooth lines
+            } else if (randomChartType === 'pie') {
+                chartConfig.type = 'pie';
+            } else if (randomChartType === 'doughnut') {
+                chartConfig.type = 'doughnut';
+            } else if (randomChartType === 'radar') {
+                chartConfig.type = 'radar';
+                chartConfig.options.elements = {
+                    line: {
+                        borderWidth: 3
+                    }
+                };
+            } else if (randomChartType === 'polarArea') {
+                chartConfig.type = 'polarArea';
+            } else if (randomChartType === 'scatter') {
+                chartConfig.type = 'scatter';
+                chartConfig.options.scales = {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left'
+                    }
+                };
+            } else if (randomChartType === 'bubble') {
+                chartConfig.type = 'bubble';
+                chartConfig.options.scales = {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom'
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'left'
+                    }
+                };
+            }
+
+            myChartInstance = new Chart(ctx, chartConfig);
+        }
+
+        // --- Chuck Norris Joke API ---
+        const chucknorrisJokeDiv = document.getElementById('chucknorris-joke');
+        const chucknorrisJokeJaDiv = document.getElementById('chucknorris-joke-ja');
+        async function getChuckNorrisJoke() {
+            chucknorrisJokeDiv.textContent = '読み込み中...';
+            chucknorrisJokeJaDiv.textContent = '翻訳中...';
+            try {
+                const response = await fetch('https://api.chucknorris.io/jokes/random');
+                const data = await response.json();
+                chucknorrisJokeDiv.textContent = data.value;
+                const translatedJoke = await translateText(data.value);
+                chucknorrisJokeJaDiv.textContent = translatedJoke;
+            } catch (error) {
+                chucknorrisJokeDiv.textContent = 'ジョークの取得に失敗しました。';
+                chucknorrisJokeJaDiv.textContent = '翻訳に失敗しました。';
+                console.error('Chuck Norris API Error:', error);
+            }
+        }
+
+        // --- Cat Fact API ---
+        const catfactTextDiv = document.getElementById('catfact-text');
+        const catfactTextJaDiv = document.getElementById('catfact-text-ja');
+        async function getCatFact() {
+            catfactTextDiv.textContent = '読み込み中...';
+            catfactTextJaDiv.textContent = '翻訳中...';
+            try {
+                const response = await fetch('https://catfact.ninja/fact');
+                const data = await response.json();
+                catfactTextDiv.textContent = data.fact;
+                const translatedFact = await translateText(data.fact);
+                catfactTextJaDiv.textContent = translatedFact;
+            } catch (error) {
+                catfactTextDiv.textContent = '豆知識の取得に失敗しました。';
+                catfactTextJaDiv.textContent = '翻訳に失敗しました。';
+                console.error('Cat Fact API Error:', error);
+            }
+        }
+
+        // --- Random Fox API ---
+        const foxContainer = document.getElementById('fox-image-container');
+        async function getFoxImage() {
+            foxContainer.innerHTML = '<p>キツネを探しています...</p>';
+            try {
+                const response = await fetch('https://randomfox.ca/floof/');
+                const data = await response.json();
+                foxContainer.innerHTML = `<img src="${data.image}" alt="A cute fox">`;
+            } catch (error) {
+                foxContainer.textContent = 'キツネの画像の取得に失敗しました。';
+                console.error('Fox API Error:', error);
+            }
+        }
+
+        // --- Hex Color Generator ---
+        const hexcolorContainer = document.getElementById('hexcolor-container');
+        const hexcolorTextDiv = document.getElementById('hexcolor-text');
+        const hexcolorTextJaDiv = document.getElementById('hexcolor-text-ja');
+        function getHexColor() {
+            const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            hexcolorContainer.style.backgroundColor = randomColor;
+            hexcolorTextDiv.textContent = randomColor;
+            hexcolorTextJaDiv.textContent = `ランダムなHEXカラー: ${randomColor}`;
+        }
+
+        // --- Random Dog Image (another source) API ---
+        const randomdogimageContainer = document.getElementById('randomdogimage-container');
+        async function getRandomDogImageAlt() {
+            randomdogimageContainer.innerHTML = '<p>犬を探しています...</p>';
+            try {
+                const response = await fetch('https://random.dog/woof.json');
+                const data = await response.json();
+                if (data.url.endsWith('.mp4')) {
+                    getRandomDogImageAlt();
+                    return;
+                }
+                randomdogimageContainer.innerHTML = `<img src="${data.url}" alt="A cute dog">`;
+            } catch (error) {
+                randomdogimageContainer.textContent = '犬の画像の取得に失敗しました。';
+                console.error('Random Dog Image Alt API Error:', error);
+            }
+        }
+
+        // --- Math Fact API ---
+        const mathfactTextDiv = document.getElementById('mathfact-text');
+        const mathfactTextJaDiv = document.getElementById('mathfact-text-ja');
+        async function getMathFact() {
+            mathfactTextDiv.textContent = '読み込み中...';
+            mathfactTextJaDiv.textContent = '翻訳中...';
+            try {
+                const response = await fetch('http://numbersapi.com/random/math');
+                const data = await response.text();
+                mathfactTextDiv.textContent = data;
+                const translatedFact = await translateText(data);
+                mathfactTextJaDiv.textContent = translatedFact;
+            } catch (error) {
+                mathfactTextDiv.textContent = '数学の豆知識の取得に失敗しました。';
+                mathfactTextJaDiv.textContent = '翻訳に失敗しました。';
+                console.error('Math Fact API Error:', error);
+            }
+        }
+
+        // --- Programming Joke API ---
+        const programmingjokeTextDiv = document.getElementById('programmingjoke-text');
+        const programmingjokeTextJaDiv = document.getElementById('programmingjoke-text-ja');
+        async function getProgrammingJoke() {
+            programmingjokeTextDiv.textContent = '読み込み中...';
+            programmingjokeTextJaDiv.textContent = '翻訳中...';
+            try {
+                const response = await fetch('https://v2.jokeapi.dev/joke/Programming?type=single');
+                const data = await response.json();
+                programmingjokeTextDiv.textContent = data.joke;
+                const translatedJoke = await translateText(data.joke);
+                programmingjokeTextJaDiv.textContent = translatedJoke;
+            } catch (error) {
+                programmingjokeTextDiv.textContent = 'プログラミングジョークの取得に失敗しました。';
+                programmingjokeTextJaDiv.textContent = '翻訳に失敗しました。';
+                console.error('Programming Joke API Error:', error);
+            }
+        }
+
+        // --- General Trivia API ---
+        const generaltriviaQuestionSpan = document.getElementById('generaltrivia-question');
+        const generaltriviaOptionsDiv = document.getElementById('generaltrivia-options');
+        const generaltriviaAnswerSpan = document.getElementById('generaltrivia-answer');
+        const generaltriviaQuestionJaSpan = document.getElementById('generaltrivia-question-ja');
+        const generaltriviaAnswerJaSpan = document.getElementById('generaltrivia-answer-ja');
+        let currentGeneralTriviaAnswer = '';
+
+        async function getGeneralTrivia() {
+            generaltriviaQuestionSpan.textContent = '読み込み中...';
+            generaltriviaOptionsDiv.innerHTML = '';
+            generaltriviaAnswerSpan.textContent = '';
+            generaltriviaQuestionJaSpan.textContent = '翻訳中...';
+            generaltriviaAnswerJaSpan.textContent = '';
+            currentGeneralTriviaAnswer = '';
+
+            try {
+                const response = await fetch('https://opentdb.com/api.php?amount=1&type=multiple');
+                const data = await response.json();
+                const result = data.results[0];
+                const question = result.question;
+                const correctAnswer = result.correct_answer;
+                const incorrectAnswers = result.incorrect_answers;
+
+                generaltriviaQuestionSpan.innerHTML = question; // Use innerHTML for HTML entities
+                currentGeneralTriviaAnswer = correctAnswer;
+
+                const allOptions = [...incorrectAnswers, correctAnswer];
+                allOptions.sort(() => Math.random() - 0.5); // Shuffle options
+
+                for (const option of allOptions) {
+                    const button = document.createElement('button');
+                    button.className = 'action-btn secondary';
+                    button.innerHTML = option;
+                    button.onclick = () => checkTriviaAnswer(option, correctAnswer, button);
+                    generaltriviaOptionsDiv.appendChild(button);
+                }
+
+                const translatedQuestion = await translateText(question);
+                generaltriviaQuestionJaSpan.innerHTML = translatedQuestion;
+
+            } catch (error) {
+                generaltriviaQuestionSpan.textContent = '問題の取得に失敗しました。';
+                generaltriviaQuestionJaSpan.textContent = '翻訳に失敗しました。';
+                console.error('General Trivia API Error:', error);
+            }
+        }
+
+        async function checkTriviaAnswer(selectedOption, correctAnswer, button) {
+            const allButtons = generaltriviaOptionsDiv.querySelectorAll('button');
+            allButtons.forEach(btn => btn.disabled = true); // Disable all buttons after selection
+
+            if (selectedOption === correctAnswer) {
+                button.style.backgroundColor = '#28a745'; // Green for correct
+                generaltriviaAnswerSpan.textContent = '正解！';
+            } else {
+                button.style.backgroundColor = '#dc3545'; // Red for incorrect
+                generaltriviaAnswerSpan.textContent = `不正解。正解は: ${correctAnswer}`;
+                // Highlight correct answer
+                allButtons.forEach(btn => {
+                    if (btn.innerHTML === correctAnswer) {
+                        btn.style.backgroundColor = '#28a745';
+                    }
+                });
+            }
+            const translatedAnswer = await translateText(correctAnswer);
+            generaltriviaAnswerJaSpan.textContent = translatedAnswer;
+        }
+
+        // --- Initial Load ---
+        // Show the first section by default and fetch initial data
+        document.addEventListener('DOMContentLoaded', () => {
+            showContent('pokemon'); // Show Pokemon section by default
+            getJoke();
+            getRandomUser(); // Pre-fetch for faster display later
+            getRandomNumberFact();
+            getCatImage();
+            getDadJoke();
+            getAdvice();
+            getKanyeQuote();
+            getDogImage();
+            getQuizQuestion();
+            generateRandomGraph(); // Generate initial graph
+            getChuckNorrisJoke();
+            getCatFact();
+            getFoxImage();
+            getHexColor();
+            getRandomDogImageAlt();
+            getMathFact();
+            getProgrammingJoke();
+            getGeneralTrivia();
+            getPokemon();
+            getCocktail();
+            getBitcoinPrice();
+            getExchangeRate();
+            getUsaStats();
+            getAnime();
+            getBook();
+        });
+
+        // --- Pokemon API ---
+        const pokemonContainer = document.getElementById('pokemon-container');
+        const pokemonInput = document.getElementById('pokemon-input');
+        async function getPokemon(pokemonName = 'pikachu') {
+            pokemonContainer.innerHTML = '<p>検索中...</p>';
+            try {
+                const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName}`);
+                const data = await response.json();
+                pokemonContainer.innerHTML = `
+                    <h3>${data.name}</h3>
+                    <img src="${data.sprites.front_default}" alt="${data.name}" style="width:150px; height:150px;">
+                    <p><strong>タイプ:</strong> ${data.types.map(typeInfo => typeInfo.type.name).join(', ')}</p>
+                    <p><strong>高さ:</strong> ${data.height / 10} m</p>
+                    <p><strong>重さ:</strong> ${data.weight / 10} kg</p>
+                `;
+            } catch (error) {
+                pokemonContainer.innerHTML = '<p>ポケモンが見つかりませんでした。</p>';
+                console.error('Pokemon API Error:', error);
+            }
+        }
+
+        function getRandomPokemon() {
+            const randomId = Math.floor(Math.random() * 898) + 1;
+            getPokemon(randomId);
+        }
+
+        // --- TheCocktailDB API ---
+        const cocktailContainer = document.getElementById('cocktail-container');
+        const cocktailInput = document.getElementById('cocktail-input');
+        async function getCocktail(cocktailName = 'margarita') {
+            cocktailContainer.innerHTML = '<p>検索中...</p>';
+            try {
+                const response = await fetch(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${cocktailName}`);
+                const data = await response.json();
+                const drink = data.drinks[0];
+                let ingredients = '';
+                for (let i = 1; i <= 15; i++) {
+                    if (drink[`strIngredient${i}`]) {
+                        ingredients += `<li>${drink[`strIngredient${i}`]} - ${drink[`strMeasure${i}`]}</li>`;
+                    } else {
+                        break;
+                    }
+                }
+                cocktailContainer.innerHTML = `
+                    <h3>${drink.strDrink}</h3>
+                    <img src="${drink.strDrinkThumb}" alt="${drink.strDrink}" style="width:150px; height:150px;">
+                    <p><strong>作り方:</strong> ${drink.strInstructions}</p>
+                    <p><strong>材料:</strong></p>
+                    <ul>${ingredients}</ul>
+                `;
+            } catch (error) {
+                cocktailContainer.innerHTML = '<p>カクテルが見つかりませんでした。</p>';
+                console.error('Cocktail API Error:', error);
+            }
+        }
+
+        async function getRandomCocktail() {
+            cocktailContainer.innerHTML = '<p>検索中...</p>';
+            try {
+                const response = await fetch('https://www.thecocktaildb.com/api/json/v1/1/random.php');
+                const data = await response.json();
+                const drink = data.drinks[0];
+                getCocktail(drink.strDrink);
+            } catch (error) {
+                cocktailContainer.innerHTML = '<p>カクテルが見つかりませんでした。</p>';
+                console.error('Cocktail API Error:', error);
+            }
+        }
+
+        // --- CoinDesk API ---
+        const bitcoinContainer = document.getElementById('bitcoin-container');
+        async function getBitcoinPrice() {
+            bitcoinContainer.innerHTML = '<p>読み込み中...</p>';
+            try {
+                const response = await fetch('https://api.coindesk.com/v1/bpi/currentprice.json');
+                const data = await response.json();
+                bitcoinContainer.innerHTML = `
+                    <h3>現在のビットコイン価格</h3>
+                    <p><strong>USD:</strong> ${data.bpi.USD.symbol}${data.bpi.USD.rate}</p>
+                    <p><strong>GBP:</strong> ${data.bpi.GBP.symbol}${data.bpi.GBP.rate}</p>
+                    <p><strong>EUR:</strong> ${data.bpi.EUR.symbol}${data.bpi.EUR.rate}</p>
+                `;
+            } catch (error) {
+                bitcoinContainer.innerHTML = '<p>価格の取得に失敗しました。</p>';
+                console.error('Bitcoin API Error:', error);
+            }
+        }
+
+        // --- ExchangeRate-API ---
+        const exchangeContainer = document.getElementById('exchange-container');
+        async function getExchangeRate() {
+            exchangeContainer.innerHTML = '<p>読み込み中...</p>';
+            try {
+                const response = await fetch('https://open.er-api.com/v6/latest/USD');
+                const data = await response.json();
+                exchangeContainer.innerHTML = `
+                    <h3>USDからの為替レート</h3>
+                    <p><strong>JPY:</strong> ${data.rates.JPY}</p>
+                    <p><strong>EUR:</strong> ${data.rates.EUR}</p>
+                    <p><strong>GBP:</strong> ${data.rates.GBP}</p>
+                `;
+            } catch (error) {
+                exchangeContainer.innerHTML = '<p>レートの取得に失敗しました。</p>';
+                console.error('Exchange Rate API Error:', error);
+            }
+        }
+
+        // --- Data USA API ---
+        const usastatsContainer = document.getElementById('usastats-container');
+        async function getUsaStats() {
+            usastatsContainer.innerHTML = '<p>読み込み中...</p>';
+            try {
+                const response = await fetch('https://datausa.io/api/data?drilldowns=Nation&measures=Population');
+                const data = await response.json();
+                const latestData = data.data[0];
+                usastatsContainer.innerHTML = `
+                    <h3>米国の人口</h3>
+                    <p><strong>年:</strong> ${latestData.Year}</p>
+                    <p><strong>人口:</strong> ${latestData.Population.toLocaleString()}</p>
+                `;
+            } catch (error) {
+                usastatsContainer.innerHTML = '<p>統計の取得に失敗しました。</p>';
+                console.error('Data USA API Error:', error);
+            }
+        }
+
+        // --- Jikan API ---
+        const animeContainer = document.getElementById('anime-container');
+        const animeInput = document.getElementById('anime-input');
+        async function getAnime(animeTitle = 'naruto') {
+            animeContainer.innerHTML = '<p>検索中...</p>';
+            try {
+                const response = await fetch(`https://api.jikan.moe/v4/anime?q=${animeTitle}`);
+                const data = await response.json();
+                const anime = data.data[0];
+                animeContainer.innerHTML = `
+                    <h3>${anime.title}</h3>
+                    <img src="${anime.images.jpg.image_url}" alt="${anime.title}" style="width:150px; height:auto;">
+                    <p><strong>エピソード数:</strong> ${anime.episodes}</p>
+                    <p><strong>評価:</strong> ${anime.score}</p>
+                    <p><strong>あらすじ:</strong> ${anime.synopsis.substring(0, 200)}...</p>
+                `;
+            } catch (error) {
+                animeContainer.innerHTML = '<p>アニメが見つかりませんでした。</p>';
+                console.error('Jikan API Error:', error);
+            }
+        }
+
+        async function getRandomAnime() {
+            animeContainer.innerHTML = '<p>検索中...</p>';
+            try {
+                const response = await fetch('https://api.jikan.moe/v4/random/anime');
+                const data = await response.json();
+                const anime = data.data;
+                getAnime(anime.title);
+            } catch (error) {
+                animeContainer.innerHTML = '<p>アニメが見つかりませんでした。</p>';
+                console.error('Jikan API Error:', error);
+            }
+        }
+
+        // --- Open Library API ---
+        const bookContainer = document.getElementById('book-container');
+        const bookInput = document.getElementById('book-input');
+        async function getBook(bookTitle = 'the lord of the rings') {
+            bookContainer.innerHTML = '<p>検索中...</p>';
+            try {
+                const response = await fetch(`https://openlibrary.org/search.json?q=${bookTitle}`);
+                const data = await response.json();
+                const book = data.docs[0];
+                bookContainer.innerHTML = `
+                    <h3>${book.title}</h3>
+                    <p><strong>著者:</strong> ${book.author_name.join(', ')}</p>
+                    <p><strong>初版発行年:</strong> ${book.first_publish_year}</p>
+                    <p><strong>ISBN:</strong> ${book.isbn[0]}</p>
+                `;
+            } catch (error) {
+                bookContainer.innerHTML = '<p>本が見つかりませんでした。</p>';
+                console.error('Open Library API Error:', error);
+            }
+        }
+
+        function getRandomBook() {
+            const randomSubjects = ['love', 'war', 'fantasy', 'science fiction', 'history'];
+            const randomSubject = randomSubjects[Math.floor(Math.random() * randomSubjects.length)];
+            getBook(randomSubject);
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倉庫番</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>倉庫番</h1>
+    <div id="main-container">
+        <div id="game-container">
+            <div id="game-board"></div>
+        </div>
+        <div id="info-panel">
+            <div id="controls" class="panel">
+                <h2>操作方法</h2>
+                <p>矢印キー (↑ ↓ ← →) でプレイヤーを動かします。</p>
+                <button id="reset-button">新しいステージでリスタート</button>
+            </div>
+            <div id="legend" class="panel">
+                <h2>凡例</h2>
+                <div class="legend-item"><div class="cell player"></div><span>プレイヤー</span></div>
+                <div class="legend-item"><div class="cell box"></div><span>箱</span></div>
+                <div class="legend-item"><div class="cell goal"></div><span>ゴール</span></div>
+                <div class="legend-item"><div class="cell wall"></div><span>壁</span></div>
+            </div>
+            <div id="rules" class="panel">
+                <h2>ルール</h2>
+                <p>全ての箱をゴールの場所に移動させるとクリアです。</p>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

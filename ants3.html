@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ラングトンの蟻（自動移動）</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+JP:wght@400&display=swap');
+
+        :root {
+            --bg-dark: #121212;
+            --primary-surface: #1E1E1E;
+            --secondary-surface: #2C2C2C;
+            --primary-accent: #BB86FC;
+            --secondary-accent: #03DAC6;
+            --primary-text: #E0E0E0;
+            --secondary-text: #A0A0A0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --font-family-main: 'Orbitron', sans-serif;
+            --font-family-jp: 'Noto Sans JP', sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family-jp);
+            margin: 0;
+            background-color: var(--bg-dark);
+            color: var(--primary-text);
+            overflow: hidden;
+        }
+
+        #main-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-dark);
+        }
+
+        canvas {
+            border: 2px solid var(--primary-accent);
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(187, 134, 252, 0.3);
+        }
+
+        #control-panel {
+            width: 300px;
+            padding: 25px;
+            background-color: var(--primary-surface);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-sizing: border-box;
+        }
+
+        h1, h2 {
+            font-family: var(--font-family-main);
+            text-align: center;
+            margin: 0 0 15px 0;
+            padding-bottom: 15px;
+        }
+
+        h1 {
+            color: var(--primary-accent);
+            font-size: 2em;
+            border-bottom: 2px solid var(--primary-accent);
+        }
+
+        h2 {
+            color: var(--secondary-accent);
+            font-size: 1.5em;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .control-group {
+            background: var(--secondary-surface);
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.1em;
+            font-family: var(--font-family-main);
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-top: 10px;
+        }
+
+        #startStopButton {
+            background-color: var(--secondary-accent);
+            color: var(--bg-dark);
+        }
+        #startStopButton:hover {
+            background-color: #05fbe4;
+            transform: translateY(-2px);
+        }
+
+        #resetButton {
+            background-color: var(--secondary-surface);
+            color: var(--secondary-accent);
+            border: 2px solid var(--secondary-accent);
+        }
+        #resetButton:hover {
+            background-color: var(--secondary-accent);
+            color: var(--bg-dark);
+            transform: translateY(-2px);
+        }
+
+        #stats {
+            font-size: 1.1em;
+            line-height: 1.8;
+        }
+
+        #stats p {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #stats span {
+            font-weight: 700;
+            color: var(--secondary-accent);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <div id="canvas-container">
+            <canvas id="antCanvas"></canvas>
+        </div>
+        <div id="control-panel">
+            <h1>ラングトンの蟻（自動移動）</h1>
+            <div class="control-group">
+                <h2>SIMULATION</h2>
+                <button id="startStopButton">開始</button>
+                <button id="resetButton">リセット</button>
+            </div>
+            <div class="control-group">
+                <h2>INFORMATION</h2>
+                <div id="stats">
+                    <p>ステップ数: <span id="step-count">0</span></p>
+                    <p>蟻の数: <span id="ant-count">0</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('antCanvas');
+        const ctx = canvas.getContext('2d');
+        const startStopButton = document.getElementById('startStopButton');
+        const resetButton = document.getElementById('resetButton');
+        const stepCountSpan = document.getElementById('step-count');
+        const antCountSpan = document.getElementById('ant-count');
+
+        const CELL_SIZE = 5;
+        let GRID_WIDTH, GRID_HEIGHT;
+        let grid; // グリッドの構造を変更
+        let ants = [];
+        let totalSteps = 0;
+        let animationFrameId;
+        let isRunning = false;
+
+        // 全ての色を白に統一
+        const antRules = [
+            { color: '#FFFFFF', rule: 'RL' },   // White
+            { color: '#FFFFFF', rule: 'RRL' },  // White
+            { color: '#FFFFFF', rule: 'LLR' },  // White
+            { color: '#FFFFFF', rule: 'LRRL' }, // White
+        ];
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+            GRID_WIDTH = Math.floor(container.clientWidth / CELL_SIZE);
+            GRID_HEIGHT = Math.floor(container.clientHeight / CELL_SIZE);
+            canvas.width = GRID_WIDTH * CELL_SIZE;
+            canvas.height = GRID_HEIGHT * CELL_SIZE;
+
+            // グリッドを [状態, 蟻の種類] で初期化
+            grid = Array.from({ length: GRID_HEIGHT }, () => Array(GRID_WIDTH).fill(null).map(() => [0, -1]));
+            ants = [];
+            totalSteps = 0;
+            
+            for (let i = 0; i < 10; i++) {
+                addAnt();
+            }
+
+            updateStats();
+            draw();
+        }
+
+        function addAnt() {
+            const ruleIndex = Math.floor(Math.random() * antRules.length);
+            const rule = antRules[ruleIndex];
+            ants.push({
+                x: Math.floor(Math.random() * GRID_WIDTH),
+                y: Math.floor(Math.random() * GRID_HEIGHT),
+                dir: Math.floor(Math.random() * 4),
+                ruleIndex: ruleIndex, // 蟻がどのルールかインデックスを保持
+                ...rule
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // グリッド（軌跡）を描画
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    const [state, antRuleIndex] = grid[y][x];
+                    if (state > 0 && antRuleIndex !== -1) {
+                        ctx.fillStyle = antRules[antRuleIndex].color;
+                        ctx.globalAlpha = 0.5; // 軌跡は半透明に
+                        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
+            }
+
+            // 蟻本体を描画
+            ants.forEach(ant => {
+                ctx.fillStyle = ant.color;
+                ctx.fillRect(ant.x * CELL_SIZE, ant.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            });
+        }
+
+        function step() {
+            ants.forEach(ant => {
+                if (ant.x < 0 || ant.x >= GRID_WIDTH || ant.y < 0 || ant.y >= GRID_HEIGHT) {
+                    ant.x = Math.floor(GRID_WIDTH / 2);
+                    ant.y = Math.floor(GRID_HEIGHT / 2);
+                    return;
+                }
+
+                const [state, _] = grid[ant.y][ant.x];
+                
+                // 壁チェック（stateが-1なら壁）
+                if (state === -1) {
+                    ant.dir = (ant.dir + 2) % 4; // 壁に当たったら180度反転
+                    return;
+                }
+
+                const turn = ant.rule[state % ant.rule.length];
+
+                if (turn === 'R') ant.dir = (ant.dir + 1) % 4;
+                else if (turn === 'L') ant.dir = (ant.dir + 3) % 4;
+
+                // グリッドの状態と、どの蟻が通ったかを記録
+                grid[ant.y][ant.x] = [state + 1, ant.ruleIndex];
+
+                switch (ant.dir) {
+                    case 0: ant.y--; break; // Up
+                    case 1: ant.x++; break; // Right
+                    case 2: ant.y++; break; // Down
+                    case 3: ant.x--; break; // Left
+                }
+            });
+            totalSteps++;
+        }
+
+        function gameLoop() {
+            for (let i = 0; i < 5; i++) {
+                step();
+            }
+            draw();
+            updateStats();
+            if (isRunning) {
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function updateStats() {
+            stepCountSpan.textContent = totalSteps.toLocaleString();
+            antCountSpan.textContent = ants.length;
+        }
+
+        startStopButton.addEventListener('click', () => {
+            isRunning = !isRunning;
+            if (isRunning) {
+                startStopButton.textContent = '停止';
+                gameLoop();
+            } else {
+                startStopButton.textContent = '開始';
+                cancelAnimationFrame(animationFrameId);
+            }
+        });
+
+        resetButton.addEventListener('click', () => {
+            isRunning = false;
+            startStopButton.textContent = '開始';
+            cancelAnimationFrame(animationFrameId);
+            init();
+        });
+        
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+
+            if (e.shiftKey) { // Shift+Clickで壁を設置
+                 grid[y][x] = [-1, -1]; // 壁を特別な値でマーク
+            } else { // 通常のクリックで蟻を追加
+                addAnt();
+                ants[ants.length-1].x = x;
+                ants[ants.length-1].y = y;
+            }
+            draw();
+            updateStats();
+        });
+
+        window.addEventListener('resize', init);
+
+        init();
+    </script>
+</body>
+</html>

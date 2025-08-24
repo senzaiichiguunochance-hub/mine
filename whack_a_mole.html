@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ネオン・モグラたたき</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0a0a1a;
+    color: #e0e0e0;
+    margin: 0;
+    overflow: hidden;
+
+    /* 横方向中央寄せ、縦方向は上寄せに */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding-top: 20px;
+  }
+  #game-wrapper {
+    display: flex;
+    border: 2px solid #ff4da6;
+    box-shadow: 0 0 25px rgba(255, 77, 166, 0.6);
+    background-color: #10102a;
+
+    margin: 0 auto; /* 横中央寄せ */
+  }
+  #game-container {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    grid-template-rows: repeat(3, 120px);
+    gap: 20px;
+  }
+  .hole {
+    width: 120px;
+    height: 120px;
+    background-color: #000;
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    border: 4px solid #2a2a4a;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .hole:hover {
+    border-color: #ff4da6;
+  }
+  .mole {
+    width: 100px;
+    height: 100px;
+    background-color: #00aaff;
+    border-radius: 50%;
+    position: absolute;
+    left: 10px;
+    bottom: -120px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px #00aaff, 0 0 30px #00aaff;
+  }
+  .mole.up {
+    bottom: 10px;
+  }
+  .mole.hit {
+    background-color: #ff4da6;
+    box-shadow: 0 0 30px #ff4da6, 0 0 45px #ff4da6;
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  #info-panel {
+    width: 250px;
+    padding: 20px;
+    border-left: 2px solid #ff4da6;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  h1 {
+    color: #ff4da6;
+    text-align: center;
+    margin-top: 0;
+  }
+  .info-box {
+    background: #1a1a3a;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .info-box h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    color: #e0e0e0;
+  }
+  .info-box p {
+    margin: 0;
+    font-size: 2em;
+    font-weight: bold;
+    color: #00aaff;
+  }
+  button {
+    padding: 15px;
+    font-size: 1.3em;
+    background-color: #ff4da6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  button:hover {
+    background-color: #fff;
+    color: #ff4da6;
+    box-shadow: 0 0 20px #ff4da6;
+  }
+  button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+  }
+  .particle {
+    position: absolute;
+    background-color: #00aaff;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 1;
+    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+  }
+</style>
+</head>
+<body>
+  <div id="game-wrapper">
+    <div id="game-container"></div>
+    <div id="info-panel">
+      <div>
+        <h1>ネオンモグラ</h1>
+        <div class="info-box">
+          <h2>スコア</h2>
+          <p id="score">0</p>
+        </div>
+        <div class="info-box">
+          <h2>残り時間</h2>
+          <p id="time">20</p>
+        </div>
+      </div>
+      <button id="startButton">ゲーム開始</button>
+    </div>
+  </div>
+
+  <script>
+    const gameContainer = document.getElementById('game-container');
+    const scoreDisplay = document.getElementById('score');
+    const timeDisplay = document.getElementById('time');
+    const startButton = document.getElementById('startButton');
+
+    let score = 0;
+    let time = 20;
+    let timerId = null;
+    let moleInterval = null;
+    let holes = [];
+    let gameRunning = false;
+
+    function createBoard() {
+      gameContainer.innerHTML = '';
+      holes = [];
+      for (let i = 0; i < 9; i++) {
+        const hole = document.createElement('div');
+        hole.classList.add('hole');
+        const mole = document.createElement('div');
+        mole.classList.add('mole');
+        hole.appendChild(mole);
+        gameContainer.appendChild(hole);
+        holes.push({ hole, mole });
+
+        hole.addEventListener('mousedown', () => {
+          if (gameRunning && mole.classList.contains('up')) {
+            whack(mole, hole);
+          }
+        });
+      }
+    }
+
+    function createParticles(x, y) {
+      for (let i = 0; i < 15; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        const size = Math.random() * 8 + 2;
+        particle.style.width = `${size}px`;
+        particle.style.height = `${size}px`;
+
+        const rect = gameContainer.getBoundingClientRect();
+        particle.style.left = `${x - rect.left}px`;
+        particle.style.top = `${y - rect.top}px`;
+
+        document.body.appendChild(particle);
+
+        const angle = Math.random() * 360;
+        const distance = Math.random() * 80 + 50;
+        const translateX = Math.cos(angle * Math.PI / 180) * distance;
+        const translateY = Math.sin(angle * Math.PI / 180) * distance;
+
+        setTimeout(() => {
+          particle.style.transform = `translate(${translateX}px, ${translateY}px)`;
+          particle.style.opacity = 0;
+        }, 10);
+
+        setTimeout(() => {
+          particle.remove();
+        }, 510);
+      }
+    }
+
+    function whack(mole, hole) {
+      score++;
+      scoreDisplay.textContent = score;
+      mole.classList.add('hit');
+      mole.classList.remove('up');
+      const holeRect = hole.getBoundingClientRect();
+      createParticles(holeRect.left + holeRect.width / 2, holeRect.top + holeRect.height / 2);
+      setTimeout(() => mole.classList.remove('hit'), 300);
+    }
+
+    function popMole() {
+      holes.forEach(h => h.mole.classList.remove('up'));
+      const randomHole = holes[Math.floor(Math.random() * holes.length)];
+      randomHole.mole.classList.add('up');
+    }
+
+    function startGame() {
+      score = 0;
+      time = 20;
+      scoreDisplay.textContent = score;
+      timeDisplay.textContent = time;
+      startButton.disabled = true;
+      gameRunning = true;
+
+      moleInterval = setInterval(popMole, 700);
+      timerId = setInterval(countdown, 1000);
+    }
+
+    function countdown() {
+      time--;
+      timeDisplay.textContent = time;
+      if (time <= 0) {
+        clearInterval(timerId);
+        clearInterval(moleInterval);
+        gameRunning = false;
+        startButton.disabled = false;
+        alert(`ゲーム終了！スコア: ${score}`);
+        holes.forEach(h => h.mole.classList.remove('up'));
+      }
+    }
+
+    startButton.addEventListener('click', startGame);
+    createBoard();
+  </script>
+</body>
+</html>

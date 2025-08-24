@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ラングトンの蟻（ランダム移動）</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #000000;
+            --primary-color: #FFFFFF;
+            --font-color: #FFFFFF;
+            --canvas-bg: #000000;
+            --canvas-border: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--font-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 3em;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-shadow: 0 0 15px var(--primary-color);
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        #controls {
+            margin-bottom: 20px;
+        }
+
+        #stepButton {
+            background: transparent;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #stepButton:hover {
+            background-color: var(--primary-color);
+            color: var(--bg-color);
+        }
+
+        canvas {
+            border: 2px solid var(--canvas-border);
+            background-color: var(--canvas-bg);
+            border-radius: 10px;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>ラングトンの蟻（ランダム移動）</h1>
+    <div id="controls">
+        <button id="stepButton">1000ステップ進む</button>
+    </div>
+    <canvas id="antCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('antCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- 設定 ---
+        const GRID_WIDTH = 201; // グリッドの幅（奇数が中央配置に便利）
+        const GRID_HEIGHT = 201; // グリッドの高さ
+        const CELL_SIZE = 4;     // 1マスのピクセルサイズ
+        const STEPS_PER_CLICK = 1000; // 1000ステップに変更
+
+        const WHITE = 0;
+        const BLACK = 1;
+
+        // --- 状態 ---
+        let grid;
+        let ants = []; // 複数の蟻を保持する配列
+        let totalSteps = 0;
+
+        // --- 蟻の向き (0:上, 1:右, 2:下, 3:左) ---
+        const UP = 0;
+        const RIGHT = 1;
+        const DOWN = 2;
+        const LEFT = 3;
+
+        // 初期化関数
+        function init() {
+            canvas.width = GRID_WIDTH * CELL_SIZE;
+            canvas.height = GRID_HEIGHT * CELL_SIZE;
+
+            // グリッドを白(0)で初期化
+            grid = Array(GRID_HEIGHT).fill(0).map(() => Array(GRID_WIDTH).fill(WHITE));
+
+            // 3匹の蟻をランダムな位置と向きで初期化
+            const antColors = ['#FFFFFF', '#FFFFFF', '#FFFFFF']; // 蟻ごとの色を白に統一
+            ants = [];
+            for (let i = 0; i < 3; i++) {
+                ants.push({
+                    x: Math.floor(Math.random() * GRID_WIDTH),
+                    y: Math.floor(Math.random() * GRID_HEIGHT),
+                    dir: Math.floor(Math.random() * 4), // ランダムな初期向き
+                    color: antColors[i]
+                });
+            }
+            
+            totalSteps = 0;
+            draw();
+        }
+
+        // 描画関数
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // グリッドを描画
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    if (grid[y][x] === BLACK) {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+
+            // 蟻を描画
+            ants.forEach(ant => {
+                // 蟻がグリッドの範囲内にいる場合のみ描画
+                if (ant.x >= 0 && ant.x < GRID_WIDTH && ant.y >= 0 && ant.y < GRID_HEIGHT) {
+                    ctx.fillStyle = ant.color;
+                    ctx.fillRect(ant.x * CELL_SIZE, ant.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            });
+        }
+
+        // 蟻を1ステップ動かす関数
+        function step(ant) {
+            const currentCellColor = grid[ant.y][ant.x];
+
+            if (currentCellColor === WHITE) {
+                // 右に90度回転
+                ant.dir = (ant.dir + 1) % 4;
+                // マスの色を反転
+                grid[ant.y][ant.x] = BLACK;
+            } else { // BLACK
+                // 左に90度回転
+                ant.dir = (ant.dir + 3) % 4; // +3は-1と同じ
+                // マスの色を反転
+                grid[ant.y][ant.x] = WHITE;
+            }
+
+            // 次の移動先を計算
+            let nextX = ant.x;
+            let nextY = ant.y;
+            switch (ant.dir) {
+                case UP:    nextY--; break;
+                case RIGHT: nextX++; break;
+                case DOWN:  nextY++; break;
+                case LEFT:  nextX--; break;
+            }
+
+            // 次のステップで範囲外に出るかチェック
+            if (nextX < 0 || nextX >= GRID_WIDTH || nextY < 0 || nextY >= GRID_HEIGHT) {
+                // 範囲外に出る場合、ランダムな位置に移動
+                ant.x = Math.floor(Math.random() * GRID_WIDTH);
+                ant.y = Math.floor(Math.random() * GRID_HEIGHT);
+                ant.dir = Math.floor(Math.random() * 4); // ランダムな向き
+            } else {
+                // 範囲内の場合、通常通り移動
+                ant.x = nextX;
+                ant.y = nextY;
+            }
+        }
+
+        // ボタンのクリックイベント
+        document.getElementById('stepButton').addEventListener('click', () => {
+            for (let i = 0; i < STEPS_PER_CLICK; i++) {
+                ants.forEach(ant => {
+                    step(ant);
+                });
+            }
+            totalSteps += STEPS_PER_CLICK; // 総ステップ数を更新
+            draw();
+        });
+
+        // 実行開始
+        init();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>モノクロ画像一部カラー化</title>
+<link rel="stylesheet" type="text/css" href="Style.css" />
+<style>
+    :root {
+        --canvas-bg: #ffffff;
+    }
+    body {
+        justify-content: flex-start;
+        align-items: flex-start;
+    }
+    .container {
+        width: 98%;
+        max-width: none;
+        text-align: left;
+    }
+    
+    /* Layout */
+    #main-container {
+        display: flex;
+        gap: 20px;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+    #editor-area {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    #canvas-wrapper {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto 1fr;
+        gap: 5px;
+    }
+    #rulerX { grid-column: 2 / 3; grid-row: 1 / 2; }
+    #rulerY { grid-column: 1 / 2; grid-row: 2 / 3; }
+    #canvas-area { 
+        grid-column: 2 / 3; 
+        grid-row: 2 / 3; 
+        position: relative;
+        overflow-x: auto;
+    }
+
+    #controls {
+        background-color: var(--card-color);
+        border: 1px solid var(--primary-color);
+        border-radius: 15px;
+        padding: 20px;
+        width: 100%;
+        max-width: 380px;
+    }
+
+    /* Tabs */
+    #tabs { margin-bottom: 15px; border-bottom: 1px solid var(--primary-color); display: flex; flex-wrap: wrap; }
+    .tab { padding: 10px 15px; margin-right: 5px; margin-bottom: 5px; border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease; border-radius: 8px; background-color: var(--primary-color); flex-grow: 1; text-align: center; }
+    .tab.active { background: var(--secondary-color); color: var(--bg-color); font-weight: bold; }
+    .tab:hover:not(.active) { background-color: var(--hover-color); }
+
+    /* Panels */
+    .panel { display: none; padding: 10px 0; border: none; }
+    .panel.active { display: block; }
+    .panel label { display: block; margin: 12px 0 5px 0; }
+    .panel button, .panel select {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0;
+        background-color: var(--primary-color);
+        color: var(--font-color);
+        border: 1px solid var(--hover-color);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+    .panel button:hover:not(:disabled) { background-color: var(--hover-color); }
+    .panel button:disabled { background-color: #333; color: #888; cursor: not-allowed; }
+
+    /* Sliders */
+    input[type="range"] { -webkit-appearance: none; width: 100%; height: 10px; background: var(--primary-color); border-radius: 5px; outline: none; opacity: 0.7; transition: opacity .2s; margin: 10px 0; }
+    input[type="range"]:hover { opacity: 1; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--secondary-color); cursor: pointer; border-radius: 50%; }
+    input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--secondary-color); cursor: pointer; border-radius: 50%; }
+
+    /* Canvas */
+    #container { border: 2px solid var(--primary-color); background-color: var(--canvas-bg); border-radius: 15px; overflow: hidden; position: relative; display: inline-block; cursor: grab; }
+    #canvasColor, #canvasGray, #canvasGrid { position: absolute; left: 0; top: 0; }
+    #canvasColor { z-index: 0; }
+    #canvasGray { z-index: 1; }
+    #canvasGrid { z-index: 2; pointer-events: none; }
+    #histogramCanvas { border: 2px solid var(--primary-color); background-color: var(--card-color); border-radius: 15px; margin-top: 10px; }
+
+    /* File Input & Status */
+    #fileInput { margin-bottom: 20px; padding: 10px; background: var(--card-color); border: 1px solid var(--primary-color); border-radius: 10px; }
+    #status { margin-bottom: 20px; background-color: var(--primary-color); padding: 10px; border-radius: 5px; }
+
+    /* Rulers */
+    #rulerX, #rulerY { background-color: var(--card-color); overflow: hidden; display: none;}
+    #rulerX.active, #rulerY.active { display: block; }
+
+    /* Snapshot Gallery */
+    #snapshot-gallery { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; padding: 10px; background: var(--primary-color); border-radius: 10px; min-height: 50px;}
+    .snapshot-thumb { border: 2px solid var(--secondary-color); border-radius: 5px; cursor: pointer; transition: transform 0.2s; }
+    .snapshot-thumb:hover { transform: scale(1.1); }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <header class="header">
+        <h1>モノクロ画像一部カラー化</h1>
+    </header>
+    
+    <input type="file" id="fileInput" accept="image/*">
+    <div id="status">画像を選択してください</div>
+
+    <div id="main-container">
+        <div id="editor-area">
+            <div id="canvas-wrapper">
+                <canvas id="rulerX"></canvas>
+                <canvas id="rulerY"></canvas>
+                <div id="canvas-area">
+                    <div id="container">
+                      <canvas id="canvasColor"></canvas>
+                      <canvas id="canvasGray"></canvas>
+                      <canvas id="canvasGrid"></canvas>
+                    </div>
+                </div>
+            </div>
+            <canvas id="histogramCanvas" width="256" height="100"></canvas>
+            <div id="snapshot-gallery"></div>
+        </div>
+
+        <div id="controls">
+            <div id="tabs">
+              <div class="tab active" data-panel="brushPanel">ブラシ</div>
+              <div class="tab" data-panel="autoPanel">自動補正</div>
+              <div class="tab" data-panel="uiPanel">表示</div>
+              <div class="tab" data-panel="filePanel">ファイル</div>
+              <div class="tab" data-panel="advancedPanel">高度な機能</div>
+            </div>
+
+            <div id="panels">
+              <div class="panel active" id="brushPanel">
+                <label>ブラシサイズ: <span id="brushSizeLabel">15</span>px</label>
+                <input type="range" id="brushSize" min="5" max="50" value="15">
+                <label>透明度:</label>
+                <input type="range" id="brushOpacity" min="0" max="100" value="100">
+                <label>ブラシ形状:</label>
+                <select id="brushShape">
+                  <option value="circle">円</option>
+                  <option value="square">四角</option>
+                </select>
+              </div>
+
+              <div class="panel" id="autoPanel">
+                <button id="autoGray">自動グレー化</button>
+                <button id="autoRestore">自動カラー復元</button>
+                <button id="faceDetect">肌色検出カラー復元</button>
+                <button id="backgroundRemove">簡易背景除去</button>
+                <button id="autoContrast">自動コントラスト</button>
+                <button id="autoBrightness">自動明るさ補正</button>
+              </div>
+
+              <div class="panel" id="uiPanel">
+                <button id="zoomIn">ズーム+</button>
+                <button id="zoomOut">ズーム-</button>
+                <button id="resetView">リセット表示</button>
+                <button id="showHistogram">ヒストグラム</button>
+                <button id="toggleGrid">グリッド</button>
+                <button id="toggleRuler">ルーラー</button>
+                <label>背景色:</label>
+                <input type="color" id="bgColor" value="#ffffff">
+              </div>
+
+              <div class="panel" id="filePanel">
+                <button id="savePNG">PNG保存</button>
+                <button id="saveJPG">JPG保存</button>
+                <button id="copyClipboard">クリップボードにコピー</button>
+                <button id="loadPreset">プリセット読み込み</button>
+                <button id="savePreset">プリセット保存</button>
+              </div>
+
+              <div class="panel" id="advancedPanel">
+                <button id="undo" disabled>Undo</button>
+                <button id="redo" disabled>Redo</button>
+                <button id="snapshot">スナップショット作成</button>
+                <label>明るさ:</label>
+                <input type="range" id="brightness" min="-100" max="100" value="0">
+                <label>コントラスト:</label>
+                <input type="range" id="contrast" min="-100" max="100" value="0">
+                <label>フィルター:</label>
+                <select id="filterSelect">
+                  <option value="none">なし</option>
+                  <option value="sepia">セピア</option>
+                  <option value="invert">反転</option>
+                  <option value="blur">ぼかし</option>
+                </select>
+                <button id="applyFilter">適用</button>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ==== タブ切替 ====
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.panel).classList.add('active');
+  });
+});
+
+// ==== グローバル変数 ====
+const canvasGray = document.getElementById('canvasGray');
+const canvasColor = document.getElementById('canvasColor');
+const canvasGrid = document.getElementById('canvasGrid');
+const container = document.getElementById('container');
+const ctxGray = canvasGray.getContext('2d');
+const ctxColor = canvasColor.getContext('2d');
+const ctxGrid = canvasGrid.getContext('2d');
+const fileInput = document.getElementById('fileInput');
+const statusEl = document.getElementById('status');
+const histCanvas = document.getElementById('histogramCanvas');
+const histCtx = histCanvas.getContext('2d');
+const rulerX = document.getElementById('rulerX');
+const rulerY = document.getElementById('rulerY');
+const ctxRulerX = rulerX.getContext('2d');
+const ctxRulerY = rulerY.getContext('2d');
+const snapshotGallery = document.getElementById('snapshot-gallery');
+
+let origImageData, grayImageData;
+let brushRadius = 15, brushOpacity = 1, brushShape = 'circle';
+let scale = 1;
+let history = [], redoStack = [], snapshots = [];
+let gridVisible = false, rulersVisible = false;
+
+// ==== UIコントロール ====
+document.getElementById('brushSize').addEventListener('input', e => {
+  brushRadius = parseInt(e.target.value);
+  document.getElementById('brushSizeLabel').textContent = brushRadius;
+});
+document.getElementById('brushOpacity').addEventListener('input', e => {
+  brushOpacity = e.target.value / 100;
+});
+document.getElementById('brushShape').addEventListener('change', e => {
+  brushShape = e.target.value;
+});
+document.getElementById('bgColor').addEventListener('input', e => {
+    document.documentElement.style.setProperty('--canvas-bg', e.target.value);
+});
+
+// ==== ファイル読み込み ====
+fileInput.addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  statusEl.textContent = '読み込み中…';
+  const dataUrl = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+  const img = new Image();
+  img.onload = () => initCanvas(img);
+  img.src = dataUrl;
+});
+
+// ==== キャンバス初期化 ====
+function initCanvas(img) {
+  const w = img.width;
+  const h = img.height;
+  
+  container.style.width = w + 'px';
+  container.style.height = h + 'px';
+
+  canvasColor.width = canvasGray.width = canvasGrid.width = w;
+  canvasColor.height = canvasGray.height = canvasGrid.height = h;
+  
+  ctxColor.drawImage(img, 0, 0, w, h);
+  origImageData = ctxColor.getImageData(0, 0, w, h);
+
+  grayImageData = ctxGray.createImageData(w, h);
+  const src = origImageData.data;
+  const dst = grayImageData.data;
+  for (let i = 0; i < src.length; i += 4) {
+    const y = (0.2126 * src[i] + 0.7152 * src[i + 1] + 0.0722 * src[i + 2]) | 0;
+    dst[i] = dst[i + 1] = dst[i + 2] = y;
+    dst[i + 3] = 255;
+  }
+  ctxGray.putImageData(grayImageData, 0, 0);
+  statusEl.textContent = '画像が読み込まれました';
+  
+  history = [];
+  redoStack = [];
+  snapshots = [];
+  snapshotGallery.innerHTML = '';
+
+  updateHistogram();
+  saveHistory();
+  drawGrid();
+  drawRulers();
+  scale = 1;
+  redraw();
+}
+
+// ==== ブラシ描画 ====
+let isDrawing = false;
+canvasGray.addEventListener('mousedown', e => { if (e.button === 0) isDrawing = true; });
+canvasGray.addEventListener('mouseup', () => { if(isDrawing) { isDrawing = false; saveHistory(); }});
+canvasGray.addEventListener('mouseleave', () => { if(isDrawing) { isDrawing = false; saveHistory(); }});
+canvasGray.addEventListener('mousemove', e => {
+  if (!isDrawing) return;
+  const rect = canvasGray.getBoundingClientRect();
+  const x = Math.round((e.clientX - rect.left) / scale);
+  const y = Math.round((e.clientY - rect.top) / scale);
+  
+  const data = ctxGray.getImageData(0, 0, canvasGray.width, canvasGray.height);
+  const src = origImageData.data;
+  const dst = data.data;
+  for (let j = -brushRadius; j <= brushRadius; j++) {
+    for (let i = -brushRadius; i <= brushRadius; i++) {
+      const px = x + i, py = y + j;
+      if (px < 0 || px >= canvasGray.width || py < 0 || py >= canvasGray.height) continue;
+      if (brushShape === 'circle' && i * i + j * j > brushRadius * brushRadius) continue;
+      const idx = (py * canvasGray.width + px) * 4;
+      dst[idx] = src[idx] * brushOpacity + (dst[idx] * (1 - brushOpacity));
+      dst[idx + 1] = src[idx + 1] * brushOpacity + (dst[idx + 1] * (1 - brushOpacity));
+      dst[idx + 2] = src[idx + 2] * brushOpacity + (dst[idx + 2] * (1 - brushOpacity));
+    }
+  }
+  ctxGray.putImageData(data, 0, 0);
+  updateHistogram();
+});
+
+// ==== Undo/Redo ====
+function saveHistory() {
+  redoStack = [];
+  history.push(ctxGray.getImageData(0, 0, canvasGray.width, canvasGray.height));
+  updateUndoRedoState();
+}
+function updateUndoRedoState(){
+  document.getElementById('undo').disabled = history.length < 2;
+  document.getElementById('redo').disabled = redoStack.length === 0;
+}
+document.getElementById('undo').addEventListener('click', () => {
+  if (history.length < 2) return;
+  redoStack.push(history.pop());
+  ctxGray.putImageData(history[history.length - 1], 0, 0);
+  updateHistogram();
+  updateUndoRedoState();
+});
+document.getElementById('redo').addEventListener('click', () => {
+  if (redoStack.length === 0) return;
+  const img = redoStack.pop();
+  history.push(img);
+  ctxGray.putImageData(img, 0, 0);
+  updateHistogram();
+  updateUndoRedoState();
+});
+
+// ==== ヒストグラム ====
+function updateHistogram() {
+  if (!origImageData) return;
+  histCtx.clearRect(0, 0, histCanvas.width, histCanvas.height);
+  const histR = new Array(256).fill(0), histG = new Array(256).fill(0), histB = new Array(256).fill(0);
+  const data = ctxGray.getImageData(0, 0, canvasGray.width, canvasGray.height).data;
+  for (let i = 0; i < data.length; i += 4) {
+    histR[data[i]]++; histG[data[i+1]]++; histB[data[i+2]]++;
+  }
+  const max = Math.max(...histR, ...histG, ...histB);
+  if (max === 0) return;
+  histCtx.globalAlpha = 0.7;
+  for (let i = 0; i < 256; i++) {
+    const rH = histR[i] / max * histCanvas.height;
+    const gH = histG[i] / max * histCanvas.height;
+    const bH = histB[i] / max * histCanvas.height;
+    histCtx.fillStyle = 'red'; histCtx.fillRect(i, histCanvas.height - rH, 1, rH);
+    histCtx.fillStyle = 'green'; histCtx.fillRect(i, histCanvas.height - gH, 1, gH);
+    histCtx.fillStyle = 'blue'; histCtx.fillRect(i, histCanvas.height - bH, 1, bH);
+  }
+  histCtx.globalAlpha = 1.0;
+}
+document.getElementById('showHistogram').addEventListener('click', () => {
+  histCanvas.style.display = histCanvas.style.display === 'none' ? 'block' : 'none';
+});
+
+// ==== ズーム・リセット ====
+document.getElementById('zoomIn').addEventListener('click', () => { scale *= 1.2; redraw(); });
+document.getElementById('zoomOut').addEventListener('click', () => { scale /= 1.2; redraw(); });
+document.getElementById('resetView').addEventListener('click', () => { scale = 1; redraw(); });
+function redraw() {
+    container.style.transformOrigin = 'top left';
+    container.style.transform = `scale(${scale})`;
+}
+
+// ==== ファイル操作 ====
+document.getElementById('savePNG').addEventListener('click', () => { downloadCanvas('png'); });
+document.getElementById('saveJPG').addEventListener('click', () => { downloadCanvas('jpeg'); });
+function downloadCanvas(type) {
+  if (!origImageData) return;
+  const link = document.createElement('a');
+  link.download = 'image.' + type;
+  link.href = canvasGray.toDataURL('image/' + type);
+  link.click();
+}
+document.getElementById('copyClipboard').addEventListener('click', () => {
+    if (!origImageData) return;
+    canvasGray.toBlob(blob => {
+        navigator.clipboard.write([new ClipboardItem({'image/png': blob})])
+        .then(() => statusEl.textContent = 'クリップボードにコピーしました')
+        .catch(err => {
+            console.error(err);
+            statusEl.textContent = 'コピーに失敗しました';
+        });
+    });
+});
+document.getElementById('savePreset').addEventListener('click', () => {
+    const preset = {
+        brushSize: brushRadius,
+        brushOpacity: brushOpacity,
+        brushShape: brushShape,
+        brightness: document.getElementById('brightness').value,
+        contrast: document.getElementById('contrast').value,
+    };
+    localStorage.setItem('paintPreset', JSON.stringify(preset));
+    statusEl.textContent = 'プリセットを保存しました';
+});
+document.getElementById('loadPreset').addEventListener('click', () => {
+    const presetJSON = localStorage.getItem('paintPreset');
+    if (presetJSON) {
+        const preset = JSON.parse(presetJSON);
+        document.getElementById('brushSize').value = preset.brushSize;
+        document.getElementById('brushSizeLabel').textContent = preset.brushSize;
+        brushRadius = preset.brushSize;
+
+        document.getElementById('brushOpacity').value = preset.brushOpacity * 100;
+        brushOpacity = preset.brushOpacity;
+
+        document.getElementById('brushShape').value = preset.brushShape;
+        brushShape = preset.brushShape;
+
+        document.getElementById('brightness').value = preset.brightness;
+        document.getElementById('contrast').value = preset.contrast;
+        
+        statusEl.textContent = 'プリセットを読み込みました';
+    } else {
+        statusEl.textContent = '保存されたプリセットがありません';
+    }
+});
+
+
+// ==== 自動処理ボタン ====
+document.getElementById('autoGray').addEventListener('click', () => {
+  if (!grayImageData) return;
+  ctxGray.putImageData(grayImageData, 0, 0);
+  saveHistory(); updateHistogram();
+});
+document.getElementById('autoRestore').addEventListener('click', () => {
+  if (!origImageData) return;
+  ctxGray.putImageData(origImageData, 0, 0);
+  saveHistory(); updateHistogram();
+});
+document.getElementById('autoContrast').addEventListener('click', () => {
+  if (!origImageData) return;
+  const lastState = history[history.length - 1];
+  const tempImageData = new ImageData(new Uint8ClampedArray(lastState.data), lastState.width, lastState.height);
+  adjustContrast(tempImageData.data, 30);
+  ctxGray.putImageData(tempImageData, 0, 0);
+  saveHistory();
+});
+document.getElementById('autoBrightness').addEventListener('click', () => {
+  if (!origImageData) return;
+  const lastState = history[history.length - 1];
+  const tempImageData = new ImageData(new Uint8ClampedArray(lastState.data), lastState.width, lastState.height);
+  adjustBrightness(tempImageData.data, 30);
+  ctxGray.putImageData(tempImageData, 0, 0);
+  saveHistory();
+});
+
+// ==== 明るさ・コントラスト調整 ====
+function applyAdjustment(adjustmentFn) {
+    if (!history.length) return;
+    const lastState = history[history.length - 1];
+    const tempImageData = new ImageData(new Uint8ClampedArray(lastState.data), lastState.width, lastState.height);
+    adjustmentFn(tempImageData.data);
+    ctxGray.putImageData(tempImageData, 0, 0);
+    updateHistogram();
+}
+
+function adjustBrightness(data, delta) {
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = Math.max(0, Math.min(255, data[i] + delta));
+    data[i + 1] = Math.max(0, Math.min(255, data[i+1] + delta));
+    data[i + 2] = Math.max(0, Math.min(255, data[i+2] + delta));
+  }
+}
+function adjustContrast(data, factor) {
+  const f = (259 * (factor + 255)) / (255 * (259 - factor));
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = Math.max(0, Math.min(255, f * (data[i] - 128) + 128));
+    data[i + 1] = Math.max(0, Math.min(255, f * (data[i+1] - 128) + 128));
+    data[i + 2] = Math.max(0, Math.min(255, f * (data[i+2] - 128) + 128));
+  }
+}
+
+document.getElementById('brightness').addEventListener('input', e => {
+    const value = parseInt(e.target.value);
+    applyAdjustment(data => adjustBrightness(data, value));
+});
+document.getElementById('contrast').addEventListener('input', e => {
+    const value = parseInt(e.target.value);
+    applyAdjustment(data => adjustContrast(data, value));
+});
+document.getElementById('brightness').addEventListener('change', () => saveHistory());
+document.getElementById('contrast').addEventListener('change', () => saveHistory());
+
+
+// ==== フィルター適用 ====
+document.getElementById('applyFilter').addEventListener('click', () => {
+  if (!history.length) return;
+  const filter = document.getElementById('filterSelect').value;
+  if (filter === 'none') return;
+
+  const lastState = history[history.length - 1];
+  const data = new ImageData(new Uint8ClampedArray(lastState.data), lastState.width, lastState.height);
+  const d = data.data;
+
+  if (filter === 'sepia') {
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      d[i] = Math.min(255, 0.393 * r + 0.769 * g + 0.189 * b);
+      d[i+1] = Math.min(255, 0.349 * r + 0.686 * g + 0.168 * b);
+      d[i+2] = Math.min(255, 0.272 * r + 0.534 * g + 0.131 * b);
+    }
+  } else if (filter === 'invert') {
+    for (let i = 0; i < d.length; i += 4) {
+      d[i] = 255 - d[i]; d[i+1] = 255 - d[i+1]; d[i+2] = 255 - d[i+2];
+    }
+  } else if (filter === 'blur') {
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = data.width;
+      tempCanvas.height = data.height;
+      tempCtx.putImageData(data, 0, 0);
+      tempCtx.filter = 'blur(3px)';
+      tempCtx.drawImage(tempCanvas, 0, 0);
+      ctxGray.putImageData(tempCtx.getImageData(0, 0, data.width, data.height), 0, 0);
+      saveHistory();
+      updateHistogram();
+      return; 
+  }
+  ctxGray.putImageData(data, 0, 0);
+  saveHistory();
+  updateHistogram();
+});
+
+// ==== UI 機能 ====
+document.getElementById('toggleGrid').addEventListener('click', () => {
+    gridVisible = !gridVisible;
+    drawGrid();
+});
+
+function drawGrid() {
+    ctxGrid.clearRect(0, 0, canvasGrid.width, canvasGrid.height);
+    if (!gridVisible || !origImageData) return;
+    
+    const gridSize = 20;
+    ctxGrid.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+    ctxGrid.lineWidth = 0.5;
+
+    for (let x = 0; x < canvasGrid.width; x += gridSize) {
+        ctxGrid.beginPath();
+        ctxGrid.moveTo(x, 0);
+        ctxGrid.lineTo(x, canvasGrid.height);
+        ctxGrid.stroke();
+    }
+    for (let y = 0; y < canvasGrid.height; y += gridSize) {
+        ctxGrid.beginPath();
+        ctxGrid.moveTo(0, y);
+        ctxGrid.lineTo(canvasGrid.width, y);
+        ctxGrid.stroke();
+    }
+}
+
+// ==== NEW FEATURES ==== 
+
+// -- RULERS --
+document.getElementById('toggleRuler').addEventListener('click', () => {
+    rulersVisible = !rulersVisible;
+    rulerX.classList.toggle('active', rulersVisible);
+    rulerY.classList.toggle('active', rulersVisible);
+    drawRulers();
+});
+
+function drawRulers() {
+    if (!origImageData) return;
+    if (!rulersVisible) {
+        ctxRulerX.clearRect(0,0,rulerX.width,rulerX.height);
+        ctxRulerY.clearRect(0,0,rulerY.width,rulerY.height);
+        return;
+    }
+    const w = origImageData.width, h = origImageData.height;
+    rulerX.width = w; rulerX.height = 20;
+    rulerY.width = 20; rulerY.height = h;
+
+    ctxRulerX.clearRect(0,0,w,20);
+    ctxRulerY.clearRect(0,0,20,h);
+
+    ctxRulerX.fillStyle = ctxRulerY.fillStyle = '#dcdcdc';
+    ctxRulerX.font = ctxRulerY.font = '10px sans-serif';
+
+    for (let i = 0; i < w; i += 10) {
+        const markH = (i % 50 === 0) ? 10 : 5;
+        ctxRulerX.fillRect(i, 20 - markH, 1, markH);
+        if (i % 50 === 0 && i > 0) ctxRulerX.fillText(i, i + 2, 12);
+    }
+    for (let i = 0; i < h; i += 10) {
+        const markW = (i % 50 === 0) ? 10 : 5;
+        ctxRulerY.fillRect(20 - markW, i, markW, 1);
+        if (i % 50 === 0 && i > 0) ctxRulerY.fillText(i, 2, i + 10);
+    }
+}
+
+// -- SNAPSHOTS --
+document.getElementById('snapshot').addEventListener('click', () => {
+    if (!origImageData) return;
+    const imageData = ctxGray.getImageData(0, 0, canvasGray.width, canvasGray.height);
+    snapshots.push(imageData);
+
+    const thumb = document.createElement('canvas');
+    thumb.className = 'snapshot-thumb';
+    const thumbSize = 80;
+    const thumbCtx = thumb.getContext('2d');
+    const ratio = canvasGray.width / canvasGray.height;
+    thumb.width = ratio > 1 ? thumbSize : thumbSize * ratio;
+    thumb.height = ratio > 1 ? thumbSize / ratio : thumbSize;
+    thumbCtx.drawImage(canvasGray, 0, 0, thumb.width, thumb.height);
+
+    const snapshotIndex = snapshots.length - 1;
+    thumb.title = `スナップショット ${snapshotIndex + 1} に復元`;
+    thumb.addEventListener('click', () => {
+        ctxGray.putImageData(snapshots[snapshotIndex], 0, 0);
+        saveHistory();
+        updateHistogram();
+        statusEl.textContent = `スナップショット ${snapshotIndex + 1} を復元しました`;
+    });
+    snapshotGallery.appendChild(thumb);
+    statusEl.textContent = `スナップショット ${snapshotIndex + 1} を作成しました`;
+});
+
+// -- BACKGROUND REMOVAL --
+document.getElementById('backgroundRemove').addEventListener('click', () => {
+    if (!origImageData) return;
+    statusEl.textContent = '背景を除去中...';
+    setTimeout(()=>{
+        const data = ctxGray.getImageData(0, 0, canvasGray.width, canvasGray.height);
+        const d = data.data;
+        const w = data.width, h = data.height;
+        
+        const corner1 = d[0]; // Top-left gray value
+        const threshold = 20; // Tolerance
+
+        for (let i = 0; i < d.length; i += 4) {
+            // Compare grayscale value with corner value
+            if (Math.abs(d[i] - corner1) < threshold) {
+                d[i+3] = 0; // Set alpha to 0
+            }
+        }
+        ctxGray.putImageData(data, 0, 0);
+        saveHistory();
+        updateHistogram();
+        statusEl.textContent = '簡易背景除去を適用しました';
+    }, 50);
+});
+
+// -- SKIN DETECT RESTORE --
+document.getElementById('faceDetect').addEventListener('click', () => {
+    if (!origImageData) return;
+    statusEl.textContent = '肌色を検出中...';
+    setTimeout(()=>{
+        const grayData = ctxGray.getImageData(0, 0, canvasGray.width, canvasGray.height);
+        const gray_d = grayData.data;
+        const orig_d = origImageData.data;
+
+        for (let i = 0; i < orig_d.length; i += 4) {
+            const r = orig_d[i], g = orig_d[i+1], b = orig_d[i+2];
+            // Simple RGB-based skin detection heuristic
+            const isSkin = (r > 95 && g > 40 && b > 20 && 
+                          (Math.max(r,g,b) - Math.min(r,g,b)) > 15 && 
+                          Math.abs(r-g) > 15 && r > g && r > b);
+            if (isSkin) {
+                gray_d[i] = r;
+                gray_d[i+1] = g;
+                gray_d[i+2] = b;
+            }
+        }
+        ctxGray.putImageData(grayData, 0, 0);
+        saveHistory();
+        updateHistogram();
+        statusEl.textContent = '肌色部分のカラーを復元しました';
+    }, 50);
+});
+
+</script>
+
+</body>
+</html>
+
+

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四元素</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* 全体のスタイル設定 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050515; /* 深い暗い背景 */
+            cursor: none; /* カーソルを非表示 */
+            font-family: 'Inter', sans-serif;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* キャンバスのスタイル設定 */
+        canvas {
+            display: block;
+            border-radius: 25px;
+            box-shadow: 0 0 100px rgba(180, 150, 255, 0.7), 0 0 40px rgba(255, 255, 255, 0.4); /* 幻想的な光 */
+            background-color: rgba(0, 0, 0, 0.15);
+            touch-action: none;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* メッセージ表示用のスタイル */
+        #instructions {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-radius: 20px;
+            font-size: 1.3em;
+            text-align: center;
+            opacity: 0.95;
+            transition: opacity 0.8s ease-in-out;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 20px rgba(100, 150, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="elementsCanvas"></canvas>
+    <div id="instructions">マウスを動かし、クリックして「火。水、風、土」のイメージに切り替えよう！</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        // キャンバス要素と描画コンテキストを取得
+        const canvas = document.getElementById('elementsCanvas');
+        const ctx = canvas.getContext('2d');
+        const instructionsDiv = document.getElementById('instructions');
+
+        let audioContextStarted = false;
+        // 元素の種類を定義
+        const ELEMENTS = ['fire', 'water', 'earth', 'wind'];
+        // 現在選択されている元素のインデックス
+        let currentElementTypeIndex = 0; // 0: fire, 1: water, 2: earth, 3: wind
+
+        // 粒子を格納する配列
+        const particles = [];
+        // マウスの状態を追跡
+        let mouse = { x: 0, y: 0, isActive: false };
+
+        // Tone.jsシンセサイザーとエフェクトのセットアップ
+        // 火の音: ブラウンノイズ（燃えるような音）
+        const fireSynth = new Tone.NoiseSynth({
+            noise: { type: "brown" },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0.0, release: 0.3 },
+            volume: -20 // 音量調整
+        }).connect(new Tone.Freeverb(0.9).toDestination()); // リバーブで炎の広がりを表現
+
+        // 水の音: サイン波シンセ（透明感のある水滴のような音）
+        const waterSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.1, decay: 0.4, sustain: 0.2, release: 0.8 },
+            volume: -10 // 音量調整
+        }).chain(new Tone.Chorus(4, 2.5, 0.5).toDestination(), new Tone.Reverb(2).toDestination()); // コーラスとリバーブで水の響きを表現
+
+        // 土の音: メンブレンシンセ（重く響く打楽器音）
+        const earthSynth = new Tone.MembraneSynth({
+            envelope: { attack: 0.02, decay: 0.5, sustain: 0.1, release: 0.8 },
+            pitchDecay: 0.05, // ピッチが減衰する効果
+            volume: -15 // 音量調整
+        }).toDestination();
+
+        // 風の音: ホワイトノイズシンセ（風の吹き荒れるような音）
+        const windSynth = new Tone.NoiseSynth({
+            noise: { type: "white" },
+            envelope: { attack: 0.01, decay: 0.5, sustain: 0.0, release: 0.5 },
+            volume: -20 // 音量調整
+        }).toDestination();
+
+        // Particleクラス: 各元素粒子を定義
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x; // 粒子のX座標
+                this.y = y; // 粒子のY座標
+                this.vx = (Math.random() - 0.5) * 2; // 初期水平速度
+                this.vy = (Math.random() - 0.5) * 2; // 初期垂直速度
+                this.radius = Math.random() * 3 + 1; // 粒子の半径
+                this.alpha = 1; // 透明度
+                this.life = 0; // 寿命カウンター
+                this.maxLife = Math.random() * 150 + 100; // 最大寿命
+                this.type = type; // 元素タイプ ('fire', 'water', 'earth', 'wind')
+                this.hue = 0; // 色相 (タイプに応じて設定)
+
+                // 元素タイプに応じた初期プロパティの設定
+                switch (this.type) {
+                    case 'fire':
+                        this.hue = Math.random() * 60 + 0; // 赤〜黄
+                        this.maxLife = Math.random() * 80 + 50; // 短い寿命
+                        this.radius = Math.random() * 4 + 2; // やや大きめ
+                        break;
+                    case 'water':
+                        this.hue = Math.random() * 60 + 200; // 青〜シアン
+                        this.maxLife = Math.random() * 180 + 120; // 中程度の寿命
+                        this.radius = Math.random() * 3 + 1; // 標準
+                        break;
+                    case 'earth':
+                        this.hue = Math.random() * 60 + 30; // オレンジ〜茶
+                        this.maxLife = Math.random() * 250 + 200; // 長い寿命
+                        this.radius = Math.random() * 5 + 3; // 大きめ
+                        break;
+                    case 'wind':
+                        this.hue = Math.random() * 60 + 120; // 緑〜水色
+                        this.maxLife = Math.random() * 120 + 80; // 中程度の寿命
+                        this.radius = Math.random() * 2 + 0.5; // 小さめ
+                        break;
+                }
+            }
+
+            // 粒子を更新するメソッド
+            update() {
+                this.life++;
+                // 寿命に応じて透明度を減衰
+                this.alpha = Math.max(0, 1 - (this.life / this.maxLife));
+
+                // 元素タイプに応じた物理演算の適用
+                switch (this.type) {
+                    case 'fire':
+                        this.vy -= 0.05; // 上昇
+                        this.vx *= 0.98; // わずかな水平抵抗
+                        this.vy *= 0.98; // わずかな垂直抵抗
+                        this.radius *= 0.99; // 縮小
+                        break;
+                    case 'water':
+                        this.vy += 0.02; // 穏やかな重力
+                        this.vx *= 0.9; // より強い流体抵抗
+                        this.vy *= 0.9;
+                        // マウスがアクティブな場合、マウスに引き寄せられる
+                        if (mouse.isActive) {
+                            const dx = mouse.x - this.x;
+                            const dy = mouse.y - this.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 100) { // マウスに近い場合のみ影響
+                                this.vx += dx * 0.001;
+                                this.vy += dy * 0.001;
+                            }
+                        }
+                        break;
+                    case 'earth':
+                        this.vy += 0.1; // 強い重力
+                        this.vx *= 0.8; // 高い摩擦抵抗
+                        this.vy *= 0.8;
+                        // 画面下端に達したら停止
+                        if (this.y + this.radius > canvas.height) {
+                            this.y = canvas.height - this.radius;
+                            this.vy = 0;
+                            this.vx *= 0.5; // 水平移動も止める
+                        }
+                        break;
+                    case 'wind':
+                        // マウス移動（風の方向）によって粒子が押される
+                        if (mouse.isActive) {
+                            const dx = mouse.x - this.x;
+                            const dy = mouse.y - this.y;
+                            const angle = Math.atan2(dy, dx); // マウスへの角度
+                            this.vx += Math.cos(angle) * 0.1; // その方向へ加速
+                            this.vy += Math.sin(angle) * 0.1;
+                        }
+                        this.vx *= 0.995; // 非常にわずかな抵抗
+                        this.vy *= 0.995;
+                        this.radius *= 0.99; // 徐々に縮小
+                        break;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // 一部の元素タイプは壁で跳ね返る
+                if (this.type === 'water' || this.type === 'wind') {
+                    if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) this.vx *= -0.9;
+                    if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) this.vy *= -0.9;
+                }
+
+                // サイズが非常に小さくなったらフェードアウトを加速
+                if (this.radius < 0.5) this.alpha -= 0.05;
+            }
+
+            // 粒子を描画するメソッド
+            draw() {
+                ctx.save(); // 現在の描画状態を保存
+                ctx.globalAlpha = this.alpha; // 透明度を設定
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`; // HSL形式で色を設定
+                ctx.beginPath(); // 新しいパスを開始
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); // 円を描画
+                ctx.fill(); // 円を塗りつぶす
+                ctx.restore(); // 描画状態を元に戻す
+            }
+        }
+
+        // キャンバスのサイズをウィンドウに合わせる関数
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+
+        // ウィンドウのリサイズイベントを監視
+        window.addEventListener('resize', resizeCanvas);
+        // 最初のロード時にキャンバスサイズを設定
+        resizeCanvas();
+
+        // マウス移動イベント
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.isActive = true;
+
+            // 現在の元素タイプに応じて粒子を生成
+            const particleCount = 2; // マウス移動ごとに生成する粒子の数
+            for (let i = 0; i < particleCount; i++) {
+                // マウス位置からわずかにずらして生成
+                particles.push(new Particle(e.clientX + (Math.random() - 0.5) * 10, e.clientY + (Math.random() - 0.5) * 10, ELEMENTS[currentElementTypeIndex]));
+            }
+        });
+
+        // マウスがキャンバスから離れた時の処理
+        canvas.addEventListener('mouseleave', () => {
+            mouse.isActive = false;
+        });
+
+        // クリックイベント
+        canvas.addEventListener('click', () => {
+            // Web Audio APIのコンテキストをユーザー操作で開始
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    audioContextStarted = true;
+                    instructionsDiv.textContent = 'マウスを動かし、クリックして「火。水、風、土」のイメージに切り替えよう！';
+                    instructionsDiv.style.opacity = 0.5;
+                });
+            }
+
+            // 元素タイプを切り替え
+            currentElementTypeIndex = (currentElementTypeIndex + 1) % ELEMENTS.length;
+            const currentElementType = ELEMENTS[currentElementTypeIndex];
+            // 画面上の指示メッセージを更新
+            instructionsDiv.textContent = `現在の元素: ${currentElementType.charAt(0).toUpperCase() + currentElementType.slice(1)} - クリックで変更`;
+            instructionsDiv.style.opacity = 1; // 一時的にメッセージを強調表示
+
+            // タイプ変更時に特徴的な音を再生
+            if (audioContextStarted) {
+                switch (currentElementType) {
+                    case 'fire':
+                        fireSynth.triggerAttackRelease("8n");
+                        break;
+                    case 'water':
+                        waterSynth.triggerAttackRelease("C4", "8n");
+                        break;
+                    case 'earth':
+                        earthSynth.triggerAttackRelease("C2", "8n");
+                        break;
+                    case 'wind':
+                        windSynth.triggerAttackRelease("4n");
+                        break;
+                }
+            }
+        });
+
+        // タッチイベント (モバイルデバイス対応)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // デフォルトのスクロール動作を無効にする
+            const touch = e.touches[0];
+            mouse.x = touch.clientX;
+            mouse.y = touch.clientY;
+            mouse.isActive = true;
+            
+            // タッチ開始時にもクリックと同様に元素タイプを切り替え
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    audioContextStarted = true;
+                    instructionsDiv.textContent = 'マウスを動かし、クリックして「火。水、風、土」のイメージに切り替えよう';
+                    instructionsDiv.style.opacity = 0.5;
+                });
+            }
+            currentElementTypeIndex = (currentElementTypeIndex + 1) % ELEMENTS.length;
+            const currentElementType = ELEMENTS[currentElementTypeIndex];
+            instructionsDiv.textContent = `現在の元素: ${currentElementType.charAt(0).toUpperCase() + currentElementType.slice(1)} - タッチで変更`;
+            if (audioContextStarted) {
+                switch (currentElementType) {
+                    case 'fire': fireSynth.triggerAttackRelease("8n"); break;
+                    case 'water': waterSynth.triggerAttackRelease("C4", "8n"); break;
+                    case 'earth': earthSynth.triggerAttackRelease("C2", "8n"); break;
+                    case 'wind': windSynth.triggerAttackRelease("4n"); break;
+                }
+            }
+            // 最初のタッチで粒子を生成
+            for (let i = 0; i < 5; i++) {
+                particles.push(new Particle(touch.clientX + (Math.random() - 0.5) * 20, touch.clientY + (Math.random() - 0.5) * 20, ELEMENTS[currentElementTypeIndex]));
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            mouse.x = touch.clientX;
+            mouse.y = touch.clientY;
+            mouse.isActive = true;
+
+            const particleCount = 2;
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(touch.clientX + (Math.random() - 0.5) * 10, touch.clientY + (Math.random() - 0.5) * 10, ELEMENTS[currentElementTypeIndex]));
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            mouse.isActive = false;
+        });
+
+        // アニメーションループ
+        const animate = () => {
+            // 画面全体を非常にゆっくりと背景色で塗りつぶし、残像効果を生み出す
+            ctx.fillStyle = 'rgba(5, 5, 21, 0.05)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 粒子の更新と描画
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update(); // 粒子を更新
+                p.draw(); // 粒子を描画
+
+                // 寿命が尽きた、または画面外に出た粒子を配列から削除
+                if (p.alpha <= 0.01 || p.radius < 0.1 || p.y > canvas.height + 50 || p.x < -50 || p.x > canvas.width + 50) {
+                    particles.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animate); // 次のフレームを要求
+        };
+
+        // アニメーションを開始
+        animate();
+    </script>
+</body>
+</html>

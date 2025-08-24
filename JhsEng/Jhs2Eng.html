@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中学2年生　英単語クイズ</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .quiz-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #007bff;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        .mode-selection {
+            margin-bottom: 20px;
+        }
+        .mode-selection label {
+            margin-right: 15px;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+        }
+        .mode-selection input[type="radio"] {
+            margin-right: 5px;
+            accent-color: #007bff;
+        }
+        .question {
+            font-size: 1.6em;
+            margin-bottom: 30px;
+            min-height: 40px; /* To prevent layout shift */
+            color: #333;
+            font-weight: bold;
+        }
+        .choices button {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border: 1px solid #cce5ff;
+            border-radius: 8px;
+            background-color: #e6f2ff;
+            color: #0056b3;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-align: left;
+        }
+        .choices button:hover {
+            background-color: #cce5ff;
+            transform: translateY(-2px);
+        }
+        .choices button:active {
+            transform: translateY(0);
+        }
+        .result {
+            font-size: 1.2em;
+            margin-top: 25px;
+            min-height: 30px; /* To prevent layout shift */
+            font-weight: bold;
+        }
+        .result.correct {
+            color: #28a745;
+        }
+        .result.incorrect {
+            color: #dc3545;
+        }
+        .score {
+            margin-top: 15px;
+            font-size: 1.1em;
+            color: #666;
+        }
+        /* Hidden input for radio button functionality, visually replaced by buttons */
+        .choices input[type="radio"] {
+            display: none;
+        }
+        .choices input[type="radio"] + label {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            border: 1px solid #cce5ff;
+            border-radius: 8px;
+            background-color: #e6f2ff;
+            color: #0056b3;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            text-align: left;
+        }
+        .choices input[type="radio"] + label:hover {
+            background-color: #cce5ff;
+            transform: translateY(-2px);
+        }
+        .choices input[type="radio"]:checked + label {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <h1>中学2年生　英単語クイズ</h1>
+
+        <div class="mode-selection">
+            <label>
+                <input type="radio" name="mode" value="jp_to_en" checked onchange="app.updateQuestion()"> 日本語→英語
+            </label>
+            <label>
+                <input type="radio" name="mode" value="en_to_jp" onchange="app.updateQuestion()"> 英語→日本語
+            </label>
+        </div>
+
+        <p id="question-text" class="question">問題が表示されます...</p>
+
+        <div class="choices" id="choices-container">
+            </div>
+
+        <p id="result-label" class="result"></p>
+        <p id="score-label" class="score">処理数: 0 正解: 0 不正解: 0</p>
+    </div>
+
+    <script src="jhs2_words.js"></script>
+    <script>
+        class EnglishQuizAppWeb {
+            constructor() {
+                this.mode = 'jp_to_en';
+                this.currentQuestion = {};
+                this.totalQuestions = 0;
+                this.correctCount = 0;
+                this.incorrectCount = 0;
+
+                this.questionTextElem = document.getElementById('question-text');
+                this.choicesContainerElem = document.getElementById('choices-container');
+                this.resultLabelElem = document.getElementById('result-label');
+                this.scoreLabelElem = document.getElementById('score-label');
+
+                this.updateQuestion();
+            }
+
+            updateQuestion() {
+                // Clear previous result and styling
+                this.resultLabelElem.textContent = '';
+                this.resultLabelElem.className = 'result';
+
+                this.mode = document.querySelector('input[name="mode"]:checked').value;
+                const [englishWord, japaneseMeaning] = word_list[Math.floor(Math.random() * word_list.length)];
+
+                let questionDisplay;
+                let correctAnswer;
+                let choicesArray = [];
+
+                if (this.mode === "jp_to_en") {
+                    questionDisplay = `『${japaneseMeaning}』の英単語は？`;
+                    correctAnswer = englishWord;
+                    choicesArray = [englishWord];
+                    // Get 2 other random English words (make sure they are different from the correct answer)
+                    while (choicesArray.length < 3) {
+                        const randomWord = word_list[Math.floor(Math.random() * word_list.length)][0];
+                        if (!choicesArray.includes(randomWord)) {
+                            choicesArray.push(randomWord);
+                        }
+                    }
+                } else { // en_to_jp
+                    questionDisplay = `『${englishWord}』の意味は？`;
+                    correctAnswer = japaneseMeaning;
+                    choicesArray = [japaneseMeaning];
+                    // Get 2 other random Japanese meanings
+                    while (choicesArray.length < 3) {
+                        const randomMeaning = word_list[Math.floor(Math.random() * word_list.length)][1];
+                        if (!choicesArray.includes(randomMeaning)) {
+                            choicesArray.push(randomMeaning);
+                        }
+                    }
+                }
+
+                // Shuffle choices
+                for (let i = choicesArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [choicesArray[i], choicesArray[j]] = [choicesArray[j], choicesArray[i]];
+                }
+
+                this.currentQuestion = {
+                    question: questionDisplay,
+                    correct: correctAnswer,
+                    choices: choicesArray
+                };
+
+                this.questionTextElem.textContent = this.currentQuestion.question;
+                this.renderChoices();
+            }
+
+            renderChoices() {
+                this.choicesContainerElem.innerHTML = ''; // Clear previous choices
+                this.currentQuestion.choices.forEach(choice => {
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = 'answer';
+                    input.value = choice;
+                    input.id = `choice-${choice.replace(/\s/g, '-')}`; // Simple ID generation
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `choice-${choice.replace(/\s/g, '-')}`;
+                    label.textContent = choice;
+                    label.onclick = () => this.checkAnswer(choice); // Attach click handler to label
+
+                    this.choicesContainerElem.appendChild(input);
+                    this.choicesContainerElem.appendChild(label);
+                });
+            }
+
+            checkAnswer(selectedAnswer) {
+                this.totalQuestions++;
+
+                if (selectedAnswer === this.currentQuestion.correct) {
+                    this.correctCount++;
+                    this.resultLabelElem.textContent = "正解！";
+                    this.resultLabelElem.classList.add('correct');
+                } else {
+                    this.incorrectCount++;
+                    this.resultLabelElem.textContent = `不正解。正解は ${this.currentQuestion.correct} です。`;
+                    this.resultLabelElem.classList.add('incorrect');
+                }
+
+                this.scoreLabelElem.textContent = `処理数: ${this.totalQuestions} 正解: ${this.correctCount} 不正解: ${this.incorrectCount}`;
+
+                // Disable choices temporarily
+                Array.from(this.choicesContainerElem.querySelectorAll('input[type="radio"]')).forEach(input => input.disabled = true);
+                Array.from(this.choicesContainerElem.querySelectorAll('label')).forEach(label => label.style.pointerEvents = 'none');
+
+
+                setTimeout(() => {
+                    // Re-enable choices
+                    Array.from(this.choicesContainerElem.querySelectorAll('input[type="radio"]')).forEach(input => input.disabled = false);
+                    Array.from(this.choicesContainerElem.querySelectorAll('label')).forEach(label => label.style.pointerEvents = 'auto');
+                    this.updateQuestion();
+                }, 1000); // 1 second delay
+            }
+        }
+
+        const app = new EnglishQuizAppWeb();
+    </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML技術2025</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 全体のリセットと基本スタイル */
+        body {
+            margin: 0;
+            overflow: hidden; /* スクロールバーを非表示 */
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column; /* 要素を縦に並べる */
+            height: 100vh; /* ビューポートの高さに合わせる */
+            background-color: #1a1a2e; /* 暗めの背景色 */
+            color: #e0e0e0;
+        }
+
+        /* ボタンバーのスタイル */
+        #button-bar {
+            height: 20vh; /* 全体の20%の高さ */
+            display: flex;
+            justify-content: center; /* ボタンを水平中央に配置 */
+            align-items: center; /* ボタンを垂直中央に配置 */
+            gap: 20px; /* ボタン間のスペース */
+            background-color: #16213e; /* ボタンバーの背景色 */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* 下向きの影 */
+            border-bottom: 2px solid #0f3460; /* 下線 */
+            padding: 10px; /* パディング */
+            box-sizing: border-box; /* パディングを高さに含める */
+            flex-wrap: wrap; /* ボタンが多すぎたら改行する */
+        }
+
+        /* ボタンのスタイル */
+        .nav-button {
+            background-color: #0f3460; /* ボタンの背景色 */
+            color: #e0e0e0; /* ボタンのテキスト色 */
+            border: none;
+            border-radius: 12px; /* 丸い角 */
+            padding: 15px 30px; /* パディング */
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease; /* ホバー効果のアニメーション */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); /* ボタンの影 */
+            outline: none; /* フォーカス時のアウトラインを削除 */
+        }
+
+        .nav-button:hover {
+            background-color: #007bff; /* ホバー時の背景色 */
+            transform: translateY(-3px); /* 少し上に移動 */
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.4); /* ホバー時の影 */
+        }
+
+        .nav-button:active {
+            transform: translateY(0); /* クリック時に戻る */
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2); /* クリック時の影 */
+        }
+
+        /* iframeのスタイル */
+        #content-frame {
+            flex-grow: 1; /* 残りのスペースを全て使用 */
+            border: none; /* iframeのボーダーを削除 */
+            width: 100%; /* 幅を親要素に合わせる */
+            background-color: #0d1222; /* iframeの背景色 */
+            padding: 20px; /* コンテンツのパディング */
+            box-sizing: border-box; /* パディングを高さに含める */
+        }
+
+        /* レスポンシブデザインの調整 */
+        @media (max-width: 768px) {
+            #button-bar {
+                height: 15vh; /* スマホではボタンバーを少し小さく */
+                gap: 10px;
+                padding: 5px;
+            }
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+            #content-frame {
+                height: 85vh; /* 残りの高さをiframeに */
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #button-bar {
+                height: 10vh; /* さらに小さく */
+                gap: 5px;
+            }
+            .nav-button {
+                padding: 8px 15px;
+                font-size: 0.8em;
+            }
+            #content-frame {
+                height: 90vh; /* 残りの高さをiframeに */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="button-bar">
+        <!-- data-file-name属性でHTMLファイルを指定 -->
+        <button class="nav-button" data-file-name="Firework.html">花火</button>
+        <button class="nav-button" data-file-name="FourElements.html">四元素</button>
+        <button class="nav-button" data-file-name="InfiniteRipplePond.html">波紋の池 1</button>
+        <button class="nav-button" data-file-name="InfiniteRipplePond2.html">波紋の池 2</button>
+        <button class="nav-button" data-file-name="OrganicGrowth.html">有機的成長</button>
+        <button class="nav-button" data-file-name="DigitalSand.html">デジタルの砂</button>
+        <button class="nav-button" data-file-name="GlassAndWaterDrops.html">ガラスと水滴</button>
+    </div>
+
+    <iframe id="content-frame" title="コンテンツ表示エリア"></iframe>
+
+    <script>
+        const contentFrame = document.getElementById('content-frame');
+        const navButtons = document.querySelectorAll('.nav-button');
+
+        // コンテンツをiframeにロードする関数
+        // ファイル名を受け取り、そのファイルをiframeのsrcに直接設定します。
+        // ローカルファイル (file:// プロトコル) の場合、fetch API はセキュリティ上の理由で機能しません。
+        // 代わりに iframe の src 属性を直接設定することで、外部の HTML ファイルを読み込みます。
+        const loadContent = (fileName) => {
+            // iframe の src を直接設定
+            contentFrame.src = fileName;
+
+            // 注意点:
+            // file:// プロトコルでロードされた iframe のコンテンツは、
+            // 同じローカルフォルダにあっても親ページとは異なるオリジンと見なされます。
+            // そのため、親ページの JavaScript から iframe 内のコンテンツに
+            // 直接アクセスしたり操作したりすることはセキュリティ上の理由で制限されます (同一生成元ポリシー)。
+            // iframe 内の HTML ファイルに独自の JavaScript が含まれている場合、
+            // それらは iframe 内で独立して動作します。
+        };
+
+        // 各ボタンにクリックイベントリスナーを設定
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const fileName = button.dataset.fileName; // data-file-name属性からファイル名を取得
+                if (fileName) {
+                    loadContent(fileName);
+                }
+            });
+        });
+
+        // ページロード時にデフォルトで最初のページ（Firework.html）をロード
+        document.addEventListener('DOMContentLoaded', () => {
+            // 最初のボタンのdata-file-nameを取得してロード
+            const defaultFileName = navButtons[0].dataset.fileName;
+            if (defaultFileName) {
+                loadContent(defaultFileName);
+            }
+        });
+    </script>
+</body>
+</html>

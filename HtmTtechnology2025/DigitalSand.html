@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デジタルサンドの創造</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* 全体のスタイル設定 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #100f1c; /* 暗めの背景色 */
+            cursor: crosshair; /* 十字カーソルでインタラクションを強調 */
+            font-family: 'Inter', sans-serif;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* キャンバスのスタイル設定 */
+        canvas {
+            display: block;
+            border-radius: 20px;
+            box-shadow: 0 0 70px rgba(120, 180, 255, 0.5), 0 0 30px rgba(255, 255, 255, 0.2);
+            background-color: rgba(0, 0, 0, 0.1);
+            touch-action: none; /* タッチジェスチャーの無効化 */
+            max-width: 100vw;
+            max-height: 100vh;
+            width: auto;
+            height: auto;
+        }
+
+        /* メッセージ表示用のスタイル */
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 12px 25px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            text-align: center;
+            opacity: 0.9;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 200, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="sandCanvas"></canvas>
+    <div id="instructions">マウスを動かし、砂を積み上げよう！</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        // キャンバス要素と描画コンテキストを取得
+        const canvas = document.getElementById('sandCanvas');
+        const ctx = canvas.getContext('2d');
+        const instructionsDiv = document.getElementById('instructions');
+
+        // グリッドサイズと粒子のサイズ
+        const PARTICLE_SIZE = 4; // 1粒の砂のサイズ (px)
+        let COLS, ROWS; // グリッドの列数と行数
+        let grid = []; // 砂のグリッド
+
+        // 砂粒の色相
+        let currentHue = 0;
+        let audioContextStarted = false;
+
+        // Tone.jsシンセサイザーとエフェクトのセットアップ
+        const clickSynth = new Tone.MembraneSynth().toDestination(); // クリック時の打楽器音
+        const granularSynth = new Tone.NoiseSynth({ // 砂が動く音
+            noise: {
+                type: "pink"
+            },
+            envelope: {
+                attack: 0.005,
+                decay: 0.05,
+                sustain: 0,
+                release: 0.1,
+            },
+            volume: -30
+        }).connect(new Tone.Freeverb().toDestination()); // リバーブをかけて広がりを出す
+
+        // キャンバスのサイズをウィンドウに合わせ、グリッドを初期化する関数
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            COLS = Math.floor(canvas.width / PARTICLE_SIZE);
+            ROWS = Math.floor(canvas.height / PARTICLE_SIZE);
+
+            // グリッドを空で初期化
+            grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0)); // 0は空、それ以外は色相
+        };
+
+        // ウィンドウのリサイズイベントを監視
+        window.addEventListener('resize', resizeCanvas);
+        // 最初のロード時にキャンバスサイズとグリッドを設定
+        resizeCanvas();
+
+        // 砂をグリッドに追加する関数
+        const addSand = (x, y, radius = 5) => {
+            const centerX = Math.floor(x / PARTICLE_SIZE);
+            const centerY = Math.floor(y / PARTICLE_SIZE);
+
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const gx = centerX + dx;
+                    const gy = centerY + dy;
+
+                    if (gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS && Math.random() < 0.7) {
+                        if (grid[gy][gx] === 0) { // 空のセルにのみ砂を追加
+                            grid[gy][gx] = currentHue;
+                            if (audioContextStarted) {
+                                granularSynth.triggerAttackRelease("16n"); // 砂を置く音
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // 砂のシミュレーションロジック
+        const simulateSand = () => {
+            let movedCount = 0;
+            // 下から上にループすることで、新しい砂が正確に下に移動する
+            for (let y = ROWS - 2; y >= 0; y--) {
+                for (let x = 0; x < COLS; x++) {
+                    const sandHue = grid[y][x];
+                    if (sandHue !== 0) { // 砂がある場合
+                        // 真下が空いているか？
+                        if (grid[y + 1][x] === 0) {
+                            grid[y + 1][x] = sandHue;
+                            grid[y][x] = 0;
+                            movedCount++;
+                        } else {
+                            // 斜め下が空いているか？ (左右ランダムにチェック)
+                            const dir = Math.random() < 0.5 ? -1 : 1;
+                            const nextX = x + dir;
+
+                            if (nextX >= 0 && nextX < COLS && grid[y + 1][nextX] === 0) {
+                                grid[y + 1][nextX] = sandHue;
+                                grid[y][x] = 0;
+                                movedCount++;
+                            } else if (x - dir >= 0 && x - dir < COLS && grid[y + 1][x - dir] === 0) {
+                                // もう一方の斜め下をチェック
+                                grid[y + 1][x - dir] = sandHue;
+                                grid[y][x] = 0;
+                                movedCount++;
+                            }
+                        }
+                    }
+                }
+            }
+            return movedCount;
+        };
+
+        // 描画ループ
+        const animate = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // キャンバスをクリア
+
+            // 砂をシミュレート
+            const movedCount = simulateSand();
+
+            // 砂を描画
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const sandHue = grid[y][x];
+                    if (sandHue !== 0) {
+                        ctx.fillStyle = `hsl(${sandHue}, 80%, 60%)`;
+                        ctx.fillRect(x * PARTICLE_SIZE, y * PARTICLE_SIZE, PARTICLE_SIZE, PARTICLE_SIZE);
+                    }
+                }
+            }
+
+            // 色相をゆっくりと変化させる
+            currentHue = (currentHue + 0.1) % 360;
+
+            requestAnimationFrame(animate);
+        };
+
+        // マウス移動で砂を降らせる
+        canvas.addEventListener('mousemove', (e) => {
+            addSand(e.clientX, e.clientY, 10); // マウスの位置に砂を少量追加
+        });
+
+        // クリックで「風」を起こし、砂を大量に降らせる
+        canvas.addEventListener('click', (e) => {
+            // Web Audio APIのコンテキストをユーザー操作で開始
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    audioContextStarted = true;
+                    instructionsDiv.textContent = 'マウスを動かし、砂を積み上げよう！';
+                    instructionsDiv.style.opacity = 0.5;
+                });
+            }
+            if (audioContextStarted) {
+                clickSynth.triggerAttackRelease("C3", "8n"); // クリック音
+            }
+            addSand(e.clientX, e.clientY, 30); // クリック位置に大量の砂を追加
+        });
+
+        // タッチイベントの処理 (モバイルデバイス対応)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    audioContextStarted = true;
+                    instructionsDiv.textContent = '砂の流れる音と、風の音を楽しもう！';
+                    instructionsDiv.style.opacity = 0.5;
+                });
+            }
+            if (audioContextStarted) {
+                clickSynth.triggerAttackRelease("C3", "8n");
+            }
+            const touch = e.touches[0];
+            addSand(touch.clientX, touch.clientY, 30);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            addSand(touch.clientX, touch.clientY, 10);
+        }, { passive: false });
+
+        // アニメーションを開始
+        animate();
+    </script>
+</body>
+</html>

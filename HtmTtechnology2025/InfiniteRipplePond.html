@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>無限の波紋の池</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* 全体のスタイル設定 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #02020a; /* より深い、暗い背景 */
+            cursor: none; /* カーソルを非表示にして没入感を高める */
+            font-family: 'Inter', sans-serif;
+            color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* キャンバスのスタイル設定 */
+        canvas {
+            display: block;
+            border-radius: 25px; /* さらに丸みを帯びた角 */
+            box-shadow: 0 0 100px rgba(150, 200, 255, 0.7), 0 0 40px rgba(255, 255, 255, 0.4); /* 強く光る影 */
+            background-color: rgba(0, 0, 0, 0.2); /* わずかに透明なキャンバス */
+            touch-action: none; /* タッチジェスチャーの無効化 */
+            width: 100vw; /* 画面幅いっぱいに広がる */
+            height: 100vh; /* 画面高さいっぱいに広がる */
+        }
+
+        /* メッセージ表示用のスタイル */
+        #instructions {
+            position: absolute;
+            top: 25px; /* 下部に配置 */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-radius: 20px;
+            font-size: 1.3em;
+            text-align: center;
+            opacity: 0.95;
+            transition: opacity 0.8s ease-in-out;
+            z-index: 10;
+            backdrop-filter: blur(8px); /* 強い背景ぼかし */
+            box-shadow: 0 0 20px rgba(50, 255, 255, 0.4); /* 青緑系の光る枠 */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="rippleCanvas"></canvas>
+    <div id="instructions">マウスを動かして波紋の広がりを楽しもう！</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script>
+        // キャンバス要素と描画コンテキストを取得
+        const canvas = document.getElementById('rippleCanvas');
+        const ctx = canvas.getContext('2d');
+        const instructionsDiv = document.getElementById('instructions');
+
+        // 波紋オブジェクトを格納する配列
+        const ripples = [];
+        // 現在の色相オフセット（波紋の色をゆっくり変化させるため）
+        let globalHueOffset = 0;
+
+        // 音声コンテキストとシンセサイザーの設定
+        let audioContextStarted = false;
+        const synth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: {
+                attack: 0.01,
+                decay: 0.2,
+                sustain: 0.1,
+                release: 0.5,
+            },
+            volume: -20 // 音量をさらに小さめに設定
+        }).toDestination();
+        const delay = new Tone.FeedbackDelay("8n", 0.5).toDestination(); // ディレイエフェクト
+        const reverb = new Tone.Reverb(3).toDestination(); // リバーブエフェクト
+        synth.chain(delay, reverb, Tone.Destination); // エフェクトをチェイン
+
+        // Rippleクラスの定義
+        class Ripple {
+            constructor(x, y, initialRadius = 1, type = 'mouse') {
+                this.x = x;
+                this.y = y;
+                this.radius = initialRadius; // 波紋の現在の半径
+                this.maxRadius = Math.random() * 200 + 100; // 波紋の最大半径
+                this.speed = Math.random() * 1.5 + 0.5; // 波紋の拡大速度
+                this.alpha = 1; // 透明度
+                this.life = 0; // 波紋の寿命
+                this.maxLife = this.maxRadius / this.speed; // 最大寿命を計算
+                this.hue = (globalHueOffset + Math.random() * 60) % 360; // 色相
+                this.lineWidth = 2 + Math.random() * 2; // 線幅
+                this.type = type; // 'mouse' or 'click'
+            }
+
+            // 波紋を更新するメソッド
+            update() {
+                this.radius += this.speed; // 半径を拡大
+                this.life++; // 寿命を更新
+
+                // 透明度を寿命に応じて徐々に下げる
+                this.alpha = Math.max(0, 1 - (this.life / this.maxLife));
+
+                // 速度を徐々に減衰させる
+                this.speed *= 0.995;
+            }
+
+            // 波紋を描画するメソッド
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.strokeStyle = `hsla(${this.hue}, 100%, 75%, ${this.alpha})`;
+                ctx.lineWidth = this.lineWidth;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // キャンバスのサイズをウィンドウに合わせる関数
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // リサイズ時に波紋をクリアして新しい体験を促す
+            ripples.length = 0;
+        };
+
+        // ウィンドウのリサイズイベントを監視
+        window.addEventListener('resize', resizeCanvas);
+        // 最初のロード時にキャンバスサイズを設定
+        resizeCanvas();
+
+        // マウスの動きとクリックイベント
+        const handleInteraction = (x, y, type) => {
+            // Web Audio APIのコンテキストをユーザー操作で開始
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    audioContextStarted = true;
+                    instructionsDiv.textContent = 'マウスを動かして波紋の広がりを楽しもう！';
+                    instructionsDiv.style.opacity = 0.5;
+                });
+            }
+            // 新しい波紋を生成して配列に追加
+            ripples.push(new Ripple(x, y, type === 'click' ? 5 : 1, type)); // クリック時は少し大きめに開始
+
+            // サウンドを再生
+            if (audioContextStarted) {
+                const note = Tone.Midi(globalHueOffset / 3 + 40).toNote(); // 色相を音階に変換
+                synth.triggerAttackRelease(note, type === 'click' ? '4n' : '16n');
+            }
+        };
+
+        canvas.addEventListener('mousemove', (e) => {
+            // マウスの動きが速い場合のみ波紋を生成
+            // const dx = e.movementX || 0;
+            // const dy = e.movementY || 0;
+            // if (Math.sqrt(dx * dx + dy * dy) > 5) { // 閾値を設けることで、波紋の過剰な生成を防ぐ
+                handleInteraction(e.clientX, e.clientY, 'mouse');
+            // }
+        });
+
+        canvas.addEventListener('click', (e) => {
+            handleInteraction(e.clientX, e.clientY, 'click');
+        });
+
+        // タッチイベントの処理 (モバイルデバイス対応)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // デフォルトのスクロール動作を無効にする
+            if (!audioContextStarted) {
+                Tone.start().then(() => {
+                    audioContextStarted = true;
+                    instructionsDiv.textContent = '波紋の広がりと音を楽しもう！';
+                    instructionsDiv.style.opacity = 0.5;
+                });
+            }
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX, touch.clientY, 'click'); // タッチ開始でクリックと同じ波紋
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX, touch.clientY, 'mouse');
+        }, { passive: false });
+
+        // アニメーションループ
+        const animate = () => {
+            // 背景をゆっくりとフェードアウトさせることで、残像効果を生み出す
+            ctx.fillStyle = 'rgba(2, 2, 10, 0.05)'; /* 背景色と同じ色で薄く上書き */
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 全体的な色相をゆっくり変化させる
+            globalHueOffset = (globalHueOffset + 0.05) % 360;
+
+            // 波紋を更新し、寿命が尽きたものを削除
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                const ripple = ripples[i];
+                ripple.update(); // 波紋を更新
+                ripple.draw(); // 波紋を描画
+
+                // 寿命が尽きた波紋を配列から削除
+                if (ripple.alpha <= 0.01) {
+                    ripples.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animate); // 次のフレームを要求
+        };
+
+        // アニメーションを開始
+        animate();
+    </script>
+</body>
+</html>

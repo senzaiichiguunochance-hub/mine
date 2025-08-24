@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花火</title>
+    <style>
+        /* 全体のスタイル設定 */
+        body {
+            margin: 0; /* bodyの余白をなくす */
+            overflow: hidden; /* スクロールバーを非表示にする */
+            background-color: #0d0d1e; /* 暗い宇宙のような背景色 */
+            cursor: none; /* マウスカーソルを非表示にして没入感を高める */
+            font-family: 'Inter', sans-serif; /* 美しいフォント */
+            color: #ffffff; /* テキストの色 */
+            display: flex; /* flexboxで中央寄せ */
+            justify-content: center; /* 水平方向の中央寄せ */
+            align-items: center; /* 垂直方向の中央寄せ */
+            min-height: 100vh; /* 画面いっぱいの高さを確保 */
+        }
+
+        /* キャンバスのスタイル設定 */
+        canvas {
+            display: block; /* 余分なスペースをなくす */
+            border-radius: 15px; /* 角を丸くする */
+            box-shadow: 0 0 50px rgba(100, 150, 255, 0.5), 0 0 20px rgba(255, 255, 255, 0.2); /* 光る影 */
+            background-color: rgba(0, 0, 0, 0.1); /* キャンバスのわずかな透明度 */
+            touch-action: none; /* タッチデバイスでのデフォルトジェスチャーを無効にする */
+        }
+
+        /* メッセージ表示用のスタイル */
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            text-align: center;
+            opacity: 0.8;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="magicCanvas"></canvas>
+    <div id="instructions">マウスを動かして、花火を出そう！</div>
+
+    <script>
+        // キャンバス要素と描画コンテキストを取得
+        const canvas = document.getElementById('magicCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 粒子の配列を初期化
+        const particles = [];
+        // 現在のパーティクル生成のオフセットカラー（色相）
+        let hueOffset = 0;
+
+        // Particleクラスの定義
+        class Particle {
+            constructor(x, y, hue) {
+                this.x = x; // 粒子のX座標
+                this.y = y; // 粒子のY座標
+                // 初期速度はランダムに設定し、わずかに広がるようにする
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.size = Math.random() * 5 + 2; // 粒子の初期サイズ
+                this.hue = hue; // 粒子の色相
+                this.alpha = 1; // 粒子の透明度（最初は不透明）
+                this.life = 100; // 粒子の寿命
+            }
+
+            // 粒子を更新するメソッド
+            update() {
+                this.x += this.vx; // X座標を更新
+                this.y += this.vy; // Y座標を更新
+                this.alpha -= 0.01; // 透明度を徐々に下げる（フェードアウト）
+                this.size *= 0.98; // サイズを徐々に小さくする
+                this.life--; // 寿命を減らす
+
+                // 速度を減衰させる（空気抵抗のような効果）
+                this.vx *= 0.99;
+                this.vy *= 0.99;
+            }
+
+            // 粒子を描画するメソッド
+            draw() {
+                ctx.save(); // 現在の描画状態を保存
+                ctx.globalAlpha = this.alpha; // 透明度を設定
+                ctx.fillStyle = `hsl(${this.hue}, 100%, 70%)`; // HSL形式で色を設定
+                ctx.beginPath(); // 新しいパスを開始
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); // 円を描画
+                ctx.fill(); // 円を塗りつぶす
+                ctx.restore(); // 描画状態を元に戻す
+            }
+        }
+
+        // キャンバスのサイズをウィンドウに合わせる関数
+        const resizeCanvas = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+
+        // ウィンドウのリサイズイベントを監視
+        window.addEventListener('resize', resizeCanvas);
+        // 最初のロード時にキャンバスサイズを設定
+        resizeCanvas();
+
+        // マウスの動きに合わせて粒子を生成するイベントリスナー
+        canvas.addEventListener('mousemove', (e) => {
+            // マウスの位置を基準に複数の粒子を生成
+            for (let i = 0; i < 5; i++) { // 一度に5つの粒子を生成
+                // 色相は徐々に変化させることで、美しいグラデーション効果を生み出す
+                const currentHue = (hueOffset + (i * 10)) % 360;
+                particles.push(new Particle(e.clientX, e.clientY, currentHue));
+            }
+            hueOffset = (hueOffset + 1) % 360; // 色相を少しずつ進める
+        });
+
+        // タッチイベントの処理 (モバイルデバイス対応)
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // デフォルトのスクロール動作を無効にする
+            const touch = e.touches[0];
+            for (let i = 0; i < 5; i++) {
+                const currentHue = (hueOffset + (i * 10)) % 360;
+                particles.push(new Particle(touch.clientX, touch.clientY, currentHue));
+            }
+            hueOffset = (hueOffset + 1) % 360;
+        }, { passive: false }); // passive: false で preventDefault() を有効にする
+
+        // アニメーションループ
+        const animate = () => {
+            // 古い描画を徐々に消すことで、残像効果（トレイル）を作成
+            ctx.fillStyle = 'rgba(13, 13, 30, 0.1)'; /* 背景色と同じ色で薄く上書き */
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 粒子の配列を逆順にループすることで、新しい粒子が手前に描画されるようにする
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update(); // 粒子を更新
+                p.draw(); // 粒子を描画
+
+                // 寿命が尽きた粒子を配列から削除
+                if (p.life <= 0 || p.alpha <= 0.01 || p.size <= 0.5) {
+                    particles.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animate); // 次のフレームを要求
+        };
+
+        // アニメーションを開始
+        animate();
+    </script>
+</body>
+</html>

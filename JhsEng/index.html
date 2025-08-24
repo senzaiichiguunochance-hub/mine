@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ページ移動中...</title>
+    <!--
+        このMetaタグが自動リダイレクトを実行します。
+        content="3;url=Firework.html" の意味:
+        - 3: 3秒後にリダイレクトを開始します。
+        - url=Firework.html: リダイレクト先のHTMLファイル名を指定します。
+          このファイルは、redirect_on_load.html と同じフォルダにある必要があります。
+          もし別の場所にある場合は、相対パス (例: "subfolder/Firework.html") や
+          絶対URL (例: "https://example.com/Firework.html") を指定してください。
+    -->
+    <meta http-equiv="refresh" content="3;url=..\menu.html">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e; /* 暗めの背景色 */
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden; /* スクロールバーを非表示 */
+        }
+
+        .container {
+            background-color: #16213e;
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 90%;
+            width: 400px;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            color: #007bff; /* 明るい青 */
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .loader {
+            border: 8px solid rgba(255, 255, 255, 0.2);
+            border-top: 8px solid #007bff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto; /* 中央寄せ */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* レスポンシブ調整 */
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            p {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ページを移動しています...</h1>
+        <p>自動的に次のページにリダイレクトされます。しばらくお待ちください。</p>
+        <div class="loader"></div>
+        <p style="margin-top: 30px; font-size: 0.9em; color: #a0a0a0;">
+            もし自動的に移動しない場合は、ブラウザのリロードをお試しください。
+        </p>
+    </div>
+</body>
+</html>
