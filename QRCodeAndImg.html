@@ -1,204 +1,275 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>透過画像QRコード生成</title>
-  <link rel="stylesheet" type="text/css" href="Style.css" />
-  <style>
-    .control-panel {
-      background-color: var(--card-color);
-      border: 1px solid var(--primary-color);
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 30px;
-    }
-    .control-row {
-      display: flex;
-      align-items: center;
-      margin: 10px 0;
-    }
-    .control-row label {
-      flex: 0 0 150px;
-      text-align: right;
-      margin-right: 10px;
-    }
-    .control-row input, .control-row select, .control-row button {
-      flex: 1;
-    }
-    .preview-grid {
-      display: grid;
-      grid-template-columns: 45% 10% 45%;
-      gap: 20px;
-      align-items: center;
-    }
-    .preview-button {
-      background-color: var(--card-color);
-      border: 1px solid var(--primary-color);
-      border-radius: 15px;
-      padding: 20px;
-      text-align: center;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .preview-box {
-      background-color: var(--card-color);
-      border: 1px solid var(--primary-color);
-      border-radius: 15px;
-      padding: 20px;
-      text-align: center;
-    }
-    #logoPreview {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-    #qrcanvas {
-      max-width: 100%;
-      height: auto;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>透過画像QRコード生成</title>
+<link rel="stylesheet" type="text/css" href="Style.css" />
+<style>
+.control-panel {
+  background-color: var(--card-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+.control-row {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+.control-row label {
+  flex: 0 0 150px;
+  text-align: right;
+  margin-right: 10px;
+  padding: 5px 0;
+}
+.control-row input[type="text"], .control-row select {
+  flex: 1;
+  min-width: 150px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin: 5px 0;
+}
+.control-row .radio-group {
+  flex: 1;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-left: 10px;
+}
+.control-row .radio-group label {
+  text-align: left;
+  flex: none;
+  margin-right: 5px;
+}
+.control-row .radio-group input[type="radio"] {
+  margin-right: 5px;
+  flex: none;
+  min-width: unset;
+}
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: center;
+}
+@media (min-width: 768px) {
+  .preview-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .preview-box:first-child { grid-column: 1 / 2; }
+  .preview-box:last-child { grid-column: 2 / 3; }
+}
+.preview-button { display: none; } /* 生成ボタンは非表示 */
+.preview-box {
+  background-color: var(--card-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 15px;
+  padding: 20px;
+  text-align: center;
+}
+#logoPreview {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  margin-top: 10px;
+}
+#qrcanvas {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #eee;
+}
+</style>
 </head>
 <body>
 <div class="container">
-  <header class="header">
-    <h1>透過画像QRコード生成</h1>
-  </header>
+<header class="header">
+<h1>透過画像QRコード生成</h1>
+</header>
 
-  <!-- コントロールパネル -->
-  <div class="control-panel">
-    <div class="control-row">
-      <label>URLを入力</label>
-      <input type="text" id="urlInput" value="https://note.com/good_lilac166/n/ne97e7200c063" size="40">
-    </div>
-
-    <div class="control-row">
-      <label>QRコードサイズ</label>
-      <select id="qrSize">
-        <option value="100">100 x 100</option>
-        <option value="120">120 x 120</option>
-        <option value="140">140 x 140</option>
-        <option value="150">150 x 150</option>
-        <option value="160">160 x 160</option>
-        <option value="180">180 x 180</option>
-        <option value="200" selected>200 x 200</option>
-        <option value="220">220 x 220</option>
-        <option value="240">240 x 240</option>
-        <option value="250">250 x 250</option>
-        <option value="260">260 x 260</option>
-        <option value="280">280 x 280</option>
-        <option value="300">300 x 300</option>
-        <option value="320">320 x 320</option>
-        <option value="350">350 x 350</option>
-        <option value="380">380 x 380</option>
-        <option value="400">400 x 400</option>
-        <option value="450">450 x 450</option>
-        <option value="500">500 x 500</option>
-      </select>
-      <label>透過率</label>
-      <select id="opacity">
-        <option value="0.0">0.0</option>
-        <option value="0.1">0.1</option>
-        <option value="0.2">0.2</option>
-        <option value="0.3">0.3</option>
-        <option value="0.4">0.4</option>
-        <option value="0.5" selected>0.5</option>
-        <option value="0.6">0.6</option>
-        <option value="0.7">0.7</option>
-        <option value="0.8">0.8</option>
-        <option value="0.9">0.9</option>
-        <option value="1.0">1.0</option>
-      </select>
-    </div>
+<!-- コントロールパネル -->
+<div class="control-panel">
+  <div class="control-row">
+    <label for="urlInput">URLを入力</label>
+    <input type="text" id="urlInput" value="https://note.com/good_lilac166/n/ne97e7200c063" size="40">
   </div>
 
-    <!-- プレビューエリア -->
-  <div class="preview-grid">
-    <div class="preview-box">
-      <label>透過する画像を選択</label><br>
-      <input type="file" id="logoInput" accept="image/*"><br>
-      <img id="logoPreview" alt="選択した画像を表示">
-    </div>
-    <div class="preview-button">
-      <button id="generateBtn">生成開始</button>
-    </div>
-    <div class="preview-box">
-      <h3>生成結果</h3>
-      <canvas id="qrcanvas" width="240" height="240"></canvas>
+  <div class="control-row">
+    <label for="qrSize">QRコードサイズ</label>
+    <select id="qrSize">
+      <option value="100">100 x 100</option>
+      <option value="120">120 x 120</option>
+      <option value="140">140 x 140</option>
+      <option value="150">150 x 150</option>
+      <option value="160">160 x 160</option>
+      <option value="180">180 x 180</option>
+      <option value="200" selected>200 x 200</option>
+      <option value="220">220 x 220</option>
+      <option value="240">240 x 240</option>
+      <option value="250">250 x 250</option>
+      <option value="260">260 x 260</option>
+      <option value="280">280 x 280</option>
+      <option value="300">300 x 300</option>
+      <option value="320">320 x 320</option>
+      <option value="350">350 x 350</option>
+      <option value="380">380 x 380</option>
+      <option value="400">400 x 400</option>
+      <option value="450">450 x 450</option>
+      <option value="500">500 x 500</option>
+    </select>
+
+    <label for="opacity">透過率</label>
+    <select id="opacity">
+      <option value="0.0">0.0</option>
+      <option value="0.1">0.1</option>
+      <option value="0.2">0.2</option>
+      <option value="0.3">0.3</option>
+      <option value="0.4">0.4</option>
+      <option value="0.5" selected>0.5</option>
+      <option value="0.6">0.6</option>
+      <option value="0.7">0.7</option>
+      <option value="0.8">0.8</option>
+      <option value="0.9">0.9</option>
+      <option value="1.0">1.0</option>
+    </select>
+  </div>
+
+  <div class="control-row">
+    <label>画像表示方法</label>
+    <div class="radio-group">
+      <input type="radio" id="modeTransparent" name="imageMode" value="transparent" checked>
+      <label for="modeTransparent">背景色透過</label>
+      <input type="radio" id="modeCentralFinder" name="imageMode" value="centralFinder">
+      <label for="modeCentralFinder">画像中央と切り出しシンボル</label>
     </div>
   </div>
+</div>
+
+<!-- プレビューエリア -->
+<div class="preview-grid">
+  <div class="preview-box">
+    <label for="logoInput">透過する画像を選択</label><br>
+    <input type="file" id="logoInput" accept="image/*"><br>
+    <img id="logoPreview" alt="選択した画像を表示">
+  </div>
+  <div class="preview-button"></div>
+  <div class="preview-box">
+    <h3>生成結果</h3>
+    <canvas id="qrcanvas" width="240" height="240"></canvas>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <script>
+// 要素取得
 const urlInput = document.getElementById('urlInput');
 const logoInput = document.getElementById('logoInput');
 const logoPreview = document.getElementById('logoPreview');
-const generateBtn = document.getElementById('generateBtn');
 const qrcanvas = document.getElementById('qrcanvas');
 const ctx = qrcanvas.getContext('2d');
 const qrSizeSelect = document.getElementById('qrSize');
 const opacitySelect = document.getElementById('opacity');
+const modeTransparent = document.getElementById('modeTransparent');
+const modeCentralFinder = document.getElementById('modeCentralFinder');
 
 let logoImage = null;
 
 // 画像選択時にプレビュー表示
 logoInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-
+  if (!file) {
+    logoImage = null;
+    logoPreview.src = '';
+    generateQrCode();
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(event) {
     logoPreview.src = event.target.result;
     logoImage = new Image();
+    logoImage.onload = () => generateQrCode();
     logoImage.src = event.target.result;
   }
   reader.readAsDataURL(file);
 });
 
 // QRコード生成
-generateBtn.addEventListener('click', () => {
+function generateQrCode() {
   const url = urlInput.value.trim();
   if (!url) {
-    alert("URLを入力してください");
+    ctx.clearRect(0, 0, qrcanvas.width, qrcanvas.height);
     return;
   }
-
   const size = parseInt(qrSizeSelect.value);
   const opacity = parseFloat(opacitySelect.value);
+  const currentMode = document.querySelector('input[name="imageMode"]:checked').value;
 
-  // canvas サイズを変更
   qrcanvas.width = size;
   qrcanvas.height = size;
 
-  // QRコード生成
-  const qr = new QRious({
-    element: document.createElement('canvas'),
-    value: url,
-    size: size,
-    level: 'H' // 高訂正レベル
-  });
+  const tempCanvas = document.createElement('canvas');
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCanvas.width = size;
+  tempCanvas.height = size;
 
-  // QRコードをメインキャンバスに描画
-  ctx.clearRect(0, 0, qrcanvas.width, qrcanvas.height);
-  ctx.drawImage(qr.canvas, 0, 0);
+  const qr = new QRious({ element: tempCanvas, value: url, size: size, level: 'H' });
 
-  // ロゴが選択されていれば透かし的に描画
-  if (logoImage) {
-    if (logoImage.complete) {
-      ctx.globalAlpha = opacity;
-      ctx.drawImage(logoImage, 0, 0, qrcanvas.width, qrcanvas.height);
-      ctx.globalAlpha = 1.0;
-    } else {
-      logoImage.onload = () => {
-        ctx.globalAlpha = opacity;
-        ctx.drawImage(logoImage, 0, 0, qrcanvas.width, qrcanvas.height);
-        ctx.globalAlpha = 1.0;
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(tempCanvas, 0, 0);
+
+  if (logoImage && logoImage.complete) {
+    let logoDrawWidth, logoDrawHeight;
+    const aspectRatio = logoImage.width / logoImage.height;
+    if (currentMode === 'transparent') {
+      const maxLogoSize = Math.min(size, size);
+      if (aspectRatio > 1) {
+        logoDrawWidth = maxLogoSize;
+        logoDrawHeight = maxLogoSize / aspectRatio;
+      } else {
+        logoDrawHeight = maxLogoSize;
+        logoDrawWidth = maxLogoSize * aspectRatio;
       }
+      ctx.globalAlpha = opacity;
+    } else {
+      const maxLogoSize = size * 0.25;
+      if (aspectRatio > 1) {
+        logoDrawWidth = maxLogoSize;
+        logoDrawHeight = maxLogoSize / aspectRatio;
+      } else {
+        logoDrawHeight = maxLogoSize;
+        logoDrawWidth = maxLogoSize * aspectRatio;
+      }
+      ctx.globalAlpha = 1.0;
     }
+    const logoX = (size - logoDrawWidth) / 2;
+    const logoY = (size - logoDrawHeight) / 2;
+    ctx.drawImage(logoImage, logoX, logoY, logoDrawWidth, logoDrawHeight);
+    ctx.globalAlpha = 1.0;
   }
-});
-</script>
+}
 
+// 初期表示
+window.addEventListener('load', () => generateQrCode());
+
+// コントロール変更時に再生成
+qrSizeSelect.addEventListener('change', generateQrCode);
+opacitySelect.addEventListener('change', generateQrCode);
+urlInput.addEventListener('input', generateQrCode);
+modeTransparent.addEventListener('change', generateQrCode);
+modeCentralFinder.addEventListener('change', generateQrCode);
+
+// モードによる透過率制御
+function toggleOpacityControl() {
+  const currentMode = document.querySelector('input[name="imageMode"]:checked').value;
+  opacitySelect.disabled = (currentMode === 'centralFinder');
+}
+modeTransparent.addEventListener('change', toggleOpacityControl);
+modeCentralFinder.addEventListener('change', toggleOpacityControl);
+window.addEventListener('load', toggleOpacityControl);
+</script>
+</div>
 </body>
 </html>
