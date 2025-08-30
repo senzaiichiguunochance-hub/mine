@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>透過画像QRコード生成</title>
+<title>透過画像・中央画像QRコード生成</title>
 <link rel="stylesheet" type="text/css" href="Style.css" />
 <style>
 .control-panel {
@@ -87,7 +87,7 @@
 <body>
 <div class="container">
 <header class="header">
-<h1>透過画像QRコード生成</h1>
+<h1>透過画像・中央画像QRコード生成</h1>
 </header>
 
 <!-- コントロールパネル -->
@@ -128,8 +128,8 @@
       <option value="0.2">0.2</option>
       <option value="0.3">0.3</option>
       <option value="0.4">0.4</option>
-      <option value="0.5" selected>0.5</option>
-      <option value="0.6">0.6</option>
+      <option value="0.5">0.5</option>
+      <option value="0.6" selected>0.6</option>
       <option value="0.7">0.7</option>
       <option value="0.8">0.8</option>
       <option value="0.9">0.9</option>
@@ -151,7 +151,7 @@
 <!-- プレビューエリア -->
 <div class="preview-grid">
   <div class="preview-box">
-    <label for="logoInput">透過する画像を選択</label><br>
+    <label for="logoInput">透過・中央表示する画像を選択</label><br>
     <input type="file" id="logoInput" accept="image/*"><br>
     <img id="logoPreview" alt="選択した画像を表示">
   </div>
