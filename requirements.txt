@@ -3,3 +3,10 @@ matplotlib
 pandas
 numpy
 google-api-python-client
+pillow
+torch
+torchvision
+diffusers
+transformers
+accelerate
+safetensors
