@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
-# ==== データ読み込み ====
+# ==== データ読み込み ====0
 csv_url = "https://loto6.thekyo.jp/data/loto6.csv"
 df = pd.read_csv(csv_url, encoding="shift_jis", header=0)
 number_cols = ['第1数字', '第2数字', '第3数字', '第4数字', '第5数字', '第6数字']
@@ -25,7 +26,14 @@ ai_score = np.random.rand(43)  # ダミー
 
 # ==== ハイブリッドスコア ====
 w_ai, w_freq, w_gap = 0.5, 0.3, 0.2
-final_score = w_ai * ai_score + w_freq * freq_norm + w_gap * gap_score
+#final_score = w_ai * ai_score + w_freq * freq_norm + w_gap * gap_score
+
+scaler = MinMaxScaler()
+ai_norm = scaler.fit_transform(ai_score.reshape(-1,1)).flatten()
+freq_norm_scaled = scaler.fit_transform(freq_norm.reshape(-1,1)).flatten()
+gap_norm_scaled = scaler.fit_transform(gap_score.reshape(-1,1)).flatten()
+
+final_score = w_ai * ai_norm + w_freq * freq_norm_scaled + w_gap * gap_norm_scaled
 
 # ==== 予測番号 ====
 # 上位6個を選んでソートして表示
