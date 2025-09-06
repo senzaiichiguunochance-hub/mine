@@ -20,7 +20,7 @@ max_gap = max(last_seen.values())
 gap_score = np.array([last_seen[n]/max_gap for n in range(1,44)])
 
 # ==== 仮のAIスコア（本来は学習済みモデルから予測） ====
-np.random.seed(42)
+#np.random.seed(42)
 ai_score = np.random.rand(43)  # ダミー
 
 # ==== ハイブリッドスコア ====
