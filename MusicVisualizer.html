@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音楽ビジュアライザー</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #1a1a2e;
+      --card-color: #16213e;
+      --primary-color: #0f3460;
+      --secondary-color: #e94560;
+      --font-color: #dcdcdc;
+      --hover-color: #537895;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--font-color);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.5em;
+      font-weight: 600;
+      color: var(--secondary-color);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px var(--secondary-color);
+      margin-bottom: 20px;
+    }
+
+    #fileInput { margin-bottom: 10px; }
+    #status { margin: 10px; font-size: 1.1em; color: var(--hover-color); }
+
+    canvas {
+      background: radial-gradient(circle, var(--card-color), var(--bg-color));
+      border-radius: 15px;
+      width: 100%;
+      max-width: 900px;
+      height: 400px;
+      display: block;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 900px;
+      margin-top: 15px;
+    }
+
+    .controls button {
+      margin: 0 8px;
+      font-size: 1.5em;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(0,0,0,0.5);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .controls button:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 15px var(--secondary-color);
+    }
+
+    .controls input[type=range] {
+      margin: 0 8px;
+    }
+
+    .progress-container { flex: 1; display: flex; align-items: center; }
+    #progressBar { width: 100%; }
+    #fileName { margin-top: 10px; font-size: 1em; color: var(--font-color); }
+  </style>
+</head>
+<body>
+  <h1>音楽ビジュアライザー</h1>
+  <input type="file" id="fileInput" accept="audio/*">
+  <div id="status">ファイルを選択してください</div>
+  <canvas id="visualizer"></canvas>
+
+  <div class="controls">
+    <button id="playPause">►</button>
+    <button id="stop">■</button>
+    <div class="progress-container">
+      <input type="range" id="progressBar" value="0" min="0" step="0.1">
+    </div>
+    <input type="range" id="volume" min="0" max="1" step="0.01" value="1">
+  </div>
+
+  <div id="fileName"></div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const status = document.getElementById("status");
+    const canvas = document.getElementById("visualizer");
+    const ctx = canvas.getContext("2d");
+    const playPauseBtn = document.getElementById("playPause");
+    const stopBtn = document.getElementById("stop");
+    const progressBar = document.getElementById("progressBar");
+    const volumeControl = document.getElementById("volume");
+    const fileNameDisplay = document.getElementById("fileName");
+
+    let audio = new Audio();
+    let audioContext, analyser, source, dataArray, bufferLength;
+    let isPlaying = false;
+
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+
+    fileInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        audio.src = url;
+        audio.load();
+        fileNameDisplay.textContent = "再生中: " + file.name;
+        status.textContent = "ファイル解析中...";
+
+        audio.oncanplay = () => {
+          status.textContent = "準備完了 ▶️ 再生できます";
+          initAudioContext();
+        };
+      }
+    });
+
+    function initAudioContext() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        source = audioContext.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        analyser.fftSize = 256;
+        bufferLength = analyser.frequencyBinCount;
+        dataArray = new Uint8Array(bufferLength);
+      }
+    }
+
+    playPauseBtn.addEventListener("click", () => {
+      if (!isPlaying) {
+        audioContext.resume();
+        audio.play();
+        isPlaying = true;
+        playPauseBtn.textContent = "❚❚";
+        draw();
+      } else {
+        audio.pause();
+        isPlaying = false;
+        playPauseBtn.textContent = "►";
+      }
+    });
+
+    stopBtn.addEventListener("click", () => {
+      audio.pause();
+      audio.currentTime = 0;
+      isPlaying = false;
+      playPauseBtn.textContent = "►";
+    });
+
+    audio.addEventListener("timeupdate", () => {
+      progressBar.max = audio.duration;
+      progressBar.value = audio.currentTime;
+    });
+
+    progressBar.addEventListener("input", () => {
+      audio.currentTime = progressBar.value;
+    });
+
+    volumeControl.addEventListener("input", () => {
+      audio.volume = volumeControl.value;
+    });
+
+    function draw() {
+      if (!isPlaying) return;
+      requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(dataArray);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = 80;
+      const bars = bufferLength;
+
+      // 日輪スペクトラム（左右対称コピーで右上欠け防止）
+      for (let i = 0; i < bars; i++) {
+        const value = dataArray[i];
+        const barHeight = value * 0.8;
+        const angle = (i / bars) * Math.PI * 2;
+
+        const drawBar = (offset = 0) => {
+          const x = cx + Math.cos(angle + offset) * radius;
+          const y = cy + Math.sin(angle + offset) * radius;
+          const xEnd = cx + Math.cos(angle + offset) * (radius + barHeight);
+          const yEnd = cy + Math.sin(angle + offset) * (radius + barHeight);
+          ctx.strokeStyle = `hsl(${i * 360 / bars},100%,50%)`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(xEnd, yEnd);
+          ctx.stroke();
+        };
+
+        drawBar(0);
+        drawBar(Math.PI); // 反対側コピー
+      }
+
+      // 波形
+      analyser.getByteTimeDomainData(dataArray);
+      ctx.beginPath();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "white";
+      for (let i = 0; i < bufferLength; i++) {
+        const x = (i / bufferLength) * canvas.width;
+        const y = (dataArray[i] / 255.0) * canvas.height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+  </script>
+</body>
+</html>
