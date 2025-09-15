@@ -25,7 +25,7 @@
   margin-right: 10px;
   padding: 5px 0;
 }
-.control-row input[type="text"], .control-row select {
+.control-row input[type="text"], .control-row input[type="password"], .control-row select {
   flex: 1;
   min-width: 150px;
   padding: 8px;
@@ -82,13 +82,52 @@
   height: auto;
   border: 1px solid #eee;
 }
+summary {
+  cursor: pointer;
+  font-weight: bold;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+summary::marker {
+  display: none;
+}
 </style>
 </head>
 <body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
 <div class="container">
 <header class="header">
 <h1>透過画像・中央画像QRコード生成</h1>
 </header>
+
+<!-- QRコードタイプ別設定 -->
+<div class="control-panel">
+  <details>
+    <summary>オプション（クリックしてください）</summary>
+    <div style="padding-top: 15px;">
+      <div class="control-row">
+        <label for="mapInput">GoogleMap用QRコード（緯度,経度）</label>
+        <input type="text" id="mapInput" placeholder="例: 35.681236, 139.767125（GoogleMapで目的地を右クリックして一番上の数字をクリックしてペーストしてください）" style="flex-basis: 300px;">
+      </div>
+      <div class="control-row">
+        <label for="emailInput">メールアドレス用QRコード</label>
+        <input type="text" id="emailInput" placeholder="例: user@example.com" style="flex-basis: 300px;">
+      </div>
+      <div class="control-row">
+        <label for="telInput">電話番号用QRコード</label>
+        <input type="text" id="telInput" placeholder="例: 090-1234-5678（ハイフンは自動でカットされます）" style="flex-basis: 300px;">
+      </div>
+      <div class="control-row">
+        <label for="wifiSsid">Wifi用QRコード</label>
+        <input type="text" id="wifiSsid" placeholder="SSID名" style="flex-basis: 185px;">
+        <input type="password" id="wifiPass" placeholder="パスワード" style="flex-basis: 105px; margin-left: 10px; padding-right: 30px; box-sizing: border-box;">
+        <span id="togglePassword" style="cursor: pointer; margin-left: -35px; user-select: none; font-size: 1.2em;">👁️</span>
+      </div>
+    </div>
+  </details>
+</div>
 
 <!-- コントロールパネル -->
 <div class="control-panel">
@@ -166,6 +205,11 @@
 <script>
 // 要素取得
 const urlInput = document.getElementById('urlInput');
+const mapInput = document.getElementById('mapInput');
+const emailInput = document.getElementById('emailInput');
+const telInput = document.getElementById('telInput');
+const wifiSsid = document.getElementById('wifiSsid');
+const wifiPass = document.getElementById('wifiPass');
 const logoInput = document.getElementById('logoInput');
 const logoPreview = document.getElementById('logoPreview');
 const qrcanvas = document.getElementById('qrcanvas');
@@ -251,15 +295,89 @@ function generateQrCode() {
   }
 }
 
+// --- Special QR Code Generators ---
+mapInput.addEventListener('input', () => {
+    emailInput.value = '';
+    telInput.value = '';
+    wifiSsid.value = '';
+    wifiPass.value = '';
+    const latlong = mapInput.value.replace(/\s/g, '');
+    if (latlong) {
+        urlInput.value = `https://www.google.com/maps?q=${latlong}`;
+        generateQrCode();
+    }
+});
+
+emailInput.addEventListener('input', () => {
+    mapInput.value = '';
+    telInput.value = '';
+    wifiSsid.value = '';
+    wifiPass.value = '';
+    if (emailInput.value) {
+        urlInput.value = `mailto:${emailInput.value}`;
+        generateQrCode();
+    }
+});
+
+telInput.addEventListener('input', () => {
+    mapInput.value = '';
+    emailInput.value = '';
+    wifiSsid.value = '';
+    wifiPass.value = '';
+    const tel = telInput.value.replace(/-/g, '');
+    if (tel) {
+        urlInput.value = `tel:${tel}`;
+        generateQrCode();
+    }
+});
+
+function handleWifiInput() {
+    mapInput.value = '';
+    emailInput.value = '';
+    telInput.value = '';
+    const ssid = wifiSsid.value;
+    const pass = wifiPass.value;
+    if (ssid) {
+        urlInput.value = `WIFI:T:WPA;S:${ssid};P:${pass};;`;
+        generateQrCode();
+    }
+}
+
+wifiSsid.addEventListener('input', handleWifiInput);
+wifiPass.addEventListener('input', handleWifiInput);
+
+// If the user manually changes the URL, clear the special inputs
+urlInput.addEventListener('input', (e) => {
+    if(document.activeElement === urlInput) {
+        mapInput.value = '';
+        emailInput.value = '';
+        telInput.value = '';
+        wifiSsid.value = '';
+        wifiPass.value = '';
+    }
+    generateQrCode();
+});
+
+
 // 初期表示
 window.addEventListener('load', () => generateQrCode());
 
 // コントロール変更時に再生成
 qrSizeSelect.addEventListener('change', generateQrCode);
 opacitySelect.addEventListener('change', generateQrCode);
-urlInput.addEventListener('input', generateQrCode);
 modeTransparent.addEventListener('change', generateQrCode);
 modeCentralFinder.addEventListener('change', generateQrCode);
+
+// --- Password Toggle ---
+const togglePassword = document.getElementById('togglePassword');
+if (togglePassword) {
+    togglePassword.addEventListener('click', function() {
+        const passwordInput = document.getElementById('wifiPass');
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+}
 
 // モードによる透過率制御
 function toggleOpacityControl() {
@@ -270,6 +388,14 @@ modeTransparent.addEventListener('change', toggleOpacityControl);
 modeCentralFinder.addEventListener('change', toggleOpacityControl);
 window.addEventListener('load', toggleOpacityControl);
 </script>
+<div style="text-align: center; margin-top: 30px; padding: 20px; background-color: var(--card-color); border: 1px solid var(--primary-color); border-radius: 15px;">
+  <p>QRコード作成は無料です。技術者のモチベーションのためにnote経由で寄付していただけると助かります。</p>
+  <a href="https://note.com/good_lilac166/n/ne97e7200c063" target="_blank" rel="noopener noreferrer">
+    https://note.com/good_lilac166/n/ne97e7200c063
+    <br>
+    <img src="https://assets.st-note.com/production/uploads/images/210378937/rectangle_large_type_2_ea07313c58fa96fa6ffa8414beaf80b4.png?width=1200&height=630&fit=bounds&quality=85" alt="記事のプレビュー" style="max-width: 100%; max-height: 200px; border-radius: 10px; margin-top: 10px;">
+  </a>
+</div>
 </div>
 </body>
 </html>
