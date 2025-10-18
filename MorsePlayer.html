@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>モールス信号プレイヤー</title>
+<link rel="stylesheet" href="Style.css">
+<style>
+/* スタイルシートはStyle.cssに記述されていることを想定していますが、
+   質問に記載されていたインラインスタイルもここに含めます。 */
+:root {
+  --primary-color: #6a1b9a; /* 紫系の色 */
+  --secondary-color: #ff4081; /* ピンク系の色 */
+  --card-color: #1e2749; /* カードの背景色 */
+  --font-color: #e0e0e0; /* 基本のフォント色 */
+  --background-color: #0d1117; /* 全体の背景色 */
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-color);
+  color: var(--font-color);
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.container {
+  max-width: 800px;
+  width: 100%;
+  background-color: #161b22; /* より暗い背景でコンテンツを際立たせる */
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 30px;
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  color: var(--secondary-color);
+  font-size: 2.5em;
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 10px;
+  display: inline-block;
+}
+
+.control-panel {
+  background-color: var(--card-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 30px;
+  text-align: left;
+}
+textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--primary-color);
+  background-color: #0f1b3b;
+  color: var(--font-color);
+  font-size: 1em;
+  line-height: 1.5;
+  box-sizing: border-box;
+  font-family: 'Consolas', 'Courier New', monospace; /* プログラミング向けフォント */
+}
+.counter { text-align: right; font-size: 0.85em; color: var(--secondary-color); margin-top: 5px; }
+button {
+  background-color: var(--secondary-color);
+  border: none;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 1em;
+  cursor: pointer;
+  margin-right: 10px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  outline: none; /* フォーカス時のアウトラインを削除 */
+}
+button:hover { background-color: #ff5f7f; transform: translateY(-2px); }
+button.secondary { background-color: var(--primary-color); color: var(--font-color); }
+button.secondary:hover { background-color: #8e24aa; transform: translateY(-2px); }
+
+.visual-box {
+  background-color: var(--card-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 15px;
+  padding: 20px;
+  margin-top: 30px;
+  text-align: left;
+  min-height: 150px; /* 視覚表示エリアの最小高さを設定 */
+}
+
+.visual-box h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.symbol {
+  display: inline-block;
+  padding: 6px 10px;
+  margin: 4px;
+  border-radius: 6px;
+  border: 1px solid var(--primary-color);
+  font-weight: bold;
+  background-color: #23355c; /* シンボルの背景色 */
+  transition: background 0.2s ease, transform 0.1s ease;
+  min-width: 15px; /* シンボルの最小幅 */
+  text-align: center;
+  color: transparent; /* ドットやダッシュはcontentで表示するため */
+}
+.symbol.dot::after { content: "·"; color: #6ee7b7; font-size: 1.2em;} /* 緑系の色 */
+.symbol.dash::after { content: "—"; color: #fbbf24; font-size: 1.2em;} /* 黄色系の色 */
+.symbol.active { 
+    border-color: var(--secondary-color);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px var(--secondary-color);
+}
+.symbol.active.dot { background: #388e3c; } /* 再生中のドットの背景 */
+.symbol.active.dash { background: #f57f17; } /* 再生中のダッシュの背景 */
+
+.symbol.inactive { opacity: 0.4; } /* 再生済みシンボルの透過度 */
+.status { 
+  margin-top: 15px; 
+  font-size: 0.95em; 
+  color: var(--font-color); 
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header class="header"><h1>モールス信号プレイヤー</h1></header>
+
+<div class="control-panel">
+  <label for="inputText"><b>テキストを入力（半角英数字のみ・改行可）</b></label>
+  <textarea id="inputText" maxlength="1000" placeholder="例：HELLO 123"></textarea>
+  <div class="counter" id="counter">0 / 1000</div>
+  <div style="margin-top: 15px;">
+    <button id="playBtn">再生</button>
+    <button id="stopBtn" class="secondary">停止</button>
+    <button id="clearBtn" class="secondary">クリア</button>
+  </div>
+  <div id="status" class="status"></div>
+</div>
+
+<div class="visual-box">
+  <h3>モールス信号の視覚表示</h3>
+  <div id="visualArea" style="margin-top:10px;"></div>
+</div>
+</div>
+
+<script>
+/* ===============================
+   モールス信号プレイヤー（安定版）
+   =============================== */
+const MORSE = {
+  'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..',
+  'E': '.', 'F': '..-.', 'G': '--.', 'H': '....',
+  'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+  'M': '--', 'N': '-.', 'O': '---', 'P': '.--.',
+  'Q': '--.-', 'R': '.-.', 'S': '...', 'T': '-',
+  'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+  'Y': '-.--', 'Z': '--..',
+  '0': '-----', '1': '.----', '2': '..---', '3': '...--',
+  '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+  '8': '---..', '9': '----.'
+};
+
+const textarea = document.getElementById('inputText');
+const counter = document.getElementById('counter');
+const visualArea = document.getElementById('visualArea');
+const status = document.getElementById('status');
+const playBtn = document.getElementById('playBtn');
+const stopBtn = document.getElementById('stopBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+let audioCtx = null; // AudioContextを再生時に作成するように変更
+let currentOsc = null;
+let stopRequested = false;
+let isPlaying = false;
+const UNIT_MS = 120; // モールス信号の基本単位時間 (ms)
+
+// --- 入力 ---
+function sanitizeInput(str) {
+  // 半角英数字と改行のみを許可
+  return str.replace(/[^\nA-Za-z0-9]/g, '');
+}
+
+textarea.addEventListener('input', () => {
+  let clean = sanitizeInput(textarea.value);
+  if (clean.length > 1000) clean = clean.slice(0, 1000);
+  if (textarea.value !== clean) {
+    textarea.value = clean;
+    // 値が変更された場合、カーソルを末尾に移動
+    textarea.selectionStart = textarea.selectionEnd = clean.length;
+  }
+  counter.textContent = `${textarea.value.length} / 1000`;
+});
+
+// 初期表示
+counter.textContent = `${textarea.value.length} / 1000`;
+
+// --- 停止処理 ---
+async function stopPlayback() {
+  stopRequested = true;
+  isPlaying = false;
+  if (currentOsc) {
+    try { 
+      currentOsc.stop(); 
+      currentOsc = null;
+    } catch(e) {
+      console.warn("Error stopping oscillator:", e);
+    }
+  }
+  if (audioCtx) {
+    try {
+      await audioCtx.close(); // AudioContextをクローズ
+      audioCtx = null;
+    } catch (e) {
+      console.warn("Error closing audio context:", e);
+    }
+  }
+  document.querySelectorAll('.symbol.active').forEach(el => el.classList.remove('active'));
+}
+
+// --- クリア ---
+clearBtn.addEventListener('click', () => {
+  stopPlayback(); // クリア時も再生を停止
+  textarea.value = "";
+  counter.textContent = "0 / 1000";
+  visualArea.innerHTML = "";
+  status.textContent = "";
+  // Inactiveクラスもリセット
+  document.querySelectorAll('.symbol.inactive').forEach(el => el.classList.remove('inactive'));
+});
+
+// --- 再生ボタン ---
+playBtn.addEventListener('click', async () => {
+  const text = textarea.value.trim();
+  if (!text) {
+    status.textContent = "入力がありません。";
+    return;
+  }
+
+  if (isPlaying) {
+    await stopPlayback(); // 再生中なら即停止し、AudioContextをクローズ
+    // 少し待ってから新しい再生を開始することで、クリーンな状態にする
+    await sleep(50); 
+  }
+  
+  stopRequested = false;
+  isPlaying = true;
+  status.textContent = "再生中...";
+  
+  // 視覚表示をリセット
+  buildVisual(text);
+  // 再生前の状態としてinactiveクラスを削除
+  document.querySelectorAll('.symbol.inactive').forEach(el => el.classList.remove('inactive'));
+  
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // 新しいAudioContextを作成
+  await audioCtx.resume(); // 初音対策
+
+  await playMorse(text);
+
+  if (!stopRequested) {
+    status.textContent = "再生完了。";
+  } else {
+    // 明示的に停止された場合
+    // status.textContent は stopBtn クリック時に更新されるので、ここでは何もしない
+  }
+  
+  isPlaying = false;
+  // 再生完了または停止時にAudioContextをクローズ
+  if (audioCtx) {
+    try {
+      await audioCtx.close();
+      audioCtx = null;
+    } catch (e) {
+      console.warn("Error closing audio context after playback:", e);
+    }
+  }
+});
+
+// --- 停止ボタン ---
+stopBtn.addEventListener('click', async () => {
+  await stopPlayback();
+  status.textContent = "停止しました。";
+});
+
+// --- 視覚表示 ---
+function buildVisual(text) {
+  visualArea.innerHTML = "";
+  for (const ch of text.toUpperCase()) {
+    if (ch === "\n") {
+      const br = document.createElement("div");
+      br.style.height = "10px"; // 改行の高さ
+      visualArea.appendChild(br);
+      continue;
+    }
+    const code = MORSE[ch];
+    if (!code) continue; // 対応しない文字はスキップ
+    for (const c of code) {
+      const span = document.createElement("span");
+      span.className = `symbol ${c === "." ? "dot" : "dash"}`;
+      visualArea.appendChild(span);
+    }
+    // 文字間のスペース
+    const space = document.createElement("span");
+    space.style.display = "inline-block";
+    space.style.width = "16px"; // 3 unit length (3 * UNIT_MS)
+    visualArea.appendChild(space);
+  }
+}
+
+// --- 再生 ---
+async function playMorse(text) {
+  const symbols = Array.from(document.querySelectorAll('.symbol'));
+  let index = 0;
+  for (const ch of text.toUpperCase()) {
+    if (stopRequested) break;
+    if (ch === "\n") {
+      // 単語間のスペースは7 unit length (7 * UNIT_MS)
+      await sleep(UNIT_MS * 7); 
+      continue;
+    }
+    const code = MORSE[ch];
+    if (!code) continue;
+    for (const c of code) {
+      if (stopRequested) break;
+      const el = symbols[index++];
+      if (el) { // 要素が存在することを確認
+        el.classList.add('active');
+      }
+      await playTone(c === '.' ? UNIT_MS : UNIT_MS * 3);
+      if (stopRequested) break; // playTone後も停止をチェック
+      if (el) {
+        el.classList.remove('active');
+        el.classList.add('inactive');
+      }
+      await sleep(UNIT_MS); // 符号間のスペース (1 unit length)
+    }
+    if (stopRequested) break; // 文字間の遅延前も停止をチェック
+    await sleep(UNIT_MS * 2); // 文字間のスペース (3 unit length - 1 unit length already passed)
+  }
+}
+
+// --- 音 ---
+function playTone(duration) {
+  return new Promise(resolve => {
+    if (!audioCtx || stopRequested) { 
+        // audioCtxがないか、停止要求があれば即座に解決し音を鳴らさない
+        return resolve();
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    currentOsc = osc; // 現在のオシレーターを記録
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(650, audioCtx.currentTime); // 周波数
+    
+    // ゲインを徐々に上げてクリックノイズを軽減
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.01); 
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start(audioCtx.currentTime);
+    
+    // ゲインを徐々に下げてクリックノイズを軽減
+    // 音の終わりに向けてフェードアウト
+    gain.gain.linearRampToValueAtTime(0.00001, audioCtx.currentTime + duration / 1000 - 0.01); 
+    osc.stop(audioCtx.currentTime + duration / 1000);
+
+    osc.onended = () => { 
+      if (currentOsc === osc) currentOsc = null; // 終了したオシレーターが現在のものと一致すればnullにする
+      // オシレーターとゲインノードの接続を切断してリソースを解放
+      osc.disconnect();
+      gain.disconnect();
+      resolve(); 
+    };
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
