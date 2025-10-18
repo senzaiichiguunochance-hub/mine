@@ -6,8 +6,6 @@
 <title>モールス信号プレイヤー</title>
 <link rel="stylesheet" href="Style.css">
 <style>
-/* スタイルシートはStyle.cssに記述されていることを想定していますが、
-   質問に記載されていたインラインスタイルもここに含めます。 */
 :root {
   --primary-color: #6a1b9a; /* 紫系の色 */
   --secondary-color: #ff4081; /* ピンク系の色 */
@@ -161,7 +159,7 @@ button.secondary:hover { background-color: #8e24aa; transform: translateY(-2px);
 
 <script>
 /* ===============================
-   モールス信号プレイヤー（安定版）
+   モールス信号プレイヤー
    =============================== */
 const MORSE = {
   'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..',
@@ -184,7 +182,7 @@ const playBtn = document.getElementById('playBtn');
 const stopBtn = document.getElementById('stopBtn');
 const clearBtn = document.getElementById('clearBtn');
 
-let audioCtx = null; // AudioContextを再生時に作成するように変更
+let audioCtx = null;
 let currentOsc = null;
 let stopRequested = false;
 let isPlaying = false;
