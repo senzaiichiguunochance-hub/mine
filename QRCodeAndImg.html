@@ -92,6 +92,36 @@ summary::-webkit-details-marker {
 summary::marker {
   display: none;
 }
+
+@media (max-width: 767px) {
+    .control-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .control-row label {
+        flex-basis: auto;
+        width: 100%;
+        text-align: left;
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+    .control-row input[type="text"],
+    .control-row input[type="password"],
+    .control-row select {
+        width: 100%;
+    }
+    .control-row .radio-group {
+        margin-left: 0;
+        justify-content: flex-start;
+    }
+    .control-row input[style*="flex-basis"] {
+        flex-basis: 100% !important;
+        margin-left: 0 !important;
+    }
+    #togglePassword {
+        margin-left: -35px;
+    }
+}
 </style>
 </head>
 <body>

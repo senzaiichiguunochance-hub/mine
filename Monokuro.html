@@ -106,6 +106,34 @@
     #snapshot-gallery { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; padding: 10px; background: var(--primary-color); border-radius: 10px; min-height: 50px;}
     .snapshot-thumb { border: 2px solid var(--secondary-color); border-radius: 5px; cursor: pointer; transition: transform 0.2s; }
     .snapshot-thumb:hover { transform: scale(1.1); }
+    
+    @media (max-width: 768px) {
+        #main-container {
+            flex-direction: column;
+            align-items: center;
+        }
+        #controls {
+            width: 100%;
+            max-width: none;
+            margin-top: 20px;
+        }
+        #editor-area {
+            width: 100%;
+        }
+        #canvas-wrapper {
+            /* Ensure canvas area doesn't overflow */
+            width: 100%;
+            box-sizing: border-box;
+        }
+        #canvas-area {
+            /* Allow scrolling for large images */
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 8px 10px;
+            font-size: 0.9em;
+        }
+    }
 </style>
 </head>
 <body>

@@ -65,6 +65,30 @@
             background-color: var(--canvas-bg);
             border-radius: 10px;
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+            max-width: 100%; /* Ensure canvas does not overflow its container */
+        }
+
+        @media (max-width: 850px) {
+            body {
+                justify-content: flex-start;
+                padding: 10px;
+            }
+            h1 {
+                font-size: 1.8em;
+                text-align: center;
+            }
+            a[href="menu.html"] {
+                position: static !important;
+                display: block;
+                text-align: center;
+                margin: 0 auto 15px auto;
+                font-size: 1.1em;
+                background: transparent;
+                border: 1px solid var(--primary-color);
+                padding: 8px;
+                border-radius: 5px;
+                width: 90%;
+            }
         }
     </style>
 </head>
@@ -84,8 +108,8 @@
         // --- 設定 ---
         const GRID_WIDTH = 201; // グリッドの幅（奇数が中央配置に便利）
         const GRID_HEIGHT = 201; // グリッドの高さ
-        const CELL_SIZE = 4;     // 1マスのピクセルサイズ
-        const STEPS_PER_CLICK = 1000; // 1000ステップに変更
+        let CELL_SIZE = 4;     // 1マスのピクセルサイズ (動的に変更)
+        const STEPS_PER_CLICK = 1000;
 
         const WHITE = 0;
         const BLACK = 1;
@@ -103,8 +127,12 @@
 
         // 初期化関数
         function init() {
-            canvas.width = GRID_WIDTH * CELL_SIZE;
-            canvas.height = GRID_HEIGHT * CELL_SIZE;
+            // Canvasをレスポンシブに
+            const containerWidth = window.innerWidth * 0.95;
+            const size = Math.floor(Math.min(containerWidth, 804)); // 最大804px
+            canvas.width = size;
+            canvas.height = size;
+            CELL_SIZE = size / GRID_WIDTH;
 
             // グリッドを白(0)で初期化
             grid = Array(GRID_HEIGHT).fill(0).map(() => Array(GRID_WIDTH).fill(WHITE));
@@ -151,6 +179,15 @@
 
         // 蟻を1ステップ動かす関数
         function step(ant) {
+            // Ensure ant is within bounds before accessing grid
+            if (ant.x < 0 || ant.x >= GRID_WIDTH || ant.y < 0 || ant.y >= GRID_HEIGHT) {
+                // If outside, reset to a random position
+                ant.x = Math.floor(Math.random() * GRID_WIDTH);
+                ant.y = Math.floor(Math.random() * GRID_HEIGHT);
+                ant.dir = Math.floor(Math.random() * 4);
+                return; // Skip the rest of the step
+            }
+
             const currentCellColor = grid[ant.y][ant.x];
 
             if (currentCellColor === WHITE) {
@@ -201,6 +238,8 @@
 
         // 実行開始
         init();
+        // Listen for window resize to re-initialize the canvas
+        window.addEventListener('resize', init);
     </script>
 
 </body>

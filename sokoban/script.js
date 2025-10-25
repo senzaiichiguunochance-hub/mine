@@ -219,6 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
     resetButton.addEventListener('click', startNewGame);
     document.addEventListener('keydown', (e) => {
         if (!level) return;
+        // To prevent default browser action (like scrolling) for arrow keys
+        e.preventDefault();
         switch (e.key) {
             case 'ArrowUp': movePlayer(0, -1); break;
             case 'ArrowDown': movePlayer(0, 1); break;
@@ -226,6 +228,32 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'ArrowRight': movePlayer(1, 0); break;
         }
     });
+
+    // --- Touch Controls --- //
+    const upButton = document.getElementById('up-button');
+    const downButton = document.getElementById('down-button');
+    const leftButton = document.getElementById('left-button');
+    const rightButton = document.getElementById('right-button');
+
+    // Use 'touchstart' for faster response on mobile, with a fallback to 'click'
+    const handleTouchEvent = (handler) => (e) => {
+        e.preventDefault(); // Prevent zoom or other unwanted browser actions
+        handler();
+    };
+
+    if (upButton) {
+        upButton.addEventListener('touchstart', handleTouchEvent(() => movePlayer(0, -1)), { passive: false });
+        upButton.addEventListener('click', () => movePlayer(0, -1));
+
+        downButton.addEventListener('touchstart', handleTouchEvent(() => movePlayer(0, 1)), { passive: false });
+        downButton.addEventListener('click', () => movePlayer(0, 1));
+
+        leftButton.addEventListener('touchstart', handleTouchEvent(() => movePlayer(-1, 0)), { passive: false });
+        leftButton.addEventListener('click', () => movePlayer(-1, 0));
+
+        rightButton.addEventListener('touchstart', handleTouchEvent(() => movePlayer(1, 0)), { passive: false });
+        rightButton.addEventListener('click', () => movePlayer(1, 0));
+    }
 
     // --- 初期化 --- //
     startNewGame();

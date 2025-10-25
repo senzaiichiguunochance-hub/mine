@@ -171,3 +171,88 @@ h1 {
     font-weight: bold;
     font-size: 1.1em;
 }
+
+/* --- Touch Controls --- */
+#touch-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background-color: rgba(15, 52, 96, 0.8);
+    padding: 15px;
+    border-radius: 20px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+}
+
+.control-row-touch {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.touch-button {
+    width: 60px;
+    height: 60px;
+    font-size: 2em;
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(45deg, #16213e, #0f3460);
+    border: 2px solid var(--player-color);
+    border-radius: 15px;
+    cursor: pointer;
+    user-select: none; /* Prevent text selection on repeated taps */
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.touch-button:active {
+    background: linear-gradient(45deg, #e94560, #f9a826);
+    transform: scale(0.95);
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2em;
+        margin-top: 40px; /* メニューに戻るボタンとのスペース */
+    }
+    #main-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    #info-panel {
+        width: 90%;
+        max-width: 300px;
+    }
+    #game-board {
+        /* Make the board scale down on small screens */
+        transform: scale(0.9);
+        transform-origin: top center;
+    }
+    #touch-controls {
+        bottom: 10px;
+    }
+    .touch-button {
+        width: 55px;
+        height: 55px;
+        font-size: 1.8em;
+    }
+}
+
+@media (max-width: 380px) {
+    #game-board {
+        transform: scale(0.8);
+    }
+     #touch-controls {
+        padding: 10px;
+    }
+    .touch-button {
+        width: 50px;
+        height: 50px;
+    }
+}
