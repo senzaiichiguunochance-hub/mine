@@ -72,23 +72,20 @@
       <button onclick="showSection('donki')" id="b-donki">宇宙天気(DONKI)</button>
     </div>
     <div id="content">
-      <!-- はじめに -->
       <section id="intro" class="card">
         <h1>このダッシュボードについて</h1>
-        <p>NASAの公開APIを使って、宇宙や地球の最新データを体験できるページです。<br>
+        <p>NASAの公開APIを使って、宇宙や地球の最新データを体験できます。<br>
         現在は <b>DEMO_KEY</b>（共通の体験用キー）を使用しています。</p>
         <p class="small">
           DEMO_KEY は世界中の利用者と共有されており、次の制限があります。<br>
           ・1時間あたり30回までのリクエスト<br>
           ・1日あたり50回までのリクエスト<br>
-          制限を超えると「OVER_RATE_LIMIT」というエラーになります。
+          制限を超えると「Rate Limit」または「Over Rate Limit」というエラーになります。
         </p>
         <p>エラーが出た場合は時間をおいて再試行するか、<a href="https://api.nasa.gov" target="_blank">NASA公式サイト</a>で
         自分専用の無料APIキーを取得してください。</p>
-        <p>左のメニューから機能を選んで体験できます。</p>
       </section>
 
-      <!-- Images -->
       <section id="images" class="card" style="display:none">
         <h1>画像・映像ライブラリ検索</h1>
         <input type="text" id="img-q" placeholder="キーワード（例：moon）">
@@ -100,18 +97,12 @@
         <div id="img-result" class="card small">ここに結果が表示されます。</div>
       </section>
 
-      <!-- APOD -->
       <section id="apod" class="card" style="display:none">
         <h1>今日の宇宙画像（APOD）</h1>
-        <p>指定した日付（前月1日が初期）または今日の画像を表示します。</p>
-        <div>
-          <input type="date" id="apod-date"><button class="action" onclick="getAPOD()">取得</button>
-          <button class="clear" onclick="clearField('apod-date')">クリア</button>
-        </div>
+        <div><input type="date" id="apod-date"><button class="action" onclick="getAPOD()">取得</button><button class="clear" onclick="clearField('apod-date')">クリア</button></div>
         <div id="apod-result" class="card small">ここに結果が表示されます。</div>
       </section>
 
-      <!-- Mars -->
       <section id="mars" class="card" style="display:none">
         <h1>火星探査機の写真</h1>
         <div>
@@ -120,168 +111,68 @@
             <option value="opportunity">Opportunity</option>
             <option value="spirit">Spirit</option>
           </select>
-          <input type="date" id="mars-date"><button class="action" onclick="getMars()">取得</button>
-          <button class="clear" onclick="clearField('mars-date')">クリア</button>
+          <input type="date" id="mars-date"><button class="action" onclick="getMars()">取得</button><button class="clear" onclick="clearField('mars-date')">クリア</button>
         </div>
         <div id="mars-result" class="card small">ここに結果が表示されます。</div>
       </section>
 
-      <!-- NEO -->
       <section id="neo" class="card" style="display:none">
         <h1>近傍天体（NEO）</h1>
-        <div>
-          <input type="date" id="neo-start"><input type="date" id="neo-end">
-          <button class="action" onclick="getNEO()">取得</button>
-          <button class="clear" onclick="clearFields(['neo-start','neo-end'])">クリア</button>
-        </div>
+        <div><input type="date" id="neo-start"><input type="date" id="neo-end"><button class="action" onclick="getNEO()">取得</button><button class="clear" onclick="clearFields(['neo-start','neo-end'])">クリア</button></div>
         <div id="neo-result" class="card small">ここに結果が表示されます。</div>
       </section>
 
-      <!-- EONET -->
       <section id="eonet" class="card" style="display:none">
         <h1>自然災害（EONET）</h1>
-        <p>世界各地の火山・洪水・火災などの自然イベントを取得します。</p>
         <div><button class="action" onclick="getEonet()">取得</button></div>
         <div id="eonet-result" class="card small">ここに結果が表示されます。</div>
       </section>
 
-      <!-- Earth -->
       <section id="earth" class="card" style="display:none">
         <h1>地球衛星画像</h1>
-        <div>
-          緯度<input type="text" id="earth-lat" size="6">
-          経度<input type="text" id="earth-lon" size="6">
-          <button class="action" onclick="getEarth()">取得</button>
-          <button class="clear" onclick="clearFields(['earth-lat','earth-lon'])">クリア</button>
-        </div>
+        <div>緯度<input type="text" id="earth-lat" size="6">経度<input type="text" id="earth-lon" size="6"><button class="action" onclick="getEarth()">取得</button><button class="clear" onclick="clearFields(['earth-lat','earth-lon'])">クリア</button></div>
         <div id="earth-result" class="card small">ここに結果が表示されます。</div>
       </section>
 
-      <!-- DONKI -->
       <section id="donki" class="card" style="display:none">
         <h1>宇宙天気（DONKI）</h1>
-        <div>
-          <input type="date" id="donki-start"><input type="date" id="donki-end">
-          <button class="action" onclick="getDonki()">取得</button>
-          <button class="clear" onclick="clearFields(['donki-start','donki-end'])">クリア</button>
-        </div>
+        <div><input type="date" id="donki-start"><input type="date" id="donki-end"><button class="action" onclick="getDonki()">取得</button><button class="clear" onclick="clearFields(['donki-start','donki-end'])">クリア</button></div>
         <div id="donki-result" class="card small">ここに結果が表示されます。</div>
       </section>
     </div>
   </div>
 
   <script>
-    // ページ表示切り替え
-    function showSection(id){
-      document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
-      document.querySelectorAll('#content section').forEach(s=>s.style.display='none');
-      document.getElementById('b-'+id).classList.add('active');
-      document.getElementById(id).style.display='block';
-    }
-    // 入力クリア
-    function clearField(id){ const e=document.getElementById(id); if(e)e.value=''; }
-    function clearFields(arr){ arr.forEach(i=>clearField(i)); }
-    // 日付初期値（前月）
-    const now=new Date();
-    const firstPrev=new Date(now.getFullYear(),now.getMonth()-1,1);
-    const endPrev=new Date(now.getFullYear(),now.getMonth(),0);
+    function showSection(id){document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));document.querySelectorAll('#content section').forEach(s=>s.style.display='none');document.getElementById('b-'+id).classList.add('active');document.getElementById(id).style.display='block';}
+    function clearField(id){const e=document.getElementById(id);if(e)e.value='';}
+    function clearFields(arr){arr.forEach(i=>clearField(i));}
+    const now=new Date(),firstPrev=new Date(now.getFullYear(),now.getMonth()-1,1),endPrev=new Date(now.getFullYear(),now.getMonth(),0);
     const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    document.addEventListener('DOMContentLoaded',()=>{
-      ['apod-date','mars-date'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=fmt(firstPrev);});
-      [['neo-start',firstPrev],['neo-end',endPrev],['donki-start',firstPrev],['donki-end',endPrev]]
-        .forEach(([id,d])=>{const e=document.getElementById(id);if(e)e.value=fmt(d);});
-      const lat=document.getElementById('earth-lat'),lon=document.getElementById('earth-lon');
-      if(lat)lat.value='35.6812'; if(lon)lon.value='139.7671';
-    });
+    document.addEventListener('DOMContentLoaded',()=>{['apod-date','mars-date'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=fmt(firstPrev);});[['neo-start',firstPrev],['neo-end',endPrev],['donki-start',firstPrev],['donki-end',endPrev]].forEach(([id,d])=>{const e=document.getElementById(id);if(e)e.value=fmt(d);});const lat=document.getElementById('earth-lat'),lon=document.getElementById('earth-lon');if(lat)lat.value='35.6812';if(lon)lon.value='139.7671';});
     const API='DEMO_KEY';
-    // 画像検索
-    async function searchImg(){
-      const out=document.getElementById('img-result');out.textContent='検索中...';
-      const q=document.getElementById('img-q').value,type=document.getElementById('img-type').value;
-      const u=`https://images-api.nasa.gov/search?q=${encodeURIComponent(q)}&media_type=${type}`;
-      try{const r=await fetch(u);const d=await r.json();
-        const it=d.collection.items.slice(0,8);
-        out.innerHTML=it.map(i=>`<img src="${i.links[0].href}" width="200"><div class="small">${i.data[0].title}</div>`).join('');
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
-    }
-    // APOD
-    async function getAPOD(){
-      const out=document.getElementById('apod-result');out.textContent='読み込み中...';
-      const date=document.getElementById('apod-date').value;
-      const u=`https://api.nasa.gov/planetary/apod?api_key=${API}&date=${date}`;
-      try{const r=await fetch(u);const d=await r.json();
-        if(!r.ok)throw new Error(d.error?.message||'失敗');
-        const m=d.media_type==='image'?`<img src="${d.url}" alt="">`:`<a href="${d.url}" target="_blank">動画を開く</a>`;
-        out.innerHTML=`<h3>${d.title}</h3><p>${d.date}</p>${m}<p>${d.explanation}</p>`;
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
-    }
-    // Mars
-    async function getMars() {
-      const out = document.getElementById('mars-result');
-      out.textContent = '読み込み中...';
-      const date = document.getElementById('mars-date').value;
-      const rover = document.getElementById('mars-rover').value;
-      const u = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?earth_date=${date}&api_key=${API}`;
-      try {
-        const r = await fetch(u);
-        const text = await r.text();
-        // NASAがHTMLを返した場合を判定
-        if (text.startsWith('<!DOCTYPE')) {
-          throw new Error('NASAサーバーからHTML応答（エラーページ）が返されました。API_KEYの上限か、データが無い可能性があります。');
-        }
-        const d = JSON.parse(text);
-        if (!r.ok) throw new Error(d.error?.message || '取得失敗');
-        if (!d.photos.length) {
-          out.textContent = 'この日付には写真データがありません。';
-          return;
-        }
-        out.innerHTML = d.photos
-          .slice(0, 8)
-          .map(p => `<img src="${p.img_src}" width="200"><div class="small">${p.camera.full_name}</div>`)
-          .join('');
-      } catch (e) {
-        out.textContent = '取得に失敗しました: ' + e.message;
+
+    async function safeFetch(url){
+      const r=await fetch(url);
+      const text=await r.text();
+      if(text.startsWith('<!DOCTYPE')){
+        if(/Rate\s*Limit|Over\s*Rate\s*Limit/i.test(text)) throw new Error('NASAのAPI制限（DEMO_KEY上限）に達しています。');
+        if(/Invalid\s*API\s*key/i.test(text)) throw new Error('APIキーが無効です。');
+        throw new Error('NASAサーバーがHTMLエラーページを返しました。');
       }
+      let d;
+      try{d=JSON.parse(text);}catch{throw new Error('NASA応答の解析に失敗しました。');}
+      if(!r.ok){if(r.status===403)throw new Error('APIキーが無効またはアクセス禁止です。');if(r.status===429)throw new Error('リクエストが多すぎます（Rate Limit）。（デフォルトのDEMO_KEYの場合、共通の体験用キーのリクエスト上限回数を超えています。）');throw new Error('HTTPエラー: '+r.status);}
+      if(d.error){const m=d.error.message||'';if(/API_KEY|rate/i.test(m))throw new Error('APIキー関連の制限エラー: '+m);throw new Error('NASAエラー: '+m);}
+      return d;
     }
-    // NEO
-    async function getNEO(){
-      const out=document.getElementById('neo-result');out.textContent='読み込み中...';
-      const s=document.getElementById('neo-start').value,e=document.getElementById('neo-end').value;
-      const u=`https://api.nasa.gov/neo/rest/v1/feed?start_date=${s}&end_date=${e}&api_key=${API}`;
-      try{const r=await fetch(u);const d=await r.json();
-        if(!r.ok)throw new Error(d.error?.message||'失敗');
-        out.innerHTML=`<pre>${JSON.stringify(d.element_count,null,2)}</pre>`;
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
-    }
-    // EONET
-    async function getEonet(){
-      const out=document.getElementById('eonet-result');out.textContent='読み込み中...';
-      try{const r=await fetch('https://eonet.gsfc.nasa.gov/api/v3/events');
-        const d=await r.json();
-        if(!r.ok)throw new Error('失敗');
-        out.innerHTML=`<pre>${JSON.stringify(d.events.slice(0,5).map(v=>v.title),null,2)}</pre>`;
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
-    }
-    // Earth
-    async function getEarth(){
-      const out=document.getElementById('earth-result');out.textContent='読み込み中...';
-      const lat=document.getElementById('earth-lat').value,lon=document.getElementById('earth-lon').value;
-      const u=`https://api.nasa.gov/planetary/earth/imagery?lat=${lat}&lon=${lon}&dim=0.1&api_key=${API}`;
-      try{const r=await fetch(u);
-        if(!r.ok)throw new Error('取得失敗');
-        const b=await r.blob();out.innerHTML=`<img src="${URL.createObjectURL(b)}" width="300">`;
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
-    }
-    // DONKI
-    async function getDonki(){
-      const out=document.getElementById('donki-result');out.textContent='読み込み中...';
-      const s=document.getElementById('donki-start').value,e=document.getElementById('donki-end').value;
-      const u=`https://api.nasa.gov/DONKI/FLR?startDate=${s}&endDate=${e}&api_key=${API}`;
-      try{const r=await fetch(u);const d=await r.json();
-        if(!r.ok)throw new Error(d.error?.message||'失敗');
-        out.innerHTML=`<pre>${JSON.stringify(d.slice(0,5),null,2)}</pre>`;
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
-    }
+
+    async function searchImg(){const out=document.getElementById('img-result');out.textContent='検索中...';const q=document.getElementById('img-q').value,type=document.getElementById('img-type').value;const u=`https://images-api.nasa.gov/search?q=${encodeURIComponent(q)}&media_type=${type}`;try{const d=await safeFetch(u);const it=d.collection.items.slice(0,8);out.innerHTML=it.map(i=>`<img src="${i.links[0].href}" width="200"><div class="small">${i.data[0].title}</div>`).join('');}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
+    async function getAPOD(){const out=document.getElementById('apod-result');out.textContent='読み込み中...';const date=document.getElementById('apod-date').value;const u=`https://api.nasa.gov/planetary/apod?api_key=${API}&date=${date}`;try{const d=await safeFetch(u);const m=d.media_type==='image'?`<img src="${d.url}" alt="">`:`<a href="${d.url}" target="_blank">動画を開く</a>`;out.innerHTML=`<h3>${d.title}</h3><p>${d.date}</p>${m}<p>${d.explanation}</p>`;}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
+    async function getMars(){const out=document.getElementById('mars-result');out.textContent='読み込み中...';const date=document.getElementById('mars-date').value;const rover=document.getElementById('mars-rover').value;const u=`https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?earth_date=${date}&api_key=${API}`;try{const d=await safeFetch(u);if(!d.photos||!d.photos.length){out.textContent='この日付には火星探査機の写真データがありません。';return;}out.innerHTML=d.photos.slice(0,8).map(p=>`<img src="${p.img_src}" width="200"><div class="small">${p.camera.full_name}</div>`).join('');}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
+    async function getNEO(){const out=document.getElementById('neo-result');out.textContent='読み込み中...';const s=document.getElementById('neo-start').value,e=document.getElementById('neo-end').value;const u=`https://api.nasa.gov/neo/rest/v1/feed?start_date=${s}&end_date=${e}&api_key=${API}`;try{const d=await safeFetch(u);out.innerHTML=`<pre>${JSON.stringify(d.element_count,null,2)}</pre>`;}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
+    async function getEonet(){const out=document.getElementById('eonet-result');out.textContent='読み込み中...';try{const d=await safeFetch('https://eonet.gsfc.nasa.gov/api/v3/events');out.innerHTML=`<pre>${JSON.stringify(d.events.slice(0,5).map(v=>v.title),null,2)}</pre>`;}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
+    async function getEarth(){const out=document.getElementById('earth-result');out.textContent='読み込み中...';const lat=document.getElementById('earth-lat').value,lon=document.getElementById('earth-lon').value;const u=`https://api.nasa.gov/planetary/earth/imagery?lat=${lat}&lon=${lon}&dim=0.1&api_key=${API}`;try{const b=await fetch(u).then(r=>{if(!r.ok)throw new Error('取得失敗（'+r.status+'）');return r.blob();});out.innerHTML=`<img src="${URL.createObjectURL(b)}" width="300">`;}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
+    async function getDonki(){const out=document.getElementById('donki-result');out.textContent='読み込み中...';const s=document.getElementById('donki-start').value,e=document.getElementById('donki-end').value;const u=`https://api.nasa.gov/DONKI/FLR?startDate=${s}&endDate=${e}&api_key=${API}`;try{const d=await safeFetch(u);out.innerHTML=`<pre>${JSON.stringify(d.slice(0,5),null,2)}</pre>`;}catch(e){out.textContent='取得に失敗しました: '+e.message;}}
   </script>
 </body>
 </html>
