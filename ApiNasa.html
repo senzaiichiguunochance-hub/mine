@@ -216,16 +216,32 @@
       }catch(e){out.textContent='取得に失敗しました: '+e.message;}
     }
     // Mars
-    async function getMars(){
-      const out=document.getElementById('mars-result');out.textContent='読み込み中...';
-      const date=document.getElementById('mars-date').value;
-      const rover=document.getElementById('mars-rover').value;
-      const u=`https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?earth_date=${date}&api_key=${API}`;
-      try{const r=await fetch(u);const d=await r.json();
-        if(!r.ok)throw new Error(d.error?.message||'失敗');
-        if(!d.photos.length){out.textContent='写真が見つかりません。';return;}
-        out.innerHTML=d.photos.slice(0,8).map(p=>`<img src="${p.img_src}" width="200"><div class="small">${p.camera.full_name}</div>`).join('');
-      }catch(e){out.textContent='取得に失敗しました: '+e.message;}
+    async function getMars() {
+      const out = document.getElementById('mars-result');
+      out.textContent = '読み込み中...';
+      const date = document.getElementById('mars-date').value;
+      const rover = document.getElementById('mars-rover').value;
+      const u = `https://api.nasa.gov/mars-photos/api/v1/rovers/${rover}/photos?earth_date=${date}&api_key=${API}`;
+      try {
+        const r = await fetch(u);
+        const text = await r.text();
+        // NASAがHTMLを返した場合を判定
+        if (text.startsWith('<!DOCTYPE')) {
+          throw new Error('NASAサーバーからHTML応答（エラーページ）が返されました。API_KEYの上限か、データが無い可能性があります。');
+        }
+        const d = JSON.parse(text);
+        if (!r.ok) throw new Error(d.error?.message || '取得失敗');
+        if (!d.photos.length) {
+          out.textContent = 'この日付には写真データがありません。';
+          return;
+        }
+        out.innerHTML = d.photos
+          .slice(0, 8)
+          .map(p => `<img src="${p.img_src}" width="200"><div class="small">${p.camera.full_name}</div>`)
+          .join('');
+      } catch (e) {
+        out.textContent = '取得に失敗しました: ' + e.message;
+      }
     }
     // NEO
     async function getNEO(){
