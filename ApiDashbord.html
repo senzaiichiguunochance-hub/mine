@@ -253,8 +253,111 @@
             font-weight: 700;
             letter-spacing: 2px;
         }
+
+        /* --- error box style (added, doesn't change layout) --- */
+        .error-box {
+            background-color: rgba(255, 107, 107, 0.08);
+            border-left: 4px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 10px 12px;
+            margin-top: 12px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+
+    <!-- ===== fetch wrapper & showError utility (追加) ===== -->
+    <script>
+    (function(){
+      // wrap fetch to produce clearer Error messages
+      const _origFetch = window.fetch.bind(window);
+      window.fetch = async function(input, init){
+        let resp;
+        try {
+          resp = await _origFetch(input, init);
+        } catch (e) {
+          // Network-level error (DNS, offline, blocked, etc.)
+          throw new Error('通信エラー: サーバーへ接続できません。ネットワークを確認してください。');
+        }
+
+        // Try to read text safely
+        let text = '';
+        try {
+          const clone = resp.clone();
+          text = await clone.text();
+        } catch (e) {
+          text = '';
+        }
+        const trimmed = (text || '').trim();
+
+        // If response is HTML page (error page), try to detect cause
+        if (trimmed.startsWith('<!DOCTYPE') || trimmed.toLowerCase().startsWith('<html')) {
+          if (/Rate\s*Limit|Too Many Requests|429/i.test(trimmed)) {
+            throw new Error('API制限（Rate Limit）に到達した可能性があります（HTMLエラーページ）。');
+          }
+          if (/Invalid\s*API\s*key/i.test(trimmed)) {
+            throw new Error('APIキーが無効です（HTMLエラーページ）。');
+          }
+          if (/CORS|Cross-Origin|Access-Control-Allow-Origin/i.test(trimmed)) {
+            throw new Error('CORS制約によりアクセスが拒否されました（HTMLエラーページ）。');
+          }
+          throw new Error('APIがHTMLのエラーページを返しました。');
+        }
+
+        // HTTP status handling
+        if (!resp.ok) {
+          switch (resp.status) {
+            case 400:
+              throw new Error('不正なリクエスト（HTTP 400）。パラメータを確認してください。');
+            case 401:
+              throw new Error('認証エラー（HTTP 401）。APIキーや認証情報を確認してください。');
+            case 403:
+              throw new Error('アクセスが禁止されています（HTTP 403）。権限を確認してください。');
+            case 404:
+              throw new Error('リソースが見つかりません（HTTP 404）。URLまたは入力を確認してください。');
+            case 429:
+              throw new Error('リクエストが多すぎます（HTTP 429: Rate Limit）。しばらくしてから再試行してください。');
+            case 500:
+              throw new Error('サーバー内部エラー（HTTP 500）。時間をおいて再試行してください。');
+            default:
+              throw new Error('HTTPエラー: ' + resp.status);
+          }
+        }
+
+        // If response is JSON and contains error/message/detail, extract it
+        if (trimmed) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (parsed && (parsed.error || parsed.message || parsed.detail || parsed.errors)) {
+              const msg = parsed.error?.message || parsed.message || parsed.detail || JSON.stringify(parsed.errors);
+              throw new Error('API応答エラー: ' + String(msg).slice(0, 1000));
+            }
+          } catch (e) {
+            // ignore JSON parse errors - response may not be JSON
+          }
+        }
+
+        return resp;
+      };
+
+      // showError utility: container element, title, Error object/string, optionally URL
+      window.showError = function(container, title, error, url) {
+        if (!container) return;
+        const message = (error && error.message) ? error.message : String(error);
+        // Preserve existing brief failure messages where possible by appending error box
+        const box = document.createElement('div');
+        box.className = 'error-box';
+        box.innerHTML = `<strong>${title}</strong><br>${message}${url ? `<br><small>URL: ${url}</small>` : ''}`;
+        // If container is an element that holds multiple pieces, append; otherwise replace content
+        // We'll append the error box so existing failure messages remain visible
+        container.appendChild(box);
+      };
+    })();
+    </script>
+    <!-- ===== end wrapper & util ===== -->
 </head>
 <body>
     <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
@@ -421,7 +524,6 @@
             <h1>ブラウザでコーディング</h1>
             <p>JavaScriptコードを記述して実行できます。<code>console.log()</code> の出力は下の「出力」エリアに表示されます。</p>
             <textarea id="code-editor" rows="15" cols="80" style="width: 100%; font-family: monospace; font-size: 14px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;" placeholder="ここにJavaScriptコードを記述してください...">console.log("Hello, World!");
-
 // 例: 1から10までの合計を計算
 let sum = 0;
 for (let i = 1; i <= 10; i++) {
@@ -648,6 +750,10 @@ console.log("1から10までの合計: " + sum);</textarea>
                 jokeSetup.textContent = 'ジョークの取得に失敗しました。';
                 jokeSetupJa.textContent = '翻訳に失敗しました。';
                 console.error('Error fetching or translating joke:', error);
+                // Show detailed error in container
+                const container = document.getElementById('joke-container');
+                // append error info without removing existing brief message
+                showError(container, 'ジョークAPIエラー', error, 'https://official-joke-api.appspot.com/random_joke');
             }
         }
 
@@ -665,6 +771,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 }
             } catch (error) {
                 console.error('Translation error:', error);
+                // show translation error in a generic place (not to break layout)
                 return '翻訳APIエラー';
             }
         }
@@ -680,6 +787,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 }, error => {
                     mapContainer.textContent = '位置情報の取得に失敗しました。ブラウザの設定を確認してください。';
                     console.error('Geolocation error:', error);
+                    showError(mapContainer, '位置情報取得エラー', error);
                 });
             } else {
                 mapContainer.textContent = 'お使いのブラウザは位置情報に対応していません。';
@@ -705,6 +813,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 userContainer.innerHTML = '<p>ユーザーの取得に失敗しました。</p>';
                 console.error('Error fetching random user:', error);
+                showError(userContainer, 'RandomUser APIエラー', error, 'https://randomuser.me/api/');
             }
         }
 
@@ -727,6 +836,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 numberFactDiv.textContent = '豆知識の取得に失敗しました。';
                 console.error('Numbers API Error:', error);
+                showError(numberFactDiv, 'Numbers APIエラー', error, url);
             }
         }
 
@@ -751,6 +861,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 catContainer.textContent = '猫の画像の取得に失敗しました。';
                 console.error('Cat API Error:', error);
+                showError(catContainer, 'Cat APIエラー', error, 'https://api.thecatapi.com/v1/images/search');
             }
         }
 
@@ -774,6 +885,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 dadjokeText.textContent = 'ダジャレの取得に失敗しました。';
                 dadjokeTextJa.textContent = '翻訳に失敗しました。';
                 console.error('Dad Joke API Error:', error);
+                showError(document.getElementById('dadjoke-container'), 'Dad Joke APIエラー', error, 'https://icanhazdadjoke.com/');
             }
         }
 
@@ -793,6 +905,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 adviceText.textContent = 'アドバイスの取得に失敗しました。';
                 adviceTextJa.textContent = '翻訳に失敗しました。';
                 console.error('Advice Slip API Error:', error);
+                showError(document.getElementById('advice-container'), 'Advice APIエラー', error, 'https://api.adviceslip.com/advice');
             }
         }
 
@@ -812,6 +925,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 kanyeQuoteDiv.textContent = '格言の取得に失敗しました。';
                 kanyeQuoteJaDiv.textContent = '翻訳に失敗しました。';
                 console.error('Kanye.rest API Error:', error);
+                showError(document.getElementById('kanye-container'), 'Kanye APIエラー', error, 'https://api.kanye.rest/');
             }
         }
 
@@ -826,6 +940,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 dogContainer.textContent = '犬の画像の取得に失敗しました。';
                 console.error('Dog API Error:', error);
+                showError(dogContainer, 'Dog APIエラー', error, 'https://dog.ceo/api/breeds/image/random');
             }
         }
 
@@ -863,6 +978,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 quizQuestionSpan.textContent = '問題の取得に失敗しました。';
                 quizQuestionJaSpan.textContent = '翻訳に失敗しました。';
                 console.error('Quiz API Error:', error);
+                showError(document.getElementById('quiz-container'), 'Quiz APIエラー', error, 'https://opentdb.com/api.php?amount=1&category=15&type=boolean');
             }
         }
 
@@ -892,6 +1008,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 codeOutput.textContent += 'Error: ' + error.message + '\n';
                 console.error('Code execution error:', error);
+                showError(codeOutput, 'コード実行エラー', error);
             }
             finally {
                 console.log = originalConsoleLog; // Restore original console.log
@@ -1053,6 +1170,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 chucknorrisJokeDiv.textContent = 'ジョークの取得に失敗しました。';
                 chucknorrisJokeJaDiv.textContent = '翻訳に失敗しました。';
                 console.error('Chuck Norris API Error:', error);
+                showError(document.getElementById('chucknorris-container'), 'Chuck Norris APIエラー', error, 'https://api.chucknorris.io/jokes/random');
             }
         }
 
@@ -1072,6 +1190,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 catfactTextDiv.textContent = '豆知識の取得に失敗しました。';
                 catfactTextJaDiv.textContent = '翻訳に失敗しました。';
                 console.error('Cat Fact API Error:', error);
+                showError(document.getElementById('catfact-container'), 'Cat Fact APIエラー', error, 'https://catfact.ninja/fact');
             }
         }
 
@@ -1086,6 +1205,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 foxContainer.textContent = 'キツネの画像の取得に失敗しました。';
                 console.error('Fox API Error:', error);
+                showError(foxContainer, 'Fox APIエラー', error, 'https://randomfox.ca/floof/');
             }
         }
 
@@ -1115,6 +1235,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 randomdogimageContainer.textContent = '犬の画像の取得に失敗しました。';
                 console.error('Random Dog Image Alt API Error:', error);
+                showError(randomdogimageContainer, 'Random Dog APIエラー', error, 'https://random.dog/woof.json');
             }
         }
 
@@ -1134,6 +1255,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 mathfactTextDiv.textContent = '数学の豆知識の取得に失敗しました。';
                 mathfactTextJaDiv.textContent = '翻訳に失敗しました。';
                 console.error('Math Fact API Error:', error);
+                showError(document.getElementById('mathfact-container'), 'Math APIエラー', error, 'http://numbersapi.com/random/math');
             }
         }
 
@@ -1153,6 +1275,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 programmingjokeTextDiv.textContent = 'プログラミングジョークの取得に失敗しました。';
                 programmingjokeTextJaDiv.textContent = '翻訳に失敗しました。';
                 console.error('Programming Joke API Error:', error);
+                showError(document.getElementById('programmingjoke-container'), 'Programming Joke APIエラー', error, 'https://v2.jokeapi.dev/joke/Programming?type=single');
             }
         }
 
@@ -1201,6 +1324,7 @@ console.log("1から10までの合計: " + sum);</textarea>
                 generaltriviaQuestionSpan.textContent = '問題の取得に失敗しました。';
                 generaltriviaQuestionJaSpan.textContent = '翻訳に失敗しました。';
                 console.error('General Trivia API Error:', error);
+                showError(document.getElementById('generaltrivia-container'), 'General Trivia APIエラー', error, 'https://opentdb.com/api.php?amount=1&type=multiple');
             }
         }
 
@@ -1274,6 +1398,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 pokemonContainer.innerHTML = '<p>ポケモンが見つかりませんでした。</p>';
                 console.error('Pokemon API Error:', error);
+                showError(pokemonContainer, 'Pokemon APIエラー', error, `https://pokeapi.co/api/v2/pokemon/${pokemonName}`);
             }
         }
 
@@ -1309,6 +1434,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 cocktailContainer.innerHTML = '<p>カクテルが見つかりませんでした。</p>';
                 console.error('Cocktail API Error:', error);
+                showError(cocktailContainer, 'Cocktail APIエラー', error, `https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${cocktailName}`);
             }
         }
 
@@ -1322,6 +1448,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 cocktailContainer.innerHTML = '<p>カクテルが見つかりませんでした。</p>';
                 console.error('Cocktail API Error:', error);
+                showError(cocktailContainer, 'Cocktail APIエラー', error, 'https://www.thecocktaildb.com/api/json/v1/1/random.php');
             }
         }
 
@@ -1341,6 +1468,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 bitcoinContainer.innerHTML = '<p>価格の取得に失敗しました。</p>';
                 console.error('Bitcoin API Error:', error);
+                showError(bitcoinContainer, 'Bitcoin APIエラー', error, 'https://api.coindesk.com/v1/bpi/currentprice.json');
             }
         }
 
@@ -1360,6 +1488,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 exchangeContainer.innerHTML = '<p>レートの取得に失敗しました。</p>';
                 console.error('Exchange Rate API Error:', error);
+                showError(exchangeContainer, 'Exchange APIエラー', error, 'https://open.er-api.com/v6/latest/USD');
             }
         }
 
@@ -1379,6 +1508,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 usastatsContainer.innerHTML = '<p>統計の取得に失敗しました。</p>';
                 console.error('Data USA API Error:', error);
+                showError(usastatsContainer, 'Data USA APIエラー', error, 'https://datausa.io/api/data?drilldowns=Nation&measures=Population');
             }
         }
 
@@ -1401,6 +1531,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 animeContainer.innerHTML = '<p>アニメが見つかりませんでした。</p>';
                 console.error('Jikan API Error:', error);
+                showError(animeContainer, 'Jikan APIエラー', error, `https://api.jikan.moe/v4/anime?q=${animeTitle}`);
             }
         }
 
@@ -1414,6 +1545,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 animeContainer.innerHTML = '<p>アニメが見つかりませんでした。</p>';
                 console.error('Jikan API Error:', error);
+                showError(animeContainer, 'Jikan APIエラー', error, 'https://api.jikan.moe/v4/random/anime');
             }
         }
 
@@ -1435,6 +1567,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             } catch (error) {
                 bookContainer.innerHTML = '<p>本が見つかりませんでした。</p>';
                 console.error('Open Library API Error:', error);
+                showError(bookContainer, 'Open Library APIエラー', error, `https://openlibrary.org/search.json?q=${bookTitle}`);
             }
         }
 
