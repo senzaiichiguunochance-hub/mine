@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>秋田県クマ出没マップ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  body { font-family: sans-serif; margin: 0; }
+  #map { height: 90vh; }
+  #controls {
+    padding: 10px;
+    background: #f9f9f9;
+    border-bottom: 1px solid #ccc;
+  }
+  label { margin-right: 8px; }
+  input[type="text"] { width: 600px; }
+</style>
+</head>
+<body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+  <div id="controls">
+    <label>CSVファイルURL:
+      <input type="text" id="csvUrl"
+        value="https://ckan.pref.akita.lg.jp/dataset/f801a10f-f076-47e4-b5a6-0bb5569639e0/resource/326bfe79-3f64-401b-9862-b37a477c7211/download/050008_kumadas.csv">
+    </label><br>
+    <label>開始日: <input type="date" id="startDate"></label>
+    <label>終了日: <input type="date" id="endDate"></label>
+    <button onclick="loadCsv()">CSV読込</button>
+    <button onclick="updateMap()">再描画</button>
+  </div>
+  <div id="map"></div>
+
+<script>
+let allData = [];
+let map, markersLayer;
+
+function parseJapaneseDate(str) {
+  if (!str || typeof str !== "string") return null;
+  const m = str.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+  if (!m) return null;
+  return new Date(m[1], m[2]-1, m[3], m[4] || 0, m[5] || 0);
+}
+
+function initDateInputs() {
+  // システム日を基準に、1カ月前の月の1日を求める
+  const now = new Date();
+  const prevMonth = new Date(now);  // コピー
+  prevMonth.setMonth(prevMonth.getMonth() - 1);  // 1か月前に移動
+  const start = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1); // その月の1日
+  document.getElementById("startDate").value = start.toISOString().split("T")[0];
+  document.getElementById("endDate").value = now.toISOString().split("T")[0];
+}
+
+function initMap() {
+  if (map) return;
+  map = L.map("map").setView([39.7, 140.1], 8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+  markersLayer = L.layerGroup().addTo(map);
+}
+
+function updateMap() {
+  if (!allData.length) {
+    alert("CSVデータが読み込まれていません。");
+    return;
+  }
+
+  const startDate = new Date(document.getElementById("startDate").value);
+  const endDate = new Date(document.getElementById("endDate").value);
+  markersLayer.clearLayers();
+
+  const filtered = allData.filter(row => {
+    const date = parseJapaneseDate(row["目撃日時"]);
+    return date && date >= startDate && date <= endDate;
+  });
+
+  filtered.forEach(row => {
+    const lat = parseFloat(row["x(緯度)"]);
+    const lng = parseFloat(row["y(経度)"]);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      const popupContent = `
+        <b>${row["獣種"] || "不明"}</b><br>
+        ${row["市町村"] || ""}<br>
+        ${row["目撃日時"] || ""}<br>
+        ${row["目撃時の状況"] || ""}
+      `;
+      L.marker([lat, lng]).bindPopup(popupContent).addTo(markersLayer);
+    }
+  });
+
+  console.log(`表示件数: ${filtered.length}`);
+  alert(`表示件数: ${filtered.length}`);
+}
+
+function loadCsv() {
+  const url = document.getElementById("csvUrl").value.trim();
+  if (!url) {
+    alert("CSVファイルのURLを入力してください。");
+    return;
+  }
+
+  Papa.parse(url, {
+    download: true,
+    header: true,
+    complete: results => {
+      allData = results.data.filter(r => r["x(緯度)"] && r["y(経度)"]);
+      initMap();
+      updateMap();
+    },
+    error: err => {
+      alert("CSVの読み込みに失敗しました: " + err);
+      console.error(err);
+    }
+  });
+}
+
+window.onload = () => {
+  initDateInputs();
+  initMap();
+  loadCsv(); // デフォルトURLで初期読み込み
+};
+</script>
+</body>
+</html>
