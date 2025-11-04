@@ -45,13 +45,16 @@ function parseJapaneseDate(str) {
 }
 
 function initDateInputs() {
-  // システム日を基準に、1カ月前の月の1日を求める
-  const now = new Date();
-  const prevMonth = new Date(now);  // コピー
-  prevMonth.setMonth(prevMonth.getMonth() - 1);  // 1か月前に移動
-  const start = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), 1); // その月の1日
-  document.getElementById("startDate").value = start.toISOString().split("T")[0];
-  document.getElementById("endDate").value = now.toISOString().split("T")[0];
+const now = new Date();
+const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+function formatDateLocal(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+document.getElementById("startDate").value = formatDateLocal(start);
+document.getElementById("endDate").value = formatDateLocal(now);
 }
 
 function initMap() {
@@ -64,6 +67,19 @@ function initMap() {
   markersLayer = L.layerGroup().addTo(map);
 }
 
+function normalizeDateString(str) {
+  if (!str) return "";
+  return str.replace(/[　\s]+/g, " ").trim(); // 全角・半角スペース除去
+}
+
+function parseJapaneseDate(str) {
+  if (!str || typeof str !== "string") return null;
+  const clean = normalizeDateString(str);
+  const m = clean.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/);
+  if (!m) return null;
+  return new Date(m[1], m[2] - 1, m[3], m[4] || 0, m[5] || 0);
+}
+
 function updateMap() {
   if (!allData.length) {
     alert("CSVデータが読み込まれていません。");
@@ -72,6 +88,9 @@ function updateMap() {
 
   const startDate = new Date(document.getElementById("startDate").value);
   const endDate = new Date(document.getElementById("endDate").value);
+  // 終了日を1日の終わり（23:59:59）に設定
+  endDate.setHours(23, 59, 59, 999);
+
   markersLayer.clearLayers();
 
   const filtered = allData.filter(row => {
@@ -93,7 +112,6 @@ function updateMap() {
     }
   });
 
-  console.log(`表示件数: ${filtered.length}`);
   alert(`表示件数: ${filtered.length}`);
 }
 
