@@ -17,66 +17,70 @@
   label { margin-right: 8px; }
   input[type="text"] { width: 600px; }
   .note { color: #666; font-size: 13px; margin-top:6px; }
+
+  /* ローディング中に表示されるオーバーレイ */
+  #loadingOverlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 9999;
+  }
+  .spinner {
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #0078ff;
+    border-radius: 50%;
+    width: 60px; height: 60px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
 </head>
 <body>
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
 
-  <div id="controls">
-    <label>CSVファイルURL:
-      <input type="text" id="csvUrl"
-        value="https://ckan.pref.akita.lg.jp/dataset/f801a10f-f076-47e4-b5a6-0bb5569639e0/resource/326bfe79-3f64-401b-9862-b37a477c7211/download/050008_kumadas.csv">
-    </label>
-    <button id="btnLoad">CSV読込</button>
-    <button id="btnRedraw">再描画</button>
-    <br>
-    <label>開始日: <input type="date" id="startDate"></label>
-    <label>終了日: <input type="date" id="endDate"></label>
-    <div class="note">※CSV読込後に、先頭1件目を終了日、100件目（存在すれば）を開始日に自動設定します。データ取得できない場合は開始日・終了日ともに本日。</div>
-  </div>
+<div id="controls">
+  <label>CSVファイルURL:
+    <input type="text" id="csvUrl" value="https://ckan.pref.akita.lg.jp/dataset/f801a10f-f076-47e4-b5a6-0bb5569639e0/resource/326bfe79-3f64-401b-9862-b37a477c7211/download/050008_kumadas.csv">
+  </label>
+  <button id="btnLoad">CSV読込</button>
+  <button id="btnRedraw">再描画</button>
+  <br>
+  <label>開始日: <input type="date" id="startDate"></label>
+  <label>終了日: <input type="date" id="endDate"></label>
+  <div class="note">※CSV読込後に、先頭1件目を終了日、100件目（存在すれば）を開始日に自動設定します。データ取得できない場合は開始日・終了日ともに本日。</div>
+</div>
 
-  <div id="map"></div>
+<div id="map"></div>
+
+<!-- ローディングオーバーレイ -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="loadingText">読み込み中...</div>
+</div>
 
 <script>
-/**
- * 不可視文字や全角スペース、改行、BOMなどを除去してトリムする
- * @param {string} s - 処理対象の文字列
- * @returns {string} クリーンアップされた文字列
- */
 function cleanString(s) {
   if (s == null) return "";
   return String(s).replace(/^\uFEFF/, "").replace(/[\u3000\r\n\t]+/g, " ").trim();
 }
 
-/**
- * 日本語形式の日付文字列をDateオブジェクトにパースする
- * @param {string} str - 日付文字列 (例: "YYYY/MM/DD HH:MM")
- * @returns {Date|null} パースされたDateオブジェクト、またはパース失敗時はnull
- */
 function parseJapaneseDate(str) {
   if (!str) return null;
   const clean = cleanString(str);
   const m = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2}))?/);
-  if (!m) {
-    return null;
-  }
-  const year = parseInt(m[1], 10);
-  const month = parseInt(m[2], 10);
-  const day = parseInt(m[3], 10);
-  const hour = m[4] ? parseInt(m[4], 10) : 0;
-  const minute = m[5] ? parseInt(m[5], 10) : 0;
-  const d = new Date(year, month - 1, day, hour, minute);
-  if (isNaN(d.getTime())) {
-    return null;
-  }
-  return d;
+  if (!m) return null;
+  const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]), m[4] ? parseInt(m[4]) : 0, m[5] ? parseInt(m[5]) : 0);
+  return isNaN(d.getTime()) ? null : d;
 }
 
-/**
- * Dateオブジェクトをローカルの日付形式 (YYYY-MM-DD) にフォーマットする
- * @param {Date} date - フォーマットするDateオブジェクト
- * @returns {string} フォーマットされた日付文字列
- */
 function formatDateLocal(date) {
   if (!date) return "";
   const y = date.getFullYear();
@@ -85,9 +89,6 @@ function formatDateLocal(date) {
   return `${y}-${m}-${d}`;
 }
 
-/**
- * 開始日と終了日入力フィールドに今日の日付を設定する
- */
 function setTodayAsDefaults() {
   const now = new Date();
   const s = formatDateLocal(now);
@@ -97,10 +98,9 @@ function setTodayAsDefaults() {
 
 let map = null;
 let markersLayer = null;
+let rawResults = null;
+let normalizedRows = [];
 
-/**
- * Leafletマップを初期化する
- */
 function initMap() {
   if (map) return;
   map = L.map("map").setView([39.7, 140.1], 8);
@@ -111,14 +111,6 @@ function initMap() {
   markersLayer = L.layerGroup().addTo(map);
 }
 
-let rawResults = null;
-let normalizedRows = [];
-
-/**
- * CSVの列名から、日付、緯度、経度のキーを検出する
- * @param {string[]} sampleKeys - CSVのヘッダーキーの配列
- * @returns {{dateKey: string|null, latKey: string|null, lngKey: string|null}} 検出されたキーのオブジェクト
- */
 function detectColumnKeys(sampleKeys) {
   const keySet = sampleKeys.map(k => cleanString(k));
   const findKey = candidates => {
@@ -132,7 +124,6 @@ function detectColumnKeys(sampleKeys) {
     }
     return null;
   };
-
   return {
     dateKey: findKey(["目撃日時", "出没日時", "発生日時", "日時"]),
     latKey: findKey(["x(緯度)", "緯度", "lat"]),
@@ -140,35 +131,21 @@ function detectColumnKeys(sampleKeys) {
   };
 }
 
-/**
- * PapaParseの結果を正規化し、日付と緯度経度をパースする
- * @param {object} results - PapaParseの結果オブジェクト
- */
 function normalizeData(results) {
   rawResults = results;
   normalizedRows = [];
-
-  if (!results || !results.data || results.data.length === 0) {
-    return;
-  }
-
+  if (!results || !results.data || results.data.length === 0) return;
   const sampleKeys = results.meta && results.meta.fields && results.meta.fields.length ? results.meta.fields : Object.keys(results.data[0] || {});
-  for (let i = 0; i < sampleKeys.length; i++) {
-    sampleKeys[i] = cleanString(sampleKeys[i]);
-  }
-
+  for (let i = 0; i < sampleKeys.length; i++) sampleKeys[i] = cleanString(sampleKeys[i]);
   const keysDetected = detectColumnKeys(sampleKeys);
 
-  for (let i = 0; i < results.data.length; i++) {
-    const row = results.data[i];
+  for (const row of results.data) {
     const cleanRow = {};
-    for (const k in row) {
-      cleanRow[cleanString(k)] = row[k] == null ? "" : String(row[k]).trim();
-    }
+    for (const k in row) cleanRow[cleanString(k)] = row[k] == null ? "" : String(row[k]).trim();
 
-    const dateStr = keysDetected.dateKey ? cleanRow[cleanString(keysDetected.dateKey)] || cleanRow[keysDetected.dateKey] || "" : "";
-    const latStr = keysDetected.latKey ? cleanRow[cleanString(keysDetected.latKey)] || cleanRow[keysDetected.latKey] || "" : "";
-    const lngStr = keysDetected.lngKey ? cleanRow[cleanString(keysDetected.lngKey)] || cleanRow[keysDetected.lngKey] || "" : "";
+    const dateStr = keysDetected.dateKey ? cleanRow[keysDetected.dateKey] || "" : "";
+    const latStr = keysDetected.latKey ? cleanRow[keysDetected.latKey] || "" : "";
+    const lngStr = keysDetected.lngKey ? cleanRow[keysDetected.lngKey] || "" : "";
 
     const dateObj = parseJapaneseDate(dateStr);
     const lat = latStr ? parseFloat(latStr) : NaN;
@@ -179,96 +156,72 @@ function normalizeData(results) {
       dateStr: dateStr,
       date: dateObj,
       lat: isFinite(lat) ? lat : null,
-      lng: isFinite(lng) ? lng : null,
-      dateKey: keysDetected.dateKey,
-      latKey: keysDetected.latKey,
-      lngKey: keysDetected.lngKey
+      lng: isFinite(lng) ? lng : null
     });
   }
 }
 
-/**
- * 正規化されたデータから、日付範囲を自動決定し、入力フィールドに設定する
- * 先頭の有効行を終了日、100件目の有効行（存在すれば）を開始日とする
- * 有効な行がない場合は本日を設定する
- * @returns {{start: Date|null, end: Date|null, reason: string, validCount?: number}} 決定された日付範囲の情報
- */
 function determineDateRange() {
   const validRows = normalizedRows.filter(r => r.date && (r.lat !== null) && (r.lng !== null));
-
   if (validRows.length === 0) {
     setTodayAsDefaults();
-    return { start: null, end: null, reason: "no valid rows" };
+    return;
   }
-
   const endRow = validRows[0];
-  const indexForStart = Math.min(99, validRows.length - 1);
-  const startRow = validRows[indexForStart];
-
+  const startRow = validRows[Math.min(99, validRows.length - 1)];
   if (!endRow.date || !startRow.date) {
     setTodayAsDefaults();
-    return { start: null, end: null, reason: "date parse fail" };
+    return;
   }
-
   document.getElementById("startDate").value = formatDateLocal(startRow.date);
   document.getElementById("endDate").value = formatDateLocal(endRow.date);
-
-  return { start: startRow.date, end: endRow.date, reason: "ok", validCount: validRows.length };
 }
 
-/**
- * マップ上にクマの出没情報を描画する
- * 日付範囲でフィルタリングし、マーカーを追加する
- */
 function updateMap() {
   if (!normalizedRows || normalizedRows.length === 0) {
     alert("CSVデータが読み込まれていません。");
     return;
   }
 
-  const sd = document.getElementById("startDate").value;
-  const ed = document.getElementById("endDate").value;
-  if (!sd || !ed) {
-    alert("開始日または終了日が設定されていません。");
-    return;
-  }
+  const overlay = document.getElementById("loadingOverlay");
+  const text = document.getElementById("loadingText");
+  overlay.style.display = "flex";
+  text.textContent = "再描画中...";
 
-  const startDate = new Date(sd);
-  const endDate = new Date(ed);
-  endDate.setHours(23,59,59,999);
+  setTimeout(() => {
+    const sd = document.getElementById("startDate").value;
+    const ed = document.getElementById("endDate").value;
+    if (!sd || !ed) {
+      alert("開始日または終了日が設定されていません。");
+      overlay.style.display = "none";
+      return;
+    }
 
-  markersLayer.clearLayers();
+    const startDate = new Date(sd);
+    const endDate = new Date(ed);
+    endDate.setHours(23, 59, 59, 999);
+    markersLayer.clearLayers();
 
-  const filtered = normalizedRows.filter(r => {
-    if (!r.date) return false;
-    if (r.lat === null || r.lng === null) return false;
-    return r.date >= startDate && r.date <= endDate;
-  });
+    const filtered = normalizedRows.filter(r => r.date && r.lat !== null && r.lng !== null && r.date >= startDate && r.date <= endDate);
+    filtered.forEach(r => {
+      const popup = `<b>${cleanString(r.__orig["獣種"] || "不明")}</b><br>${cleanString(r.__orig["市町村"] || "")}<br>${cleanString(r.dateStr || "")}<br>${cleanString(r.__orig["目撃時の状況"] || "")}`;
+      L.marker([r.lat, r.lng]).bindPopup(popup).addTo(markersLayer);
+    });
 
-  let count = 0;
-  filtered.forEach(r => {
-    const popup = `
-      <b>${cleanString(r.__orig["獣種"] || r.__orig["species"] || "") || "不明"}</b><br>
-      ${cleanString(r.__orig["市町村"] || "")}<br>
-      ${cleanString(r.dateStr || "")}<br>
-      ${cleanString(r.__orig["目撃時の状況"] || "")}
-    `;
-    L.marker([r.lat, r.lng]).bindPopup(popup).addTo(markersLayer);
-    count++;
-  });
-
-  alert("表示件数: " + count);
+    overlay.style.display = "none";
+  }, 10);
 }
 
-/**
- * 指定されたURLからCSVファイルを読み込み、データを処理してマップを更新する
- */
 function loadCsv() {
   const url = document.getElementById("csvUrl").value.trim();
   if (!url) {
     alert("CSVファイルのURLを入力してください。");
     return;
   }
+  const overlay = document.getElementById("loadingOverlay");
+  const text = document.getElementById("loadingText");
+  overlay.style.display = "flex";
+  text.textContent = "データ読み込み中...";
 
   Papa.parse(url, {
     download: true,
@@ -279,25 +232,24 @@ function loadCsv() {
       determineDateRange();
       initMap();
       updateMap();
+      overlay.style.display = "none";
     },
-    error: function(err) {
+    error: function() {
       alert("CSVの読み込みに失敗しました。");
       setTodayAsDefaults();
+      overlay.style.display = "none";
     }
   });
 }
 
-// イベントリスナーの設定
 document.getElementById("btnLoad").addEventListener("click", loadCsv);
 document.getElementById("btnRedraw").addEventListener("click", updateMap);
 
-// ページロード時の初期処理
 window.onload = function() {
   initMap();
-  setTodayAsDefaults(); // 最初に今日の日付をセット
-  loadCsv(); // 自動でCSVを読み込む
+  setTodayAsDefaults();
+  loadCsv();
 };
-
 </script>
 </body>
 </html>
