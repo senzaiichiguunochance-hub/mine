@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>秋田県クマ出没マップ（API版）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<style>
+  body { font-family: sans-serif; margin:0 }
+  #map { height:85vh }
+  #controls { padding:10px; background:#f9f9f9; border-bottom:1px solid #ccc }
+  input[type=date]{ margin-right:6px }
+</style>
+</head>
+<body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+<div id="controls">
+  <label>開始日: <input type="date" id="startDate"></label>
+  <label>終了日: <input type="date" id="endDate"></label>
+  <button id="btnLoad">表示</button>
+  <label>件数制限: <input type="number" id="limit" value="0" min="0" style="width:80px"></label>
+  <div class="note">サーバーがローカルで動作している場合は自動でAPIを叩きます。</div>
+</div>
+<div id="map"></div>
+
+<script>
+function formatDateLocal(d){
+  if(!d) return "";
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${dd}`;
+}
+function setToday(){
+  const now=new Date();
+  document.getElementById("startDate").value = formatDateLocal(now);
+  document.getElementById("endDate").value = formatDateLocal(now);
+}
+
+let map = L.map("map").setView([39.7,140.1],8);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{ attribution:'© OpenStreetMap contributors' }).addTo(map);
+let layerGroup = L.layerGroup().addTo(map);
+
+async function loadFromApi() {
+  const sd = document.getElementById("startDate").value;
+  const ed = document.getElementById("endDate").value;
+  const limit = document.getElementById("limit").value || 0;
+  if(!sd || !ed) { alert("開始日/終了日を指定してください"); return; }
+
+  const url = `/api/geojson?start=${encodeURIComponent(sd)}&end=${encodeURIComponent(ed)}&limit=${encodeURIComponent(limit)}`;
+  try {
+    const r = await fetch(url);
+    if(!r.ok) throw new Error("API fetch failed: "+r.status);
+    const data = await r.json();
+    if(!data || !data.features) { alert("データ形式が不正です"); return; }
+
+    layerGroup.clearLayers();
+    data.features.forEach(f=>{
+      const coords = f.geometry && f.geometry.coordinates;
+      if(!coords || coords.length<2) return;
+      const lng = coords[0], lat = coords[1];
+      const props = f.properties || {};
+      const popup = `<b>${props["獣種"] || props["species"] || "不明"}</b><br>
+                     ${props["市町村"] || props["city"] || ""}<br>
+                     ${props["dateISO"] || ""}<br>
+                     ${props["目撃時の状況"] || ""}`;
+      L.marker([lat, lng]).bindPopup(popup).addTo(layerGroup);
+    });
+    alert("表示件数: " + data.features.length);
+  } catch (e) {
+    console.error(e);
+    alert("API取得エラー: " + e.message);
+  }
+}
+
+document.getElementById("btnLoad").addEventListener("click", loadFromApi);
+window.onload = function(){ setToday(); loadFromApi(); };
+</script>
+</body>
+</html>
