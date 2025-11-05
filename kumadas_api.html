@@ -2,78 +2,190 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>秋田県クマ出没マップ（API版）</title>
+<title>秋田県クマ出没マップ（API＋ローディング表示付き）</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
-  body { font-family: sans-serif; margin:0 }
-  #map { height:85vh }
-  #controls { padding:10px; background:#f9f9f9; border-bottom:1px solid #ccc }
-  input[type=date]{ margin-right:6px }
+  body { font-family: sans-serif; margin:0; }
+  #map { height:85vh; }
+
+  #controls {
+    padding:10px; background:#f9f9f9; border-bottom:1px solid #ccc;
+    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  }
+  input[type=date], input[type=number] { padding:3px; }
+
+  /* ローディング中に表示されるオーバーレイ全体 */
+  #loadingOverlay {
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(255,255,255,0.85);
+    display:none; align-items:center; justify-content:center;
+    flex-direction:column; z-index:9999;
+  }
+  /* 中央のスピナー（回転アニメーション） */
+  .spinner {
+    border:6px solid #f3f3f3;
+    border-top:6px solid #0078ff;
+    border-radius:50%;
+    width:60px; height:60px;
+    animation: spin 1s linear infinite;
+    margin-bottom:15px;
+  }
+  @keyframes spin {
+    0% { transform:rotate(0deg); }
+    100% { transform:rotate(360deg); }
+  }
+  /* 進捗バー枠と中身 */
+  #progressBarContainer {
+    width:220px; background:#eee; height:10px; border-radius:5px; overflow:hidden;
+  }
+  #progressBar {
+    width:0%; height:100%; background:#0078ff; transition:width 0.2s;
+  }
 </style>
 </head>
 <body>
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
-
 <div id="controls">
   <label>開始日: <input type="date" id="startDate"></label>
   <label>終了日: <input type="date" id="endDate"></label>
+  <label>件数制限: <input type="number" id="limit" value="99999" min="10" style="width:80px"></label>
   <button id="btnLoad">表示</button>
-  <label>件数制限: <input type="number" id="limit" value="0" min="0" style="width:80px"></label>
-  <div class="note">サーバーがローカルで動作している場合は自動でAPIを叩きます。</div>
 </div>
 <div id="map"></div>
 
-<script>
-function formatDateLocal(d){
-  if(!d) return "";
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
-  return `${y}-${m}-${dd}`;
-}
-function setToday(){
-  const now=new Date();
-  document.getElementById("startDate").value = formatDateLocal(now);
-  document.getElementById("endDate").value = formatDateLocal(now);
-}
+<!-- ローディングオーバーレイ（スピナーと進捗バーを含む） -->
+<div id="loadingOverlay">
+  <div class="spinner"></div>
+  <div id="progressBarContainer"><div id="progressBar"></div></div>
+  <div id="loadingText" style="margin-top:8px;">データ読込中...</div>
+</div>
 
-let map = L.map("map").setView([39.7,140.1],8);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{ attribution:'© OpenStreetMap contributors' }).addTo(map);
+<script>
+const BASE_URL = "https://ckan.pref.akita.lg.jp/api/3/action/datastore_search";
+const RESOURCE_ID = "326bfe79-3f64-401b-9862-b37a477c7211";
+
+// 地図初期化と背景タイル設定
+let map = L.map("map").setView([39.7, 140.1], 8);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap contributors"
+}).addTo(map);
 let layerGroup = L.layerGroup().addTo(map);
 
+// 状態管理と要素取得
+let isInitialLoad = true; // 初回ロード時のみ100件目の日付を設定
+const overlay = document.getElementById("loadingOverlay");
+const btn = document.getElementById("btnLoad");
+const progressBar = document.getElementById("progressBar");
+const loadingText = document.getElementById("loadingText");
+
+// オーバーレイを表示（処理中を知らせる）
+function showOverlay(msg="処理中...") {
+  overlay.style.display = "flex";
+  loadingText.textContent = msg;
+  progressBar.style.width = "0%";
+  btn.disabled = true;
+  document.body.style.cursor = "wait";
+}
+
+// オーバーレイを非表示に戻す
+function hideOverlay() {
+  overlay.style.display = "none";
+  btn.disabled = false;
+  document.body.style.cursor = "default";
+}
+
+// CKAN APIからデータを取得し、地図に描画
 async function loadFromApi() {
-  const sd = document.getElementById("startDate").value;
-  const ed = document.getElementById("endDate").value;
-  const limit = document.getElementById("limit").value || 0;
-  if(!sd || !ed) { alert("開始日/終了日を指定してください"); return; }
-
-  const url = `/api/geojson?start=${encodeURIComponent(sd)}&end=${encodeURIComponent(ed)}&limit=${encodeURIComponent(limit)}`;
   try {
-    const r = await fetch(url);
-    if(!r.ok) throw new Error("API fetch failed: "+r.status);
-    const data = await r.json();
-    if(!data || !data.features) { alert("データ形式が不正です"); return; }
+    showOverlay("データ読込中...");
+    const sdInput = document.getElementById("startDate");
+    const edInput = document.getElementById("endDate");
+    const limit = document.getElementById("limit").value || 99999;
 
-    layerGroup.clearLayers();
-    data.features.forEach(f=>{
-      const coords = f.geometry && f.geometry.coordinates;
-      if(!coords || coords.length<2) return;
-      const lng = coords[0], lat = coords[1];
-      const props = f.properties || {};
-      const popup = `<b>${props["獣種"] || props["species"] || "不明"}</b><br>
-                     ${props["市町村"] || props["city"] || ""}<br>
-                     ${props["dateISO"] || ""}<br>
-                     ${props["目撃時の状況"] || ""}`;
-      L.marker([lat, lng]).bindPopup(popup).addTo(layerGroup);
+    // 秋田県オープンデータAPIからJSON取得
+    const url = `${BASE_URL}?resource_id=${RESOURCE_ID}&limit=${limit}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    let records = data.result.records;
+    loadingText.textContent = `取得件数 ${records.length} 件`;
+
+    // 日付順にソート（新しい順に並べ替え）
+    records.sort((a, b) => {
+      const da = new Date(a["目撃日時"] || a["出没日時"] || "");
+      const db = new Date(b["目撃日時"] || b["出没日時"] || "");
+      return db - da;
     });
-    alert("表示件数: " + data.features.length);
-  } catch (e) {
-    console.error(e);
-    alert("API取得エラー: " + e.message);
+
+    // 初回のみ：100件目の日付を開始日に、今日の日付を終了日に設定
+    if (isInitialLoad && records.length >= 100) {
+      const date100 = new Date(records[99]["目撃日時"] || records[99]["出没日時"] || "");
+      if (isFinite(date100)) {
+        const y = date100.getFullYear();
+        const m = String(date100.getMonth() + 1).padStart(2, "0");
+        const d = String(date100.getDate()).padStart(2, "0");
+        sdInput.value = `${y}-${m}-${d}`;
+      }
+      const now = new Date();
+      const y2 = now.getFullYear();
+      const m2 = String(now.getMonth() + 1).padStart(2, "0");
+      const d2 = String(now.getDate()).padStart(2, "0");
+      edInput.value = `${y2}-${m2}-${d2}`;
+      isInitialLoad = false;
+    }
+
+    const start = sdInput.value ? new Date(sdInput.value) : null;
+    const end = edInput.value ? new Date(edInput.value) : null;
+
+    // 日付範囲でフィルタリング
+    const filtered = records.filter(rec => {
+      const d = new Date(rec["目撃日時"] || rec["出没日時"] || "");
+      if (!isFinite(d)) return false;
+      if (start && d < start) return false;
+      if (end && d > end) return false;
+      return true;
+    });
+
+    loadingText.textContent = `描画中 (${filtered.length}件)...`;
+
+    // 既存マーカーを消去し、チャンクごとに描画（UIフリーズ防止）
+    layerGroup.clearLayers();
+    const chunkSize = 100;
+    let done = 0;
+
+    for (let i = 0; i < filtered.length; i += chunkSize) {
+      const chunk = filtered.slice(i, i + chunkSize);
+      for (const r of chunk) {
+        const lat = parseFloat(r["x(緯度)"]);
+        const lng = parseFloat(r["y(経度)"]);
+        if (!isFinite(lat) || !isFinite(lng)) continue;
+        const popup = `
+          <b>${r["市町村"] || ""}</b><br>
+          ${r["目撃日時"] || r["出没日時"] || ""}<br>
+          ${r["目撃時の状況"] || ""}
+        `;
+        L.marker([lat, lng]).bindPopup(popup).addTo(layerGroup);
+      }
+      done += chunk.length;
+      const percent = Math.round((done / filtered.length) * 100);
+      progressBar.style.width = percent + "%";
+      await new Promise(res => setTimeout(res, 10)); // 少し待ってUI更新
+    }
+
+    loadingText.textContent = `完了：${filtered.length}件表示`;
+    await new Promise(res => setTimeout(res, 400));
+  } catch (err) {
+    console.error(err);
+    alert("エラー: " + err.message);
+  } finally {
+    hideOverlay();
   }
 }
 
-document.getElementById("btnLoad").addEventListener("click", loadFromApi);
-window.onload = function(){ setToday(); loadFromApi(); };
+// 表示ボタン押下時に再描画
+btn.addEventListener("click", loadFromApi);
+
+// ページ読み込み時に自動表示
+window.onload = loadFromApi;
 </script>
 </body>
 </html>
