@@ -3,14 +3,15 @@
 <head>
 <meta charset="utf-8">
 <title>秋田県クマ出没マップ（API＋ローディング表示付き）</title>
+<link rel="stylesheet" type="text/css" href="Style.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
-  body { font-family: sans-serif; margin:0; }
+  
   #map { height:85vh; }
 
   #controls {
-    padding:10px; background:#f9f9f9; border-bottom:1px solid #ccc;
+    padding:10px;  border-bottom:1px solid #ccc;
     display:flex; flex-wrap:wrap; align-items:center; gap:10px;
   }
   input[type=date], input[type=number] { padding:3px; }
@@ -51,6 +52,7 @@
   <label>開始日: <input type="date" id="startDate"></label>
   <label>終了日: <input type="date" id="endDate"></label>
   <label>件数制限: <input type="number" id="limit" value="99999" min="10" style="width:80px"></label>
+  <div class="note">※本日を終了日、100件目（存在すれば）を開始日に自動設定します。</div>
   <button id="btnLoad">表示</button>
 </div>
 <div id="map"></div>
