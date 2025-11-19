@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>テキスト読み上げ</title>
+<link rel="stylesheet" type="text/css" href="Style.css" />
+</head>
+<body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+<div class="container">
+  <div class="header"><h1>テキスト読み上げ</h1></div>
+  
+  <div class="box">
+    <label for="textInput">読み上げたいテキスト</label>
+    <label for="textInput">（Enterで読み上げ（Shift+Enterで改行））</label>
+    <textarea id="textInput" placeholder="ここにテキストを入力"></textarea>
+    <div class="row">
+      <button id="speakBtn" class="primary">▶︎ 読み上げ</button>
+      <button id="stopBtn" class="secondary">■ 停止</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const synth = window.speechSynthesis;
+let voices = [];
+
+function populateVoices(){
+  voices = synth.getVoices() || [];
+}
+populateVoices();
+if('onvoiceschanged' in synth){
+  synth.onvoiceschanged = populateVoices;
+}
+
+function speakText(text){
+  if(!text.trim()){ alert('テキストを入力してください'); return; }
+  synth.cancel();
+
+  const jpVoices = voices.filter(v => v.lang.startsWith('ja')) || voices;
+  const voice = jpVoices[0] || null;
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.voice = voice;
+  utter.pitch = 1.0;
+  utter.rate = 1.0;
+  utter.volume = 1.0;
+
+  synth.speak(utter);
+}
+
+document.getElementById('speakBtn').addEventListener('click', ()=>{
+  speakText(document.getElementById('textInput').value);
+});
+
+document.getElementById('stopBtn').addEventListener('click', ()=>{
+  synth.cancel();
+});
+
+// Enterで読み上げ（Shift+Enterで改行）
+document.getElementById('textInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); speakText(e.target.value); }
+});
+</script>
+</body>
+</html>
