@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマホ振動テスト</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            background-color: #222;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 { margin-bottom: 30px; font-size: 24px; }
+        
+        /* ボタンのスタイル */
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 20px;
+            font-size: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            /* スマホでタップしたときの青いハイライトを消す */
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* 各ボタンの色分け */
+        #btn-short { background: #007bff; border-color: #0056b3; }
+        #btn-long { background: #28a745; border-color: #1e7e34; }
+        #btn-rhythm { background: #ffc107; border-color: #d39e00; color: #333; }
+        #btn-stop { background: #dc3545; border-color: #bd2130; margin-top: 20px; }
+
+        /* 振動中に画面を揺らすアニメーション */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shaking {
+            animation: shake 0.5s;
+            animation-iteration-count: infinite;
+        }
+        
+        #status {
+            margin-top: 20px;
+            height: 20px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+
+    <h1>📳 バイブレーション API</h1>
+
+    <div class="btn-container">
+        <button id="btn-short">⚡ 短くブッ！ (200ms)</button>
+        <button id="btn-long">📞 長くブーーーン (1秒)</button>
+        <button id="btn-rhythm">💓 ドクン・ドクン (鼓動)</button>
+        <button id="btn-stop">🛑 停止</button>
+    </div>
+
+    <div id="status">待機中...</div>
+
+    <script>
+        // バイブレーション機能があるかチェック
+        if (!window.navigator.vibrate) {
+            alert("この端末（またはブラウザ）はバイブレーションに対応していません。\n※iPhoneは非対応です。\n※PCは動きません。");
+            document.getElementById('status').textContent = "⚠️ 非対応の端末です";
+        }
+
+        const body = document.body;
+        const status = document.getElementById('status');
+
+        // 振動させる関数
+        function vibratePhone(pattern, message) {
+            // navigator.vibrate(ミリ秒) または ([ミリ秒, 休み, ミリ秒...])
+            window.navigator.vibrate(pattern);
+            
+            status.textContent = message;
+            
+            // 画面も揺らす演出
+            body.classList.add('shaking');
+            
+            // 振動時間の目安が終わったら画面の揺れを止める（簡易的処理）
+            let duration = Array.isArray(pattern) ? pattern.reduce((a,b)=>a+b, 0) : pattern;
+            if (duration > 0) {
+                setTimeout(() => {
+                    body.classList.remove('shaking');
+                    status.textContent = "待機中...";
+                }, duration);
+            }
+        }
+
+        document.getElementById('btn-short').addEventListener('click', () => {
+            // 200ミリ秒振動
+            vibratePhone(200, "振動中: 短");
+        });
+
+        document.getElementById('btn-long').addEventListener('click', () => {
+            // 1000ミリ秒(1秒)振動
+            vibratePhone(1000, "振動中: 長");
+        });
+
+        document.getElementById('btn-rhythm').addEventListener('click', () => {
+            // パターン: [振動, 休み, 振動, 休み...]
+            // ドクン(100)、休み(100)、ドクン(100)、長い休み(500)...
+            vibratePhone([100, 100, 100, 500, 100, 100, 100, 500], "振動中: リズム");
+        });
+
+        document.getElementById('btn-stop').addEventListener('click', () => {
+            // 0を指定すると停止する
+            window.navigator.vibrate(0);
+            body.classList.remove('shaking');
+            status.textContent = "停止しました";
+        });
+
+    </script>
+</body>
+</html>
