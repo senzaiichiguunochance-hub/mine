@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音声文字起こしアプリ</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        select, button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #stop-btn {
+            background-color: #dc3545;
+        }
+        #stop-btn:hover {
+            background-color: #a71d2a;
+        }
+        #status {
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #666;
+            height: 1.2em;
+        }
+        #result-area {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 200px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            line-height: 1.6;
+            white-space: pre-wrap; /* 改行を維持 */
+        }
+        .interim {
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎙️ 音声文字起こし</h1>
+
+    <div class="controls">
+        <select id="language-select">
+            <option value="ja-JP">日本語 (Japanese)</option>
+            <option value="en-US">英語 (English)</option>
+        </select>
+        <button id="start-btn">開始</button>
+        <button id="stop-btn" disabled>停止</button>
+        <button id="clear-btn" style="background-color:#6c757d;">クリア</button>
+    </div>
+
+    <div id="status">待機中...</div>
+
+    <div id="result-area"></div>
+
+    <script>
+        // ブラウザの音声認識APIの互換性をチェック
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            alert("お使いのブラウザは音声認識に対応していません。Google Chromeをお試しください。");
+        } else {
+            const recognition = new SpeechRecognition();
+            
+            // 設定
+            recognition.continuous = true; // 連続して認識する
+            recognition.interimResults = true; // 途中経過の文字も表示する
+
+            const startBtn = document.getElementById('start-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            const resultArea = document.getElementById('result-area');
+            const statusText = document.getElementById('status');
+            const langSelect = document.getElementById('language-select');
+
+            let finalTranscript = ''; // 確定した文章を保持する変数
+
+            // 開始ボタン
+            startBtn.addEventListener('click', () => {
+                recognition.lang = langSelect.value; // 言語設定を適用
+                recognition.start();
+                
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                langSelect.disabled = true;
+                statusText.textContent = "聞き取り中... 🎙️";
+                statusText.style.color = "#d63384";
+            });
+
+            // 停止ボタン
+            stopBtn.addEventListener('click', () => {
+                recognition.stop();
+                
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                langSelect.disabled = false;
+                statusText.textContent = "停止しました";
+                statusText.style.color = "#666";
+            });
+
+            // クリアボタン
+            clearBtn.addEventListener('click', () => {
+                finalTranscript = '';
+                resultArea.innerHTML = '';
+            });
+
+            // 音声認識の結果が返ってきたときの処理
+            recognition.onresult = (event) => {
+                let interimTranscript = ''; // 途中経過の文章
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + '。\n'; // 確定したら改行を追加
+                    } else {
+                        interimTranscript = transcript;
+                    }
+                }
+
+                // HTMLに表示（確定した文章は黒、途中経過はグレー）
+                resultArea.innerHTML = finalTranscript + '<span class="interim">' + interimTranscript + '</span>';
+            };
+
+            // エラーハンドリング
+            recognition.onerror = (event) => {
+                console.error("Error:", event.error);
+                statusText.textContent = "エラーが発生しました: " + event.error;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                langSelect.disabled = false;
+            };
+
+            // 音声認識が自動で止まってしまった場合の処理（再開などはせず状態を戻す）
+            recognition.onend = () => {
+                if (startBtn.disabled) { 
+                    // 意図せず止まった場合や、stop()が完了した場合
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    langSelect.disabled = false;
+                    statusText.textContent = "待機中...";
+                    statusText.style.color = "#666";
+                }
+            };
+        }
+    </script>
+</body>
+</html>
