@@ -3,19 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音声文字起こしアプリ</title>
+    <title>音声文字起こし</title>
+    <link rel="stylesheet" type="text/css" href="Style.css" />
     <style>
-        body {
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
+        /* Style.cssでカバーしきれない微調整 */
+        #result-area {
+            background-color: #0f1a3a;
+            border-radius: 10px;
             padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
+            min-height: 200px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            text-align: left;
+            border: 1px solid var(--primary-color);
         }
-        h1 {
-            text-align: center;
-            color: #444;
+        .interim {
+            color: #888;
+        }
+        #status {
+            margin-bottom: 15px;
+            font-weight: bold;
+            min-height: 1.2em;
         }
         .controls {
             display: flex;
@@ -24,70 +32,33 @@
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
-        select, button {
-            padding: 10px 15px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            cursor: pointer;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        #stop-btn {
-            background-color: #dc3545;
-        }
-        #stop-btn:hover {
-            background-color: #a71d2a;
-        }
-        #status {
-            text-align: center;
-            margin-bottom: 10px;
-            font-weight: bold;
-            color: #666;
-            height: 1.2em;
-        }
-        #result-area {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            min-height: 200px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            line-height: 1.6;
-            white-space: pre-wrap; /* 改行を維持 */
-        }
-        .interim {
-            color: #888;
-        }
     </style>
 </head>
 <body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
 
-    <h1>🎙️ 音声文字起こし</h1>
+    <div class="container">
+        <header class="header">
+            <h1>🎙️ 音声文字起こし</h1>
+        </header>
 
-    <div class="controls">
-        <select id="language-select">
-            <option value="ja-JP">日本語 (Japanese)</option>
-            <option value="en-US">英語 (English)</option>
-        </select>
-        <button id="start-btn">開始</button>
-        <button id="stop-btn" disabled>停止</button>
-        <button id="clear-btn" style="background-color:#6c757d;">クリア</button>
+        <div class="box">
+            <div class="controls">
+                <select id="language-select">
+                    <option value="ja-JP">日本語 (Japanese)</option>
+                    <option value="en-US">英語 (English)</option>
+                </select>
+                <button id="start-btn" class="primary">開始</button>
+                <button id="stop-btn" class="secondary" disabled>停止</button>
+                <button id="clear-btn" style="background-color:#6c757d;">クリア</button>
+            </div>
+            <div id="status">待機中...</div>
+        </div>
+
+        <div class="box">
+            <div id="result-area"></div>
+        </div>
     </div>
-
-    <div id="status">待機中...</div>
-
-    <div id="result-area"></div>
 
     <script>
         // ブラウザの音声認識APIの互換性をチェック
@@ -120,7 +91,7 @@
                 stopBtn.disabled = false;
                 langSelect.disabled = true;
                 statusText.textContent = "聞き取り中... 🎙️";
-                statusText.style.color = "#d63384";
+                statusText.style.color = "var(--secondary-color)";
             });
 
             // 停止ボタン
@@ -131,7 +102,7 @@
                 stopBtn.disabled = true;
                 langSelect.disabled = false;
                 statusText.textContent = "停止しました";
-                statusText.style.color = "#666";
+                statusText.style.color = "var(--font-color)";
             });
 
             // クリアボタン
@@ -174,7 +145,7 @@
                     stopBtn.disabled = true;
                     langSelect.disabled = false;
                     statusText.textContent = "待機中...";
-                    statusText.style.color = "#666";
+                    statusText.style.color = "var(--font-color)";
                 }
             };
         }

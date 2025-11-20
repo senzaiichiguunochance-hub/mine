@@ -2,30 +2,27 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>秋田県クマ出没マップ（API＋ローディング表示付き）</title>
+<title>秋田県クマ出没マップ（API版）</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<link rel="stylesheet" type="text/css" href="Style.css" />
 <style>
-  
-  #map { height:85vh; }
-
-  #controls {
-    padding:10px;  border-bottom:1px solid #ccc;
-    display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  #map { height: 70vh; }
+  .controls {
+    display:flex; flex-wrap:wrap; align-items:center; gap:15px;
   }
-  input[type=date], input[type=number] { padding:3px; }
+  .note { font-size: 0.85rem; color: #ccc; }
 
-  /* ローディング中に表示されるオーバーレイ全体 */
+  /* ローディングオーバーレイのスタイルをStyle.cssの変数で調整 */
   #loadingOverlay {
     position:fixed; top:0; left:0; right:0; bottom:0;
-    background:rgba(255,255,255,0.85);
+    background:rgba(26, 26, 46, 0.85); /* var(--bg-color) with alpha */
     display:none; align-items:center; justify-content:center;
     flex-direction:column; z-index:9999;
   }
-  /* 中央のスピナー（回転アニメーション） */
   .spinner {
-    border:6px solid #f3f3f3;
-    border-top:6px solid #0078ff;
+    border:6px solid #16213e; /* var(--card-color) */
+    border-top:6px solid var(--secondary-color);
     border-radius:50%;
     width:60px; height:60px;
     animation: spin 1s linear infinite;
@@ -35,28 +32,38 @@
     0% { transform:rotate(0deg); }
     100% { transform:rotate(360deg); }
   }
-  /* 進捗バー枠と中身 */
   #progressBarContainer {
-    width:220px; background:#eee; height:10px; border-radius:5px; overflow:hidden;
+    width:220px; background: var(--primary-color); height:10px; border-radius:5px; overflow:hidden;
   }
   #progressBar {
-    width:0%; height:100%; background:#0078ff; transition:width 0.2s;
+    width:0%; height:100%; background:var(--secondary-color); transition:width 0.2s;
   }
 </style>
 </head>
 <body>
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
 
-<div id="controls">
-  <label>開始日: <input type="date" id="startDate"></label>
-  <label>終了日: <input type="date" id="endDate"></label>
-  <label>件数制限: <input type="number" id="limit" value="99999" min="10" style="width:80px"></label>
-  <div class="note">※本日を終了日、100件目（存在すれば）を開始日に自動設定します。</div>
-  <button id="btnLoad">表示</button>
+<div class="container">
+    <header class="header">
+        <h1>秋田県クマ出没マップ (API版)</h1>
+    </header>
+
+    <div class="box">
+        <div id="controls" class="controls">
+            <label>開始日: <input type="date" id="startDate"></label>
+            <label>終了日: <input type="date" id="endDate"></label>
+            <label>件数制限: <input type="number" id="limit" value="99999" min="10" style="width:80px"></label>
+            <button id="btnLoad" class="primary">表示</button>
+        </div>
+        <div class="note">※本日を終了日、100件目（存在すれば）を開始日に自動設定します。</div>
+    </div>
+
+    <div class="box">
+        <div id="map"></div>
+    </div>
 </div>
-<div id="map"></div>
 
-<!-- ローディングオーバーレイ（スピナーと進捗バーを含む） -->
+<!-- ローディングオーバーレイ -->
 <div id="loadingOverlay">
   <div class="spinner"></div>
   <div id="progressBarContainer"><div id="progressBar"></div></div>

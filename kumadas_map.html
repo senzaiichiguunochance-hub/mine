@@ -6,32 +6,25 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" type="text/css" href="Style.css" />
 <style>
-  
-  #map { height: 85vh; }
-  #controls {
-    padding: 10px;
-    
-    border-bottom: 1px solid #ccc;
+  #map { height: 70vh; }
+  .controls {
+    display:flex; flex-wrap:wrap; align-items:center; gap:15px;
   }
-  label { margin-right: 8px; }
-  input[type="text"] { width: 600px; }
-  .note { color: #666; font-size: 13px; margin-top:6px; }
+  input[type="text"] { width: 100%; max-width: 500px; }
+  .note { font-size: 0.85rem; color: #ccc; width: 100%;}
 
-  /* ローディング中に表示されるオーバーレイ */
+  /* ローディングオーバーレイのスタイルをStyle.cssの変数で調整 */
   #loadingOverlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.85);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    z-index: 9999;
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26, 26, 46, 0.85); /* var(--bg-color) with alpha */
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column; z-index: 9999;
   }
   .spinner {
-    border: 6px solid #f3f3f3;
-    border-top: 6px solid #0078ff;
+    border: 6px solid #16213e; /* var(--card-color) */
+    border-top: 6px solid var(--secondary-color);
     border-radius: 50%;
     width: 60px; height: 60px;
     animation: spin 1s linear infinite;
@@ -46,19 +39,27 @@
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
 
-<div id="controls">
-  <label>CSVファイルURL:
-    <input type="text" id="csvUrl" value="https://ckan.pref.akita.lg.jp/dataset/f801a10f-f076-47e4-b5a6-0bb5569639e0/resource/326bfe79-3f64-401b-9862-b37a477c7211/download/050008_kumadas.csv">
-  </label>
-  <button id="btnLoad">CSV読込</button>
-  <button id="btnRedraw">再描画</button>
-  <br>
-  <label>開始日: <input type="date" id="startDate"></label>
-  <label>終了日: <input type="date" id="endDate"></label>
-  <div class="note">※先頭1件目を終了日、100件目（存在すれば）を開始日に自動設定します。</div>
-</div>
+<div class="container">
+    <header class="header">
+        <h1>秋田県クマ出没マップ (CSV版)</h1>
+    </header>
 
-<div id="map"></div>
+    <div class="box">
+        <div id="controls" class="controls">
+            <label>CSV URL: <input type="text" id="csvUrl" value="https://ckan.pref.akita.lg.jp/dataset/f801a10f-f076-47e4-b5a6-0bb5569639e0/resource/326bfe79-3f64-401b-9862-b37a477c7211/download/050008_kumadas.csv"></label>
+            <button id="btnLoad" class="primary">CSV読込</button>
+            <button id="btnRedraw" class="primary">再描画</button>
+            <br>
+            <label>開始日: <input type="date" id="startDate"></label>
+            <label>終了日: <input type="date" id="endDate"></label>
+        </div>
+        <div class="note">※先頭1件目を終了日、100件目（存在すれば）を開始日に自動設定します。</div>
+    </div>
+
+    <div class="box">
+        <div id="map"></div>
+    </div>
+</div>
 
 <!-- ローディングオーバーレイ -->
 <div id="loadingOverlay">
