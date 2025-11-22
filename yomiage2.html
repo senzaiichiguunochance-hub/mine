@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>テキスト読み上げ2</title>
+<link rel="stylesheet" type="text/css" href="Style.css" />
+<style>
+  .slider-row { margin: 10px 0; }
+  .log-box {
+    background:#222; color:#0f0; padding:10px;
+    font-size:12px; height:120px; overflow:auto;
+    margin-top:15px; white-space:pre-wrap;
+  }
+</style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+<div class="container">
+  <div class="header"><h1>テキスト読み上げ2</h1></div>
+
+  <div class="box">
+    <label>読み上げたいテキスト（Enterで読み上げ、Shift+Enterで改行）</label>
+    <textarea id="textInput" placeholder="ここにテキストを入力"></textarea>
+
+    <!-- 声の種類 選択 -->
+    <div style="margin-top:15px;">
+      声の種類（voice）
+      <select id="voiceSelect"></select>
+    </div>
+
+    <!-- スライダー3種 -->
+    <div class="slider-row">
+      ピッチ: <span id="pitchVal">1.0</span>
+      <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+    </div>
+    <div class="slider-row">
+      スピード: <span id="rateVal">1.0</span>
+      <input type="range" id="rateSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+    </div>
+    <div class="slider-row">
+      音量: <span id="volumeVal">1.0</span>
+      <input type="range" id="volumeSlider" min="0.0" max="1.0" step="0.1" value="1.0">
+    </div>
+
+    <!-- モード系 -->
+    <div class="row" style="margin-top:10px;">
+      <button class="secondary" id="monoBtn">モノトーンモード</button>
+      <button class="secondary" id="slowStartBtn">聞き取りやすいモード</button>
+    <!-- その他設定 -->
+      <button class="secondary" id="savePresetBtn">設定を保存</button>
+      <button class="secondary" id="loadPresetBtn">保存を読み込む</button>
+      <button class="secondary" id="clearPresetBtn">保存を削除</button>
+    </div>
+
+    <div class="row" style="margin-top:15px;">
+      <button id="speakBtn" class="primary">▶ 読み上げ</button>
+      <button id="pauseBtn" class="secondary">⏸ 一時停止</button>
+      <button id="resumeBtn" class="secondary">▶ 再開</button>
+      <button id="stopBtn" class="secondary">■ 停止</button>
+    </div>
+
+    <!-- 読み上げ履歴 -->
+    <div style="margin-top:15px;">
+      <label>履歴</label>
+      <select id="historyList" size="3" style="width:100%;"></select>
+    </div>
+
+    <!-- リピート機能 -->
+    <div style="margin-top:15px;">
+      <label>リピート回数</label>
+      <input type="number" id="repeatCount" value="1" min="1" style="width:80px;">
+    </div>
+
+    <!-- ログ表示 -->
+    <div class="log-box" id="logBox"></div>
+  </div>
+</div>
+
+<script>
+const synth = window.speechSynthesis;
+let voices = [];
+let history = [];
+let isSlowMode = false;
+
+function log(msg){
+  const box = document.getElementById('logBox');
+  box.textContent += msg + "\n";
+  box.scrollTop = box.scrollHeight;
+}
+
+function populateVoices(){
+  voices = synth.getVoices() || [];
+  const sel = document.getElementById('voiceSelect');
+  sel.innerHTML="";
+  voices.forEach((v,i)=>{
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${v.name} (${v.lang})`;
+    sel.appendChild(opt);
+  });
+}
+populateVoices();
+if('onvoiceschanged' in synth){ synth.onvoiceschanged = populateVoices; }
+
+// スライダー値
+let pitch = 1.0;
+let rate = 1.0;
+let volume = 1.0;
+
+const pitchSlider = document.getElementById('pitchSlider');
+const rateSlider = document.getElementById('rateSlider');
+const volumeSlider = document.getElementById('volumeSlider');
+
+pitchSlider.oninput = ()=>{
+  pitch = parseFloat(pitchSlider.value);
+  document.getElementById('pitchVal').innerText = pitch.toFixed(1);
+};
+rateSlider.oninput = ()=>{
+  rate = parseFloat(rateSlider.value);
+  document.getElementById('rateVal').innerText = rate.toFixed(1);
+};
+volumeSlider.oninput = ()=>{
+  volume = parseFloat(volumeSlider.value);
+  document.getElementById('volumeVal').innerText = volume.toFixed(1);
+};
+
+function speakOnce(text, voiceIndex, rptLeft){
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.voice = voices[voiceIndex] || null;
+
+  // slow-start mode
+  if(isSlowMode){
+    const parts = text.split(/([。！？\n])/);
+    const first = (parts[0]||text).trim();
+    utter.text = first;
+    utter.rate = 0.8;
+    log("slow-start: first sentence");
+    utter.onend = ()=>{
+      // 続きを通常速度で読む
+      const rest = text.replace(first,"");
+      if(rest.trim()){
+        const u2 = new SpeechSynthesisUtterance(rest);
+        u2.voice = voices[voiceIndex]||null;
+        u2.pitch = pitch;
+        u2.rate = rate;
+        u2.volume = volume;
+        u2.onend = ()=>{
+          if(rptLeft>1) speak(text, voiceIndex, rptLeft-1);
+        };
+        synth.speak(u2);
+      } else {
+        if(rptLeft>1) speak(text, voiceIndex, rptLeft-1);
+      }
+    };
+  } else {
+    utter.pitch = pitch;
+    utter.rate = rate;
+    utter.volume = volume;
+    utter.onend = ()=>{
+      log("end");
+      if(rptLeft>1) speak(text, voiceIndex, rptLeft-1);
+    };
+  }
+
+  log(`speak: pitch=${pitch}, rate=${rate}, volume=${volume}`);
+  synth.speak(utter);
+}
+
+function speak(text, voiceIndex, repeat){
+  synth.cancel();
+  speakOnce(text,voiceIndex,repeat);
+}
+
+// モードボタン
+
+document.getElementById('monoBtn').onclick = ()=>{
+  pitch = 1.0; rate=0.9; volume=0.9;
+  pitchSlider.value=pitch; rateSlider.value=rate; volumeSlider.value=volume;
+  document.getElementById('pitchVal').innerText=pitch;
+  document.getElementById('rateVal').innerText=rate;
+  document.getElementById('volumeVal').innerText=volume;
+  isSlowMode = false;
+  log("モノトーンモード適用");
+};
+
+document.getElementById('slowStartBtn').onclick = ()=>{
+  isSlowMode = true;
+  log("聞き取りやすいモード ON");
+};
+
+// 設定保存/読込
+
+document.getElementById('savePresetBtn').onclick = ()=>{
+  const data = {
+    pitch, rate, volume,
+    voiceIndex: document.getElementById('voiceSelect').value
+  };
+  localStorage.setItem('ttsPreset', JSON.stringify(data));
+  log("設定保存済み");
+};
+
+document.getElementById('loadPresetBtn').onclick = ()=>{
+  const d = localStorage.getItem('ttsPreset');
+  if(!d){ log("保存なし"); return; }
+  const p = JSON.parse(d);
+  pitch = p.pitch; rate=p.rate; volume=p.volume;
+  pitchSlider.value=pitch; rateSlider.value=rate; volumeSlider.value=volume;
+  document.getElementById('voiceSelect').value = p.voiceIndex;
+  document.getElementById('pitchVal').innerText=pitch;
+  document.getElementById('rateVal').innerText=rate;
+  document.getElementById('volumeVal').innerText=volume;
+  log("設定読込完了");
+};
+
+document.getElementById('clearPresetBtn').onclick = ()=>{
+  localStorage.removeItem('ttsPreset');
+  log("保存削除");
+};
+
+// 履歴
+function addHistory(txt){
+  if(!txt.trim()) return;
+  history.unshift(txt);
+  if(history.length>10) history.pop();
+  const h = document.getElementById('historyList');
+  h.innerHTML="";
+  history.forEach(t=>{
+    const o=document.createElement('option'); o.textContent=t;
+    h.appendChild(o);
+  });
+}
+
+document.getElementById('historyList').ondblclick = (e)=>{
+  const v = e.target.value;
+  document.getElementById('textInput').value = v;
+};
+
+// 読み上げボタン
+
+document.getElementById('speakBtn').onclick = ()=>{
+  const text = document.getElementById('textInput').value;
+  if(!text.trim()) return alert("テキストを入力してください");
+  addHistory(text);
+  const voiceIndex = document.getElementById('voiceSelect').value;
+  const repeat = parseInt(document.getElementById('repeatCount').value)||1;
+  isSlowMode = isSlowMode; // modeはそのまま
+  speak(text, voiceIndex, repeat);
+};
+
+document.getElementById('pauseBtn').onclick = ()=> synth.pause();
+document.getElementById('resumeBtn').onclick = ()=> synth.resume();
+document.getElementById('stopBtn').onclick = ()=> synth.cancel();
+
+// Enterで読み上げ
+
+document.getElementById('textInput').addEventListener('keydown', (e)=>{
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); document.getElementById('speakBtn').click(); }
+});
+
+</script>
+</body>
+</html>
