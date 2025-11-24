@@ -37,7 +37,8 @@
 </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
 
 <div class="container">
     <header class="header">
@@ -107,7 +108,7 @@ function initMap() {
   map = L.map("map").setView([39.7, 140.1], 8);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18,
-    attribution: '© OpenStreetMap contributors'
+    attribution: 'c OpenStreetMap contributors'
   }).addTo(map);
   markersLayer = L.layerGroup().addTo(map);
 }

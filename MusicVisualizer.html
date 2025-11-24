@@ -91,7 +91,8 @@
   </style>
 </head>
 <body>
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
 
   <h1>音楽ビジュアライザー</h1>
   <input type="file" id="fileInput" accept="audio/*">
@@ -99,7 +100,7 @@
   <canvas id="visualizer"></canvas>
 
   <div class="controls">
-    <button id="playPause">►</button>
+    <button id="playPause">?</button>
     <button id="stop">■</button>
     <div class="progress-container">
       <input type="range" id="progressBar" value="0" min="0" step="0.1">
@@ -137,7 +138,7 @@
         status.textContent = "ファイル解析中...";
 
         audio.oncanplay = () => {
-          status.textContent = "準備完了 ▶️ 再生できます";
+          status.textContent = "準備完了 ?? 再生できます";
           initAudioContext();
         };
       }
@@ -161,12 +162,12 @@
         audioContext.resume();
         audio.play();
         isPlaying = true;
-        playPauseBtn.textContent = "❚❚";
+        playPauseBtn.textContent = "??";
         draw();
       } else {
         audio.pause();
         isPlaying = false;
-        playPauseBtn.textContent = "►";
+        playPauseBtn.textContent = "?";
       }
     });
 
@@ -174,7 +175,7 @@
       audio.pause();
       audio.currentTime = 0;
       isPlaying = false;
-      playPauseBtn.textContent = "►";
+      playPauseBtn.textContent = "?";
     });
 
     audio.addEventListener("timeupdate", () => {
