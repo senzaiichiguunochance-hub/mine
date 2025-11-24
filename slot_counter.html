@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>スロットカウンター</title>
+<link rel="stylesheet" type="text/css" href="Style.css" />
+<style>
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+    flex-wrap: wrap; /* 画面幅が狭い場合に折り返す */
+  }
+  .dial {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    justify-content: center; /* 中央揃え */
+  }
+  .digit {
+    width: 50px;
+    height: 60px;
+    border: 2px solid #999;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    font-size: 48px;
+    font-weight: bold;
+    background: #fafafa;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333; /* 数字の色を濃くする */
+  }
+  .digit-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.05s linear;
+  }
+  .digit-inner div {
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .elapsed {
+    font-size: 14px;
+    color: #eee;
+    text-align: center;
+    margin-top: 15px;
+  }
+  .control-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+</style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+<div class="container">
+  <div class="header"><h1>スロットカウンター</h1></div>
+
+  <div class="box">
+    <div class="controls">
+      <div class="control-group">
+        <label>From <input id="fromNum" type="number" value="2000" min="0" max="9999"></label>
+        <label>To <input id="toNum" type="number" value="2025" min="0" max="9999"></label>
+      </div>
+      <div class="control-group">
+        <label>実行秒数 <input id="duration" type="number" value="10" min="1" max="60"></label>
+      </div>
+      <div class="control-group">
+        <button id="runBtn" class="primary">実行</button>
+        <button id="swapBtn" class="secondary">入れ替え</button>
+      </div>
+    </div>
+
+    <div class="dial" id="dialContainer"></div>
+    <div class="elapsed" id="elapsedTime">経過時間: 0s</div>
+  </div>
+</div>
+
+<script>
+const fromNum = document.getElementById('fromNum');
+const toNum = document.getElementById('toNum');
+const duration = document.getElementById('duration');
+
+function clamp(val, min, max, def) {
+  if (val === '' || isNaN(val)) return def;
+  val = Number(val);
+  if (val < min || val > max) return def;
+  return val;
+}
+
+function splitDigits(num, length) {
+  return num.toString().padStart(length, '0').split('');
+}
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  let fromVal = clamp(fromNum.value, 0, 9999, 2000);
+  let toVal = clamp(toNum.value, 0, 9999, 2025);
+  let dur = clamp(duration.value, 1, 60, 10);
+
+  fromNum.value = fromVal;
+  toNum.value = toVal;
+  duration.value = dur;
+
+  const dialContainer = document.getElementById('dialContainer');
+  const elapsed = document.getElementById('elapsedTime');
+  dialContainer.innerHTML = '';
+  elapsed.textContent = '経過時間: 0s';
+
+  const maxLen = Math.max(fromVal.toString().length, toVal.toString().length, 1);
+  const startDigits = splitDigits(fromVal, maxLen);
+
+  const digitDivs = [];
+  for (let i = 0; i < maxLen; i++) {
+    const digitContainer = document.createElement('div');
+    digitContainer.className = 'digit';
+    const inner = document.createElement('div');
+    inner.className = 'digit-inner';
+    for (let d = 0; d <= 9; d++) {
+      const numDiv = document.createElement('div');
+      numDiv.textContent = d;
+      inner.appendChild(numDiv);
+    }
+    inner.style.transform = `translateY(${-startDigits[i]*60}px)`;
+    digitContainer.appendChild(inner);
+    dialContainer.appendChild(digitContainer);
+    digitDivs.push(inner);
+  }
+
+  const stepCount = Math.abs(toVal - fromVal);
+  if (dialContainer.interval) clearInterval(dialContainer.interval);
+  let current = fromVal;
+  const stepDuration = (dur*1000)/Math.max(stepCount,1);
+  let elapsedTime = 0;
+  
+  const endTime = Date.now() + dur * 1000;
+
+  function update() {
+    const now = Date.now();
+    if (now >= endTime) {
+      const finalDigits = splitDigits(toVal, maxLen);
+      finalDigits.forEach((val, idx) => {
+        digitDivs[idx].style.transform = `translateY(${-val*60}px)`;
+      });
+      elapsed.textContent = `経過時間: ${dur.toFixed(1)}s`;
+      if(dialContainer.interval) clearInterval(dialContainer.interval);
+      return;
+    }
+
+    const progress = (now - (endTime - dur * 1000)) / (dur * 1000);
+    current = Math.round(fromVal + (toVal - fromVal) * progress);
+
+    const digits = splitDigits(current, maxLen);
+    digits.forEach((val, idx) => {
+      digitDivs[idx].style.transform = `translateY(${-val*60}px)`;
+    });
+
+    elapsedTime = (now - (endTime - dur * 1000)) / 1000;
+    elapsed.textContent = `経過時間: ${elapsedTime.toFixed(1)}s`;
+  }
+  
+  if (dialContainer.interval) clearInterval(dialContainer.interval);
+  dialContainer.interval = setInterval(update, 1000/60); // 60fps
+});
+
+document.getElementById('swapBtn').addEventListener('click', () => {
+  const temp = fromNum.value;
+  fromNum.value = toNum.value;
+  toNum.value = temp;
+});
+</script>
+</body>
+</html>
