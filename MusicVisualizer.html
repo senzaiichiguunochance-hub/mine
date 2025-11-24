@@ -100,7 +100,7 @@
   <canvas id="visualizer"></canvas>
 
   <div class="controls">
-    <button id="playPause">?</button>
+    <button id="playPause">►</button>
     <button id="stop">■</button>
     <div class="progress-container">
       <input type="range" id="progressBar" value="0" min="0" step="0.1">
@@ -138,7 +138,7 @@
         status.textContent = "ファイル解析中...";
 
         audio.oncanplay = () => {
-          status.textContent = "準備完了 ?? 再生できます";
+          status.textContent = "準備完了 ▶️ 再生できます";
           initAudioContext();
         };
       }
@@ -162,12 +162,12 @@
         audioContext.resume();
         audio.play();
         isPlaying = true;
-        playPauseBtn.textContent = "??";
+        playPauseBtn.textContent = "❚❚";
         draw();
       } else {
         audio.pause();
         isPlaying = false;
-        playPauseBtn.textContent = "?";
+        playPauseBtn.textContent = "►";
       }
     });
 
@@ -175,7 +175,7 @@
       audio.pause();
       audio.currentTime = 0;
       isPlaying = false;
-      playPauseBtn.textContent = "?";
+      playPauseBtn.textContent = "►";
     });
 
     audio.addEventListener("timeupdate", () => {
