@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>パチスロシミュレーター</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#131d30;
+    --accent:#ffcc00;
+    --muted:#9aa4b2;
+    --danger:#ef4444;
+    --win:#10b981;
+    --border: rgba(255,255,255,0.15);
+  }
+  * { box-sizing: border-box; }
+  html,body{height:100%;margin:0;font-family: "Noto Sans JP", sans-serif;}
+  body{background:linear-gradient(180deg,#071029 0%, #0b1220 100%);color:#e6eef6;display:flex;align-items:center;justify-content:center;padding:20px;}
+  
+  /* --- レイアウト --- */
+  .app-container {
+    display: flex;
+    gap: 20px;
+    width: 1240px;
+    max-width: 100%;
+    background: var(--card);
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    align-items: start;
+    justify-content: center;
+  }
+
+  .col-side { width: 260px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+  .col-center { flex: 1; display: flex; flex-direction: column; align-items: center; min-width: 480px; }
+
+  .panel { background: rgba(0,0,0,0.25); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+  h2 { font-size: 15px; margin: 0 0 12px 0; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+  /* --- ステータス表示 --- */
+  .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .val-label { font-size: 13px; color: var(--muted); }
+  .val-num { font-size: 22px; font-weight: 700; color: #fff; font-family: monospace; }
+  .val-num.gold { color: var(--accent); }
+  
+  .control-group { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px;
+    background: #2d3b55; color: #fff; transition: all 0.1s; flex: 1;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.3); }
+  .btn-action { background: linear-gradient(180deg, #3b82f6, #2563eb); }
+  
+  /* --- マシンエリア --- */
+  .machine-area { position: relative; display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; }
+  
+  .reels-frame {
+    padding: 10px;
+    background: #000;
+    border-radius: 8px;
+    border: 4px solid #444;
+    box-shadow: inset 0 0 30px rgba(0,0,0,1);
+  }
+
+  .reels-window {
+    width: 440px; 
+    height: 240px; 
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    gap: 10px;
+  }
+
+  .reel {
+    width: 140px;
+    height: 240px;
+    background: #fff;
+    position: relative;
+  }
+  
+  .strip { 
+    width: 100%; 
+    position: absolute; 
+    top: 0; left: 0; 
+    will-change: transform; 
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .symbol {
+    height: 80px;
+    width: 100%;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    font-size: 42px; font-weight: bold; color: #333;
+    border-bottom: 1px solid #eee;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* シンボル個別デザイン */
+  .sym-7 { color: #dc2626; font-size: 50px; text-shadow: 2px 2px 0 #000; }
+  .sym-cherry { color: #db2777; }
+  .sym-bell { color: #d97706; text-shadow: 1px 1px 0 rgba(0,0,0,0.2); }
+
+  .bar-graphic {
+    width: 80%;
+    height: 44px;
+    background: #ccc;
+    border: 2px solid #000;
+    color: #000;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ライン表示 */
+  .lines-overlay {
+    position: absolute; top: 0; left: 0; width: 440px; height: 240px;
+    pointer-events: none; z-index: 10;
+  }
+  .line-mark {
+    position: absolute; height: 4px; background: var(--accent);
+    opacity: 0; transition: opacity 0.2s;
+    box-shadow: 0 0 8px var(--accent); border-radius: 2px;
+  }
+  
+  .line-top    { top: 38px; left: 0; width: 100%; background: #3b82f6; } 
+  .line-center { top: 118px; left: 0; width: 100%; background: #ef4444; } 
+  .line-bottom { top: 198px; left: 0; width: 100%; background: #10b981; } 
+  
+  .line-diag1  { 
+    top: 118px; left: 0; width: 100%; height: 4px;
+    background: #f59e0b;
+    transform: rotate(28.6deg) scaleX(1.14);
+  }
+  .line-diag2  { 
+    top: 118px; left: 0; width: 100%; height: 4px;
+    background: #8b5cf6;
+    transform: rotate(-28.6deg) scaleX(1.14);
+  }
+
+  /* レバー・ボタン */
+  .interaction-area { display: flex; gap: 24px; margin-top: 24px; align-items: center; }
+  .lever-box { width: 80px; height: 80px; display:flex; justify-content:center; align-items:center;}
+  .lever {
+    width: 70px; height: 70px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
+    border: 4px solid #555; cursor: pointer;
+    box-shadow: 0 6px 10px rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; color: #3e2723; font-size: 12px; user-select: none;
+  }
+  .lever:active { transform: scale(0.95); }
+  
+  .stop-buttons { display: flex; gap: 15px; }
+  .stop-btn {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #1e293b; color: #fff; border: 3px solid #475569;
+    font-weight: bold; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; user-select: none;
+  }
+  .stop-btn:active:not(:disabled) { background: #ef4444; border-color: #ef4444; transform: translateY(2px); }
+  .stop-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #0f1724; }
+
+  .auto-toggle { margin-top: 16px; width: 100%; border: 1px solid #475569; background: transparent; }
+  .auto-toggle.on { background: #ffd700; color: #000; border-color: #fff; }
+
+  /* 役表 */
+  .paytable { display: grid; grid-template-columns: 1fr; gap: 4px; font-size: 13px; color: var(--muted); margin-top:10px; }
+  .pay-row { 
+    display: flex; justify-content: space-between; 
+    border-bottom: 1px solid rgba(255,255,255,0.05); padding: 6px 8px; border-radius: 4px;
+  }
+  .pay-row.highlight {
+    background: rgba(255, 215, 0, 0.3);
+    color: #fff;
+    text-shadow: 0 0 5px gold;
+    animation: flash 0.5s infinite alternate;
+  }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0.7; } }
+
+  /* アイテムリスト */
+  .item-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; padding-right: 4px;}
+  .item-card { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid transparent; }
+  
+  .item-head { display:flex; justify-content:space-between; margin-bottom: 6px; font-size:13px; font-weight:bold; }
+  .item-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  
+  .mini-btn {
+    padding: 4px 8px; font-size: 11px; border-radius: 4px; border: 0; cursor: pointer; color: #fff;
+  }
+  .btn-buy { background: #059669; }
+  .btn-buy:active { background: #047857; }
+  .btn-use { background: #4f46e5; }
+  .btn-use:active { background: #4338ca; }
+  .btn-use:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+  /* 結果ポップアップ */
+  .result-popup {
+    font-size: 32px; font-weight: 800; color: var(--accent);
+    height: 40px; margin-bottom: 10px; text-align: center;
+    text-shadow: 0 0 15px rgba(255,204,0,0.6);
+    opacity: 0; transition: opacity 0.2s;
+  }
+</style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+
+<div class="app-container">
+  <!-- 左カラム：情報 -->
+  <div class="col-side">
+    <div class="panel">
+      <h2>プレイヤー情報</h2>
+      <div class="status-row">
+        <span class="val-label">手持ちメダル</span>
+        <span class="val-num gold" id="walletDisplay">50</span>
+      </div>
+      <div class="status-row">
+        <span class="val-label">クレジット</span>
+        <span class="val-num" id="creditDisplay">0</span>
+      </div>
+      <div class="status-row">
+        <span class="val-label">現在のベット</span>
+        <span class="val-num" id="betDisplay">1</span>
+      </div>
+      <div class="control-group">
+        <button class="btn btn-action" id="betBtn">BET +1</button>
+        <button class="btn btn-action" id="maxBetBtn">MAX</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>ルール・メモ</h2>
+      <ul style="padding-left:18px; margin:0; font-size:12px; color:var(--muted); line-height:1.6;">
+        <li>1ベット: 中段有効</li>
+        <li>2ベット: ＋上段有効</li>
+        <li>3ベット: ＋下段有効</li>
+        <li>4ベット: ＋右下がり有効</li>
+        <li>5ベット: ＋右上がり有効</li>
+        <li>ハズレ時はベット没収</li>
+        <li>アイテムは1個につきメダル10枚消費</li>
+        <li>アイテムは停止時に何度でも使用可能</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 中央カラム：マシン -->
+  <div class="col-center">
+    <div id="resultPopup" class="result-popup">GET 0 枚!</div>
+
+    <div class="machine-area">
+      <div class="reels-frame">
+        <div class="reels-window">
+          <!-- ラインオーバーレイ -->
+          <div class="lines-overlay">
+            <div class="line-mark line-center" id="lineInd1"></div>
+            <div class="line-mark line-top"    id="lineInd2"></div>
+            <div class="line-mark line-bottom" id="lineInd3"></div>
+            <div class="line-mark line-diag1"  id="lineInd4"></div>
+            <div class="line-mark line-diag2"  id="lineInd5"></div>
+          </div>
+
+          <!-- リール -->
+          <div class="reel"><div class="strip" id="strip0"></div></div>
+          <div class="reel"><div class="strip" id="strip1"></div></div>
+          <div class="reel"><div class="strip" id="strip2"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="interaction-area">
+      <div class="stop-buttons"><button class="stop-btn" id="stop0" disabled>左</button></div>
+      <div class="stop-buttons"><button class="stop-btn" id="stop1" disabled>中</button></div>
+      <div class="stop-buttons"><button class="stop-btn" id="stop2" disabled>右</button></div>
+      <div class="lever-box"><div class="lever" id="lever">LEVER</div></div>
+    </div>
+    
+    <button class="btn auto-toggle" id="autoBtn">自動停止OFF</button>
+
+    <div class="panel" style="width:100%; box-sizing:border-box; margin-top:20px;">
+      <h2>配当表 (1ベットあたり)</h2>
+      <div class="paytable">
+        <div class="pay-row" id="pay-777"><span>7揃い</span> <span style="color:#fff">50枚</span></div>
+        <div class="pay-row" id="pay-bar"><span>BAR揃い</span> <span style="color:#fff">20枚</span></div>
+        <div class="pay-row" id="pay-bell"><span>ベル/チェリー</span> <span style="color:#fff">10枚</span></div>
+        <div class="pay-row" id="pay-any"><span>その他3つ</span> <span style="color:#fff">2枚</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右カラム：アイテム -->
+  <div class="col-side">
+    <div class="panel" style="height:100%; box-sizing:border-box; display:flex; flex-direction:column;">
+      <h2>所持アイテム</h2>
+      <div id="itemList" class="item-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* --- 定数・設定 --- */
+const SYMBOLS = ["7","BAR","🔔","🍒","🍇","🍋"];
+const REEL_LENGTH = 21; 
+const SYMBOL_HEIGHT = 80; 
+const MAX_CREDIT = 50;
+
+const LINE_DEFINITIONS = [
+  { id:1, name:"Center", offsets:[1,1,1], domId:'lineInd1' },
+  { id:2, name:"Top",    offsets:[0,0,0], domId:'lineInd2' },
+  { id:3, name:"Bottom", offsets:[2,2,2], domId:'lineInd3' },
+  { id:4, name:"Diag1",  offsets:[0,1,2], domId:'lineInd4' },
+  { id:5, name:"Diag2",  offsets:[2,1,0], domId:'lineInd5' }
+];
+
+// アイテム定義 (delta修正済み)
+const ITEM_DEFS = [
+  {id:"L_up1", name:"左リール1コマ上げ", reel:0, delta:1, price:10},
+  {id:"L_down1", name:"左リール1コマ下げ", reel:0, delta:-1, price:10},
+  {id:"C_up1", name:"中リール1コマ上げ", reel:1, delta:1, price:10},
+  {id:"C_down1", name:"中リール1コマ下げ", reel:1, delta:-1, price:10},
+  {id:"R_up1", name:"右リール1コマ上げ", reel:2, delta:1, price:10},
+  {id:"R_down1", name:"右リール1コマ下げ", reel:2, delta:-1, price:10}
+];
+
+/* --- State --- */
+let state = {
+  wallet: 50,
+  credit: 0,
+  bet: 1,
+  autoStop: false,
+  
+  isSpinning: false,
+  reelSpinning: [false, false, false],
+  reelPositions: [0, 0, 0],
+  intervals: [null, null, null],
+  inventory: {}
+};
+
+/* --- ロード・セーブ --- */
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem('slotSim_v3_settings');
+    if(saved) {
+      const obj = JSON.parse(saved);
+      if(typeof obj.bet === 'number') state.bet = obj.bet;
+      if(typeof obj.autoStop === 'boolean') state.autoStop = obj.autoStop;
+    }
+  } catch(e) { console.error(e); }
+}
+
+function saveSettings() {
+  try {
+    const obj = { bet: state.bet, autoStop: state.autoStop };
+    localStorage.setItem('slotSim_v3_settings', JSON.stringify(obj));
+  } catch(e) {}
+}
+
+/* --- リールデータ --- */
+function createReelData() {
+  let arr = [];
+  while(arr.length < REEL_LENGTH) arr.push(...SYMBOLS);
+  return arr.slice(0, REEL_LENGTH);
+}
+const reels = [createReelData(), createReelData(), createReelData()];
+
+/* --- DOM要素 --- */
+const els = {
+  wallet: document.getElementById('walletDisplay'),
+  credit: document.getElementById('creditDisplay'),
+  bet: document.getElementById('betDisplay'),
+  strips: [document.getElementById('strip0'), document.getElementById('strip1'), document.getElementById('strip2')],
+  stopBtns: [document.getElementById('stop0'), document.getElementById('stop1'), document.getElementById('stop2')],
+  lever: document.getElementById('lever'),
+  autoBtn: document.getElementById('autoBtn'),
+  betBtn: document.getElementById('betBtn'),
+  maxBtn: document.getElementById('maxBetBtn'),
+  itemList: document.getElementById('itemList'),
+  resultPopup: document.getElementById('resultPopup'),
+  payRows: {
+    "7": document.getElementById('pay-777'),
+    "BAR": document.getElementById('pay-bar'),
+    "BELL": document.getElementById('pay-bell'),
+    "ANY": document.getElementById('pay-any')
+  }
+};
+
+/* --- 初期化 --- */
+function init() {
+  loadSettings();
+  ITEM_DEFS.forEach(d => state.inventory[d.id] = 0);
+  
+  reels.forEach((reelSyms, rIdx) => {
+    const strip = els.strips[rIdx];
+    strip.innerHTML = '';
+    // 3セット分生成
+    const fullList = [...reelSyms, ...reelSyms, ...reelSyms];
+    
+    const htmlStr = fullList.map(sym => {
+      let content = sym;
+      let cls = "symbol";
+      
+      if(sym==="7") cls += " sym-7";
+      else if(sym==="🍒") cls += " sym-cherry";
+      else if(sym==="🔔") cls += " sym-bell";
+      
+      if(sym==="BAR") {
+        content = `<div class="bar-graphic">BAR</div>`;
+      }
+      return `<div class="${cls}">${content}</div>`;
+    }).join('');
+    
+    strip.innerHTML = htmlStr;
+    
+    state.reelPositions[rIdx] = Math.floor(Math.random() * REEL_LENGTH);
+    setStripPosition(rIdx, state.reelPositions[rIdx], false);
+  });
+
+  updateUI();
+  updateAutoBtnVisual();
+  updateLineVisuals();
+}
+
+/* リール位置セット */
+function setStripPosition(reelIdx, centerIndex, animate) {
+  const strip = els.strips[reelIdx];
+  const targetIndex = REEL_LENGTH + centerIndex; 
+  const offset = -((targetIndex - 1) * SYMBOL_HEIGHT);
+  
+  strip.style.transition = animate ? 'transform 0.3s cubic-bezier(0.2,0.8,0.3,1)' : 'none';
+  strip.style.transform = `translateY(${offset}px)`;
+}
+
+/* --- UI更新 --- */
+function updateUI() {
+  els.wallet.textContent = state.wallet;
+  els.credit.textContent = state.credit;
+  els.bet.textContent = state.bet;
+  renderItems();
+}
+
+function updateAutoBtnVisual() {
+  els.autoBtn.classList.toggle('on', state.autoStop);
+  els.autoBtn.textContent = state.autoStop ? '自動停止ON' : '自動停止OFF';
+}
+
+function updateLineVisuals() {
+  LINE_DEFINITIONS.forEach(d => {
+    const el = document.getElementById(d.domId);
+    if(el) el.style.opacity = 0;
+  });
+  for(let i=1; i<=state.bet; i++) {
+    const def = LINE_DEFINITIONS.find(l => l.id === i);
+    if(def) document.getElementById(def.domId).style.opacity = 1;
+  }
+}
+
+/* --- ベット操作 --- */
+function tryBet(amount) {
+  if (state.isSpinning) return;
+  let next = state.bet + amount;
+  if(amount === 5) next = 5;
+  if(next > 5) next = 1;
+  state.bet = next;
+  saveSettings();
+  updateUI();
+  updateLineVisuals();
+}
+els.betBtn.addEventListener('click', ()=>tryBet(1));
+els.maxBtn.addEventListener('click', ()=>tryBet(5));
+
+/* --- ゲーム処理 --- */
+els.lever.addEventListener('click', startSpin);
+
+function startSpin() {
+  if (state.isSpinning) return;
+  
+  // ハイライト消去
+  Object.values(els.payRows).forEach(r => r.classList.remove('highlight'));
+
+  // コイン消費
+  const totalFunds = state.credit + state.wallet;
+  if (totalFunds < state.bet) {
+    alert("メダルが足りません！");
+    return;
+  }
+  let cost = state.bet;
+  if (state.credit >= cost) {
+    state.credit -= cost;
+  } else {
+    const rem = cost - state.credit;
+    state.credit = 0;
+    state.wallet -= rem;
+  }
+
+  els.resultPopup.style.opacity = 0;
+  state.isSpinning = true;
+  state.reelSpinning = [true,true,true];
+  updateUI();
+
+  els.stopBtns.forEach(b => b.disabled = false);
+
+  // 回転
+  state.reelPositions.forEach((_, i) => {
+    let idx = state.reelPositions[i];
+    state.intervals[i] = setInterval(() => {
+      idx = (idx + 1) % REEL_LENGTH;
+      state.reelPositions[i] = idx;
+      setStripPosition(i, idx, false);
+    }, 50);
+  });
+
+  // 自動停止
+  if (state.autoStop) {
+    setTimeout(() => { if(state.reelSpinning[0]) els.stopBtns[0].click(); }, 600);
+    setTimeout(() => { if(state.reelSpinning[1]) els.stopBtns[1].click(); }, 1200);
+    setTimeout(() => { if(state.reelSpinning[2]) els.stopBtns[2].click(); }, 1800);
+  }
+}
+
+/* 停止処理 */
+els.stopBtns.forEach((btn, idx) => {
+  btn.addEventListener('click', () => {
+    if (!state.isSpinning || !state.reelSpinning[idx]) return;
+    
+    state.reelSpinning[idx] = false;
+    btn.disabled = true;
+    clearInterval(state.intervals[idx]);
+
+    // ランダム停止
+    const stopIdx = Math.floor(Math.random() * REEL_LENGTH);
+    state.reelPositions[idx] = stopIdx;
+    setStripPosition(idx, stopIdx, true);
+
+    if (state.reelSpinning.every(s => !s)) {
+      onAllStopped();
+    }
+  });
+});
+
+function onAllStopped() {
+  setTimeout(() => {
+    state.isSpinning = false;
+    updateUI();
+    finalizeResult();
+  }, 500);
+}
+
+/* --- アイテム処理（使用） --- */
+function useItem(id) {
+  // 停止中のみ使用可能
+  if (state.isSpinning) return;
+
+  const item = ITEM_DEFS.find(d => d.id === id);
+  if (!item || state.inventory[id] <= 0) return;
+
+  // 消費
+  state.inventory[id]--;
+  
+  // 結果表示を一旦消す
+  els.resultPopup.style.opacity = 0;
+  Object.values(els.payRows).forEach(r => r.classList.remove('highlight'));
+
+  // アニメーション実行
+  applyItemAnimation(item);
+  
+  updateUI();
+}
+
+function applyItemAnimation(item) {
+  const r = item.reel;
+  const len = REEL_LENGTH;
+  
+  // 現在位置
+  const currentPos = state.reelPositions[r];
+  
+  const strip = els.strips[r];
+  const targetVisualIndex = REEL_LENGTH + currentPos + item.delta;
+  const offset = -((targetVisualIndex - 1) * SYMBOL_HEIGHT);
+
+  strip.style.transition = 'transform 0.5s cubic-bezier(0.2,0.8,0.3,1)';
+  strip.style.transform = `translateY(${offset}px)`;
+
+  // 論理位置の更新
+  state.reelPositions[r] = (currentPos + item.delta + len) % len;
+  
+  // アニメ完了後に判定
+  setTimeout(() => {
+    setStripPosition(r, state.reelPositions[r], false);
+    finalizeResult();
+  }, 500);
+}
+
+/* --- 判定・払い出し --- */
+function finalizeResult() {
+  const { totalWin, winTypes } = calcWin();
+  
+  if (totalWin > 0) {
+    doPayout(totalWin);
+    showResult(totalWin);
+    winTypes.forEach(type => {
+      if(els.payRows[type]) els.payRows[type].classList.add('highlight');
+    });
+  } else {
+    showResult(0);
+  }
+  updateUI();
+}
+
+function calcWin() {
+  let totalWin = 0;
+  let winTypes = new Set();
+  
+  for(let i=1; i<=state.bet; i++) {
+    const line = LINE_DEFINITIONS.find(l => l.id === i);
+    if(!line) continue;
+    
+    const s0 = getSymbol(0, line.offsets[0]);
+    const s1 = getSymbol(1, line.offsets[1]);
+    const s2 = getSymbol(2, line.offsets[2]);
+    
+    if (s0 === s1 && s1 === s2) {
+      let payout = 0;
+      let typeKey = "";
+
+      if (s0 === "7") { payout = 50; typeKey = "7"; }
+      else if (s0 === "BAR") { payout = 20; typeKey = "BAR"; }
+      else if (s0 === "🔔" || s0 === "🍒") { payout = 10; typeKey = "BELL"; }
+      else { payout = 2; typeKey = "ANY"; }
+      
+      totalWin += payout;
+      winTypes.add(typeKey);
+    }
+  }
+  return { totalWin, winTypes: Array.from(winTypes) };
+}
+
+function getSymbol(reelIdx, rowOffset) {
+  const center = state.reelPositions[reelIdx];
+  const idx = (center + rowOffset - 1 + REEL_LENGTH) % REEL_LENGTH;
+  return reels[reelIdx][idx];
+}
+
+function doPayout(amount) {
+  let room = MAX_CREDIT - state.credit;
+  if (amount <= room) {
+    state.credit += amount;
+  } else {
+    state.credit = MAX_CREDIT;
+    state.wallet += (amount - room);
+  }
+}
+
+function showResult(amount) {
+  const el = els.resultPopup;
+  if(amount > 0) {
+    el.textContent = `GET ${amount} 枚!`;
+    el.style.color = "var(--accent)";
+  } else {
+    el.textContent = "NO BONUS...";
+    el.style.color = "var(--muted)";
+  }
+  el.style.opacity = 1;
+  setTimeout(() => el.style.opacity = 0, 2000);
+}
+
+/* --- アイテム購入 --- */
+function buyItem(id) {
+  const item = ITEM_DEFS.find(d=>d.id===id);
+  if(state.wallet >= item.price) {
+    state.wallet -= item.price;
+    state.inventory[id] = (state.inventory[id]||0) + 1;
+    updateUI();
+  } else {
+    alert("メダルが足りません");
+  }
+}
+
+/* アイテムリスト描画 */
+function renderItems() {
+  const container = els.itemList;
+  container.innerHTML = '';
+  
+  ITEM_DEFS.forEach(def => {
+    const count = state.inventory[def.id] || 0;
+    const div = document.createElement('div');
+    div.className = 'item-card';
+    
+    const canUse = count > 0 && !state.isSpinning;
+    
+    div.innerHTML = `
+      <div class="item-head">
+        <span>${def.name}</span>
+        <span style="color:${count>0?'#fff':'#555'}">x${count}</span>
+      </div>
+      <div class="item-actions">
+        <button class="mini-btn btn-buy" data-action="buy" data-id="${def.id}">購入</button>
+        <button class="mini-btn btn-use" data-action="use" data-id="${def.id}" ${canUse ? '':'disabled'}>使用</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+els.itemList.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+  if(action === 'buy') buyItem(id);
+  if(action === 'use') useItem(id);
+});
+
+els.autoBtn.addEventListener('click', () => {
+  state.autoStop = !state.autoStop;
+  updateAutoBtnVisual();
+  saveSettings();
+});
+
+init();
+
+</script>
+</body>
+</html>
