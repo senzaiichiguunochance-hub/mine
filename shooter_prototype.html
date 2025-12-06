@@ -210,6 +210,8 @@
         let particles = [];
         let lastEnemySpawnTime = 0;
         let shootCooldown = 0;
+        let enemiesDefeated = 0;
+        let beamWidth = 4; // Initial bullet width
 
         const ENEMY_SPAWN_INTERVAL = 800;
         const PLAYER_SHOOT_COOLDOWN = 200; // 弾の発射間隔 (ms)
@@ -241,7 +243,7 @@
             },
             shoot() {
                 if (gameRunning && shootCooldown <= 0) { // gameRunning check
-                    bullets.push(new Bullet(this.x + this.width / 2, this.y));
+                    bullets.push(new Bullet(this.x + this.width / 2, this.y, beamWidth));
                     shootCooldown = PLAYER_SHOOT_COOLDOWN;
                 }
             }
@@ -290,10 +292,10 @@
 
         // Bullet
         class Bullet {
-            constructor(x, y) {
+            constructor(x, y, width) {
                 this.x = x;
                 this.y = y;
-                this.width = 4;
+                this.width = width;
                 this.height = 15;
                 this.speed = 10;
                 this.color = '#ff4da6';
@@ -419,6 +421,16 @@
                         scoreDisplay.textContent = score;
                         enemies.splice(i, 1);
                         bullets.splice(j, 1);
+
+                        // Power-up logic
+                        enemiesDefeated++;
+                        if (enemiesDefeated > 0 && enemiesDefeated % 5 === 0) {
+                            const maxBeamWidth = player.width * 5;
+                            if (beamWidth < maxBeamWidth) {
+                                beamWidth += 4; // Increase beam width
+                            }
+                        }
+                        
                         break;
                     }
                 }
@@ -437,6 +449,8 @@
             enemies = [];
             bullets = [];
             particles = [];
+            enemiesDefeated = 0;
+            beamWidth = 4;
             gameRunning = true;
             startButton.disabled = true;
             messageDisplay.textContent = '';
