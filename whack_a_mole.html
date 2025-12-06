@@ -128,10 +128,13 @@
     transition: transform 0.5s ease-out, opacity 0.5s ease-out;
   }
 
+
   @media (max-width: 768px) {
     body {
         height: auto;
+        overflow: auto; /* スクロールを許可 */
         padding: 10px 0;
+        padding-top: 60px; /* メニューボタンのためのスペースを確保 */
         align-items: flex-start;
     }
     #game-wrapper {
@@ -142,32 +145,8 @@
         background-color: transparent;
         width: 100%;
     }
-    #game-container {
-        /* Make grid responsive */
-        width: 90vw;
-        height: 90vw;
-        max-width: 400px;
-        max-height: 400px;
-        padding: 10px;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        gap: 10px;
-    }
-    .hole {
-        /* Let grid control size */
-        width: auto;
-        height: auto;
-    }
-    .mole {
-        /* Adjust mole size relative to hole */
-        width: 85%;
-        height: 85%;
-        left: 7.5%;
-    }
-    .mole.up {
-        bottom: 7.5%;
-    }
     #info-panel {
+        order: 1; /* 1番目に表示 */
         width: 90vw;
         max-width: 400px;
         margin-top: 20px;
@@ -177,21 +156,34 @@
         border-radius: 10px;
         padding: 15px;
     }
+    #game-container {
+        order: 2; /* 2番目に表示 */
+        width: 90vw;
+        height: 90vw;
+        max-width: 400px;
+        max-height: 400px;
+        padding: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 20px; /* 上のパネルとの間隔 */
+    }
+    .hole {
+        width: auto;
+        height: auto;
+    }
+    .mole {
+        width: 85%;
+        height: 85%;
+        left: 7.5%;
+    }
+    .mole.up {
+        bottom: 7.5%;
+    }
     h1 {
         font-size: 1.5em;
     }
-    a[href="menu.html"] {
-        position: static !important;
-        display: block;
-        text-align: center;
-        margin: 0 auto 15px auto;
-        font-size: 1.1em;
-        background: #ff4da6;
-        padding: 10px;
-        border-radius: 5px;
-        width: 90%;
-        max-width: 400px;
-    }
+
   }
 </style>
 </head>
