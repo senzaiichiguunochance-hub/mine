@@ -219,18 +219,25 @@
             x: canvas.width / 2 - 25,
             y: canvas.height - 80,
             width: 50,
-            height: 60,
+            height: 50, // Adjusted height for new design
             speed: 7,
             draw() {
-                ctx.fillStyle = '#00aaff';
+                ctx.fillStyle = '#00ddff'; // Bright cyan
                 ctx.beginPath();
-                ctx.moveTo(this.x + this.width / 2, this.y);
-                ctx.lineTo(this.x, this.y + this.height);
-                ctx.lineTo(this.x + this.width, this.y + this.height);
+                // Main body
+                ctx.moveTo(this.x + this.width / 2, this.y); // Nose
+                ctx.lineTo(this.x, this.y + this.height * 0.8); // Left wing back
+                ctx.lineTo(this.x + this.width * 0.3, this.y + this.height * 0.8); // Indent to engine
+                ctx.lineTo(this.x + this.width * 0.4, this.y + this.height); // Engine left
+                ctx.lineTo(this.x + this.width * 0.6, this.y + this.height); // Engine right
+                ctx.lineTo(this.x + this.width * 0.7, this.y + this.height * 0.8); // Indent to engine
+                ctx.lineTo(this.x + this.width, this.y + this.height * 0.8); // Right wing back
                 ctx.closePath();
                 ctx.fill();
+
+                // Cockpit
                 ctx.fillStyle = '#ffffff';
-                ctx.fillRect(this.x + this.width / 2 - 2, this.y + 20, 4, 15);
+                ctx.fillRect(this.x + this.width / 2 - 3, this.y + 15, 6, 8);
             },
             shoot() {
                 if (gameRunning && shootCooldown <= 0) { // gameRunning check
@@ -301,22 +308,37 @@
         // Enemy
         class Enemy {
             constructor() {
-                this.width = 50;
-                this.height = 50;
+                this.width = 40; // Adjusted for blocky design
+                this.height = 40;
                 this.x = Math.random() * (canvas.width - this.width);
                 this.y = -this.height;
                 this.speed = Math.random() * 3 + 2;
-                this.color = `hsl(${Math.random() * 60 + 200}, 100%, 50%)`; // Shades of blue/purple
+                this.color = `hsl(${Math.random() * 180 + 180}, 100%, 60%)`; // purples, pinks, cyans
             }
             update() { this.y += this.speed; }
             draw() {
                 ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x + this.width, this.y);
-                ctx.lineTo(this.x + this.width / 2, this.y + this.height);
-                ctx.closePath();
-                ctx.fill();
+                // Use a block size 's' for pixel-art look
+                const s = this.width / 8; 
+                const x = this.x;
+                const y = this.y;
+
+                // A blocky, symmetrical invader shape using fillRect
+                // Row 1
+                ctx.fillRect(x + s * 2, y, s * 4, s);
+                // Row 2
+                ctx.fillRect(x + s, y + s, s * 6, s);
+                // Row 3 (solid)
+                ctx.fillRect(x, y + s * 2, s * 8, s);
+                // Row 4
+                ctx.fillRect(x, y + s * 3, s * 2, s);
+                ctx.fillRect(x + s * 3, y + s * 3, s * 2, s);
+                ctx.fillRect(x + s * 6, y + s * 3, s * 2, s);
+                // Row 5
+                ctx.fillRect(x, y + s * 4, s, s);
+                ctx.fillRect(x + s * 2, y + s * 4, s, s);
+                ctx.fillRect(x + s * 5, y + s * 4, s, s);
+                ctx.fillRect(x + s * 7, y + s * 4, s, s);
             }
         }
 
