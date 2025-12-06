@@ -133,6 +133,30 @@
             color: var(--secondary-accent);
         }
 
+        @media (max-width: 768px) {
+            body {
+                overflow: auto;
+                padding-top: 60px; /* メニューボタンのためのスペース */
+            }
+            #main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            #canvas-container {
+                height: 65vh; /* モバイルでのキャンバス表示領域の高さ */
+            }
+            #control-panel {
+                width: 100%;
+                height: auto;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+        }
+
     </style>
 </head>
 <body>

@@ -66,6 +66,25 @@
             border-radius: 10px;
             box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
         }
+
+        @media (max-width: 850px) {
+            body {
+                padding: 10px;
+                padding-top: 70px; /* メニューボタンのためのスペース */
+                justify-content: flex-start;
+            }
+            h1 {
+                font-size: 1.8em;
+                text-align: center;
+            }
+            #controls {
+                margin-bottom: 15px;
+            }
+            canvas {
+                width: 95vw;
+                height: 95vw; /* アスペクト比を維持 */
+            }
+        }
     </style>
 </head>
 <body>
