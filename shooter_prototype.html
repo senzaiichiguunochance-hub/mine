@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>スペースシューター</title>
     <style>
         body {
@@ -11,6 +11,8 @@
             color: #e0e0e0;
             margin: 0;
             overflow: hidden;
+            -webkit-user-select: none; /* テキスト選択を無効化 */
+            user-select: none;
         }
         #game-wrapper {
             display: flex;
@@ -86,12 +88,17 @@
             background-color: #555;
             cursor: not-allowed;
         }
+        
+        #mobile-controls {
+            display: none; /* デスクトップでは非表示 */
+        }
 
         @media (max-width: 800px) {
             body {
                 height: auto;
                 overflow: auto;
                 padding-top: 60px; /* メニューボタンのためのスペース */
+                padding-bottom: 100px; /* 操作ボタンのためのスペース */
             }
             #game-wrapper {
                 height: auto;
@@ -105,22 +112,49 @@
                 background-color: transparent;
             }
             canvas {
+                order: 2; /* ゲーム画面を下に */
                 width: 100%;
                 height: auto; /* 縦横比を維持 */
                 border: 2px solid #00aaff;
                 box-shadow: 0 0 20px rgba(0, 170, 255, 0.5);
                 box-sizing: border-box;
                 border-radius: 8px;
+                margin-top: 20px;
             }
             #info-panel {
+                order: 1; /* 情報パネルを上に */
                 width: 100%;
                 border-left: none;
-                margin-top: 20px;
+                margin-top: 0;
                 box-sizing: border-box;
                 border: 2px solid #00aaff;
                 box-shadow: 0 0 20px rgba(0, 170, 255, 0.5);
                 border-radius: 8px;
                 padding: 15px;
+            }
+            #mobile-controls {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                justify-content: space-between;
+                padding: 15px;
+                box-sizing: border-box;
+                background: rgba(10, 10, 26, 0.8);
+                backdrop-filter: blur(5px);
+                border-top: 1px solid #00aaff;
+            }
+            #mobile-controls button {
+                width: 30%;
+                height: 60px;
+                font-size: 1.5em;
+                font-weight: bold;
+                background: rgba(0, 170, 255, 0.5);
+                color: white;
+                border: 2px solid rgba(255, 255, 255, 0.7);
+                border-radius: 10px;
+                -webkit-tap-highlight-color: transparent; /* Prevent flash on tap */
             }
         }
     </style>
@@ -143,6 +177,7 @@
                     <ul>
                         <li><b>← →</b>: 移動</li>
                         <li><b>スペース</b>: 発射</li>
+                        <li style="display: none;" class="mobile-info"><b>画面下ボタン</b>: 操作</li>
                     </ul>
                 </div>
                 <div class="info-box">
@@ -152,6 +187,12 @@
                 <button id="startButton">ゲーム開始</button>
             </div>
         </div>
+    </div>
+    
+    <div id="mobile-controls">
+        <button id="left-btn">←</button>
+        <button id="shoot-btn">SHOOT</button>
+        <button id="right-btn">→</button>
     </div>
 
     <script>
@@ -192,7 +233,7 @@
                 ctx.fillRect(this.x + this.width / 2 - 2, this.y + 20, 4, 15);
             },
             shoot() {
-                if (shootCooldown <= 0) {
+                if (gameRunning && shootCooldown <= 0) { // gameRunning check
                     bullets.push(new Bullet(this.x + this.width / 2, this.y));
                     shootCooldown = PLAYER_SHOOT_COOLDOWN;
                 }
@@ -209,6 +250,35 @@
             if (keys['ArrowRight'] && player.x < canvas.width - player.width) player.x += player.speed;
             if (keys[' ']) player.shoot();
             if (shootCooldown > 0) shootCooldown -= deltaTime;
+        }
+
+        // --- Mobile Controls ---
+        const leftBtn = document.getElementById('left-btn');
+        const rightBtn = document.getElementById('right-btn');
+        const shootBtn = document.getElementById('shoot-btn');
+
+        // Touch and mouse events for movement
+        ['touchstart', 'mousedown'].forEach(evt => {
+            leftBtn.addEventListener(evt, (e) => { e.preventDefault(); keys['ArrowLeft'] = true; });
+            rightBtn.addEventListener(evt, (e) => { e.preventDefault(); keys['ArrowRight'] = true; });
+        });
+
+        ['touchend', 'mouseup', 'mouseleave'].forEach(evt => {
+            leftBtn.addEventListener(evt, (e) => { e.preventDefault(); keys['ArrowLeft'] = false; });
+            rightBtn.addEventListener(evt, (e) => { e.preventDefault(); keys['ArrowRight'] = false; });
+        });
+
+        // Touch and click for shooting
+        ['touchstart', 'click'].forEach(evt => {
+            shootBtn.addEventListener(evt, (e) => {
+                e.preventDefault(); // Prevent double-actions
+                player.shoot();
+            });
+        });
+        
+        // Show mobile info text if on mobile
+        if (window.matchMedia("(max-width: 800px)").matches) {
+            document.querySelector('.mobile-info').style.display = 'list-item';
         }
 
         // Bullet
