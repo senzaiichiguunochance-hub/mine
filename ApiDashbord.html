@@ -164,19 +164,31 @@
             margin-bottom: 20px;
         }
 
-        input[type="number"], textarea {
+        /* Common input styles */
+        input[type="text"],
+        input[type="number"],
+        textarea {
             border: 1px solid var(--border-color);
             background-color: var(--secondary-surface);
             color: var(--primary-text);
             padding: 12px 15px;
             border-radius: 8px;
             font-size: 1em;
-            flex-grow: 1;
         }
         
         textarea {
             resize: vertical;
             min-height: 150px;
+        }
+
+        /* OPAC Search specific input widths */
+        #opac-content .card-actions #opac-title {
+            flex-grow: 1; /* Title input takes available space */
+        }
+
+        #opac-content .card-actions #opac-count {
+            width: 100px; /* Fixed width for count input */
+            flex-shrink: 0; /* Prevent it from shrinking */
         }
 
         #user-container.card {
@@ -366,6 +378,9 @@
     <div id="main-wrapper">
     <div id="nav">
         <h2>メニュー</h2>
+        <button onclick="showContent('opac')">OPAC検索</button>
+        <button onclick="showContent('kankoju')">官公需情報</button>
+        <button onclick="showContent('mofa')">海外安全情報</button>
         <button onclick="showContent('pokemon')">ポケモン</button>
         <button onclick="showContent('cocktail')">カクテル</button>
         <button onclick="showContent('bitcoin')">ビットコイン価格</button>
@@ -625,6 +640,60 @@ console.log("1から10までの合計: " + sum);</textarea>
                     <p><strong>日本語訳 (問題):</strong> <span id="generaltrivia-question-ja"></span></p>
                     <p><strong>日本語訳 (答え):</strong> <span id="generaltrivia-answer-ja"></span></p>
                 </div>
+            </div>
+        </div>
+
+        <!-- OPAC Search Section -->
+        <div id="opac-content" class="content-section">
+            <h1>OPAC検索</h1>
+            <div class="card">
+                <p style="margin-bottom: 10px; color: var(--secondary-text);">サンプルタイトル：japan、earth、environment</p>
+                <div class="card-actions">
+                    <input type="text" id="opac-title" placeholder="タイトル">
+                    <input type="number" id="opac-count" placeholder="表示件数" value="20">
+                    <button class="action-btn" onclick="getOpacData()">検索</button>
+                </div>
+                <h2>検索結果</h2>
+                <div id="opac-results"></div>
+            </div>
+        </div>
+
+        <!-- Kankoju API Section -->
+        <div id="kankoju-content" class="content-section">
+            <h1>官公需情報検索</h1>
+            <div class="card">
+                <p style="margin-bottom: 10px; color: var(--secondary-text);">サンプルクエリ：コピー用紙、パソコン、清掃</p>
+                <div class="card-actions">
+                    <input type="text" id="kankoju-query" placeholder="クエリ (Query)">
+                    <input type="text" id="kankoju-date" placeholder="発行日 (YYYY-MM-DD)">
+                    <button class="action-btn" onclick="getKankojuData()">検索</button>
+                </div>
+                <h2>検索結果</h2>
+                <div id="kankoju-results"></div>
+            </div>
+        </div>
+
+        <!-- MOFA Overseas Safety Info Section -->
+        <div id="mofa-content" class="content-section">
+            <h1>海外安全情報</h1>
+            <div class="card">
+                <div class="card-actions" style="flex-wrap: wrap;">
+                    <select id="mofa-type" onchange="toggleMofaCodeInputs()" style="margin-right: 10px;">
+                        <option value="newarrival">1. 新着情報</option>
+                        <option value="allregions">2. すべての地域</option>
+                    </select>
+                    <select id="mofa-detail" style="margin-right: 10px;">
+                        <option value="">通常</option>
+                        <option value="A">全量</option>
+                        <option value="L">軽量</option>
+                    </select>
+                    <input type="text" id="mofa-region-code" placeholder="地域コード" style="display: none; width: 100px; margin-right: 10px;">
+                    <input type="text" id="mofa-country-code" placeholder="国コード" style="display: none; width: 100px; margin-right: 10px;">
+                    <button class="action-btn" onclick="getMofaData()">情報を取得</button>
+                    <input type="text" id="mofa-filter" placeholder="スペース区切りで複数条件検索" oninput="renderMofaResults()" style="flex-grow: 1;">
+                </div>
+                <h2>検索結果</h2>
+                <div id="mofa-results"></div>
             </div>
         </div>
 
@@ -1350,10 +1419,326 @@ console.log("1から10までの合計: " + sum);</textarea>
             generaltriviaAnswerJaSpan.textContent = translatedAnswer;
         }
 
+        // --- OPAC Search Section ---
+        async function getOpacData() {
+            const resultsContainer = document.getElementById('opac-results');
+            resultsContainer.innerHTML = '<p>検索中...</p>';
+
+            const title = document.getElementById('opac-title').value;
+            const count = document.getElementById('opac-count').value || '20';
+
+            if (!title) {
+                resultsContainer.innerHTML = '<p>タイトルを入力してください。</p>';
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('gcattp', 'sr');
+            params.append('format', 'MARC'); // Use MARC format to get detailed records
+            params.append('title', title);
+            params.append('listcnt', count);
+
+            const apiUrl = `https://library.affrc.go.jp/webopac/opnsrhb.do?${params.toString()}`;
+            
+            let xmlText = '';
+            try {
+                // Use CORS proxy as direct fetch is likely to fail
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+                const proxyResponse = await fetch(proxyUrl);
+                if (!proxyResponse.ok) throw new Error(`Proxy server error: ${proxyResponse.status}`);
+                xmlText = await proxyResponse.text();
+            } catch (fetchError) {
+                resultsContainer.innerHTML = '<p>情報の取得に失敗しました。</p>';
+                console.error('OPAC API Error:', fetchError);
+                showError(resultsContainer, 'OPAC APIエラー', fetchError, apiUrl);
+                return;
+            }
+
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+                const rdfNamespace = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+                const marcNamespace = "http://www.loc.gov/MARC21/slim";
+                
+                const items = xmlDoc.getElementsByTagName('item');
+                const totalResults = xmlDoc.querySelector('opensearch\\:totalResults')?.textContent || items.length;
+                
+                let html = `<h3>${totalResults}件の検索結果</h3>`;
+
+                if (items.length === 0) {
+                    html += '<p>条件に一致する結果は見つかりませんでした。</p>';
+                } else {
+                    for (const item of items) {
+                        const getMarcSubfield = (tag, code) => {
+                            const datafields = item.getElementsByTagNameNS(marcNamespace, 'datafield');
+                            for (const field of datafields) {
+                                if (field.getAttribute('tag') === tag) {
+                                    const subfields = field.getElementsByTagNameNS(marcNamespace, 'subfield');
+                                    for (const subfield of subfields) {
+                                        if (subfield.getAttribute('code') === code) {
+                                            return subfield.textContent;
+                                        }
+                                    }
+                                }
+                            }
+                            return null;
+                        };
+
+                        const simpleTitle = item.getElementsByTagName('title')[0]?.textContent;
+                        const itemTitle = getMarcSubfield('245', 'a') || simpleTitle || 'タイトルなし';
+                        const creator = getMarcSubfield('700', 'a') || '著者不明';
+                        const publisher = getMarcSubfield('260', 'b') || '出版社不明';
+                        const itemLink = item.getAttributeNS(rdfNamespace, 'about') || '#';
+
+                        let buttonHtml;
+                        if (itemLink && itemLink !== '#') {
+                            buttonHtml = `<a href="${itemLink}" target="_blank" class="action-btn" style="text-decoration: none;">詳細を見る</a>`;
+                        } else {
+                            buttonHtml = `<button class="action-btn" disabled style="cursor: not-allowed; background: var(--secondary-surface);">詳細なし</button>`;
+                        }
+
+                        html += `
+                            <div class="card" style="margin-bottom: 20px;">
+                                <h4 style="margin-top: 0; color: var(--primary-accent);">${itemTitle}</h4>
+                                <p><strong>著者:</strong> ${creator}</p>
+                                <p><strong>出版社:</strong> ${publisher}</p>
+                                ${buttonHtml}
+                            </div>
+                        `;
+                    }
+                }
+                resultsContainer.innerHTML = html;
+
+            } catch (parseError) {
+                resultsContainer.innerHTML = '<p>結果の解析に失敗しました。</p>';
+                console.error('OPAC XML Parse Error:', parseError);
+                showError(resultsContainer, 'XML解析エラー', parseError, apiUrl);
+            }
+        }
+
+        // --- Kankoju API ---
+        const kankojuResults = document.getElementById('kankoju-results');
+        async function getKankojuData() {
+            const resultsContainer = document.getElementById('kankoju-results');
+            resultsContainer.innerHTML = '<p>検索中...</p>';
+            
+            const query = document.getElementById('kankoju-query').value;
+            const date = document.getElementById('kankoju-date').value;
+
+            // Don't search if both are empty on initial load
+            if (!query && !date) {
+                resultsContainer.innerHTML = '<p>キーワードまたは発行日を入力して検索してください。</p>';
+                return;
+            }
+
+            const params = new URLSearchParams();
+            if (query) params.append('Query', query);
+            if (date) params.append('CFT_Issue_Date', date + '/');
+
+            const apiUrl = `http://www.kkj.go.jp/api/?${params.toString()}`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                const xmlText = await response.text();
+
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+
+                // Check for parser errors
+                const parserError = xmlDoc.querySelector("parsererror");
+                if (parserError) {
+                    resultsContainer.textContent = 'XMLの解析に失敗しました。';
+                    console.error('XML Parser Error:', parserError.textContent);
+                    showError(resultsContainer, 'XML解析エラー', parserError.textContent, apiUrl);
+                    return;
+                }
+
+                const searchHits = xmlDoc.querySelector('SearchHits')?.textContent || '0';
+                const searchResults = xmlDoc.querySelectorAll('SearchResult');
+
+                let html = `<h3>${searchHits}件の検索結果</h3>`;
+
+                if (searchResults.length === 0) {
+                    html += '<p>条件に一致する結果は見つかりませんでした。</p>';
+                } else {
+                    searchResults.forEach(result => {
+                        const projectName = result.querySelector('ProjectName')?.textContent || 'N/A';
+                        const orgName = result.querySelector('OrganizationName')?.textContent || 'N/A';
+                        const prefName = result.querySelector('PrefectureName')?.textContent || '';
+                        const cityName = result.querySelector('CityName')?.textContent || '';
+                        const issueDate = new Date(result.querySelector('CftIssueDate')?.textContent).toLocaleDateString();
+                        const category = result.querySelector('Category')?.textContent || 'N/A';
+                        const docUri = result.querySelector('ExternalDocumentURI')?.textContent.trim() || '#';
+
+                        html += `
+                            <div class="card" style="margin-bottom: 20px;">
+                                <h4 style="margin-top: 0; color: var(--primary-accent);">${projectName}</h4>
+                                <p><strong>機関名:</strong> ${orgName}</p>
+                                <p><strong>場所:</strong> ${prefName} ${cityName}</p>
+                                <p><strong>公告日:</strong> ${issueDate}</p>
+                                <p><strong>カテゴリ:</strong> ${category}</p>
+                                <a href="${docUri}" target="_blank" class="action-btn" style="text-decoration: none;">詳細を見る (PDF)</a>
+                            </div>
+                        `;
+                    });
+                }
+                
+                resultsContainer.innerHTML = html;
+
+            } catch (error) {
+                resultsContainer.innerHTML = '<p>情報の取得に失敗しました。</p>';
+                console.error('Kankoju API Error:', error);
+                showError(resultsContainer, '官公需APIエラー', error, apiUrl);
+            }
+        }
+
+
+        // --- MOFA Overseas Safety Info Section ---
+        let mofaRawData = []; // Store fetched items globally/module-scoped
+
+        function toggleMofaCodeInputs() {
+            const selectedType = document.getElementById('mofa-type').value;
+            const regionInput = document.getElementById('mofa-region-code');
+            const countryInput = document.getElementById('mofa-country-code');
+
+            regionInput.style.display = 'none';
+            countryInput.style.display = 'none';
+
+            if (selectedType === 'region') {
+                regionInput.style.display = 'inline-block';
+            } else if (selectedType === 'country') {
+                countryInput.style.display = 'inline-block';
+            }
+        }
+
+        function renderMofaResults() {
+            const inputFilterText = document.getElementById('mofa-filter').value.toLowerCase().trim();
+            const resultsContainer = document.getElementById('mofa-results');
+
+            if (mofaRawData.length === 0) {
+                // If no data has been fetched yet, or previous fetch failed, show instruction
+                resultsContainer.innerHTML = '<p>まず「情報を取得」ボタンを押してください。</p>';
+                return;
+            }
+
+            const keywords = inputFilterText.split(/\s+/).filter(kw => kw.length > 0);
+
+            const filteredData = mofaRawData.filter(item => {
+                const title = item.querySelector('title')?.textContent.toLowerCase() || '';
+                const countryName = item.querySelector('country > name')?.textContent.toLowerCase() || '';
+                const lead = item.querySelector('lead')?.textContent.toLowerCase() || '';
+
+                if (keywords.length === 0) return true; // Show all if no keywords
+
+                return keywords.every(keyword => {
+                    return title.includes(keyword) || countryName.includes(keyword) || lead.includes(keyword);
+                });
+            });
+
+            let html = `<h3>${filteredData.length}件の情報が見つかりました</h3>`;
+            if (filteredData.length === 0) {
+                if (keywords.length > 0) {
+                    html += `<p>「${inputFilterText}」に一致する情報は見つかりませんでした。</p>`;
+                } else {
+                    html = '<p>現在、表示できる情報はありません。</p>'; // Overwrite if no data at all
+                }
+            } else {
+                for (const item of filteredData) {
+                    const title = item.querySelector('title')?.textContent || 'タイトルなし';
+                    const countryName = item.querySelector('country > name')?.textContent || '国不明';
+                    const date = item.querySelector('leaveDate')?.textContent || '';
+                    const lead = item.querySelector('lead')?.textContent || '';
+                    const infoUrl = item.querySelector('infoUrl')?.textContent || '#';
+                    const mainText = item.querySelector('mainText')?.textContent || '';
+                    const contentInfo = item.querySelector('contentInfo')?.textContent || '';
+
+                    html += `
+                        <div class="card" style="margin-bottom: 20px;">
+                            <h4 style="margin-top: 0; color: var(--primary-accent);">${title}</h4>
+                            <p><strong>国/地域:</strong> ${countryName}</p>
+                            <p><strong>発表日時:</strong> ${date}</p>
+                            <p>${lead}</p>
+                            ${mainText ? `<p><strong>本文:</strong> ${mainText.substring(0, 300)}${mainText.length > 300 ? '...' : ''}</p>` : ''}
+                            ${contentInfo ? `<p><strong>詳細情報:</strong> ${contentInfo.substring(0, 300)}${contentInfo.length > 300 ? '...' : ''}</p>` : ''}
+                            <a href="${infoUrl}" target="_blank" class="action-btn" style="text-decoration: none;">原文のページへ</a>
+                        </div>
+                    `;
+                }
+            }
+            resultsContainer.innerHTML = html;
+        }
+
+        async function getMofaData() {
+            const resultsContainer = document.getElementById('mofa-results');
+            resultsContainer.innerHTML = '<p>情報を取得中...</p>';
+            document.getElementById('mofa-filter').value = ''; // Clear filter on new fetch
+
+            const selectedType = document.getElementById('mofa-type').value;
+            const selectedDetail = document.getElementById('mofa-detail').value;
+            const regionCode = document.getElementById('mofa-region-code').value;
+            const countryCode = document.getElementById('mofa-country-code').value;
+
+            let path = '';
+            switch (selectedType) {
+                case 'newarrival':
+                    path = 'area/newarrival';
+                    break;
+                case 'allregions':
+                    path = 'area/00';
+                    break;
+                case 'region':
+                    if (!regionCode) {
+                        resultsContainer.innerHTML = '<p>「地域別」を選択した場合、地域コードを入力してください。</p>';
+                        return;
+                    }
+                    path = `area/${regionCode}`;
+                    break;
+                case 'country':
+                    if (!countryCode) {
+                        resultsContainer.innerHTML = '<p>「国別」を選択した場合、国コードを入力してください。</p>';
+                        return;
+                    }
+                    path = `country/${countryCode}`;
+                    break;
+            }
+
+            const url = `https://www.ezairyu.mofa.go.jp/opendata/${path}${selectedDetail}.xml`;
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
+                const xmlText = await response.text();
+
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
+                
+                const parserError = xmlDoc.querySelector("parsererror");
+                if (parserError) {
+                    throw new Error('XMLの解析に失敗しました。');
+                }
+
+                const items = xmlDoc.getElementsByTagName('mail');
+                mofaRawData = Array.from(items); // Store the raw data
+
+                renderMofaResults(); // Initial render with stored data
+
+            } catch (error) {
+                mofaRawData = []; // Clear data on error
+                resultsContainer.innerHTML = '<p>情報の取得に失敗しました。</p>';
+                console.error('MOFA API Error:', error);
+                showError(resultsContainer, '海外安全情報APIエラー', error, url);
+            }
+        }
+
+
         // --- Initial Load ---
         // Show the first section by default and fetch initial data
         document.addEventListener('DOMContentLoaded', () => {
-            showContent('pokemon'); // Show Pokemon section by default
+            showContent('opac'); // Show OPAC section by default
+            getOpacData(); // Fetch initial empty data
             getJoke();
             getRandomUser(); // Pre-fetch for faster display later
             getRandomNumberFact();
@@ -1373,7 +1758,7 @@ console.log("1から10までの合計: " + sum);</textarea>
             getProgrammingJoke();
             getGeneralTrivia();
             getPokemon();
-            getCocktail();
+getCocktail();
             getBitcoinPrice();
             getExchangeRate();
             getUsaStats();
