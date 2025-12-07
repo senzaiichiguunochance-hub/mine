@@ -3,14 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>海外安全情報（外務省オープンデータ）</title>
-<!-- Leaflet is not needed for MOFA API, but keeping for theme consistency with kumadas_api.html if user expects all scripts from it-->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Embedded Style.css content -->
+<!-- 基本スタイル設定 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
-
 :root {
     --bg-color: #1a1a2e;
     --card-color: #16213e;
@@ -19,7 +17,6 @@
     --font-color: #dcdcdc;
     --hover-color: #537895;
 }
-
 body {
     font-family: 'Noto Sans JP', sans-serif;
     margin: 0;
@@ -33,17 +30,8 @@ body {
     padding: 20px;
     box-sizing: border-box;
 }
-
-.container {
-    width: 90%;
-    max-width: 1200px;
-    text-align: center;
-}
-
-.header {
-    margin-bottom: 40px;
-}
-
+.container { width: 90%; max-width: 1200px; text-align: center; }
+.header { margin-bottom: 40px; }
 .header h1 {
     font-family: 'Poppins', sans-serif;
     font-size: 3em;
@@ -53,52 +41,6 @@ body {
     letter-spacing: 2px;
     text-shadow: 0 0 15px var(--secondary-color);
 }
-
-.menu-grid { /* Not directly used but part of theme */
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px;
-}
-
-.menu-item { /* Not directly used but part of theme */
-    background-color: var(--card-color);
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 1px solid var(--primary-color);
-}
-
-.menu-item:hover { /* Not directly used but part of theme */
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(233, 69, 96, 0.3);
-}
-
-.menu-item a { /* Not directly used but part of theme */
-    display: block;
-    padding: 30px 20px;
-    text-decoration: none;
-    color: var(--font-color);
-    font-size: 1.4em;
-    font-weight: 600;
-    transition: color 0.3s ease, background-color 0.3s ease;
-}
-
-.menu-item a:hover { /* Not directly used but part of theme */
-    color: var(--secondary-color);
-    background-color: rgba(233, 69, 96, 0.1);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .header h1 {
-        font-size: 2.2em;
-    }
-    .menu-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 .box {
     background-color: var(--card-color);
     border-radius: 15px;
@@ -107,116 +49,44 @@ body {
     margin-bottom: 20px;
     border: 1px solid var(--primary-color);
 }
-
-label { /* Adjusted for inputs */
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: var(--font-color); /* Ensure label color is consistent */
-}
-
-input[type="text"], input[type="number"], select { /* Unified input styles */
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid var(--primary-color);
-    background-color: #0f1a3a; /* Darker input background */
-    color: var(--font-color);
-    font-size: 1rem;
-}
-
-textarea {
-    width: 100%;
-    min-height: 120px;
+label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; }
+input[type="text"], select {
     padding: 10px;
     border-radius: 10px;
     border: 1px solid var(--primary-color);
     background-color: #0f1a3a;
     color: var(--font-color);
     font-size: 1rem;
-    resize: vertical;
 }
-
-.row { /* Not directly used */
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
-    justify-content: center;
+textarea {
+    width: 100%; min-height: 120px;
+    padding: 10px; border-radius: 10px;
+    border: 1px solid var(--primary-color);
+    background-color: #0f1a3a; color: var(--font-color);
+    font-size: 1rem; resize: vertical;
 }
-
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; }
 button {
-    padding: 10px 20px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
+    padding: 10px 20px; border-radius: 12px; border: none;
+    cursor: pointer; font-weight: 600; font-size: 1rem;
     transition: 0.3s;
 }
-
-button.primary {
-    background-color: var(--primary-color);
-    color: var(--font-color);
-}
-
-button.primary:hover {
-    background-color: var(--hover-color);
-}
-
-button.secondary {
-    background-color: var(--secondary-color);
-    color: var(--font-color);
-}
-
-button.secondary:hover {
-    background-color: #ff5678;
-}
-
-/* Custom styles for MOFA content, adapted from ApiDashbord.html */
-/* Assuming .card, .card-actions from ApiDashbord.html will map to .box, .controls or similar */
-/* I will adapt the .card-actions from ApiDashbord.html to use .controls class from kumadas_api.html */
-.controls { /* Existing class from kumadas_api.html */
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 15px;
-}
-
-/* Override input styling for MOFA specific inputs */
-#mofa-type, #mofa-detail, #mofa-region-code, #mofa-country-code, #mofa-filter {
-    background-color: #0f1a3a; /* Darker background to match theme */
-    border: 1px solid var(--primary-color);
-    color: var(--font-color);
-}
-
-#mofa-results .card { /* Each result item */
-    background-color: #16213e; /* card-color */
+button.primary { background-color: var(--primary-color); color: var(--font-color); }
+button.primary:hover { background-color: var(--hover-color); }
+button.secondary { background-color: var(--secondary-color); color: var(--font-color); }
+button.secondary:hover { background-color: #ff5678; }
+#mofa-results .card {
+    background-color: var(--card-color);
     border: 1px solid var(--primary-color);
     border-radius: 15px;
-    padding: 20px; /* Slightly less padding than .box */
-    margin-bottom: 15px; /* Spacing between result items */
+    padding: 20px;
+    margin-bottom: 15px;
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
     text-align: left;
 }
-
-#mofa-results .card h4 {
-    color: var(--secondary-color);
-    margin-top: 0;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-}
-
-#mofa-results .card p {
-    font-size: 0.95em;
-    line-height: 1.5;
-    margin-bottom: 5px;
-}
-
-#mofa-results .card strong {
-    color: var(--secondary-color); /* Highlight strong text */
-}
-
-#mofa-results .card a.action-btn { /* Style button within results */
+#mofa-results .card h4 { color: var(--secondary-color); margin-top: 0; margin-bottom: 10px; font-size: 1.2em; }
+#mofa-results .card p { font-size: 0.95em; line-height: 1.5; margin-bottom: 5px; }
+#mofa-results .card a.action-btn {
     background-color: var(--secondary-color);
     color: var(--font-color);
     padding: 8px 15px;
@@ -226,13 +96,8 @@ button.secondary:hover {
     display: inline-block;
     margin-top: 10px;
 }
-#mofa-results .card a.action-btn:hover {
-    background-color: #ff5678;
-}
-
-/* --- error box style (from ApiDashbord.html) --- */
 .error-box {
-    background-color: rgba(233, 69, 96, 0.08); /* Using secondary-color for error */
+    background-color: rgba(233, 69, 96, 0.08);
     border-left: 4px solid var(--secondary-color);
     color: var(--secondary-color);
     padding: 10px 12px;
@@ -243,268 +108,140 @@ button.secondary:hover {
     word-break: break-word;
 }
 </style>
-<!-- ===== fetch wrapper & showError utility (追加) ===== -->
+
+<!-- fetch のエラーハンドリング強化 -->
 <script>
-    (function(){
-      // wrap fetch to produce clearer Error messages
-      const _origFetch = window.fetch.bind(window);
-      window.fetch = async function(input, init){
-        let resp;
-        try {
-          resp = await _origFetch(input, init);
-        } catch (e) {
-          // Network-level error (DNS, offline, blocked, etc.)
-          throw new Error('通信エラー: サーバーへ接続できません。ネットワークを確認してください。');
-        }
-
-        // Try to read text safely
-        let text = '';
-        try {
-          const clone = resp.clone();
-          text = await clone.text();
-        } catch (e) {
-          text = '';
-        }
-        const trimmed = (text || '').trim();
-
-        // If response is HTML page (error page), try to detect cause
-        if (trimmed.startsWith('<!DOCTYPE') || trimmed.toLowerCase().startsWith('<html')) {
-          if (/Rate\s*Limit|Too Many Requests|429/i.test(trimmed)) {
-            throw new Error('API制限（Rate Limit）に到達した可能性があります（HTMLエラーページ）。');
-          }
-          if (/Invalid\s*API\s*key/i.test(trimmed)) {
-            throw new Error('APIキーが無効です（HTMLエラーページ）。');
-          }
-          if (/CORS|Cross-Origin|Access-Control-Allow-Origin/i.test(trimmed)) {
-            throw new Error('CORS制約によりアクセスが拒否されました（HTMLエラーページ）。');
-          }
-          throw new Error('APIがHTMLのエラーページを返しました。');
-        }
-
-        // HTTP status handling
-        if (!resp.ok) {
-          switch (resp.status) {
-            case 400:
-              throw new Error('不正なリクエスト（HTTP 400）。パラメータを確認してください。');
-            case 401:
-              throw new Error('認証エラー（HTTP 401）。APIキーや認証情報を確認してください。');
-            case 403:
-              throw new Error('アクセスが禁止されています（HTTP 403）。権限を確認してください。');
-            case 404:
-              throw new Error('リソースが見つかりません（HTTP 404）。URLまたは入力を確認してください。');
-            case 429:
-              throw new Error('リクエストが多すぎます（HTTP 429: Rate Limit）。しばらくしてから再試行してください。');
-            case 500:
-              throw new Error('サーバー内部エラー（HTTP 500）。時間をおいて再試行してください。');
-            default:
-              throw new Error('HTTPエラー: ' + resp.status);
-          }
-        }
-
-        // If response is JSON and contains error/message/detail, extract it
-        if (trimmed) {
-          try {
-            const parsed = JSON.parse(trimmed);
-            if (parsed && (parsed.error || parsed.message || parsed.detail || parsed.errors)) {
-              const msg = parsed.error?.message || parsed.message || parsed.detail || JSON.stringify(parsed.errors);
-              throw new Error('API応答エラー: ' + String(msg).slice(0, 1000));
-            }
-          } catch (e) {
-            // ignore JSON parse errors - response may not be JSON
-          }
-        }
-
-        return resp;
-      };
-
-      // showError utility: container element, title, Error object/string, optionally URL
-      window.showError = function(container, title, error, url) {
-        if (!container) return;
-        const message = (error && error.message) ? error.message : String(error);
-        // Preserve existing brief failure messages where possible by appending error box
-        const box = document.createElement('div');
-        box.className = 'error-box';
-        box.innerHTML = `<strong>${title}</strong><br>${message}${url ? `<br><small>URL: ${url}</small>` : ''}`;
-        // If container is an element that holds multiple pieces, append; otherwise replace content
-        // We'll append the error box so existing failure messages remain visible
-        container.appendChild(box);
-      };
-    })();
+(function(){
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = async function(input, init){
+    let resp;
+    try {
+      resp = await _origFetch(input, init);
+    } catch (e) {
+      throw new Error('通信エラー: サーバーへ接続できません。');
+    }
+    let text = '';
+    try {
+      text = await resp.clone().text();
+    } catch {}
+    const trimmed = (text || '').trim();
+    if (trimmed.startsWith('<html') || trimmed.startsWith('<!DOCTYPE')) {
+      throw new Error('APIがHTMLエラーを返しました。');
+    }
+    if (!resp.ok) {
+      throw new Error('HTTPエラー: ' + resp.status);
+    }
+    return resp;
+  };
+  window.showError = function(container, title, error, url) {
+    const box = document.createElement('div');
+    box.className = 'error-box';
+    box.innerHTML = `<strong>${title}</strong><br>${error.message}${url ? `<br><small>URL: ${url}</small>` : ''}`;
+    container.appendChild(box);
+  };
+})();
 </script>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
 <div class="container">
-    <header class="header">
-        <h1>海外安全情報（外務省オープンデータ）</h1>
-    </header>
+    <header class="header"><h1>海外安全情報（外務省オープンデータ）</h1></header>
 
-    <div class="box"> <!-- Replaces .card from ApiDashbord.html -->
-        <div id="mofa-controls" class="controls"> <!-- Replaces .card-actions -->
-            <select id="mofa-type" onchange="toggleMofaCodeInputs()" style="margin-right: 10px;">
+    <div class="box">
+        <!-- 操作パネル -->
+        <div id="mofa-controls" class="controls">
+            <select id="mofa-type" onchange="toggleMofaCodeInputs()">
                 <option value="newarrival">1. 新着情報</option>
                 <option value="allregions">2. すべての地域</option>
             </select>
-            <select id="mofa-detail" style="margin-right: 10px;">
+            <select id="mofa-detail">
                 <option value="">通常</option>
                 <option value="A">全量</option>
                 <option value="L">軽量</option>
             </select>
-            <input type="text" id="mofa-region-code" placeholder="地域コード" style="display: none; width: 100px; margin-right: 10px;">
-            <input type="text" id="mofa-country-code" placeholder="国コード" style="display: none; width: 100px; margin-right: 10px;">
-            <button class="primary" onclick="getMofaData()">情報を取得</button> <!-- Use .primary button class -->
-            <input type="text" id="mofa-filter" placeholder="スペース区切りで複数条件検索" oninput="renderMofaResults()" style="flex-grow: 1;">
+            <input type="text" id="mofa-region-code" placeholder="地域コード" style="display:none; width:100px;">
+            <input type="text" id="mofa-country-code" placeholder="国コード" style="display:none; width:100px;">
+            <button class="primary" onclick="getMofaData()">情報を取得</button>
+            <input type="text" id="mofa-filter" placeholder="先に「情報を取得」を押してください。スペース区切りで複数条件検索可能です。" oninput="renderMofaResults()" style="flex-grow:1;">
         </div>
+
         <h2>検索結果</h2>
         <div id="mofa-results"></div>
     </div>
 </div>
 
 <script>
-        let mofaRawData = []; // Store fetched items globally/module-scoped
+let mofaRawData = [];
 
-        function toggleMofaCodeInputs() {
-            const selectedType = document.getElementById('mofa-type').value;
-            const regionInput = document.getElementById('mofa-region-code');
-            const countryInput = document.getElementById('mofa-country-code');
+function toggleMofaCodeInputs() {
+    const type = document.getElementById('mofa-type').value;
+    document.getElementById('mofa-region-code').style.display = 'none';
+    document.getElementById('mofa-country-code').style.display = 'none';
+}
 
-            regionInput.style.display = 'none';
-            countryInput.style.display = 'none';
+function renderMofaResults() {
+    const f = document.getElementById('mofa-filter').value.toLowerCase().trim();
+    const box = document.getElementById('mofa-results');
+    if (mofaRawData.length === 0) {
+        box.innerHTML = '<p>まず「情報を取得」を押してください。</p>';
+        return;
+    }
+    const keywords = f.split(/\s+/).filter(x => x);
+    const filtered = mofaRawData.filter(item => {
+        const t = item.querySelector('title')?.textContent.toLowerCase() || '';
+        const c = item.querySelector('country > name')?.textContent.toLowerCase() || '';
+        const lead = item.querySelector('lead')?.textContent.toLowerCase() || '';
+        const main = item.querySelector('mainText')?.textContent.toLowerCase() || '';
+        const info = item.querySelector('contentInfo')?.textContent.toLowerCase() || '';
+        return keywords.every(k => t.includes(k) || c.includes(k) || lead.includes(k) || main.includes(k) || info.includes(k));
+    });
+    let html = `<h3>${filtered.length}件の情報が見つかりました</h3>`;
+    filtered.forEach(item => {
+        const title = item.querySelector('title')?.textContent || '';
+        const country = item.querySelector('country > name')?.textContent || '';
+        const date = item.querySelector('leaveDate')?.textContent || '';
+        const lead = item.querySelector('lead')?.textContent || '';
+        const url = item.querySelector('infoUrl')?.textContent || '#';
+        html += `
+        <div class="card">
+            <h4>${title}</h4>
+            <p><strong>国/地域:</strong> ${country}</p>
+            <p><strong>発表日時:</strong> ${date}</p>
+            <p>${lead}</p>
+            <a href="${url}" target="_blank" class="action-btn">原文のページへ</a>
+        </div>`;
+    });
+    box.innerHTML = html;
+}
 
-            if (selectedType === 'region') {
-                regionInput.style.display = 'inline-block';
-            } else if (selectedType === 'country') {
-                countryInput.style.display = 'inline-block';
-            }
-        }
+async function getMofaData() {
+    const box = document.getElementById('mofa-results');
+    box.innerHTML = '<p>情報を取得中...</p>';
+    document.getElementById('mofa-filter').value = '';
 
-        function renderMofaResults() {
-            const inputFilterText = document.getElementById('mofa-filter').value.toLowerCase().trim();
-            const resultsContainer = document.getElementById('mofa-results');
+    const type = document.getElementById('mofa-type').value;
+    const detail = document.getElementById('mofa-detail').value;
 
-            if (mofaRawData.length === 0) {
-                // If no data has been fetched yet, or previous fetch failed, show instruction
-                resultsContainer.innerHTML = '<p>まず「情報を取得」ボタンを押してください。</p>';
-                return;
-            }
+    let path = (type === 'newarrival') ? 'area/newarrival' : 'area/00';
+    const url = `https://www.ezairyu.mofa.go.jp/opendata/${path}${detail}.xml`;
+    const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
-            const keywords = inputFilterText.split(/\s+/).filter(kw => kw.length > 0);
+    try {
+        const resp = await fetch(proxy);
+        const xmlText = await resp.text();
+        const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
+        const items = xml.getElementsByTagName('mail');
+        mofaRawData = Array.from(items);
+        renderMofaResults();
+    } catch (e) {
+        mofaRawData = [];
+        box.innerHTML = '<p>情報の取得に失敗しました。</p>';
+        showError(box, '海外安全情報APIエラー', e, url);
+    }
+}
 
-            const filteredData = mofaRawData.filter(item => {
-                const title = item.querySelector('title')?.textContent.toLowerCase() || '';
-                const countryName = item.querySelector('country > name')?.textContent.toLowerCase() || '';
-                const lead = item.querySelector('lead')?.textContent.toLowerCase() || '';
-                const mainText = item.querySelector('mainText')?.textContent.toLowerCase() || '';
-                const contentInfo = item.querySelector('contentInfo')?.textContent.toLowerCase() || '';
-
-
-                if (keywords.length === 0) return true; // Show all if no keywords
-
-                return keywords.every(keyword => {
-                    return title.includes(keyword) || countryName.includes(keyword) || lead.includes(keyword) || mainText.includes(keyword) || contentInfo.includes(keyword);
-                });
-            });
-
-            let html = `<h3>${filteredData.length}件の情報が見つかりました</h3>`;
-            if (filteredData.length === 0) {
-                if (keywords.length > 0) {
-                    html += `<p>「${inputFilterText}」に一致する情報は見つかりませんでした。</p>`;
-                } else {
-                    html = '<p>現在、表示できる情報はありません。</p>'; // Overwrite if no data at all
-                }
-            } else {
-                for (const item of filteredData) {
-                    const title = item.querySelector('title')?.textContent || 'タイトルなし';
-                    const countryName = item.querySelector('country > name')?.textContent || '国不明';
-                    const date = item.querySelector('leaveDate')?.textContent || '';
-                    const lead = item.querySelector('lead')?.textContent || '';
-                    const infoUrl = item.querySelector('infoUrl')?.textContent || '#';
-                    const mainText = item.querySelector('mainText')?.textContent || '';
-                    const contentInfo = item.querySelector('contentInfo')?.textContent || '';
-
-                    html += `
-                        <div class="card" style="margin-bottom: 20px;">
-                            <h4 style="margin-top: 0;">${title}</h4>
-                            <p><strong>国/地域:</strong> ${countryName}</p>
-                            <p><strong>発表日時:</strong> ${date}</p>
-                            <p>${lead}</p>
-                            ${mainText ? `<p><strong>本文:</strong> ${mainText.substring(0, 300)}${mainText.length > 300 ? '...' : ''}</p>` : ''}
-                            ${contentInfo ? `<p><strong>詳細情報:</strong> ${contentInfo.substring(0, 300)}${contentInfo.length > 300 ? '...' : ''}</p>` : ''}
-                            <a href="${infoUrl}" target="_blank" class="action-btn">原文のページへ</a>
-                        </div>
-                    `;
-                }
-            }
-            resultsContainer.innerHTML = html;
-        }
-
-        async function getMofaData() {
-            const resultsContainer = document.getElementById('mofa-results');
-            resultsContainer.innerHTML = '<p>情報を取得中...</p>';
-            document.getElementById('mofa-filter').value = ''; // Clear filter on new fetch
-
-            const selectedType = document.getElementById('mofa-type').value;
-            const selectedDetail = document.getElementById('mofa-detail').value;
-            const regionCode = document.getElementById('mofa-region-code').value;
-            const countryCode = document.getElementById('mofa-country-code').value;
-
-            let path = '';
-            switch (selectedType) {
-                case 'newarrival':
-                    path = 'area/newarrival';
-                    break;
-                case 'allregions':
-                    path = 'area/00';
-                    break;
-                case 'region': // These cases are removed from UI, but keep for robustness
-                    if (!regionCode) {
-                        resultsContainer.innerHTML = '<p>「地域別」を選択した場合、地域コードを入力してください。</p>';
-                        return;
-                    }
-                    path = `area/${regionCode}`;
-                    break;
-                case 'country': // These cases are removed from UI, but keep for robustness
-                    if (!countryCode) {
-                        resultsContainer.innerHTML = '<p>「国別」を選択した場合、国コードを入力してください。</p>';
-                        return;
-                    }
-                    path = `country/${countryCode}`;
-                    break;
-            }
-
-            const url = `https://www.ezairyu.mofa.go.jp/opendata/${path}${selectedDetail}.xml`;
-            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-
-            try {
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
-                const xmlText = await response.text();
-
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, "application/xml");
-                
-                const parserError = xmlDoc.querySelector("parsererror");
-                if (parserError) {
-                    throw new Error('XMLの解析に失敗しました。');
-                }
-
-                const items = xmlDoc.getElementsByTagName('mail');
-                mofaRawData = Array.from(items); // Store the raw data
-
-                renderMofaResults(); // Initial render with stored data
-
-            } catch (error) {
-                mofaRawData = []; // Clear data on error
-                resultsContainer.innerHTML = '<p>情報の取得に失敗しました。</p>';
-                console.error('MOFA API Error:', error);
-                showError(resultsContainer, '海外安全情報APIエラー', error, url);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            toggleMofaCodeInputs(); // Set initial state of code inputs
-        });
+document.addEventListener('DOMContentLoaded', toggleMofaCodeInputs);
 </script>
 </body>
 </html>
