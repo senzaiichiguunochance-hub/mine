@@ -1,199 +1,129 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ポートフォリオ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            color: #e2e8f0;
-            overflow-x: hidden;
-            background-image: url('back.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Frontend Engineer Portfolio</title>
 
-        .fade-in {
-            animation: fadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-            opacity: 0;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+<!-- React CDN -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-        .card-hover-effect {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card-hover-effect:hover {
-            transform: translateY(-5px) scale(1.01);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-        }
+<style>
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+  }
 
-        .button-hover-effect {
-            position: relative;
-            z-index: 1;
-            transition: color 0.4s ease;
-        }
-        .button-hover-effect::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #3b82f6;
-            border-radius: 9999px;
-            z-index: -1;
-            transform: scaleY(0);
-            transform-origin: bottom;
-            transition: transform 0.4s ease;
-        }
-        .button-hover-effect:hover::before {
-            transform: scaleY(1);
-        }
+  .container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+  }
 
-        .card-bg-effect {
-            background-color: rgba(255, 100, 100, 0.3);
-        }
-    </style>
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: rise 0.6s forwards;
+  }
+
+  @keyframes rise {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  p {
+    max-width: 720px;
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: #cbd5f5;
+    animation: fadeIn 1.2s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .cta {
+    margin-top: 32px;
+    padding: 14px 32px;
+    border-radius: 999px;
+    border: 1px solid #6366f1;
+    color: #e0e7ff;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .cta:hover {
+    background: #6366f1;
+    color: white;
+    transform: translateY(-2px);
+  }
+</style>
 </head>
-<body class="text-gray-200">
 
-    <header class="bg-white/10 backdrop-blur-lg shadow-lg py-6 px-4 md:px-8 sticky top-0 z-50">
-        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
-            <h1 class="text-3xl font-bold text-red-400 drop-shadow-md mb-4 md:mb-0">ポートフォリオ</h1>
-            <nav>
-                <ul class="flex flex-col text-center md:flex-row space-y-2 md:space-y-0 md:space-x-4">
-                    <li><a href="#home" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">ホーム</a></li>
-                    <li><a href="#about" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">私について</a></li>
-                    <li><a href="#works" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">制作物</a></li>
-                    <li><a href="#contact" class="nav-link text-lg text-gray-200 hover:text-red-400 transition-colors duration-300">お問い合わせ</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+<body>
+<div id="root"></div>
 
-    <main id="app-container" class="container mx-auto mt-10 px-4 md:px-8">
-    </main>
+<script type="text/babel">
+const SplitText = ({ text }) => {
+  return (
+    <h1>
+      {text.split("").map((char, i) => (
+        <span
+          key={i}
+          className="char"
+          style={{ animationDelay: `${i * 0.04}s` }}
+        >
+          {char === " " ? "\u00A0" : char}
+        </span>
+      ))}
+    </h1>
+  );
+};
 
-    <footer class="bg-gray-800 text-white py-6 mt-12">
-        <div class="container mx-auto text-center">
-            <p class="text-sm">&copy; 2025 Me. All Rights Reserved.</p>
-        </div>
-    </footer>
+const App = () => (
+  <div className="container">
+    <SplitText text="I Build Interfaces That Speak for Themselves." />
 
-    <script>
-        const portfolioData = {
-            about: {
-                title: "私について",
-                description: "私はアプリケーションエンジンとして、WindowsアプリケーションとHTML、Pythonを得意としています。",
-                skills: ["C", "C#", "VB.net", "VBA", "HTML", "Python", "SQL Server", "Oracle", "PostgreSQL", "DB2"]
-            },
-            works: {
-                title: "制作物",
-                projects: [
-                    { id: "proj1", title: "HTML", description: "様々なウェブ技術を使って、様々なウェブサイトを制作しました。", details: "https://senzaiichiguunochance-hub.github.io/mine/menu.html" },
-                    { id: "proj2", title: "Python", description: "Pythonを使った、各種アプリです。", details: "https://note.com/good_lilac166" }
-                ]
-            }
-        };
+    <p>
+      技術は目的ではなく手段。  
+    </p>
 
-        const appContainer = document.getElementById('app-container');
-        const navLinks = document.querySelectorAll('.nav-link');
+    <p>
+      コードの可読性、構造の美しさ、そしてユーザー体験を
+      同時に成立させることを大切にしています。
+    </p>
 
-        const renderContent = (contentId) => {
-            appContainer.innerHTML = `
-                <div class="flex justify-center items-center h-96">
-                    <div class="animate-spin rounded-full h-20 w-20 border-4 border-t-red-500 border-b-red-500 border-opacity-25"></div>
-                </div>
-            `;
+    <p>
+      小さな違和感を見逃さず、  
+      “なんとなく” を “意図された体験” に変えるのが得意です。
+    </p>
 
-            setTimeout(() => {
-                let htmlContent = '';
-                switch (contentId) {
-                    case 'home':
-                        htmlContent = `
-                            <section id="home" class="card-bg-effect p-8 rounded-xl shadow-2xl fade-in border border-red-400/20">
-                                <h2 class="text-4xl font-extrabold mb-4 text-red-400">ようこそ！</h2>
-                                <p class="text-xl leading-relaxed text-gray-300">このサイトは、私の制作物やスキルを紹介するインタラクティブなポートフォリオです。</p>
-                            </section>
-                        `;
-                        break;
-                    case 'about':
-                        const aboutData = portfolioData.about;
-                        const skillsHtml = aboutData.skills.map(skill => `
-                            <li class="bg-red-600/50 text-white font-medium px-4 py-2 rounded-full backdrop-blur-sm shadow-md">${skill}</li>
-                        `).join('');
+    <a className="cta" href="menu.html">
+      Let’s talk
+    </a>
+  </div>
+);
 
-                        htmlContent = `
-                            <section id="about" class="card-bg-effect p-8 rounded-xl shadow-2xl fade-in border border-red-400/20">
-                                <h2 class="text-4xl font-extrabold mb-6 text-red-400">${aboutData.title}</h2>
-                                <p class="text-lg leading-relaxed mb-4 text-gray-300">${aboutData.description}</p>
-                                <h3 class="text-2xl font-semibold mb-2 text-red-400">私のスキル</h3>
-                                <ul id="skills-list" class="flex flex-wrap gap-2 text-lg">
-                                    ${skillsHtml}
-                                </ul>
-                            </section>
-                        `;
-                        break;
-                    case 'works':
-                        const worksData = portfolioData.works;
-                        const projectsHtml = worksData.projects.map(project => `
-                            <article class="card-bg-effect p-6 rounded-xl shadow-xl card-hover-effect transition-shadow duration-300 border border-red-400/20">
-                                <h3 class="text-2xl font-semibold mb-2 text-red-400">${project.title}</h3>
-                                <p class="text-lg text-gray-300">${project.description}</p>
-                                <p class="mt-4 text-sm text-blue-300 underline">
-                                    <a href="${project.details}" target="_blank" rel="noopener noreferrer">${project.details}</a>
-                                </p>
-                            </article>
-                        `).join('');
-
-                        htmlContent = `
-                            <section id="works" class="fade-in">
-                                <h2 class="text-4xl font-extrabold mb-6 text-gray-200">${worksData.title}</h2>
-                                <div class="grid md:grid-cols-2 gap-8">
-                                    ${projectsHtml}
-                                </div>
-                            </section>
-                        `;
-                        break;
-                    case 'contact':
-                        htmlContent = `
-                            <section id="contact" class="card-bg-effect p-8 rounded-xl shadow-2xl fade-in border border-red-400/20">
-                                <h2 class="text-4xl font-extrabold mb-6 text-red-400">お問い合わせ</h2>
-                                <p class="text-lg leading-relaxed text-gray-300 mb-6">以下のフォームに必要事項をご入力の上、送信してください。</p>
-                                <div class="w-full h-auto">
-                                    <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSe0Og2yYS0LmkJK964eethYtLAGssGnmRwr8Lk64v5TdZvVFw/viewform?embedded=true"
-                                        class="w-full border-0 rounded-xl"
-                                        style="height: 800px; max-height: 85vh;"
-                                        frameborder="0" marginheight="0" marginwidth="0">
-                                        読み込んでいます…
-                                    </iframe>
-                                </div>
-                            </section>
-                        `;
-                        break;
-                    default:
-                        htmlContent = `<p>コンテンツが見つかりませんでした。</p>`;
-                }
-
-                appContainer.innerHTML = htmlContent;
-            }, 500);
-        };
-
-        navLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const contentId = e.target.getAttribute('href').substring(1);
-                renderContent(contentId);
-            });
-        });
-
-        renderContent('home');
-    </script>
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
 </body>
 </html>
