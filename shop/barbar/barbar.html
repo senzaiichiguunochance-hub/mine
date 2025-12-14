@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BARBER 架空 | 整えるのは、髪と心</title>
+    <style>
+        /* --- Base Settings & Variables --- */
+        :root {
+            --c-white: #ffffff;
+            --c-black: #1a1a1a;
+            --c-accent: #C5A059; /* 信頼感のあるゴールドベージュ */
+            --font-serif: "Yu Mincho", "Hiragino Mincho ProN", "Times New Roman", serif;
+            --font-sans: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif;
+            --easing: cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--c-white);
+            color: var(--c-black);
+            font-family: var(--font-sans);
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3 {
+            font-family: var(--font-serif);
+            font-weight: 500;
+        }
+
+        /* --- Loading Animation --- */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: var(--c-black);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--c-white);
+            transition: transform 1s var(--easing);
+        }
+
+        .loader-text {
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+            opacity: 0;
+            animation: fadeIn 1s forwards 0.5s;
+        }
+
+        body.loaded #loader {
+            transform: translateY(-100%);
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        /* --- Animations (React-Bits Style Simulation) --- */
+        .reveal-text {
+            overflow: hidden;
+            display: block;
+        }
+
+        .reveal-text span {
+            display: block;
+            transform: translateY(110%);
+            transition: transform 1.2s var(--easing);
+            opacity: 0;
+        }
+
+        .in-view .reveal-text span {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s ease-out, transform 1s var(--easing);
+        }
+
+        .in-view.fade-in-up {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Layout Components --- */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        section {
+            padding: 8rem 0;
+        }
+
+        /* --- Header --- */
+        header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            animation: fadeIn 1s forwards 1.8s; /* Loader後に表示 */
+        }
+
+        .logo {
+            font-family: var(--font-serif);
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+        }
+
+        .book-btn {
+            border: 1px solid var(--c-black);
+            padding: 0.5rem 1.5rem;
+            font-size: 0.8rem;
+            text-decoration: none;
+            color: var(--c-black);
+            transition: all 0.3s;
+        }
+
+        .book-btn:hover {
+            background: var(--c-black);
+            color: var(--c-white);
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            margin-bottom: 2rem;
+            line-height: 1.4;
+        }
+
+        .hero p {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 1rem;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            height: 60px;
+            width: 1px;
+            background: rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .scroll-indicator::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background: var(--c-black);
+            animation: scrollDown 2s infinite;
+        }
+
+        @keyframes scrollDown {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(200%); }
+        }
+
+        /* --- Concept Section --- */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .concept-img {
+            width: 100%;
+            height: 500px;
+            background-color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ccc;
+            font-size: 0.8rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 疑似画像（グレーのプレースホルダー） */
+        .concept-img::before {
+            content: "Atmosphere Image";
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            color: var(--c-accent);
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .concept-text h2 {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+        }
+
+        /* --- Menu Section --- */
+        .menu-list {
+            margin-top: 3rem;
+            border-top: 1px solid #eee;
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid #eee;
+            transition: background 0.3s;
+        }
+
+        .menu-item:hover {
+            background: #fafafa;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .menu-name {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+        }
+
+        .menu-price {
+            font-weight: bold;
+        }
+
+        /* --- Footer --- */
+        footer {
+            background: var(--c-black);
+            color: var(--c-white);
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .footer-logo {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+
+        .copyright {
+            font-size: 0.7rem;
+            opacity: 0.5;
+            margin-top: 2rem;
+        }
+
+        /* --- Mobile Responsive --- */
+        @media (max-width: 768px) {
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            
+            .concept-img {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="loader-text">BARBER 架空</div>
+    </div>
+
+    <header>
+        <div class="logo">BARBER 架空</div>
+        <a href="#" class="book-btn">ご予約</a>
+    </header>
+
+    <div class="hero">
+        <div class="container">
+            <h1>
+                <span class="reveal-text"><span>整えるのは、</span></span>
+                <span class="reveal-text"><span>髪と、心。</span></span>
+            </h1>
+            <p class="fade-in-up">Simplicity, Sincerity, and Trust.</p>
+        </div>
+        <div class="scroll-indicator"></div>
+    </div>
+
+    <section id="concept">
+        <div class="container">
+            <div class="concept-grid">
+                <div class="concept-img fade-in-up">
+                    <img src="barbar.png" alt="清潔感のある店内の様子">
+                </div>
+                <div class="concept-text">
+                    <span class="section-title fade-in-up">Concept</span>
+                    <h2>
+                        <span class="reveal-text"><span>静寂の中で、</span></span>
+                        <span class="reveal-text"><span>本来の自分に戻る。</span></span>
+                    </h2>
+                    <div class="fade-in-up" style="transition-delay: 0.2s;">
+                        <p style="margin-bottom: 1.5rem;">
+                            BARBER 架空は、ただ髪を切るだけの場所ではありません。<br>
+                            日々の喧騒から離れ、鏡の前の自分と向き合う静かな時間。
+                        </p>
+                        <p>
+                            清潔な空間、誠実な技術、そして信頼できる道具。<br>
+                            余計なものを削ぎ落とした「純粋」な理容体験をお届けします。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="menu">
+        <div class="container">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <span class="section-title fade-in-up">Menu</span>
+                <h2 class="fade-in-up">Standard Course</h2>
+            </div>
+            
+            <div class="menu-list fade-in-up">
+                <div class="menu-item">
+                    <span class="menu-name">レギュラーカット & シェービング</span>
+                    <span class="menu-price">¥6,500</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-name">デザインカット</span>
+                    <span class="menu-price">¥5,500</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-name">プレミアムシェービング</span>
+                    <span class="menu-price">¥3,500</span>
+                </div>
+                <div class="menu-item">
+                    <span class="menu-name">ヘッドスパ (30min)</span>
+                    <span class="menu-price">¥4,000</span>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 3rem;">
+                <a href="#menu" class="book-btn fade-in-up">すべてのメニューを見る</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-logo">BARBER 架空</div>
+            <p class="fade-in-up">
+                東京都架空区架空 1-2-3<br>
+                OPEN: 10:00 - 20:00 / CLOSED: Monday
+            </p>
+            <div class="copyright">© 2024 BARBER 架空. All Rights Reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        // --- Loading Logic ---
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loader');
+            // 少し待ってからローディングを解除（アニメーションを見せるため）
+            setTimeout(() => {
+                document.body.classList.add('loaded');
+                triggerHeroAnimations();
+            }, 1500);
+        });
+
+        // --- Intersection Observer for Scroll Animations ---
+        // React-Bitsのような「表示されたら動く」挙動を再現
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.15
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                    observer.unobserve(entry.target); // 一度だけ再生
+                }
+            });
+        }, observerOptions);
+
+        // 監視対象の要素を取得
+        function initObservers() {
+            const animatedElements = document.querySelectorAll('.reveal-text, .fade-in-up');
+            animatedElements.forEach(el => observer.observe(el));
+        }
+
+        // ヒーローセクションのアニメーションを強制発火
+        function triggerHeroAnimations() {
+            const heroTexts = document.querySelector('.hero').querySelectorAll('.reveal-text, .fade-in-up');
+            heroTexts.forEach(el => el.classList.add('in-view'));
+            
+            // その他の要素の監視開始
+            setTimeout(initObservers, 500);
+        }
+    </script>
+</body>
+</html>
