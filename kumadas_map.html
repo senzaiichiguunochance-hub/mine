@@ -8,7 +8,36 @@
 <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
 <link rel="stylesheet" type="text/css" href="Style.css" />
 <style>
-  #map { height: 70vh; }
+  #map { 
+    height: 100%;
+    width: 100%;
+  }
+  #main-content {
+    display: flex;
+    height: 70vh;
+  }
+  #map-container {
+    width: 70%;
+    height: 100%;
+  }
+  #info-list-container {
+    width: 30%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 0 15px;
+    box-sizing: border-box;
+  }
+  .info-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 5px;
+    font-size: 0.9rem;
+  }
+  .info-item:first-child {
+    border-top: 1px solid #eee;
+  }
+  .info-item strong {
+    color: white;
+  }
   .controls {
     display:flex; flex-wrap:wrap; align-items:center; gap:15px;
   }
@@ -57,8 +86,11 @@
         <div class="note">※先頭1件目を終了日、100件目（存在すれば）を開始日に自動設定します。</div>
     </div>
 
-    <div class="box">
-        <div id="map"></div>
+    <div id="main-content">
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+        <div id="info-list-container"></div>
     </div>
 </div>
 
@@ -187,6 +219,7 @@ function updateMap() {
 
   const overlay = document.getElementById("loadingOverlay");
   const text = document.getElementById("loadingText");
+  const infoListContainer = document.getElementById("info-list-container");
   overlay.style.display = "flex";
   text.textContent = "再描画中...";
 
@@ -202,13 +235,38 @@ function updateMap() {
     const startDate = new Date(sd);
     const endDate = new Date(ed);
     endDate.setHours(23, 59, 59, 999);
+    
     markersLayer.clearLayers();
+    infoListContainer.innerHTML = ""; // リストをクリア
 
     const filtered = normalizedRows.filter(r => r.date && r.lat !== null && r.lng !== null && r.date >= startDate && r.date <= endDate);
+    
+    // 日時の降順でソート
+    filtered.sort((a, b) => b.date - a.date);
+
+    let listHtml = '';
     filtered.forEach(r => {
-      const popup = `<b>${cleanString(r.__orig["獣種"] || "不明")}</b><br>${cleanString(r.__orig["市町村"] || "")}<br>${cleanString(r.dateStr || "")}<br>${cleanString(r.__orig["目撃時の状況"] || "")}`;
+      const place = cleanString(r.__orig["市町村"] || "");
+      const situation = cleanString(r.__orig["目撃時の状況"] || "");
+      const animal = cleanString(r.__orig["獣種"] || "不明");
+      const time = cleanString(r.dateStr || "");
+
+      // リスト項目HTMLを生成
+      listHtml += `
+            <div class="info-item">
+                <strong>場所:</strong> ${place || "情報なし"}<br>
+                <strong>日時:</strong> ${time || "情報なし"}<br>
+                <strong>状況:</strong> ${situation || "情報なし"}<br>
+                <strong>獣種:</strong> ${animal}
+            </div>
+        `;
+        
+      // 地図マーカーを追加
+      const popup = `<b>${animal}</b><br>${place}<br>${time}<br>${situation}`;
       L.marker([r.lat, r.lng]).bindPopup(popup).addTo(markersLayer);
     });
+    
+    infoListContainer.innerHTML = listHtml; // 生成したHTMLを一度に挿入
 
     overlay.style.display = "none";
   }, 10);

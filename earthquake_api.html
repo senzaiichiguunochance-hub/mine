@@ -11,9 +11,35 @@
   .container { padding: 10px; }
   
   #map { 
-    height: 70vh; 
+    height: 100%; 
     width: 100%;
     background-color: #f0f0f0;
+  }
+  #main-content {
+    display: flex;
+    height: 70vh;
+  }
+  #map-container {
+    width: 70%;
+    height: 100%;
+  }
+  #info-list-container {
+    width: 30%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 0 15px;
+    box-sizing: border-box;
+  }
+  .info-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 5px;
+    font-size: 0.9rem;
+  }
+  .info-item:first-child {
+    border-top: 1px solid #eee;
+  }
+  .info-item strong {
+    color: white;
   }
   
   .controls {
@@ -107,8 +133,11 @@
         <div class="note">※P2P地震情報APIより直近のデータを取得します。</div>
     </div>
 
-    <div class="box">
-        <div id="map"></div>
+    <div id="main-content">
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+        <div id="info-list-container"></div>
     </div>
 </div>
 
@@ -199,8 +228,10 @@ function formatScaleText(scale) {
 
 // APIデータ取得・描画処理
 async function loadFromApi() {
+  const infoListContainer = document.getElementById("info-list-container");
   try {
     showOverlay("データ読込中...");
+    infoListContainer.innerHTML = ""; // リストをクリア
     
     const limit = Math.min(parseInt(limitInput.value || 100), 100); 
     const selectedMinScale = parseInt(minScaleSelect.value) || 0; 
@@ -221,6 +252,9 @@ async function loadFromApi() {
         return maxScale >= selectedMinScale;
     });
 
+    // 日時の降順でソート
+    filtered.sort((a, b) => new Date(b.time) - new Date(a.time));
+
     loadingText.textContent = `該当データ: ${filtered.length}件 描画準備中...`;
     
     layerGroup.clearLayers();
@@ -232,16 +266,29 @@ async function loadFromApi() {
     for (let i = 0; i < filtered.length; i += chunkSize) {
       const chunk = filtered.slice(i, i + chunkSize);
       
+      let listHtml = '';
       for (const r of chunk) {
         const lat = parseFloat(r.earthquake.hypocenter.latitude);
         const lng = parseFloat(r.earthquake.hypocenter.longitude);
+        const timeStr = new Date(r.time).toLocaleString('ja-JP');
+        const maxScale = r.earthquake.maxScale || 0;
+        const scaleText = formatScaleText(maxScale);
+
+        // リスト項目HTMLの生成
+        listHtml += `
+            <div class="info-item">
+                <strong>場所:</strong> ${r.earthquake.hypocenter.name || "情報なし"}<br>
+                <strong>日時:</strong> ${timeStr}<br>
+                <strong>M:</strong> ${r.earthquake.magnitude || "-"}
+                <strong>深さ:</strong> ${r.earthquake.hypocenter.depth ? r.earthquake.hypocenter.depth + 'km' : "-"}<br>
+                <strong>最大震度:</strong> ${scaleText}
+            </div>
+        `;
         
         // 無効な座標はスキップ
         if (lat === -200 || lng === -200 || !isFinite(lat) || !isFinite(lng)) continue;
 
-        const maxScale = r.earthquake.maxScale || 0;
         const scaleClass = getScaleClass(maxScale);
-        const scaleText = formatScaleText(maxScale);
         const displayScale = scaleText.replace("震度", "");
 
         const customIcon = L.divIcon({
@@ -250,20 +297,20 @@ async function loadFromApi() {
             iconSize: [24, 24],
             popupAnchor: [0, -12]
         });
-
-        const timeStr = new Date(r.time).toLocaleString();
+        
         const popup = `
           <div style="min-width:200px;">
             <b>${r.earthquake.hypocenter.name || "震源地不明"}</b><br>
             <hr style="margin:5px 0;">
             日時: ${timeStr}<br>
-            M${r.earthquake.magnitude || "-"} / 深さ${r.earthquake.hypocenter.depth || "-"}<br>
+            M${r.earthquake.magnitude || "-"} / 深さ${r.earthquake.hypocenter.depth ? r.earthquake.hypocenter.depth + 'km' : "-"}<br>
             最大震度: <b>${scaleText}</b>
           </div>
         `;
         L.marker([lat, lng], {icon: customIcon}).bindPopup(popup).addTo(layerGroup);
       }
-
+      
+      infoListContainer.innerHTML += listHtml;
       done += chunk.length;
       const percent = Math.round((done / filtered.length) * 100);
       progressBar.style.width = percent + "%";
