@@ -107,6 +107,13 @@ button.secondary:hover { background-color: #ff5678; }
     white-space: pre-wrap;
     word-break: break-word;
 }
+.map-container {
+    height: 150px;
+    width: 100%;
+    margin-top: 15px;
+    border-radius: 8px;
+    z-index: 0;
+}
 </style>
 
 <!-- fetch のエラーハンドリング強化 -->
@@ -172,6 +179,75 @@ button.secondary:hover { background-color: #ff5678; }
 </div>
 
 <script>
+// 国名と緯度経度のマッピングデータ
+const countryCoordinates = {
+    '日本': [35.6895, 139.6917],
+};
+
+// 国名から座標を動的に取得する非同期関数
+async function getCountryCoords(countryName) {
+    if (!countryName) return null;
+
+    console.log(`Cache miss for: ${countryName}. Fetching from API...`);
+    // APIエンドポイント (日本語名での検索を試みる)
+    const url = `https://restcountries.com/v3.1/translation/${encodeURIComponent(countryName)}`;
+
+    try {
+        let response = await fetch(url);
+        if (!response.ok) {
+            // translation APIで失敗した場合、通常のname検索でフォールバック
+            console.log(`Fallback to name search for: ${countryName}`);
+            const fallbackUrl = `https://restcountries.com/v3.1/name/${encodeURIComponent(countryName)}`;
+            response = await fetch(fallbackUrl);
+        }
+
+        if (!response.ok) {
+            console.error(`Could not find coordinates for ${countryName}. Status: ${response.status}`);
+            return null;
+        }
+
+        const data = await response.json();
+        // APIは複数の結果を返すことがあるため、最初の結果を利用する
+        const countryData = data[0];
+        const coords = countryData?.latlng;
+
+        if (coords && coords.length === 2) {
+            console.log(`Found coords for ${countryName}: ${coords}`);
+            countryCoordinates[countryName] = coords; // キャッシュに保存
+            return coords;
+        } else {
+            console.error(`Invalid coordinate data for ${countryName}`, countryData);
+            return null;
+        }
+    } catch (e) {
+        console.error(`Network or parsing error for ${countryName}:`, e);
+        return null;
+    }
+}
+
+// ミニマップを初期化する関数
+function initMiniMap(elementId, lat, lon) {
+    // すでに地図が初期化されているかチェック
+    const container = L.DomUtil.get(elementId);
+    if(container._leaflet_id) {
+        return;
+    }
+
+    const map = L.map(elementId, {
+        zoomControl: false,
+        scrollWheelZoom: false,
+        dragging: false,
+        doubleClickZoom: false,
+        attributionControl: false // 右下の帰属表示を消す
+    }).setView([lat, lon], 4); // ズームレベルを4に調整
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' // 表示しない
+    }).addTo(map);
+
+    L.marker([lat, lon]).addTo(map);
+}
+
 let mofaRawData = [];
 
 function toggleMofaCodeInputs() {
@@ -180,7 +256,7 @@ function toggleMofaCodeInputs() {
     document.getElementById('mofa-country-code').style.display = 'none';
 }
 
-function renderMofaResults() {
+async function renderMofaResults() {
     const f = document.getElementById('mofa-filter').value.toLowerCase().trim();
     const box = document.getElementById('mofa-results');
     if (mofaRawData.length === 0) {
@@ -197,7 +273,7 @@ function renderMofaResults() {
         return keywords.every(k => t.includes(k) || c.includes(k) || lead.includes(k) || main.includes(k) || info.includes(k));
     });
     let html = `<h3>${filtered.length}件の情報が見つかりました</h3>`;
-    filtered.forEach(item => {
+    filtered.forEach((item, index) => {
         const title = item.querySelector('title')?.textContent || '';
         const country = item.querySelector('country > name')?.textContent || '';
         const date = item.querySelector('leaveDate')?.textContent || '';
@@ -209,10 +285,35 @@ function renderMofaResults() {
             <p><strong>国/地域:</strong> ${country}</p>
             <p><strong>発表日時:</strong> ${date}</p>
             <p>${lead}</p>
-            <a href="${url}" target="_blank" class="action-btn">原文のページへ</a>
+            <div id="map-${index}" class="map-container"></div>
+            <a href="${url}" target="_blank" class="action-btn" style="margin-top: 15px;">原文のページへ</a>
         </div>`;
     });
     box.innerHTML = html;
+
+    // HTMLをDOMに反映させた後に地図をレンダリング
+    // for...of ループを使い、非同期処理を正しく待つ
+    for (const [index, item] of filtered.entries()) {
+        const country = item.querySelector('country > name')?.textContent || '';
+        const mapDiv = document.getElementById(`map-${index}`);
+
+        if (!country || !mapDiv) continue;
+
+        let coords = countryCoordinates[country];
+
+        // キャッシュになければAPIから取得
+        if (!coords) {
+            coords = await getCountryCoords(country);
+        }
+
+        if (coords) {
+            const [lat, lon] = coords;
+            initMiniMap(`map-${index}`, lat, lon);
+        } else {
+            // 最終的に座標が取得できなければ地図コンテナを非表示にする
+            mapDiv.style.display = 'none';
+        }
+    }
 }
 
 async function getMofaData() {
