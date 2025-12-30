@@ -222,6 +222,10 @@ summary::marker {
   <div class="preview-box">
     <label for="logoInput">透過・中央表示する画像を選択</label><br>
     <input type="file" id="logoInput" accept="image/*"><br>
+    <div id="logoSizeControl" style="margin-top: 10px;">
+      <label for="logoSizeRatio">画像サイズ: <span id="logoSizeValue">25</span>%</label>
+      <input type="range" id="logoSizeRatio" min="0" max="1" step="0.01" value="0.25" style="width: 100%;">
+    </div>
     <img id="logoPreview" alt="選択した画像を表示">
   </div>
   <div class="preview-button"></div>
@@ -249,6 +253,9 @@ const qrSizeSelect = document.getElementById('qrSize');
 const opacitySelect = document.getElementById('opacity');
 const modeTransparent = document.getElementById('modeTransparent');
 const modeCentralFinder = document.getElementById('modeCentralFinder');
+const logoSizeRatio = document.getElementById('logoSizeRatio');
+const logoSizeValue = document.getElementById('logoSizeValue');
+const logoSizeControl = document.getElementById('logoSizeControl');
 
 let logoImage = null;
 
@@ -298,8 +305,10 @@ function generateQrCode() {
   if (logoImage && logoImage.complete) {
     let logoDrawWidth, logoDrawHeight;
     const aspectRatio = logoImage.width / logoImage.height;
+    const ratio = parseFloat(logoSizeRatio.value); // 常にスライダーの値を使用
+    const maxLogoSize = size * ratio; // 常にスライダーの値でロゴサイズを決定
+
     if (currentMode === 'transparent') {
-      const maxLogoSize = Math.min(size, size);
       if (aspectRatio > 1) {
         logoDrawWidth = maxLogoSize;
         logoDrawHeight = maxLogoSize / aspectRatio;
@@ -308,8 +317,7 @@ function generateQrCode() {
         logoDrawWidth = maxLogoSize * aspectRatio;
       }
       ctx.globalAlpha = opacity;
-    } else {
-      const maxLogoSize = size * 0.25;
+    } else { // centralFinder
       if (aspectRatio > 1) {
         logoDrawWidth = maxLogoSize;
         logoDrawHeight = maxLogoSize / aspectRatio;
@@ -391,13 +399,26 @@ urlInput.addEventListener('input', (e) => {
 
 
 // 初期表示
-window.addEventListener('load', () => generateQrCode());
+window.addEventListener('load', () => {
+    generateQrCode();
+    toggleOpacityControl();
+});
 
 // コントロール変更時に再生成
 qrSizeSelect.addEventListener('change', generateQrCode);
 opacitySelect.addEventListener('change', generateQrCode);
-modeTransparent.addEventListener('change', generateQrCode);
-modeCentralFinder.addEventListener('change', generateQrCode);
+
+const handleModeChange = () => {
+    toggleOpacityControl();
+    generateQrCode();
+};
+modeTransparent.addEventListener('change', handleModeChange);
+modeCentralFinder.addEventListener('change', handleModeChange);
+
+logoSizeRatio.addEventListener('input', () => {
+    logoSizeValue.textContent = Math.round(logoSizeRatio.value * 100);
+    generateQrCode();
+});
 
 // --- Password Toggle ---
 const togglePassword = document.getElementById('togglePassword');
@@ -415,9 +436,6 @@ function toggleOpacityControl() {
   const currentMode = document.querySelector('input[name="imageMode"]:checked').value;
   opacitySelect.disabled = (currentMode === 'centralFinder');
 }
-modeTransparent.addEventListener('change', toggleOpacityControl);
-modeCentralFinder.addEventListener('change', toggleOpacityControl);
-window.addEventListener('load', toggleOpacityControl);
 </script>
 <div style="text-align: center; margin-top: 30px; padding: 20px; background-color: var(--card-color); border: 1px solid var(--primary-color); border-radius: 15px;">
   <p>QRコード作成は無料です。技術者のモチベーションのためにnote経由で寄付していただけると助かります。</p>
