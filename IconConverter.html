@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Icon Converter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="Style.css">
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<div class="container">
+    <div class="header">
+        <h1>Icon Converter</h1>
+    </div>
+
+    <div class="box">
+        <label for="imageInput">画像を選択 (png, jpg, gif, bmp):</label>
+        <input type="file" id="imageInput" accept="image/*" class="file-input">
+
+        <label for="sizeSelect">アイコンサイズを選択:</label>
+        <select id="sizeSelect">
+            <option value="16">16 x 16 (Small)</option>
+            <option value="32" selected>32 x 32 (Windows 標準)</option>
+            <option value="48">48 x 48 (Desktop)</option>
+            <option value="64">64 x 64</option>
+            <option value="128">128 x 128</option>
+            <option value="256">256 x 256</option>
+        </select>
+
+        <button id="convertBtn" class="primary">アイコンに変換して保存</button>
+    </div>
+</div>
+
+<canvas id="canvas" style="display: none;"></canvas>
+
+<style>
+    /* 追加スタイル */
+    .file-input, select {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        border: 1px solid var(--primary-color);
+        background-color: #0f1a3a;
+        color: var(--font-color);
+        font-size: 1rem;
+        box-sizing: border-box; /* Ensures padding doesn't affect width */
+    }
+
+    .file-input::file-selector-button {
+        background-color: var(--secondary-color);
+        color: var(--font-color);
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .file-input::file-selector-button:hover {
+        background-color: #ff5678;
+    }
+    
+    button.primary {
+        width: 100%;
+        margin-top: 10px;
+    }
+</style>
+
+<script>
+    document.getElementById('convertBtn').addEventListener('click', function() {
+        const fileInput = document.getElementById('imageInput');
+        const size = parseInt(document.getElementById('sizeSelect').value);
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (fileInput.files.length === 0) {
+            alert('画像ファイルを選択してください');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                canvas.width = size;
+                canvas.height = size;
+                ctx.clearRect(0, 0, size, size);
+                ctx.drawImage(img, 0, 0, size, size);
+
+                canvas.toBlob(function(blob) {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    const originalFilename = file.name.substring(0, file.name.lastIndexOf('.'));
+                    link.download = `${originalFilename}_${size}x${size}.ico`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                }, 'image/x-icon');
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+</script>
+
+</body>
+</html>
