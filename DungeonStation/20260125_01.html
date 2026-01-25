@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Dungeon Station - Prototype</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background: #000; }
+        canvas { display: block; }
+        
+        /* UIレイヤー */
+        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+        .panel { 
+            pointer-events: auto; background: rgba(0,0,0,0.9); color: white; 
+            padding: 30px; border-radius: 15px; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; width: 360px; border: 2px solid #555;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); /* 影で立体感を */
+        }
+
+        /* タイトル表示 */
+        #game-title {
+            font-family: 'Press Start 2P', cursive; /* ドット絵フォント風にしたい */
+            font-size: 48px; margin-bottom: 20px;
+            text-shadow: 4px 4px 0px #222, 
+                         -2px -2px 0px #444, 
+                         2px -2px 0px #444, 
+                         -2px 2px 0px #444; /* レトロな影 */
+            color: #f1c40f; /* ゴールド */
+        }
+        #version { font-size: 14px; color: #aaa; margin-top: -10px; margin-bottom: 20px; }
+
+        /* 設定画面のパーツ */
+        label { display: block; text-align: left; margin: 15px 0 5px 0; font-size: 15px; color: #ddd;}
+        select, button { 
+            width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; 
+            border: none; font-size: 16px; 
+        }
+        select { background: #333; color: white; }
+        button { background: #e67e22; color: white; cursor: pointer; font-weight: bold; } /* 冒険感のあるオレンジ */
+        button:hover { background: #f39c12; }
+
+        /* 操作ガイド */
+        #guide {
+            position: absolute; bottom: 20px; left: 20px; color: white;
+            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px;
+            font-size: 14px; line-height: 1.6;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .hidden { display: none; }
+
+        /* ドット絵風フォント（Google Fontsから読み込み） */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    </style>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div id="start-menu" class="panel">
+        <div id="game-title">DUNGEON STATION</div>
+        <div id="version">Prototype v0.1</div>
+        
+        <label for="line-select">出発路線</label>
+        <select id="line-select">
+            <option>架空メトロ 青空線</option>
+            <option>東西シャトル線</option>
+            <option>地下急行 サブウェイライン</option>
+        </select>
+        <label for="pos-select">到着車両位置</label>
+        <select id="pos-select">
+            <option value="front">前方 (階段に近い)</option>
+            <option value="middle">中央</option>
+            <option value="back">後方 (迷いやすい)</option>
+        </select>
+        <button id="start-btn">ゲーム開始</button>
+    </div>
+
+    <div id="clear-screen" class="panel hidden">
+        <h2 style="color: #f1c40f;">MISSION CLEAR!</h2>
+        <p id="result-text"></p>
+        <button onclick="location.reload()">もう一度遊ぶ</button>
+    </div>
+
+    <div id="guide" class="hidden">
+        【操作方法】<br>
+        ・マウスで視点変更 (クリックで開始)<br>
+        ・[W][A][S][D] で移動<br>
+        ・黄色く光るゴールを目指せ！
+    </div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    // 環境マップに使える画像がないので、一旦CubeTextureLoaderをコメントアウト
+    // import { CubeTextureLoader } from 'three/addons/loaders/CubeTextureLoader.js';
+
+    let scene, camera, renderer, controls;
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+    let velocity = new THREE.Vector3();
+    let direction = new THREE.Vector3();
+    let isGoal = false;
+
+    const startBtn = document.getElementById('start-btn');
+    const startMenu = document.getElementById('start-menu');
+    const guide = document.getElementById('guide');
+    const clearScreen = document.getElementById('clear-screen');
+
+    function init() {
+        // シーン設定
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a); // より深い地下感
+        scene.fog = new THREE.Fog(0x1a1a1a, 0, 60);
+
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio); // 解像度を上げて綺麗に
+        document.body.appendChild(renderer.domElement);
+
+        controls = new PointerLockControls(camera, document.body);
+
+        // --- ライティング ---
+        // 環境光: 全体を均等に照らす（暗めにして地下感を出す）
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        // 各所にある蛍光灯をイメージした点光源
+        const light1 = new THREE.PointLight(0xffffff, 100, 50); // 白い強い光
+        light1.position.set(0, 5, -20);
+        scene.add(light1);
+        const light2 = new THREE.PointLight(0xffffff, 100, 50);
+        light2.position.set(0, 5, 20);
+        scene.add(light2);
+
+        // --- 環境マップ (CubeTextureLoaderの例 - 現在はコメントアウト) ---
+        // リアルな反射のために、駅構内の画像などをテクスチャとして読み込む
+        // const cubeTextureLoader = new CubeTextureLoader();
+        // const environmentMap = cubeTextureLoader.load([
+        //     'path/to/posx.jpg', 'path/to/negx.jpg',
+        //     'path/to/posy.jpg', 'path/to/negy.jpg',
+        //     'path/to/posz.jpg', 'path/to/negz.jpg'
+        // ]);
+        // scene.environment = environmentMap; // シーン全体に環境光を設定
+
+        // --- マテリアル定義 (光沢・発光を適用) ---
+        // 床のマテリアル (少し光沢があり、粗さが低い)
+        const floorMat = new THREE.MeshStandardMaterial({ 
+            color: 0x3a3a3a, 
+            roughness: 0.2,   // 粗さ (0で鏡面、1でざらざら)
+            metalness: 0.3,   // 金属感 (0で非金属、1で金属)
+            side: THREE.DoubleSide // 両面描画
+        });
+
+        // 壁と柱のマテリアル (コンクリート風の少しざらつきのある質感)
+        const wallMat = new THREE.MeshStandardMaterial({ 
+            color: 0x666666, 
+            roughness: 0.7, 
+            metalness: 0.1 
+        });
+
+        // ゴール地点のマテリアル (自己発光)
+        const goalMat = new THREE.MeshStandardMaterial({ 
+            color: 0xffa500,        // オレンジ色
+            emissive: 0xffa500,     // 自己発光色もオレンジ
+            emissiveIntensity: 1.5, // 発光の強さ
+            roughness: 0.3          // 少し光沢も持たせる
+        });
+
+        // --- ジオメトリ (駅の構造物) ---
+        // 地面（ホーム）
+        const floorGeo = new THREE.PlaneGeometry(30, 100);
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = 0;
+        scene.add(floor);
+
+        // 壁 (左右の壁)
+        const wallGeo = new THREE.BoxGeometry(0.5, 6, 100);
+        const wallLeft = new THREE.Mesh(wallGeo, wallMat);
+        wallLeft.position.set(-15, 3, 0);
+        scene.add(wallLeft);
+        const wallRight = new THREE.Mesh(wallGeo, wallMat);
+        wallRight.position.set(15, 3, 0);
+        scene.add(wallRight);
+
+        // 天井
+        const ceilingGeo = new THREE.PlaneGeometry(30, 100);
+        const ceiling = new THREE.Mesh(ceilingGeo, wallMat); // 壁と同じマテリアルを使用
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.y = 6;
+        scene.add(ceiling);
+
+        // 柱
+        for(let i = -40; i <= 40; i += 10) {
+            const pillar = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 1), wallMat);
+            pillar.position.set(5, 3, i);
+            scene.add(pillar);
+            const pillar2 = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 1), wallMat);
+            pillar2.position.set(-5, 3, i);
+            scene.add(pillar2);
+        }
+
+        // ゴール地点（黄色く光るエリア）
+        const goalGeo = new THREE.BoxGeometry(8, 0.1, 8);
+        const goal = new THREE.Mesh(goalGeo, goalMat);
+        goal.position.set(0, 0.05, -45); // 奥の方に配置
+        scene.add(goal);
+
+        // 入力イベント
+        const onKeyDown = (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyD': moveRight = true; break;
+            }
+        };
+        const onKeyUp = (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyD': moveRight = false; break;
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (controls.isLocked && !isGoal) {
+            const delta = 0.015; // 固定デルタタイムで動きを安定させる
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.x = Number(moveRight) - Number(moveLeft);
+            direction.normalize(); // ベクトルを正規化して一定速度に
+
+            if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+            if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+            controls.moveRight(-velocity.x * delta);
+            controls.moveForward(-velocity.z * delta);
+
+            // 簡易ゴール判定（カメラが目標座標より奥に行ったらクリア）
+            if (camera.position.z < -43) { // ゴール地点の少し手前で判定
+                isGoal = true;
+                controls.unlock();
+                showClear();
+            }
+        }
+        renderer.render(scene, camera);
+    }
+
+    function showClear() {
+        clearScreen.classList.remove('hidden');
+        guide.classList.add('hidden');
+        const line = document.getElementById('line-select').value;
+        const pos = document.getElementById('pos-select').value;
+        document.getElementById('result-text').innerText = 
+            `${line} の ${pos === 'front' ? '前方' : (pos === 'middle' ? '中央' : '後方')} 車両から出発し、\n\nダンジョンステーションを攻略しました！`;
+    }
+
+    // 開始ボタンの処理
+    startBtn.addEventListener('click', () => {
+        const pos = document.getElementById('pos-select').value;
+        // 開始位置を設定 (車両位置に応じて初期Z座標を変更)
+        let startZ;
+        if (pos === 'front') {
+            startZ = -30; // ゴールに近い位置
+        } else if (pos === 'middle') {
+            startZ = 0;   // 中央付近
+        } else { // back
+            startZ = 40;  // ゴールから遠い位置
+        }
+        camera.position.set(0, 1.6, startZ); 
+        
+        startMenu.classList.add('hidden');
+        guide.classList.remove('hidden');
+        controls.lock(); // マウスロックでゲーム開始
+    });
+
+    // ウィンドウリサイズ対応
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    init();
+</script>
+</body>
+</html>
