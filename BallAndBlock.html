@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Ball vs Blocks Simulator</title>
+    <style>
+        body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; overflow: hidden; display: flex; }
+        #settings { width: 300px; padding: 20px; background: #2a2a2a; border-right: 2px solid #444; height: 100vh; overflow-y: auto; box-sizing: border-box; }
+        #game-container { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        canvas { background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: crosshair; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8em; margin-bottom: 5px; color: #ccc; }
+        input[type="range"] { width: 100%; }
+        button { width: 100%; padding: 10px; background: #4CAF50; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 4px; }
+        button:hover { background: #45a049; }
+        #hud { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        .stat { font-size: 1.2em; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+<div id="settings">
+    <h2>Settings</h2>
+    <div class="control-group">
+        <label>制限時間: <span id="val-time">60</span>秒</label>
+        <input type="range" id="input-time" min="30" max="300" step="30" value="60">
+    </div>
+    <div class="control-group">
+        <label>ボールの数: <span id="val-balls">3</span></label>
+        <input type="range" id="input-balls" min="1" max="20" step="1" value="3">
+    </div>
+    <div class="control-group">
+        <label>ボールの速さ: <span id="val-bSpeed">5</span></label>
+        <input type="range" id="input-bSpeed" min="2" max="15" step="1" value="5">
+    </div>
+    <div class="control-group">
+        <label>ブロックの数: <span id="val-blocks">50</span></label>
+        <input type="range" id="input-blocks" min="10" max="200" step="10" value="50">
+    </div>
+    <div class="control-group">
+        <label>中央へ寄る速さ: <span id="val-attract">0.05</span></label>
+        <input type="range" id="input-attract" min="0" max="0.2" step="0.01" value="0.05">
+    </div>
+    <button id="start-btn">Start / Restart Game</button>
+    <hr>
+    <div class="stat">High Score: <span id="high-score">0</span></div>
+</div>
+
+<div id="game-container">
+    <div id="hud">
+        <div class="stat">Time: <span id="timer">0.0</span>s</div>
+        <div class="stat">Blocks Destroyed: <span id="score">0</span></div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const startBtn = document.getElementById('start-btn');
+
+// UI Elements for updates
+const inputs = ['time', 'balls', 'bSpeed', 'blocks', 'attract'];
+inputs.forEach(id => {
+    const el = document.getElementById('input-' + id);
+    el.oninput = () => document.getElementById('val-' + id).textContent = el.value;
+});
+
+let balls = [];
+let blocks = [];
+let score = 0;
+let highScore = 0;
+let timeLeft = 0;
+let isRunning = false;
+let lastTime = 0;
+
+// Resize canvas
+function resize() {
+    canvas.width = window.innerWidth - 300;
+    canvas.height = window.innerHeight;
+}
+window.onresize = resize;
+resize();
+
+class Ball {
+    constructor(speed) {
+        this.r = 8;
+        this.x = canvas.width / 2;
+        this.y = canvas.height / 2;
+        const angle = Math.random() * Math.PI * 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Wall collision
+        if (this.x < this.r || this.x > canvas.width - this.r) this.vx *= -1;
+        if (this.y < this.r || this.y > canvas.height - this.r) this.vy *= -1;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+class Block {
+    constructor() {
+        this.size = 20;
+        this.spawn();
+        this.color = '#555';
+    }
+
+    spawn() {
+        // Spawn randomly but away from center
+        const side = Math.floor(Math.random() * 4);
+        if(side === 0) { this.x = Math.random() * canvas.width; this.y = -50; }
+        else if(side === 1) { this.x = canvas.width + 50; this.y = Math.random() * canvas.height; }
+        else if(side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + 50; }
+        else { this.x = -50; this.y = Math.random() * canvas.height; }
+        
+        this.vx = 0;
+        this.vy = 0;
+    }
+
+    update(attraction) {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // Move towards center
+        const angle = Math.atan2(centerY - this.y, centerX - this.x);
+        this.vx += Math.cos(angle) * attraction;
+        this.vy += Math.sin(angle) * attraction;
+        
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vx *= 0.98; // friction
+        this.vy *= 0.98;
+    }
+
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+    }
+}
+
+function initGame() {
+    balls = [];
+    blocks = [];
+    score = 0;
+    timeLeft = parseFloat(document.getElementById('input-time').value);
+    const ballCount = parseInt(document.getElementById('input-balls').value);
+    const ballSpeed = parseFloat(document.getElementById('input-bSpeed').value);
+    const blockCount = parseInt(document.getElementById('input-blocks').value);
+
+    for (let i = 0; i < ballCount; i++) balls.push(new Ball(ballSpeed));
+    for (let i = 0; i < blockCount; i++) blocks.push(new Block());
+
+    isRunning = true;
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(timestamp) {
+    if (!isRunning) return;
+
+    const deltaTime = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    timeLeft -= deltaTime;
+
+    if (timeLeft <= 0) {
+        timeLeft = 0;
+        isRunning = false;
+        if (score > highScore) {
+            highScore = score;
+            document.getElementById('high-score').textContent = highScore;
+        }
+        alert("Game Over! Score: " + score);
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const attraction = parseFloat(document.getElementById('input-attract').value);
+
+    // Update & Draw Blocks
+    blocks.forEach(block => {
+        block.update(attraction);
+        block.draw();
+    });
+
+    // Update & Draw Balls
+    balls.forEach(ball => {
+        ball.update();
+        
+        // Collision detection with blocks
+        blocks.forEach(block => {
+            if (ball.x > block.x - block.size/2 && ball.x < block.x + block.size/2 &&
+                ball.y > block.y - block.size/2 && ball.y < block.y + block.size/2) {
+                
+                // Bounce ball (simple reverse)
+                ball.vx *= -1;
+                ball.vy *= -1;
+                
+                // Reset block position and count score
+                block.spawn();
+                score++;
+            }
+        });
+        ball.draw();
+    });
+
+    // Update HUD
+    document.getElementById('timer').textContent = timeLeft.toFixed(1);
+    document.getElementById('score').textContent = score;
+
+    if (isRunning) requestAnimationFrame(gameLoop);
+}
+
+startBtn.onclick = initGame;
+</script>
+</body>
+</html>
