@@ -30,7 +30,6 @@
         右クリック : ブロックを壊す<br>
         <b>--- 魔法 ---</b><br>
         Shift + 左: 花を咲かせる <span class="desc">- 装飾用の花を設置</span><br>
-        C + 左: 炎のブロック <span class="desc">- 5秒で消える足場</span><br>
         V + 左: 氷のブロック <span class="desc">- 見た目が氷のブロック</span><br>
         G + 左: 反重力ブロック <span class="desc">- 周囲の重力を弱める</span><br>
         X + 左: ツタを伸ばす <span class="desc">- 上に伸びるツタを生成</span><br>
@@ -106,7 +105,7 @@
         // --- 状態変数 ---
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let canJump = false;
-        let shiftPressed = false, cPressed = false, vPressed = false, gPressed = false, xPressed = false, lPressed = false, tPressed = false;
+        let shiftPressed = false, vPressed = false, gPressed = false, xPressed = false, lPressed = false, tPressed = false;
         let teleportCooldown = 0;
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
@@ -119,7 +118,6 @@
                 case 'KeyA': moveLeft = true; break; case 'KeyD': moveRight = true; break;
                 case 'Space': if (canJump) { velocity.y = 35; canJump = false; } break;
                 case 'ShiftLeft': case 'ShiftRight': shiftPressed = true; break;
-                case 'KeyC': cPressed = true; break; case 'KeyV': vPressed = true; break;
                 case 'KeyG': gPressed = true; break; case 'KeyX': xPressed = true; break;
                 case 'KeyL': lPressed = true; break; case 'KeyT': tPressed = true; break;
             }
@@ -129,7 +127,6 @@
                 case 'KeyW': moveForward = false; break; case 'KeyS': moveBackward = false; break;
                 case 'KeyA': moveLeft = false; break; case 'KeyD': moveRight = false; break;
                 case 'ShiftLeft': case 'ShiftRight': shiftPressed = false; break;
-                case 'KeyC': cPressed = false; break; case 'KeyV': vPressed = false; break;
                 case 'KeyG': gPressed = false; break; case 'KeyX': xPressed = false; break;
                 case 'KeyL': lPressed = false; break; case 'KeyT': tPressed = false; break;
             }
@@ -148,7 +145,6 @@
                     if (isPlayerColliding(pos)) return;
 
                     if (shiftPressed) createFlower(pos);
-                    else if (cPressed) createFireBlock(pos);
                     else if (vPressed) createIceBlock(pos);
                     else if (gPressed) createGravityBlock(pos);
                     else if (xPressed) growVine(pos, intersect.face.normal);
@@ -208,12 +204,6 @@
             const petalColor = petalColors[Math.floor(Math.random() * petalColors.length)];
             const petal = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshStandardMaterial({ color: petalColor, emissive: petalColor, emissiveIntensity: 0.3 }));
             petal.position.copy(pos).y += 1.5; petal.castShadow = true; scene.add(petal); objects.push(petal);
-        }
-        function createFireBlock(pos) {
-            const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), fireMatBase.clone()); // マテリアルをクローン
-            voxel.position.copy(pos);
-            voxel.castShadow = true; scene.add(voxel); objects.push(voxel);
-            fireBlocks.push({ mesh: voxel, createdAt: performance.now() });
         }
         function createIceBlock(pos) {
             const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), iceMat);
