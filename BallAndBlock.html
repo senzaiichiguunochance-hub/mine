@@ -28,7 +28,7 @@
     </div>
     <div class="control-group">
         <label>ボールの数: <span id="val-balls">3</span></label>
-        <input type="range" id="input-balls" min="1" max="20" step="1" value="3">
+        <input type="range" id="input-balls" min="1" max="1000" step="1" value="3">
     </div>
     <div class="control-group">
         <label>ボールの速さ: <span id="val-bSpeed">5</span></label>
@@ -232,8 +232,21 @@ function gameLoop(timestamp) {
     const attraction = parseFloat(document.getElementById('input-attract').value);
 
     // Update & Draw Blocks
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const centerThresholdSq = 10 * 10; // 中央とみなす距離の2乗 (10px)
+
     blocks.forEach(block => {
         block.update(attraction);
+
+        const dx = block.x - centerX;
+        const dy = block.y - centerY;
+        if (dx * dx + dy * dy < centerThresholdSq) {
+            // 中央に到達したら再スポーンさせて減点
+            score -= block.points; // ブロックの点数分を減点
+            block.spawn(); // 新しい位置に再スポーン
+        }
+
         block.draw();
     });
 
