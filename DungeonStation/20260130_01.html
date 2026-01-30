@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Dungeon Station - Prototype</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background: #000; }
+        canvas { display: block; }
+        
+        /* UIレイヤー */
+        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+        .panel { 
+            pointer-events: auto; background: rgba(0,0,0,0.9); color: white; 
+            padding: 30px; border-radius: 15px; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; width: 360px; border: 2px solid #555;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); /* 影で立体感を */
+        }
+
+        /* タイトル表示 */
+        #game-title {
+            font-family: 'Press Start 2P', cursive; /* ドット絵フォント風にしたい */
+            font-size: 48px; margin-bottom: 20px;
+            text-shadow: 4px 4px 0px #222, 
+                         -2px -2px 0px #444, 
+                         2px -2px 0px #444, 
+                         -2px 2px 0px #444; /* レトロな影 */
+            color: #f1c40f; /* ゴールド */
+        }
+        #version { font-size: 14px; color: #aaa; margin-top: -10px; margin-bottom: 20px; }
+
+        /* 設定画面のパーツ */
+        label { display: block; text-align: left; margin: 15px 0 5px 0; font-size: 15px; color: #ddd;}
+        select, button { 
+            width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; 
+            border: none; font-size: 16px; 
+        }
+        select { background: #333; color: white; }
+        button { background: #e67e22; color: white; cursor: pointer; font-weight: bold; } /* 冒険感のあるオレンジ */
+        button:hover { background: #f39c12; }
+
+        /* 操作ガイド */
+        #guide {
+            position: absolute; bottom: 20px; left: 20px; color: white;
+            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px;
+            font-size: 14px; line-height: 1.6;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .hidden { display: none; }
+
+        /* ドット絵風フォント（Google Fontsから読み込み） */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    </style>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div id="start-menu" class="panel">
+        <div id="game-title">DUNGEON STATION</div>
+        <div id="version">Prototype v2026.01.30.001</div>
+        
+        <label for="line-select">出発路線</label>
+        <select id="line-select">
+            <option>架空メトロ 青空線</option>
+            <option>東西シャトル線</option>
+            <option>地下急行 サブウェイライン</option>
+        </select>
+        <label for="pos-select">到着車両位置</label>
+        <select id="pos-select">
+            <option value="front">前方 (階段に近い)</option>
+            <option value="middle">中央</option>
+            <option value="back">後方 (迷いやすい)</option>
+        </select>
+        <button id="start-btn">ゲーム開始</button>
+    </div>
+
+    <div id="clear-screen" class="panel hidden">
+        <h2 style="color: #f1c40f;">MISSION CLEAR!</h2>
+        <p id="result-text"></p>
+        <button onclick="location.reload()">もう一度遊ぶ</button>
+    </div>
+
+    <div id="guide" class="hidden">
+        【操作方法】<br>
+        ・マウスで視点変更 (クリックで開始)<br>
+        ・[W][A][S][D] で移動<br>
+        ・黄色く光るゴールを目指せ！
+        <br>
+        ESC : カーソル解放
+    </div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+    let scene, camera, renderer, controls;
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+    let velocity = new THREE.Vector3();
+    let direction = new THREE.Vector3();
+    let isGoal = false;
+    const collidables = [];
+    const otherPeople = [];
+    const worldBounds = {
+        xMin: -14.5, xMax: 14.5,
+        zMin: -49.5, zMax: 49.5
+    };
+
+    const startBtn = document.getElementById('start-btn');
+    const startMenu = document.getElementById('start-menu');
+    const guide = document.getElementById('guide');
+    const clearScreen = document.getElementById('clear-screen');
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        scene.fog = new THREE.Fog(0x1a1a1a, 0, 60);
+
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new PointerLockControls(camera, document.body);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambientLight);
+
+        const light1 = new THREE.PointLight(0xffffff, 100, 50);
+        light1.position.set(0, 5, -20);
+        scene.add(light1);
+        const light2 = new THREE.PointLight(0xffffff, 100, 50);
+        light2.position.set(0, 5, 20);
+        scene.add(light2);
+
+        const floorMat = new THREE.MeshStandardMaterial({
+            color: 0x3a3a3a, 
+            roughness: 0.2,
+            metalness: 0.3,
+            side: THREE.DoubleSide
+        });
+        const wallMat = new THREE.MeshStandardMaterial({
+            color: 0x666666, 
+            roughness: 0.7, 
+            metalness: 0.1 
+        });
+        const goalMat = new THREE.MeshStandardMaterial({
+            color: 0xffa500,
+            emissive: 0xffa500,
+            emissiveIntensity: 1.5,
+            roughness: 0.3
+        });
+
+        const floorGeo = new THREE.PlaneGeometry(30, 100);
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = 0;
+        scene.add(floor);
+
+        const wallGeo = new THREE.BoxGeometry(0.5, 6, 100);
+        const wallLeft = new THREE.Mesh(wallGeo, wallMat);
+        wallLeft.position.set(-15, 3, 0);
+        scene.add(wallLeft);
+        collidables.push(wallLeft);
+        const wallRight = new THREE.Mesh(wallGeo, wallMat);
+        wallRight.position.set(15, 3, 0);
+        scene.add(wallRight);
+        collidables.push(wallRight);
+
+        const ceilingGeo = new THREE.PlaneGeometry(30, 100);
+        const ceiling = new THREE.Mesh(ceilingGeo, wallMat);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.y = 6;
+        scene.add(ceiling);
+
+        const pillarPositions = [];
+        for(let i = -40; i <= 40; i += 20) {
+            const p1Pos = new THREE.Vector3(5, 3, i);
+            pillarPositions.push(p1Pos);
+            const pillar1 = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 1), wallMat);
+            pillar1.position.copy(p1Pos);
+            scene.add(pillar1);
+            collidables.push(pillar1);
+            
+            const p2Pos = new THREE.Vector3(-5, 3, i);
+            pillarPositions.push(p2Pos);
+            const pillar2 = new THREE.Mesh(new THREE.BoxGeometry(1, 6, 1), wallMat);
+            pillar2.position.copy(p2Pos);
+            scene.add(pillar2);
+            collidables.push(pillar2);
+        }
+
+        const goalGeo = new THREE.BoxGeometry(8, 0.1, 8);
+        const goal = new THREE.Mesh(goalGeo, goalMat);
+        goal.position.set(0, 0.05, -45);
+        scene.add(goal);
+
+        // --- オブジェクト設置 ---
+        createRandomPosters(12, pillarPositions);
+        
+        const vendingMachine = createVendingMachine();
+        vendingMachine.position.set(-14.75, 0, 15);
+        scene.add(vendingMachine);
+        collidables.push(vendingMachine);
+
+        const bench1 = createBench();
+        bench1.position.set(0, 0, 25);
+        scene.add(bench1);
+        collidables.push(bench1);
+
+        const bench2 = createBench();
+        bench2.position.set(0, 0, 5);
+        bench2.rotation.y = Math.PI;
+        scene.add(bench2);
+        collidables.push(bench2);
+
+        const trashCan1 = createTrashCan();
+        trashCan1.position.set(10, 0, -10);
+        scene.add(trashCan1);
+        collidables.push(trashCan1);
+
+        const trashCan2 = createTrashCan();
+        trashCan2.position.set(-10, 0, 10);
+        scene.add(trashCan2);
+        collidables.push(trashCan2);
+
+
+        initPeople();
+
+        const onKeyDown = (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyD': moveRight = true; break;
+            }
+        };
+        const onKeyUp = (e) => {
+            switch (e.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyD': moveRight = false; break;
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        animate();
+    }
+
+    function createRandomPosters(count, pillarPositions) {
+        const adjectives = ['衝撃の', '最新', '伝説の', '秘密の', '音速の', '甘い', '蒼い', '灼熱の'];
+        const nouns = ['アイドル', '力', '旅', '革命', '世界', '未来', '果実', '鼓動'];
+        const verbs = ['デビュー!', '覚醒せよ', '体験版', '発売中', '到来', 'を探せ!', '限定!', '登場!'];
+        const palettes = [
+            {grad: ['#ff00ff', '#ff99ff'], text: '#000'}, {grad: ['#444444', '#000000'], text: '#fff'},
+            {grad: ['#00ffff', '#0077ff'], text: '#000'}, {grad: ['#ffdd00', '#ff8800'], text: '#fff'},
+            {grad: ['#00ff00', '#005500'], text: '#fff'}, {grad: ['#ff0000', '#550000'], text: '#fff'}
+        ];
+
+        const placedZones = [];
+
+        for (let i = 0; i < count; i++) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256; canvas.height = 512;
+            const context = canvas.getContext('2d');
+
+            const palette = palettes[Math.floor(Math.random() * palettes.length)];
+            const gradient = context.createLinearGradient(0, 0, 0, 512);
+            gradient.addColorStop(0, palette.grad[0]);
+            gradient.addColorStop(1, palette.grad[1]);
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 256, 512);
+
+            context.fillStyle = palette.text;
+            context.strokeStyle = 'rgba(0,0,0,0.5)';
+            context.lineWidth = 5;
+            context.textAlign = 'center';
+            context.font = 'bold 50px sans-serif';
+            context.strokeText(adjectives[Math.floor(Math.random() * adjectives.length)], 128, 150);
+            context.fillText(adjectives[Math.floor(Math.random() * adjectives.length)], 128, 150);
+            context.font = 'bold 40px sans-serif';
+            const text2 = nouns[Math.floor(Math.random() * nouns.length)] + ' ' + verbs[Math.floor(Math.random() * verbs.length)];
+            context.strokeText(text2, 128, 220);
+            context.fillText(text2, 128, 220);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.MeshBasicMaterial({ map: texture });
+            const geometry = new THREE.PlaneGeometry(1, 2);
+            const poster = new THREE.Mesh(geometry, material);
+
+            // 配置場所をランダムに決定
+            let placed = false;
+            let attempts = 0;
+            while (!placed && attempts < 20) {
+                const y = THREE.MathUtils.randFloat(1.5, 3.5);
+                const z = THREE.MathUtils.randFloat(-45, 45);
+                const zone = Math.round(z / 5); 
+
+                const locType = Math.random();
+                if (locType < 0.45 && !placedZones.includes(`R${zone}`)) { // 右壁
+                    poster.position.set(14.7, y, z);
+                    poster.rotation.y = -Math.PI / 2;
+                    placedZones.push(`R${zone}`);
+                    placed = true;
+                } else if (locType < 0.9 && !placedZones.includes(`L${zone}`)) { // 左壁
+                    poster.position.set(-14.7, y, z);
+                    poster.rotation.y = Math.PI / 2;
+                    placedZones.push(`L${zone}`);
+                    placed = true;
+                } else { // 柱
+                    const p = pillarPositions[Math.floor(Math.random() * pillarPositions.length)];
+                    const face = Math.floor(Math.random() * 4);
+                    const pZone = `P${pillarPositions.indexOf(p)}F${face}`;
+                    if (!placedZones.includes(pZone)) {
+                         if(face === 0) { // +X
+                             poster.position.set(p.x + 0.55, y, p.z);
+                             poster.rotation.y = -Math.PI / 2;
+                         } else if (face === 1) { // -X
+                             poster.position.set(p.x - 0.55, y, p.z);
+                             poster.rotation.y = Math.PI / 2;
+                         } else if (face === 2) { // +Z
+                             poster.position.set(p.x, y, p.z + 0.55);
+                             poster.rotation.y = 0;
+                         } else { // -Z
+                             poster.position.set(p.x, y, p.z - 0.55);
+                             poster.rotation.y = Math.PI;
+                         }
+                        placedZones.push(pZone);
+                        placed = true;
+                    }
+                }
+                attempts++;
+            }
+            if (placed) {
+                scene.add(poster);
+            }
+        }
+    }
+
+    function createVendingMachine() {
+        const group = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.5, roughness: 0.2 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.8), bodyMat);
+        body.position.y = 1;
+        group.add(body);
+
+        const glassMat = new THREE.MeshStandardMaterial({ color: 0xeeeeff, metalness: 0.8, roughness: 0.1, transparent: true, opacity: 0.3 });
+        const glass = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.1), glassMat);
+        glass.position.set(0, 1.2, 0.45);
+        group.add(glass);
+
+        const slotMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+        const slot = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.1), slotMat);
+        slot.position.set(0, 0.2, 0.45);
+        group.add(slot);
+        
+        return group;
+    }
+
+    function createBench() {
+        const group = new THREE.Group();
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 });
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(3, 0.15, 0.6), woodMat);
+        seat.position.y = 0.5;
+        group.add(seat);
+
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.9, roughness: 0.5 });
+        const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.5), legMat);
+        leg1.position.set(-1.3, 0.25, 0);
+        group.add(leg1);
+        const leg2 = leg1.clone();
+        leg2.position.x = 0;
+        group.add(leg2);
+        const leg3 = leg1.clone();
+        leg3.position.x = 1.3;
+        group.add(leg3);
+
+        return group;
+    }
+
+    function createTrashCan() {
+        const canMat = new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.8, roughness: 0.4 });
+        const can = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.8, 16), canMat);
+        can.position.y = 0.4;
+        return can;
+    }
+
+    function initPeople() {
+        const numPeople = 10;
+        for (let i = 0; i < numPeople; i++) {
+            const person = createPerson();
+            scene.add(person.mesh);
+            otherPeople.push(person);
+        }
+    }
+
+    function createPerson() {
+        const personGroup = new THREE.Group();
+
+        let bodyWidth, bodyHeight, bodyDepth;
+        const type = Math.random();
+
+        if (type < 0.2) {
+            bodyWidth = THREE.MathUtils.randFloat(0.3, 0.4);
+            bodyHeight = THREE.MathUtils.randFloat(1.8, 2.2);
+            bodyDepth = THREE.MathUtils.randFloat(0.2, 0.3);
+        } else if (type < 0.4) {
+            bodyWidth = THREE.MathUtils.randFloat(0.8, 1.2);
+            bodyHeight = THREE.MathUtils.randFloat(1.0, 1.3);
+            bodyDepth = THREE.MathUtils.randFloat(0.7, 1.0);
+        } else {
+            bodyWidth = THREE.MathUtils.randFloat(0.4, 0.7);
+            bodyHeight = THREE.MathUtils.randFloat(1.4, 1.7);
+            bodyDepth = THREE.MathUtils.randFloat(0.3, 0.5);
+        }
+
+        const mass = bodyWidth * bodyHeight * bodyDepth;
+        const radius = (bodyWidth + bodyDepth) / 3;
+
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(Math.random() * 0xffffff), 
+            roughness: 0.5, 
+            metalness: 0.1 
+        });
+        const bodyGeo = new THREE.BoxGeometry(bodyWidth, bodyHeight, bodyDepth);
+        const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+        bodyMesh.position.y = bodyHeight / 2;
+        personGroup.add(bodyMesh);
+
+        const headSize = THREE.MathUtils.randFloat(0.35, 0.45);
+        const headMat = new THREE.MeshStandardMaterial({
+            color: 0xffdbac,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const headGeo = new THREE.BoxGeometry(headSize, headSize, headSize);
+        const headMesh = new THREE.Mesh(headGeo, headMat);
+        headMesh.position.y = bodyHeight + (headSize / 2);
+        personGroup.add(headMesh);
+
+        const personObject = {
+            mesh: personGroup,
+            velocity: new THREE.Vector3(),
+            walkVelocity: new THREE.Vector3(),
+            mass: mass,
+            radius: radius,
+            reset: function() {
+                this.mesh.position.set(
+                    THREE.MathUtils.randFloat(worldBounds.xMin + 1, worldBounds.xMax - 1),
+                    0,
+                    THREE.MathUtils.randFloat(worldBounds.zMin + 1, worldBounds.zMax - 1)
+                );
+                this.walkVelocity.set((Math.random() - 0.5) * 2, 0, (Math.random() - 0.5) * 3);
+                this.velocity.copy(this.walkVelocity);
+                this.mesh.visible = true;
+            }
+        };
+
+        personObject.reset();
+        return personObject;
+    }
+
+    function resolveCollision(p1, p2) {
+        const pos1 = p1.mesh.position;
+        const pos2 = p2.mesh.position;
+        const distance = pos1.distanceTo(pos2);
+        const minDistance = p1.radius + p2.radius;
+
+        if (distance < minDistance) {
+            const collisionNormal = new THREE.Vector3().subVectors(pos2, pos1).normalize();
+            
+            const overlap = minDistance - distance;
+            pos1.addScaledVector(collisionNormal, -overlap / 2 * 1.01);
+            pos2.addScaledVector(collisionNormal, overlap / 2 * 1.01);
+
+            const v1 = p1.velocity;
+            const v2 = p2.velocity;
+            const m1 = p1.mass;
+            const m2 = p2.mass;
+
+            const relativeVelocity = new THREE.Vector3().subVectors(v1, v2);
+            const velAlongNormal = relativeVelocity.dot(collisionNormal);
+
+            if (velAlongNormal > 0) return;
+
+            const restitution = 0.8;
+            const impulseAmplifier = 1.5;
+            let j = -(1 + restitution) * velAlongNormal;
+            j /= (1 / m1) + (1 / m2);
+            j *= impulseAmplifier;
+
+            const impulse = new THREE.Vector3().copy(collisionNormal).multiplyScalar(j);
+            v1.addScaledVector(impulse, 1 / m1);
+            v2.addScaledVector(impulse, -1 / m2);
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = 0.016;
+
+        if (controls.isLocked && !isGoal) {
+            const playerHeight = 1.6;
+            const playerRadius = 0.4;
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.x = Number(moveRight) - Number(moveLeft);
+            direction.normalize();
+
+            if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+            if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+            const oldPosition = camera.position.clone();
+            controls.moveForward(-velocity.z * delta);
+
+            const playerCollider = new THREE.Box3();
+            const playerCenter = camera.position.clone();
+            playerCenter.y -= playerHeight / 2;
+            playerCollider.setFromCenterAndSize(playerCenter, new THREE.Vector3(playerRadius * 2, playerHeight, playerRadius * 2));
+
+            let collision = false;
+            for (const obj of collidables) {
+                const objCollider = new THREE.Box3().setFromObject(obj);
+                if (playerCollider.intersectsBox(objCollider)) {
+                    collision = true;
+                    break;
+                }
+            }
+            if (collision) {
+                camera.position.copy(oldPosition);
+            }
+
+            const positionAfterForward = camera.position.clone();
+            controls.moveRight(-velocity.x * delta);
+            
+            playerCenter.copy(camera.position);
+            playerCenter.y -= playerHeight / 2;
+            playerCollider.setFromCenterAndSize(playerCenter, new THREE.Vector3(playerRadius * 2, playerHeight, playerRadius * 2));
+
+            collision = false;
+            for (const obj of collidables) {
+                const objCollider = new THREE.Box3().setFromObject(obj);
+                if (playerCollider.intersectsBox(objCollider)) {
+                    collision = true;
+                    break;
+                }
+            }
+            if (collision) {
+                camera.position.copy(positionAfterForward);
+            }
+
+            if (camera.position.z < -43) {
+                isGoal = true;
+                controls.unlock();
+                showClear();
+            }
+        }
+
+        const people = otherPeople;
+        people.forEach(p => {
+            if (!p.mesh.visible) return;
+            
+            p.velocity.lerp(p.walkVelocity, 0.02);
+
+            p.mesh.position.addScaledVector(p.velocity, delta);
+
+            const pos = p.mesh.position;
+            if (pos.x < worldBounds.xMin || pos.x > worldBounds.xMax || pos.z < worldBounds.zMin || pos.z > worldBounds.zMax) {
+                p.mesh.visible = false;
+                setTimeout(() => p.reset(), Math.random() * 5000 + 3000);
+            }
+        });
+        
+        for (let i = 0; i < people.length; i++) {
+            for (let j = i + 1; j < people.length; j++) {
+                const p1 = people[i];
+                const p2 = people[j];
+                if (p1.mesh.visible && p2.mesh.visible) {
+                    resolveCollision(p1, p2);
+                }
+            }
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    function showClear() {
+        clearScreen.classList.remove('hidden');
+        guide.classList.add('hidden');
+        const line = document.getElementById('line-select').value;
+        const pos = document.getElementById('pos-select').value;
+        document.getElementById('result-text').innerText = 
+            `${line} の ${pos === 'front' ? '前方' : (pos === 'middle' ? '中央' : '後方')} 車両から出発し、
+
+ダンジョンステーションを攻略しました！`;
+    }
+
+    startBtn.addEventListener('click', () => {
+        const pos = document.getElementById('pos-select').value;
+        let startZ;
+        if (pos === 'front') {
+            startZ = -30;
+        } else if (pos === 'middle') {
+            startZ = 0;
+        } else {
+            startZ = 40;
+        }
+        camera.position.set(0, 1.6, startZ); 
+        
+        startMenu.classList.add('hidden');
+        guide.classList.remove('hidden');
+        controls.lock();
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    init();
+</script>
+</body>
+</html>
