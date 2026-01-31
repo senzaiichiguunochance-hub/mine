@@ -2,41 +2,111 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Creative Block Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Creative Block Builder - Mobile</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87ceeb; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #87ceeb; font-family: sans-serif; -webkit-user-select: none; user-select: none; }
         #crosshair {
             position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
             border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%);
             pointer-events: none; z-index: 10;
         }
+        #key-info {
+            position: absolute; top: 20px; left: 20px; color: white;
+            background: rgba(0,0,0,0.6); padding: 10px 15px; border-radius: 8px;
+            font-size: 13px; line-height: 1.6; z-index: 1000;
+        }
+        #key-info b { font-size: 14px; display: block; margin-bottom: 5px; }
+        
         #ui {
-            position: absolute; bottom: 20px; left: 20px; color: white;
+            position: absolute; top: 200px; left: 20px; color: white;
             background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px;
-            font-size: 14px; line-height: 1.7;
+            font-size: 14px; line-height: 1.6; max-width: 250px;
         }
         #ui b { font-size: 16px; }
-        .desc { color: #ccc; margin-left: 10px; font-style: italic;}
+
+        #movement-pad {
+            position: absolute; bottom: 20px; left: 20px; width: 150px; height: 100px;
+            opacity: 0.7; z-index: 100;
+        }
+        .move-btn {
+            position: absolute;
+            width: 50px; height: 50px;
+            background: rgba(255,255,255,0.3);
+            border: 1px solid white;
+            border-radius: 10px;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-size: 24px; font-weight: bold;
+            cursor: pointer;
+        }
+        .move-btn:active { background: rgba(255,255,255,0.6); }
+        #move-w { top: 0; left: 50px; }
+        #move-a { top: 50px; left: 0; }
+        #move-s { top: 50px; left: 50px; }
+        #move-d { top: 50px; left: 100px; }
+        #move-jump { position: absolute; bottom: 20px; left: 180px; width: 80px; height: 50px; border-radius: 25px; }
+
+        #spell-bar {
+            position: absolute; bottom: 20px; right: 20px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 100;
+        }
+        .spell-btn {
+            width: 50px; height: 50px;
+            background: rgba(0,0,0,0.4);
+            border: 2px solid #888;
+            border-radius: 8px;
+            font-size: 28px;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .spell-btn.active {
+            border-color: white;
+            background: rgba(0, 120, 255, 0.7);
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1001;">メニューに戻る</a>
+
+    <div id="key-info">
+        <b>キーボード魔法</b>
+        Shift + 左: 花<br>
+        V + 左: 氷<br>
+        G + 左: 反重力<br>
+        X + 左: ツタ<br>
+        L + 左: ライト<br>
+        T + 左: テレポート
+    </div>
 
     <div id="crosshair"></div>
     <div id="ui">
         <b>操作方法:</b><br>
-        WASD : 移動 / Space : ジャンプ<br>
-        左クリック : ブロックを置く<br>
-        右クリック : ブロックを壊す<br>
-        <b>--- 魔法 ---</b><br>
-        Shift + 左: 花を咲かせる <span class="desc">- 装飾用の花を設置</span><br>
-        V + 左: 氷のブロック <span class="desc">- 見た目が氷のブロック</span><br>
-        G + 左: 反重力ブロック <span class="desc">- 周囲の重力を弱める</span><br>
-        X + 左: ツタを伸ばす <span class="desc">- 上に伸びるツタを生成</span><br>
-        L + 左: ライトブロック <span class="desc">- 周囲を照らす光源を設置</span><br>
-        T + 左: テレポートパッド <span class="desc">- 2つ設置で相互に移動</span><br>
+        画面のボタンで移動・ジャンプ<br>
+        右のボタンで魔法を選択<br>
+        左クリック: ブロック/魔法を使用<br>
+        右クリック: ブロックを破壊<br>
         <br>
-        画面クリックで開始 / ESC : カーソル解放
+        画面クリックで開始 / ESC: 解放
+    </div>
+
+    <!-- 操作用UI -->
+    <div id="movement-pad">
+        <div id="move-w" class="move-btn">▲</div>
+        <div id="move-a" class="move-btn">◀</div>
+        <div id="move-s" class="move-btn">▼</div>
+        <div id="move-d" class="move-btn">▶</div>
+    </div>
+    <div id="move-jump" class="move-btn">JUMP</div>
+
+    <div id="spell-bar">
+        <div class="spell-btn active" data-spell="normal">🧱</div>
+        <div class="spell-btn" data-spell="flower">🌸</div>
+        <div class="spell-btn" data-spell="ice">🧊</div>
+        <div class="spell-btn" data-spell="gravity">🔮</div>
+        <div class="spell-btn" data-spell="vine">🌿</div>
+        <div class="spell-btn" data-spell="light">💡</div>
+        <div class="spell-btn" data-spell="teleport">🌀</div>
     </div>
 
     <script type="importmap">
@@ -85,27 +155,31 @@
         // --- ブロック/魔法の定義 ---
         const objects = [floor];
         const cubeMat = new THREE.MeshStandardMaterial({ map: createBlockTexture() });
-        const fireMatBase = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff4500, transparent: true, opacity: 0.8 });
         const iceMat = new THREE.MeshStandardMaterial({ color: 0x1e90ff, transparent: true, opacity: 0.6, roughness: 0.1 });
         const gravityMat = new THREE.MeshStandardMaterial({ color: 0x8a2be2, wireframe: true });
         const vineMat = new THREE.MeshStandardMaterial({ color: 0x228b22 });
         const lightMat = new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 1 });
         const teleportMatBase = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff });
 
-        let fireBlocks = [];
         let gravityZones = [];
         let lightSources = new Map();
-        let teleportPads = []; // ペア待ちパッド
-        let activeTeleports = []; // ペア成立済みパッド
+        let teleportPads = [];
+        let activeTeleports = [];
 
         // --- コントロール ---
         const controls = new PointerLockControls(camera, document.body);
-        document.body.addEventListener('click', () => controls.lock());
+        document.body.addEventListener('click', (event) => {
+            if (event.target.closest('.move-btn') || event.target.closest('.spell-btn') || event.target.closest('#key-info')) {
+                return;
+            }
+            controls.lock();
+        });
 
         // --- 状態変数 ---
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let canJump = false;
         let shiftPressed = false, vPressed = false, gPressed = false, xPressed = false, lPressed = false, tPressed = false;
+        let currentSpell = 'normal';
         let teleportCooldown = 0;
         const velocity = new THREE.Vector3();
         const direction = new THREE.Vector3();
@@ -118,6 +192,7 @@
                 case 'KeyA': moveLeft = true; break; case 'KeyD': moveRight = true; break;
                 case 'Space': if (canJump) { velocity.y = 35; canJump = false; } break;
                 case 'ShiftLeft': case 'ShiftRight': shiftPressed = true; break;
+                case 'KeyV': vPressed = true; break;
                 case 'KeyG': gPressed = true; break; case 'KeyX': xPressed = true; break;
                 case 'KeyL': lPressed = true; break; case 'KeyT': tPressed = true; break;
             }
@@ -126,6 +201,7 @@
             switch (e.code) {
                 case 'KeyW': moveForward = false; break; case 'KeyS': moveBackward = false; break;
                 case 'KeyA': moveLeft = false; break; case 'KeyD': moveRight = false; break;
+                case 'KeyV': vPressed = false; break;
                 case 'ShiftLeft': case 'ShiftRight': shiftPressed = false; break;
                 case 'KeyG': gPressed = false; break; case 'KeyX': xPressed = false; break;
                 case 'KeyL': lPressed = false; break; case 'KeyT': tPressed = false; break;
@@ -136,6 +212,10 @@
         const raycaster = new THREE.Raycaster();
         document.addEventListener('mousedown', (e) => {
             if (!controls.isLocked) return;
+            if (e.target.closest('.move-btn') || e.target.closest('.spell-btn') || e.target.closest('#key-info')) {
+                return;
+            }
+            
             raycaster.setFromCamera({x:0, y:0}, camera);
             const intersects = raycaster.intersectObjects(objects);
             if (intersects.length > 0) {
@@ -144,40 +224,89 @@
                     const pos = getPlacementPos(intersect.point, intersect.face);
                     if (isPlayerColliding(pos)) return;
 
-                    if (shiftPressed) createFlower(pos);
-                    else if (vPressed) createIceBlock(pos);
-                    else if (gPressed) createGravityBlock(pos);
-                    else if (xPressed) growVine(pos, intersect.face.normal);
-                    else if (lPressed) createLightBlock(pos);
-                    else if (tPressed) createTeleportPad(pos);
-                    else addBlock(pos);
-                } else if (e.button === 2) { // Right Click
-                    const objectToDestroy = intersect.object;
-                    if (objectToDestroy !== floor) {
-                        scene.remove(objectToDestroy);
-                        objects.splice(objects.indexOf(objectToDestroy), 1);
-                        
-                        // --- 魔法オブジェクトのクリーンアップ ---
-                        gravityZones = gravityZones.filter(zone => zone !== objectToDestroy);
-                        if (lightSources.has(objectToDestroy)) {
-                            scene.remove(lightSources.get(objectToDestroy));
-                            lightSources.delete(objectToDestroy);
-                        }
-                        if (objectToDestroy.isTeleportPad) {
-                            // アクティブなペアから削除
-                            activeTeleports = activeTeleports.filter(p => p !== objectToDestroy && p !== objectToDestroy.link);
-                            // リンク先のパッドのリンクを解除し、ペア待ちに戻す
-                            if (objectToDestroy.link) {
-                                objectToDestroy.link.link = null;
-                                objectToDestroy.link.material.color.set(0xffaa00); // ペア待ち状態の色に
-                                teleportPads.push(objectToDestroy.link);
-                            }
-                            teleportPads = teleportPads.filter(p => p !== objectToDestroy);
-                        }
+                    let spellToUse = currentSpell;
+                    if (shiftPressed) spellToUse = 'flower';
+                    else if (vPressed) spellToUse = 'ice';
+                    else if (gPressed) spellToUse = 'gravity';
+                    else if (xPressed) spellToUse = 'vine';
+                    else if (lPressed) spellToUse = 'light';
+                    else if (tPressed) spellToUse = 'teleport';
+
+                    switch(spellToUse) {
+                        case 'normal': addBlock(pos); break;
+                        case 'flower': createFlower(pos); break;
+                        case 'ice': createIceBlock(pos); break;
+                        case 'gravity': createGravityBlock(pos); break;
+                        case 'vine': growVine(pos, intersect.face.normal); break;
+                        case 'light': createLightBlock(pos); break;
+                        case 'teleport': createTeleportPad(pos); break;
+                        default: addBlock(pos); break;
                     }
+
+                } else if (e.button === 2) { // Right Click
+                    destroyBlock(intersect.object);
                 }
             }
         });
+        
+        function destroyBlock(objectToDestroy) {
+            if (objectToDestroy !== floor) {
+                scene.remove(objectToDestroy);
+                objects.splice(objects.indexOf(objectToDestroy), 1);
+                
+                gravityZones = gravityZones.filter(zone => zone !== objectToDestroy);
+                if (lightSources.has(objectToDestroy)) {
+                    scene.remove(lightSources.get(objectToDestroy));
+                    lightSources.delete(objectToDestroy);
+                }
+                if (objectToDestroy.isTeleportPad) {
+                    activeTeleports = activeTeleports.filter(p => p !== objectToDestroy && p !== objectToDestroy.link);
+                    if (objectToDestroy.link) {
+                        objectToDestroy.link.link = null;
+                        objectToDestroy.link.material.color.set(0xffaa00);
+                        teleportPads.push(objectToDestroy.link);
+                    }
+                    teleportPads = teleportPads.filter(p => p !== objectToDestroy);
+                }
+            }
+        }
+
+        function setupTouchControls() {
+            const moveButtons = {
+                'move-w': (pressed) => moveForward = pressed,
+                'move-s': (pressed) => moveBackward = pressed,
+                'move-a': (pressed) => moveLeft = pressed,
+                'move-d': (pressed) => moveRight = pressed,
+            };
+
+            for (const [id, action] of Object.entries(moveButtons)) {
+                const btn = document.getElementById(id);
+                btn.addEventListener('mousedown', (e) => { e.stopPropagation(); action(true); });
+                btn.addEventListener('mouseup', (e) => { e.stopPropagation(); action(false); });
+                btn.addEventListener('mouseleave', (e) => { e.stopPropagation(); action(false); });
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); action(true); }, { passive: false });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); action(false); }, { passive: false });
+            }
+
+            const jumpBtn = document.getElementById('move-jump');
+            const jumpAction = () => { if (canJump && controls.isLocked) { velocity.y = 35; canJump = false; }};
+            jumpBtn.addEventListener('mousedown', (e) => { e.stopPropagation(); jumpAction(); });
+            jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); jumpAction(); }, { passive: false });
+
+            const spellBtns = document.querySelectorAll('.spell-btn');
+            spellBtns.forEach(btn => {
+                const spell = btn.dataset.spell;
+                const spellAction = () => {
+                    currentSpell = spell;
+                    spellBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                };
+                btn.addEventListener('mousedown', (e) => { e.stopPropagation(); spellAction(); });
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); spellAction(); }, { passive: false });
+            });
+        }
+        setupTouchControls();
+
 
         function getPlacementPos(point, face) {
             const pos = new THREE.Vector3().copy(point).add(face.normal);
@@ -190,7 +319,6 @@
             return playerBox.intersectsBox(voxelBox);
         }
 
-        // --- アクション関数 ---
         function addBlock(pos) {
             const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), cubeMat);
             voxel.position.copy(pos);
@@ -233,7 +361,7 @@
             lightSources.set(voxel, pointLight);
         }
         function createTeleportPad(pos) {
-            const voxel = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 2), teleportMatBase.clone()); // マテリアルをクローン
+            const voxel = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 2), teleportMatBase.clone());
             voxel.position.copy(pos);
             voxel.isTeleportPad = true; voxel.link = null;
             scene.add(voxel); objects.push(voxel);
@@ -242,10 +370,10 @@
                 const partner = teleportPads.pop();
                 voxel.link = partner;
                 partner.link = voxel;
-                voxel.material.color.set(0x00ff00); partner.material.color.set(0x00ff00); // ペア成立色
+                voxel.material.color.set(0x00ff00); partner.material.color.set(0x00ff00);
                 activeTeleports.push(voxel, partner);
             } else {
-                voxel.material.color.set(0xffaa00); // ペア待ち色
+                voxel.material.color.set(0xffaa00);
                 teleportPads.push(voxel);
             }
         }
@@ -260,8 +388,7 @@
             const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; return texture;
         }
 
-        // --- メインループ ---
-        camera.position.set(10, 5, 20); // 初期位置を地面から少し高く
+        camera.position.set(10, 5, 20);
         let prevTime = performance.now();
 
         function animate() {
@@ -269,81 +396,55 @@
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
 
-            // --- 継続的エフェクト ---
-            fireBlocks = fireBlocks.filter(block => {
-                if (now - block.createdAt > 5000) { // 5秒で消える
-                    scene.remove(block.mesh);
-                    objects.splice(objects.indexOf(block.mesh), 1);
-                    return false;
-                }
-                const life = (now - block.createdAt) / 5000;
-                block.mesh.material.emissiveIntensity = 0.8 * (1 - life);
-                block.mesh.material.opacity = 0.8 * (1 - life);
-                return true;
-            });
             teleportCooldown = Math.max(0, teleportCooldown - delta);
-
-            // --- テレポート判定 ---
             const playerPosition = controls.getObject().position;
+
             if (teleportCooldown === 0) {
                 for (const pad of activeTeleports) {
-                    if (pad.link && playerPosition.distanceTo(pad.position) < 2) { // パッドの上に乗ったか
-                        playerPosition.copy(pad.link.position).y += 2; // リンク先のパッドの上にワープ
-                        teleportCooldown = 3; // 3秒間のクールダウン
+                    if (pad.link && playerPosition.distanceTo(pad.position) < 2) {
+                        playerPosition.copy(pad.link.position).y += 2;
+                        teleportCooldown = 3;
                         break;
                     }
                 }
             }
             
-            // --- 物理演算 ---
             if (controls.isLocked) {
                 let baseGravity = 80.0;
-                
-                // 反重力ゾーンの影響
                 for (const zone of gravityZones) {
-                    if (playerPosition.distanceTo(zone.position) < 15) { // 影響範囲
-                        baseGravity = 20.0; // 重力を弱める
+                    if (playerPosition.distanceTo(zone.position) < 15) {
+                        baseGravity = 20.0;
                         break;
                     }
                 }
 
-                // Y軸の速度更新 (重力)
                 velocity.y -= baseGravity * delta;
+                
+                let playerOnGround = false;
+                const oldY = playerPosition.y;
                 playerPosition.y += velocity.y * delta;
                 
-                // 地面との衝突判定と補正
-                const playerHeight = 3.0; // プレイヤーの身長（目の高さではない）
-                const playerFeetY = playerPosition.y - playerHeight / 2; // プレイヤーの足元のY座標
-                const downRay = new THREE.Raycaster(
-                    new THREE.Vector3(playerPosition.x, playerFeetY, playerPosition.z),
-                    new THREE.Vector3(0, -1, 0),
-                    0, 0.2 // 足元からわずかな距離でレイキャスト
-                );
-                const intersections = downRay.intersectObjects(objects, true); // trueで子オブジェクトもチェック
-
-                let onGround = false;
-                if (intersections.length > 0) {
-                    const groundDistance = intersections[0].distance;
-                    if (groundDistance < 0.1) { // ほぼ地面に接触している場合
-                        playerPosition.y = intersections[0].point.y + playerHeight / 2; // 足元が地面に立つように補正
-                        velocity.y = 0;
-                        onGround = true;
-                        canJump = true;
+                const playerBox = new THREE.Box3().setFromCenterAndSize(playerPosition, new THREE.Vector3(1.5, 3, 1.5));
+                let collision = false;
+                for(const obj of objects) {
+                    const objBox = new THREE.Box3().setFromObject(obj);
+                    if(playerBox.intersectsBox(objBox)) {
+                        collision = true;
+                        break;
                     }
                 }
-                if (!onGround) {
-                    canJump = false;
-                }
-
-                // 地面以下にならないように最終的なチェック
-                if (playerPosition.y < playerHeight / 2) { // 地面より下に行かない
-                    playerPosition.y = playerHeight / 2;
+                if(collision) {
+                    playerPosition.y = oldY;
                     velocity.y = 0;
+                    playerOnGround = true;
                     canJump = true;
                 }
+                
+                if (playerPosition.y < -50) {
+                    playerPosition.set(10, 5, 20);
+                    velocity.y = 0;
+                }
 
-
-                // XZ軸 (移動)
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
 
@@ -356,14 +457,13 @@
                 
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
-
-                prevTime = time;
             }
+            
+            prevTime = time;
             renderer.render(scene, camera);
         }
         animate();
         
-        // --- ウィンドウリサイズ ---
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
