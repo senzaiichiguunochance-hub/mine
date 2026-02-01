@@ -2,18 +2,18 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Ball vs Blocks Simulator</title>
+    <title>Ball vs Blocks Simulator - Circular Start</title>
     <style>
         body { margin: 0; background: #1a1a1a; color: white; font-family: sans-serif; overflow: hidden; display: flex; }
         #settings { width: 300px; padding: 20px; background: #2a2a2a; border-right: 2px solid #444; height: 100vh; overflow-y: auto; box-sizing: border-box; }
         #game-container { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        canvas { background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: crosshair; }
+        canvas { background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         .control-group { margin-bottom: 15px; }
         label { display: block; font-size: 0.8em; margin-bottom: 5px; color: #ccc; }
         input[type="range"] { width: 100%; }
         button { width: 100%; padding: 10px; background: #4CAF50; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 4px; }
         button:hover { background: #45a049; }
-        #hud { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        #hud { position: absolute; top: 10px; left: 10px; pointer-events: none; text-shadow: 1px 1px 2px #000; }
         .stat { font-size: 1.2em; margin-bottom: 5px; }
     </style>
 </head>
@@ -50,7 +50,8 @@
 <div id="game-container">
     <div id="hud">
         <div class="stat">Time: <span id="timer">0.0</span>s</div>
-        <div class="stat">Blocks Destroyed: <span id="score">0</span></div>
+        <div class="stat">Score: <span id="score">0</span></div>
+        <div class="stat">Combo: <span id="combo">0</span></div>
     </div>
     <canvas id="gameCanvas"></canvas>
 </div>
@@ -69,23 +70,26 @@ inputs.forEach(id => {
 
 let balls = [];
 let blocks = [];
+let particles = [];
 let score = 0;
 let highScore = 0;
 let timeLeft = 0;
 let isRunning = false;
 let lastTime = 0;
 
-const blockTypes = [
-    { color: '#ff7675', points: 1 },  // Pink
-    { color: '#74b9ff', points: 2 },  // Blue
-    { color: '#55efc4', points: 3 },  // Green
-    { color: '#ffeaa7', points: 5 },  // Yellow
-    { color: '#a29bfe', points: 8 },  // Purple
-    { color: '#fd79a8', points: 10 }  // Hot Pink
+let combo = 0;
+let lastHitTime = 0;
+const COMBO_WINDOW = 1;
+
+let shakeDuration = 0;
+let shakeIntensity = 0;
+
+const blockBaseTypes = [
+    { color: '#ff7675', points: 1 }, { color: '#74b9ff', points: 2 },
+    { color: '#55efc4', points: 3 }, { color: '#ffeaa7', points: 5 },
+    { color: '#a29bfe', points: 8 }, { color: '#fd79a8', points: 10 }
 ];
 
-
-// Resize canvas
 function resize() {
     canvas.width = window.innerWidth - 300;
     canvas.height = window.innerHeight;
@@ -93,91 +97,99 @@ function resize() {
 window.onresize = resize;
 resize();
 
+class Particle {
+    constructor(x, y, color) {
+        this.x = x; this.y = y; this.size = Math.random() * 5 + 2;
+        this.life = 1; this.color = color;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 50 + 20;
+        this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+    }
+    update(deltaTime) {
+        this.x += this.vx * deltaTime; this.y += this.vy * deltaTime;
+        this.vy += 100 * deltaTime; this.life -= deltaTime;
+        this.vx *= 0.99; this.vy *= 0.99;
+    }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.life > 0 ? this.life : 0;
+        ctx.fillRect(this.x, this.y, this.size, this.size);
+    }
+}
+
+function createParticles(x, y, color, count = 10) {
+    for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+}
+
+function triggerShake(intensity, duration) {
+    shakeIntensity = intensity; shakeDuration = duration;
+}
+
 class Ball {
     constructor(speed) {
-        this.r = 8;
-        this.x = canvas.width / 2;
-        this.y = canvas.height / 2;
+        this.r = 8; this.x = canvas.width / 2; this.y = canvas.height / 2;
         const angle = Math.random() * Math.PI * 2;
-        this.vx = Math.cos(angle) * speed;
-        this.vy = Math.sin(angle) * speed;
+        this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
         this.color = 'white';
-        this.hitCount = 0;
     }
-
     update() {
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Wall collision
-        if (this.x < this.r || this.x > canvas.width - this.r) this.vx *= -1;
-        if (this.y < this.r || this.y > canvas.height - this.r) this.vy *= -1;
+        this.x += this.vx; this.y += this.vy;
+        if (this.x < this.r) { this.x = this.r; this.vx *= -1; }
+        if (this.x > canvas.width - this.r) { this.x = canvas.width - this.r; this.vx *= -1; }
+        if (this.y < this.r) { this.y = this.r; this.vy *= -1; }
+        if (this.y > canvas.height - this.r) { this.y = canvas.height - this.r; this.vy *= -1; }
     }
-
     draw() {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.closePath();
-    }
-    
-    registerHit() {
-        this.hitCount++;
-        if (this.hitCount >= 3) {
-            this.hitCount = 0;
-            this.color = `hsl(${Math.random() * 360}, 80%, 70%)`;
-        }
+        ctx.fillStyle = this.color; ctx.fill(); ctx.closePath();
     }
 }
 
 class Block {
     constructor(x, y) {
-        this.size = 20;
-        this.x = x;
-        this.y = y;
-        
-        const type = blockTypes[Math.floor(Math.random() * blockTypes.length)];
-        this.color = type.color;
-        this.points = type.points;
-        
-        this.vx = 0;
-        this.vy = 0;
+        this.size = 20; this.x = x; this.y = y;
+        this.vx = 0; this.vy = 0;
+        this.init();
     }
-
+    init() {
+        const rand = Math.random();
+        if (rand < 0.05) {
+            this.type = 'explosive'; this.hp = 1; this.maxHp = 1;
+            this.color = '#ff4d4d'; this.points = 25;
+        } else if (rand < 0.15) {
+            this.type = 'tough'; this.hp = 3; this.maxHp = 3;
+            this.color = '#84817a'; this.points = 15;
+        } else {
+            this.type = 'normal';
+            const baseType = blockBaseTypes[Math.floor(Math.random() * blockBaseTypes.length)];
+            this.color = baseType.color; this.points = baseType.points;
+            this.hp = 1; this.maxHp = 1;
+        }
+    }
     spawn() {
-        // Spawn randomly but away from center
         const side = Math.floor(Math.random() * 4);
         if(side === 0) { this.x = Math.random() * canvas.width; this.y = -50; }
         else if(side === 1) { this.x = canvas.width + 50; this.y = Math.random() * canvas.height; }
         else if(side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + 50; }
         else { this.x = -50; this.y = Math.random() * canvas.height; }
-        
-        const type = blockTypes[Math.floor(Math.random() * blockTypes.length)];
-        this.color = type.color;
-        this.points = type.points;
-
-        this.vx = 0;
-        this.vy = 0;
+        this.vx = 0; this.vy = 0; this.init();
     }
-
+    takeDamage() {
+        this.hp--; return this.hp <= 0;
+    }
     update(attraction) {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        
-        // Move towards center
+        const centerX = canvas.width / 2, centerY = canvas.height / 2;
         const angle = Math.atan2(centerY - this.y, centerX - this.x);
-        this.vx += Math.cos(angle) * attraction;
-        this.vy += Math.sin(angle) * attraction;
-        
-        this.x += this.vx;
-        this.y += this.vy;
-        this.vx *= 0.98; // friction
-        this.vy *= 0.98;
+        this.vx += Math.cos(angle) * attraction; this.vy += Math.sin(angle) * attraction;
+        this.x += this.vx; this.y += this.vy;
+        this.vx *= 0.98; this.vy *= 0.98;
     }
-
     draw() {
-        ctx.fillStyle = this.color;
+        if (this.type === 'tough') {
+            const ratio = Math.max(0, this.hp / this.maxHp);
+            ctx.fillStyle = `rgb(${132 * ratio + 40}, ${129 * ratio + 40}, ${122 * ratio + 40})`;
+        } else { ctx.fillStyle = this.color; }
         ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
     }
 }
@@ -185,15 +197,18 @@ class Block {
 function initGame() {
     balls = [];
     blocks = [];
+    particles = [];
     score = 0;
+    combo = 0;
     timeLeft = parseFloat(document.getElementById('input-time').value);
     const ballCount = parseInt(document.getElementById('input-balls').value);
-    const ballSpeed = parseFloat(document.getElementById('input-bSpeed').value);
     const blockCount = parseInt(document.getElementById('input-blocks').value);
+    const ballSpeed = parseFloat(document.getElementById('input-bSpeed').value);
+
 
     for (let i = 0; i < ballCount; i++) balls.push(new Ball(ballSpeed));
 
-    // Create blocks in a donut shape
+    // Create blocks in a donut shape (initial placement)
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const innerRadius = 100;
@@ -211,77 +226,131 @@ function initGame() {
     requestAnimationFrame(gameLoop);
 }
 
+function handleBlockDestruction(block) {
+    const now = performance.now() / 1000;
+    combo = (now - lastHitTime < COMBO_WINDOW) ? combo + 1 : 1;
+    lastHitTime = now;
+    score += Math.round(block.points * (1 + (combo - 1) * 0.1));
+    createParticles(block.x, block.y, block.color);
+    if (block.type === 'explosive') {
+        triggerShake(8, 0.3);
+        blocks.forEach(other => {
+            if (other !== block && Math.hypot(block.x - other.x, block.y - other.y) < 100) {
+                score += other.points;
+                createParticles(other.x, other.y, other.color, 5);
+                other.spawn();
+            }
+        });
+    }
+    block.spawn();
+}
+
+function adjustEntitiesInRealtime() {
+    const targetBallCount = parseInt(document.getElementById('input-balls').value);
+    const targetBallSpeed = parseFloat(document.getElementById('input-bSpeed').value);
+    const targetBlockCount = parseInt(document.getElementById('input-blocks').value);
+
+    // Adjust ball count
+    while (balls.length < targetBallCount) {
+        balls.push(new Ball(targetBallSpeed));
+    }
+    while (balls.length > targetBallCount) {
+        balls.pop();
+    }
+
+    // Adjust ball speed
+    balls.forEach(ball => {
+        const currentSpeed = Math.hypot(ball.vx, ball.vy);
+        if (currentSpeed > 0.01 && Math.abs(currentSpeed - targetBallSpeed) > 0.1) {
+            ball.vx = (ball.vx / currentSpeed) * targetBallSpeed;
+            ball.vy = (ball.vy / currentSpeed) * targetBallSpeed;
+        }
+    });
+
+    // Adjust block count (for new blocks during gameplay)
+    while (blocks.length < targetBlockCount) {
+        const newBlock = new Block(0, 0);
+        newBlock.spawn(); // Spawn new blocks from edges
+        blocks.push(newBlock);
+    }
+    while (blocks.length > targetBlockCount) {
+        blocks.pop();
+    }
+}
+
+
 function gameLoop(timestamp) {
     if (!isRunning) return;
-
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     timeLeft -= deltaTime;
 
+    if (timestamp / 1000 - lastHitTime >= COMBO_WINDOW) combo = 0;
+
     if (timeLeft <= 0) {
-        timeLeft = 0;
-        isRunning = false;
+        timeLeft = 0; isRunning = false;
         if (score > highScore) {
             highScore = score;
             document.getElementById('high-score').textContent = highScore;
         }
         alert("Game Over! Score: " + score);
     }
+    
+    // --- DYNAMIC SETTINGS ADJUSTMENT ---
+    adjustEntitiesInRealtime();
+    // ------------------------------------
 
+    ctx.globalAlpha = 1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (shakeDuration > 0) {
+        shakeDuration -= deltaTime;
+        ctx.save();
+        ctx.translate((Math.random() - 0.5) * shakeIntensity, (Math.random() - 0.5) * shakeIntensity);
+    }
+
     const attraction = parseFloat(document.getElementById('input-attract').value);
 
-    // Update & Draw Blocks
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const centerThresholdSq = 10 * 10; // 中央とみなす距離の2乗 (10px)
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => { p.update(deltaTime); p.draw(); });
+    ctx.globalAlpha = 1;
 
+    const centerX = canvas.width / 2, centerY = canvas.height / 2;
+    const centerThresholdSq = 10 * 10;
     blocks.forEach(block => {
         block.update(attraction);
-
-        const dx = block.x - centerX;
-        const dy = block.y - centerY;
-        if (dx * dx + dy * dy < centerThresholdSq) {
-            // 中央に到達したら再スポーンさせて減点
-            score -= block.points; // ブロックの点数分を減点
-            block.spawn(); // 新しい位置に再スポーン
+        if (Math.hypot(block.x - centerX, block.y - centerY) < 10) {
+            score -= block.points; block.spawn();
         }
-
         block.draw();
     });
 
-    // Update & Draw Balls
     balls.forEach(ball => {
         ball.update();
-        
-        // Collision detection with blocks
         blocks.forEach(block => {
             if (ball.x + ball.r > block.x - block.size/2 && ball.x - ball.r < block.x + block.size/2 &&
                 ball.y + ball.r > block.y - block.size/2 && ball.y - ball.r < block.y + block.size/2) {
                 
-                const overlapX = (ball.r + block.size / 2) - Math.abs(ball.x - block.x);
-                const overlapY = (ball.r + block.size / 2) - Math.abs(ball.y - block.y);
+                const overlapX = (ball.r + block.size/2) - Math.abs(ball.x - block.x);
+                const overlapY = (ball.r + block.size/2) - Math.abs(ball.y - block.y);
 
                 if (overlapX < overlapY) {
-                    ball.vx *= -1;
-                    ball.x += (ball.x < block.x ? -overlapX : overlapX);
+                    ball.vx *= -1; ball.x += (ball.x < block.x ? -overlapX : overlapX);
                 } else {
-                    ball.vy *= -1;
-                    ball.y += (ball.y < block.y ? -overlapY : overlapY);
+                    ball.vy *= -1; ball.y += (ball.y < block.y ? -overlapY : overlapY);
                 }
                 
-                // Reset block position and count score
-                block.spawn();
-                score += block.points;
-                ball.registerHit();
+                if (block.takeDamage()) handleBlockDestruction(block);
             }
         });
         ball.draw();
     });
 
-    // Update HUD
+    if (shakeDuration > 0) ctx.restore();
+
     document.getElementById('timer').textContent = timeLeft.toFixed(1);
     document.getElementById('score').textContent = score;
+    document.getElementById('combo').textContent = combo;
 
     if (isRunning) requestAnimationFrame(gameLoop);
 }
