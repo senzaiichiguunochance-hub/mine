@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>こすって塗り絵</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #fff9e6;
+            font-family: 'Hiragino Kaku Gothic ProN', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #canvas-container {
+            position: relative;
+            margin-top: 20px;
+            background-color: #fff;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 5px solid #fff;
+            border-radius: 10px;
+        }
+        canvas {
+            display: block;
+            filter: grayscale(100%) contrast(1.2);
+            border-radius: 5px;
+        }
+        .controls { margin-top: 20px; display: flex; gap: 15px; }
+        button {
+            padding: 15px 30px; font-size: 20px; border-radius: 50px;
+            border: none; background: #ffcc00; cursor: pointer;
+            font-weight: bold; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px #e6b800;
+        }
+        button:active { transform: translateY(2px); box-shadow: 0 2px #e6b800; }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<div id="canvas-container">
+    <canvas id="paintCanvas"></canvas>
+</div>
+
+<div class="controls">
+    <button onclick="changeImage(-1)">まえ</button>
+    <button onclick="resetCanvas()">もういちど</button>
+    <button onclick="changeImage(1)">つぎ</button>
+</div>
+
+<script>
+    // --- 設定エリア ---
+    const GITHUB_USER = "senzaiichiguunochance-hub";
+    const REPO_NAME = "mine";
+    const FOLDER_PATH = "nurie"; // 画像を入れたフォルダ名
+    const TOTAL_IMAGES = 3;      // フォルダに入れた画像の合計枚数（例：10枚なら10）
+    
+    // 画像のインデックスを管理する配列
+    let imageIndices = Array.from({length: TOTAL_IMAGES}, (_, i) => i + 1);
+    
+    // シャッフル関数（毎回違う順番で遊べるように）
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    shuffle(imageIndices);
+    let currentPos = 0;
+
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+    let currentImgObject = null;
+    let isDrawing = false;
+
+    function init() {
+        const num = imageIndices[currentPos];
+        // 数字を「001」のような3桁の文字列に変換
+        const fileName = String(num).padStart(3, '0') + ".png";
+        
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        
+        // GitHub PagesのURLを構築
+        img.src = `https://${GITHUB_USER}.github.io/${REPO_NAME}/${FOLDER_PATH}/${fileName}`;
+        
+        img.onload = () => {
+            currentImgObject = img;
+            const maxWidth = window.innerWidth * 0.9;
+            const maxHeight = window.innerHeight * 0.7;
+            const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+            
+            canvas.width = img.width * ratio;
+            canvas.height = img.height * ratio;
+            container.style.backgroundImage = `url(${img.src})`;
+            container.style.width = canvas.width + 'px';
+            container.style.height = canvas.height + 'px';
+            
+            resetCanvas();
+        };
+
+        img.onerror = () => {
+            console.error("読み込み失敗:", img.src);
+            // 1枚読み込めなくても止まらないように次を試す
+            setTimeout(() => changeImage(1), 500);
+        };
+    }
+
+    // --- (以下、resetCanvas, changeImage, draw 等の関数は前回と同じ) ---
+    function resetCanvas() {
+        if (!currentImgObject) return;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(currentImgObject, 0, 0, canvas.width, canvas.height);
+    }
+
+    function changeImage(dir) {
+        currentPos = (currentPos + dir + imageIndices.length) % imageIndices.length;
+        init();
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+
+        ctx.lineWidth = e.touches ? 30 : 55; // マウスは1円玉サイズ
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    canvas.addEventListener('mousedown', (e) => { isDrawing = true; draw(e); });
+    canvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', () => { isDrawing = false; ctx.beginPath(); });
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDrawing = true; draw(e); }, {passive: false});
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, {passive: false});
+    canvas.addEventListener('touchend', () => { isDrawing = false; ctx.beginPath(); });
+
+    init();
+</script>
+</body>
+</html>
