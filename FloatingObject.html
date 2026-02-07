@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>うごめく物体（観賞用）</title>
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .sculpture-unit {
+            position: absolute;
+            pointer-events: none;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        svg {
+            overflow: visible;
+        }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<script>
+    const numSculptures = Math.floor(Math.random() * 21) + 20; // 20-40個
+    const bodyWidth = window.innerWidth;
+    const bodyHeight = window.innerHeight;
+
+    for (let i = 0; i < numSculptures; i++) {
+        createUnit(i);
+    }
+
+    function createUnit(seed) {
+        const unit = document.createElement('div');
+        unit.className = 'sculpture-unit';
+        
+        const scale = 0.8 + Math.random() * 2.2; // 0.8〜3倍
+        const baseSize = 150; 
+        const actualSize = baseSize * scale;
+        
+        unit.style.width = `${actualSize}px`;
+        unit.style.height = `${actualSize}px`;
+        unit.style.zIndex = Math.floor(scale * 10); // 大きいものを手前に
+
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 400 400");
+        unit.appendChild(svg);
+        document.body.appendChild(unit);
+
+        // 色の設定
+        const baseHue = Math.random() * 360;
+        const color1 = `hsl(${baseHue}, 75%, 50%)`;
+        const strokeColor = `hsl(${baseHue}, 80%, 10%)`;
+
+        const mainG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        mainG.setAttribute("transform", "translate(200, 200)");
+        svg.appendChild(mainG);
+
+        // 腕と節の生成
+        const numArms = 6 + (Math.floor(Math.random() * 8));
+        const segmentsPerArm = 5 + (Math.floor(Math.random() * 6));
+        const arms = [];
+
+        for (let i = 0; i < numArms; i++) {
+            const segments = [];
+            const armG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            mainG.appendChild(armG);
+            for (let j = 0; j < segmentsPerArm; j++) {
+                const seg = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                seg.setAttribute("fill", color1);
+                seg.setAttribute("stroke", strokeColor);
+                seg.setAttribute("stroke-width", "0.4");
+                armG.appendChild(seg);
+                segments.push(seg);
+            }
+            arms.push({ group: armG, segments, baseAngle: (i / numArms) * Math.PI * 2 });
+        }
+
+        // 浮遊用パラメータ
+        let driftX = Math.random() * bodyWidth;
+        let driftY = Math.random() * bodyHeight;
+        const driftSeedX = Math.random() * 100;
+        const driftSeedY = Math.random() * 100;
+        const driftSpeed = 0.0001 + Math.random() * 0.0001;
+
+        // アニメーション用パラメータ
+        const startTimeOffset = Math.random() * 20000;
+        const animSpeed = 0.0008 + Math.random() * 0.0008;
+
+        function update() {
+            const now = Date.now();
+            const time = (now + startTimeOffset) * animSpeed;
+            const driftTime = now * driftSpeed;
+
+            // --- 座標の「ゆらゆら」計算 ---
+            // 複数のサイン波を合成して、予測不能な浮遊感を出す
+            const offsetX = Math.sin(driftTime + driftSeedX) * 150 + Math.cos(driftTime * 0.5 + driftSeedX) * 100;
+            const offsetY = Math.cos(driftTime * 0.8 + driftSeedY) * 150 + Math.sin(driftTime * 0.3 + driftSeedY) * 100;
+            
+            // 基準位置からの移動
+            const currentX = (driftX + offsetX) % (bodyWidth + actualSize) - (actualSize/2);
+            const currentY = (driftY + offsetY) % (bodyHeight + actualSize) - (actualSize/2);
+
+            unit.style.transform = `translate(${currentX}px, ${currentY}px)`;
+
+            // --- ウネウネアニメーション ---
+            const breathing = 0.85 + Math.sin(time * 0.7) * 0.15;
+
+            arms.forEach((arm, i) => {
+                let prevX = 0; let prevY = 0;
+                arm.segments.forEach((seg, j) => {
+                    const zFactor = Math.sin(time * 2.2 + j * 0.8 + i * 0.4);
+                    const currentScale = 1 + (zFactor * 0.35);
+                    const angleOffset = Math.cos(time * 1.1 + j * 0.5) * 0.6 * (j / segmentsPerArm);
+                    const angle = arm.baseAngle + angleOffset;
+                    
+                    const segLen = (14 + j * 3) * breathing;
+                    const nextX = prevX + Math.cos(angle) * segLen;
+                    const nextY = prevY + Math.sin(angle) * segLen;
+
+                    const thickness = (segmentsPerArm - j) * 3.2 + 1.2;
+                    const tx = Math.cos(angle + Math.PI/2) * thickness * currentScale;
+                    const ty = Math.sin(angle + Math.PI/2) * thickness * currentScale;
+
+                    const d = `M ${prevX + tx} ${prevY + ty} L ${nextX + tx*0.6} ${nextY + ty*0.6} A ${thickness} ${thickness} 0 0 1 ${nextX - tx*0.6} ${nextY - ty*0.6} L ${prevX - tx} ${prevY - ty} Z`;
+                    seg.setAttribute("d", d);
+
+                    const brightness = 40 + (zFactor * 30) + (j * 3);
+                    seg.style.fill = `hsl(${baseHue}, 65%, ${brightness}%)`;
+                    seg.style.opacity = 0.4 + (zFactor + 1) * 0.3;
+
+                    prevX = nextX; prevY = nextY;
+                });
+            });
+
+            mainG.setAttribute("transform", `translate(200, 200) rotate(${time * 10})`);
+            requestAnimationFrame(update);
+        }
+        update();
+    }
+</script>
+
+</body>
+</html>
