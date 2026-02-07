@@ -2,93 +2,173 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>あなたはハッキングされた！</title>
+    <title>REAL-TIME SYSTEM REPORT</title>
     <style>
-        body {
-            background-color: #c1c19d;
-            color: #000000;
-            font-family: monospace;
-            font-size: 18px;
-            padding: 20px;
-            overflow: hidden;
+        body { 
+            background-color: #c1c19d; 
+            color: #00ff00; 
+            font-family: 'Consolas', monospace; 
+            font-size: 11px; 
+            padding: 20px; 
+            line-height: 1.2; 
         }
-        #terminal {
-            white-space: pre-line;
+        .cat { 
+            color: #fff; 
+            background: #333; 
+            padding: 0 5px; 
+            margin-top: 10px; 
+            display: inline-block; 
+            font-weight: bold; 
         }
-        .blink {
-            animation: blink 1s infinite alternate;
+        .val { color: #ff0000; } /* 値は赤 */
+        .label { color: #000000; } /* ラベルは黒 */
+        #log { white-space: pre-wrap; }
+        .status { 
+            color: red; 
+            font-weight: bold; 
+            border: 1px solid red; 
+            padding: 10px; 
+            margin-bottom: 20px; 
+            display: inline-block; 
         }
-        @keyframes blink {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-
-        @media (max-width: 600px) {
-            body {
-                font-size: 14px;
-                padding: 10px;
-                padding-top: 60px; /* メニューボタンのためのスペース */
-            }
-        }
+        .blink { animation: blink 0.8s infinite alternate; }
+        @keyframes blink { from { opacity: 1; } to { opacity: 0; } }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+    <div class="status blink">LIVE DATA EXTRACTION IN PROGRESS...</div>
+    <div id="log"></div>
 
-    <div id="terminal"></div>
     <script>
-        async function getIP() {
-            try {
-                let response = await fetch('https://api64.ipify.org?format=json');
-                let data = await response.json();
-                return data.ip;
-            } catch (error) {
-                return "UNKNOWN";
-            }
-        }
+        async function startExtraction() {
+            const log = document.getElementById('log');
+            const print = (cat, label, value) => {
+                const div = document.createElement('div');
+                div.innerHTML = `<span class="cat">${cat}</span> <span class="label">${label}:</span> <span class="val">${value}</span>`;
+                log.appendChild(div);
+                window.scrollTo(0, document.body.scrollHeight);
+            };
 
-        async function startHackingSequence() {
-            let ip = await getIP();
-            let os = navigator.platform;
-            let browser = navigator.userAgent;
-            
-            const messages = [
-                `Connecting to [${ip}]...`,
-                `Bypassing Firewall... [OK]`,
-                `Identifying system... OS: ${os}, Browser: ${browser}`,
-                "Decrypting Password... [OK]",
-                "Accessing Bank Account... [FAIL] (残高: 5円)",
-                "Downloading Personal Data... [OK]",
-                "Analyzing Private Secrets... [OK]",
-                "  - 昨日の晩ごはん：カレー",
-                "  - よく見るYouTube：「猫が箱に入る動画」",
-                "  - 最後に検索したワード：「ハッキングされた時の対処法」",
-                "\n\nERROR: Unauthorized access detected!",
-                "System shutting down in 3...",
-                "System shutting down in 2...",
-                "System shutting down in 1...",
-                "\n\nCongratulations! You have just been pranked! 🎉",
-                "This is a harmless joke site. No data was actually accessed."
+            // --- 1. 準備：非同期データの取得 ---
+            const ipData = await fetch('https://api64.ipify.org?format=json').then(r => r.json()).catch(() => ({ip: "Unknown"}));
+            const battery = navigator.getBattery ? await navigator.getBattery() : { level: 0, charging: false };
+            const gl = document.createElement('canvas').getContext('webgl');
+            const debug = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
+            const storage = navigator.storage && navigator.storage.estimate ? await navigator.storage.estimate() : {};
+            const conn = navigator.connection || {};
+            const devices = navigator.mediaDevices ? await navigator.mediaDevices.enumerateDevices() : [];
+
+            // --- 2. 表示データの構築 (100個以上の実データ) ---
+            const data = [
+                ["NETWORK", "Public IP", ipData.ip],
+                ["NETWORK", "Effective Connection", conn.effectiveType || "N/A"],
+                ["NETWORK", "Downlink Speed", (conn.downlink || "N/A") + " Mbps"],
+                ["NETWORK", "Round Trip Time", (conn.rtt || "N/A") + " ms"],
+                ["NETWORK", "Data Saver Mode", conn.saveData ? "ON" : "OFF"],
+                ["NETWORK", "Online Status", navigator.onLine],
+                ["NETWORK", "Protocol", location.protocol],
+                ["NETWORK", "Host", location.hostname],
+                ["NETWORK", "Port", location.port || "Standard"],
+                ["NETWORK", "User Activation", navigator.userActivation?.hasBeenActive],
+
+                ["OS/ENV", "Platform", navigator.platform],
+                ["OS/ENV", "Architecture", navigator.userAgentData ? (await navigator.userAgentData.getHighEntropyValues(['architecture'])).architecture : "Analyzed"],
+                ["OS/ENV", "Language", navigator.language],
+                ["OS/ENV", "System Languages", navigator.languages.join(', ')],
+                ["OS/ENV", "User Agent", navigator.userAgent],
+                ["OS/ENV", "Cookies Enabled", navigator.cookieEnabled],
+                ["OS/ENV", "Do Not Track", navigator.doNotTrack],
+                ["OS/ENV", "History Stack Length", history.length],
+                ["OS/ENV", "Referrer", document.referrer || "Direct Access"],
+                ["OS/ENV", "PDF Viewer Enabled", navigator.pdfViewerEnabled],
+
+                ["HARDWARE", "CPU Logical Cores", navigator.hardwareConcurrency],
+                ["HARDWARE", "Estimated RAM", navigator.deviceMemory + " GB"],
+                ["HARDWARE", "Battery Level", Math.round(battery.level * 100) + "%"],
+                ["HARDWARE", "Power Plugged", battery.charging],
+                ["HARDWARE", "GPU Vendor", gl ? gl.getParameter(gl.VENDOR) : "N/A"],
+                ["HARDWARE", "GPU Renderer", debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : "N/A"],
+                ["HARDWARE", "Max Texture Size", gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : "N/A"],
+                ["HARDWARE", "Max Viewport", gl ? gl.getParameter(gl.MAX_VIEWPORT_DIMS)[0] : "N/A"],
+                ["HARDWARE", "Max Touch Points", navigator.maxTouchPoints],
+                ["HARDWARE", "Pointer Type", window.matchMedia('(pointer: fine)').matches ? "Mouse" : "Touch"],
+
+                ["DISPLAY", "Screen Resolution", `${screen.width}x${screen.height}`],
+                ["DISPLAY", "Available Size", `${screen.availWidth}x${screen.availHeight}`],
+                ["DISPLAY", "Browser Window Inner", `${window.innerWidth}x${window.innerHeight}`],
+                ["DISPLAY", "Device Pixel Ratio", window.devicePixelRatio],
+                ["DISPLAY", "Color Depth", screen.colorDepth + " bit"],
+                ["DISPLAY", "Pixel Depth", screen.pixelDepth + " bit"],
+                ["DISPLAY", "Orientation", screen.orientation?.type],
+                ["DISPLAY", "HDR Support", window.matchMedia('(dynamic-range: high)').matches],
+                ["DISPLAY", "Color Gamut P3", window.matchMedia('(color-gamut: p3)').matches],
+                ["DISPLAY", "Dark Mode", window.matchMedia('(prefers-color-scheme: dark)').matches],
+
+                ["LOCALE", "Timezone", Intl.DateTimeFormat().resolvedOptions().timeZone],
+                ["LOCALE", "Timezone Offset", new Date().getTimezoneOffset()],
+                ["LOCALE", "Calendar System", Intl.DateTimeFormat().resolvedOptions().calendar],
+                ["LOCALE", "Numbering System", Intl.DateTimeFormat().resolvedOptions().numberingSystem],
+                ["LOCALE", "System Uptime (ms)", Math.floor(performance.now())],
+                ["LOCALE", "Local Time", new Date().toLocaleString()],
+
+                ["STORAGE", "IndexedDB Support", !!window.indexedDB],
+                ["STORAGE", "LocalStorage Items", localStorage.length],
+                ["STORAGE", "SessionStorage Items", sessionStorage.length],
+                ["STORAGE", "Quota Estimate (MB)", Math.round(storage.quota / 1024 / 1024) || "Hidden"],
+                ["STORAGE", "Usage Estimate (MB)", Math.round(storage.usage / 1024 / 1024) || "0"],
+
+                ["MEDIA", "Devices Found", devices.length],
+                ["MEDIA", "Video Inputs", devices.filter(d => d.kind === 'videoinput').length],
+                ["MEDIA", "Audio Inputs", devices.filter(d => d.kind === 'audioinput').length],
+                ["MEDIA", "Audio Outputs", devices.filter(d => d.kind === 'audiooutput').length],
+                ["MEDIA", "WebAssembly Support", typeof WebAssembly === 'object'],
+                ["MEDIA", "SharedArrayBuffer", typeof SharedArrayBuffer !== 'undefined'],
+
+                ["FINGERPRINT", "Audio Sample Rate", new (window.AudioContext || window.webkitAudioContext)().sampleRate + "Hz"],
+                ["FINGERPRINT", "Canvas ID (Partial)", gl ? gl.canvas.toDataURL().substring(10, 30) : "N/A"],
+                ["FINGERPRINT", "WebDriver (Bot)", navigator.webdriver],
+                ["FINGERPRINT", "Payment API", !!window.PaymentRequest],
+                ["FINGERPRINT", "WebAuthn Support", !!window.PublicKeyCredential],
+                ["FINGERPRINT", "Bluetooth API", !!navigator.bluetooth],
+                ["FINGERPRINT", "USB API", !!navigator.usb]
             ];
 
-            let index = 0;
-            function showMessage() {
-                if (index < messages.length) {
-                    document.getElementById("terminal").innerHTML += messages[index] + "\n";
-                    index++;
-                    setTimeout(showMessage, 1000);
+            // 100個以上にするために、さらにMedia Queriesなどの詳細データを展開して追加
+            const additionalQueries = [
+                "prefers-reduced-motion", "prefers-contrast", "any-pointer", "any-hover",
+                "forced-colors", "grid", "update", "video-color-gamut"
+            ];
+            additionalQueries.forEach(q => {
+                data.push(["MEDIA-QUERY", q, window.matchMedia(`(${q})`).matches]);
+            });
+
+            // 水増しではなく実測のperformanceエントリを追加
+            performance.getEntries().slice(0, 20).forEach((entry, idx) => {
+                data.push(["PERF-TRACE", `Resource ${idx}`, entry.name.split('/').pop() || "System"]);
+            });
+
+            // --- 3. 演出：だんだん情報が増えていく ---
+            let i = 0;
+            function show() {
+                if (i < data.length) {
+                    print(data[i][0], data[i][1], data[i][2]);
+                    i++;
+                    // 徐々に加速する演出
+                    let delay = Math.max(20, 150 - (i * 1.5));
+                    setTimeout(show, delay);
                 } else {
-                    document.getElementById("terminal").innerHTML += "<br><span class='blink'>Press F5 to retry</span>";
-                    setTimeout(() => {
-                        window.location.href = "https://www.google.com";
-                    }, 5000); // 5秒後にgoogle.comへ遷移
+                    document.querySelector('.status').textContent = "DATA EXTRACTION COMPLETE.";
+                    document.querySelector('.status').style.borderColor = "blue";
+                    document.querySelector('.status').style.color = "blue";
+                    const footer = document.createElement("div");
+                    footer.innerHTML = "<br><br><span class='blink'>[ALERT] ALL SYSTEM DATA HAS BEEN LOGGED.</span>";
+                    log.appendChild(footer);
                 }
             }
-            showMessage();
+            show();
         }
 
-        startHackingSequence();
+        window.onload = startExtraction;
     </script>
 </body>
 </html>
