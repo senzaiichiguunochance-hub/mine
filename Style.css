@@ -150,3 +150,26 @@ button.secondary {
 button.secondary:hover {
     background-color: #ff5678;
 }
+
+
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px); /* Soft glow effect */
+    opacity: 0.6;
+    z-index: -1; /* Send to background */
+    pointer-events: none; /* Do not interfere with mouse events */
+    transition: transform 0.1s ease-out; /* Smooth orb movement */
+}
+
+#orb1 {
+    width: 500px;
+    height: 500px;
+    background: linear-gradient(90deg, #ff00cc, #3333ff);
+}
+
+#orb2 {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(90deg, #00ffff, #ffcc00);
+}
