@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>フォールボール</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #222; font-family: 'Arial Black', sans-serif; }
+        #ui { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 100; text-align: center; pointer-events: none; }
+        button { 
+            padding: 15px 40px; font-size: 24px; cursor: pointer; pointer-events: auto;
+            background: #FF4757; color: white; border: none; border-radius: 30px;
+            box-shadow: 0 6px #B33939; font-weight: bold;
+        }
+        #score-board { color: #feca57; font-size: 48px; text-shadow: 0 0 10px #ff9f43; margin-top: 10px; }
+        .score-pop { position: absolute; color: white; font-size: 30px; pointer-events: none; animation: up 1s ease-out forwards; }
+        @keyframes up { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<div id="ui">
+    <button onclick="addBall()">ボールをセット！ 🎾</button>
+    <div id="score-board">SCORE: 0</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+    const { Engine, Render, Runner, Bodies, Composite, Constraint, Body, Events } = Matter;
+
+    const engine = Engine.create();
+    const world = engine.world;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    const render = Render.create({
+        element: document.body,
+        engine: engine,
+        options: { width, height, wireframes: false, background: '#1a1a1a' }
+    });
+
+    Render.run(render);
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+
+    let score = 0;
+
+    // --- パーツ作成 ---
+    const colors = ['#FF6B6B', '#1DD1A1', '#48DBFB', '#FECA57', '#FF9F43', '#54A0FF', '#5F27CD'];
+
+    // 1. 大量のシーソーと揺れる棒を配置
+    function setupGimmicks() {
+        // 画面全体にランダムにギミックを配置
+        for (let i = 0; i < 40; i++) {
+            const x = Math.random() * width;
+            const y = 100 + Math.random() * (height - 300);
+            const w = 80 + Math.random() * 100;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            if (i % 2 === 0) {
+                // シーソー
+                const b = Bodies.rectangle(x, y, w, 12, { render: { fillStyle: color }, chamfer: { radius: 5 } });
+                const p = Constraint.create({ pointA: { x, y }, bodyB: b, stiffness: 1, length: 0 });
+                Composite.add(world, [b, p]);
+            } else {
+                // ぶら下がり棒
+                const b = Bodies.rectangle(x, y, w, 12, { render: { fillStyle: color }, chamfer: { radius: 5 } });
+                const p = Constraint.create({ pointA: { x, y: y - 30 }, bodyB: b, stiffness: 0.1, length: 30 });
+                Composite.add(world, [b, p]);
+            }
+        }
+        // ピン（釘）を隙間に配置
+        for (let i = 0; i < 50; i++) {
+            const b = Bodies.circle(Math.random() * width, Math.random() * height, 5, { isStatic: true, render: { fillStyle: '#444' } });
+            Composite.add(world, b);
+        }
+    }
+
+    // 2. 得点ポケットの作成
+    const pockets = [];
+    function createPockets() {
+        const pSize = 120;
+        const positions = [
+            { x: width * 0.2, score: 10, color: '#54A0FF', label: '10' },
+            { x: width * 0.5, score: 100, color: '#FFD700', label: '100' }, // 中央は高得点
+            { x: width * 0.8, score: 10, color: '#54A0FF', label: '10' }
+        ];
+
+        positions.forEach(pos => {
+            const sensor = Bodies.rectangle(pos.x, height - 40, pSize, 40, {
+                isStatic: true, isSensor: true, // センサーにする
+                label: 'pocket_' + pos.score,
+                render: { fillStyle: pos.color, opacity: 0.5 }
+            });
+            // ポケットの壁
+            const left = Bodies.rectangle(pos.x - pSize/2, height - 60, 10, 80, { isStatic: true, render: { fillStyle: '#555' } });
+            const right = Bodies.rectangle(pos.x + pSize/2, height - 60, 10, 80, { isStatic: true, render: { fillStyle: '#555' } });
+            
+            pockets.push(sensor);
+            Composite.add(world, [sensor, left, right]);
+        });
+    }
+
+    setupGimmicks();
+    createPockets();
+
+    // 地面（ポケット以外）
+    Composite.add(world, [
+        Bodies.rectangle(width/2, height + 50, width, 100, { isStatic: true }),
+        Bodies.rectangle(-10, height/2, 20, height, { isStatic: true }),
+        Bodies.rectangle(width+10, height/2, 20, height, { isStatic: true })
+    ]);
+
+    // 3. 衝突判定（得点ゲットの演出）
+    Events.on(engine, 'collisionStart', (event) => {
+        event.pairs.forEach(pair => {
+            const labels = [pair.bodyA.label, pair.bodyB.label];
+            const pocketLabel = labels.find(l => l.startsWith('pocket_'));
+            
+            if (pocketLabel) {
+                const points = parseInt(pocketLabel.split('_')[1]);
+                const ball = pair.bodyA.label.startsWith('pocket_') ? pair.bodyB : pair.bodyA;
+                
+                // ボールを消去してスコアアップ
+                if (ball.circleRadius) { // ボールの場合のみ
+                    score += points;
+                    document.getElementById('score-board').innerText = 'SCORE: ' + score;
+                    Composite.remove(world, ball);
+                    showPop(ball.position.x, ball.position.y, '+' + points);
+                }
+            }
+        });
+    });
+
+    function showPop(x, y, text) {
+        const div = document.createElement('div');
+        div.className = 'score-pop';
+        div.style.left = x + 'px';
+        div.style.top = y + 'px';
+        div.innerText = text;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1000);
+    }
+
+    // ボール追加
+    function addBall() {
+        const ball = Bodies.circle(Math.random() * width, -20, 18, {
+            restitution: 0.5, friction: 0.02,
+            render: { fillStyle: colors[Math.floor(Math.random() * colors.length)] }
+        });
+        Composite.add(world, ball);
+    }
+
+    window.addEventListener('resize', () => {
+        render.canvas.width = window.innerWidth;
+        render.canvas.height = window.innerHeight;
+    });
+</script>
+</body>
+</html>
