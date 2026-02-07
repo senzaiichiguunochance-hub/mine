@@ -17,7 +17,7 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
-    background: linear-gradient(to right, #434343 0%, black 100%);
+    background: linear-gradient(to right, #c1c19d 0%, black 100%);
     color: var(--light-color);
     perspective: 1000px; /* 3D効果のための視点 */
 }
