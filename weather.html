@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あの日の天気何だっけ？</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root { --primary: #2563eb; --bg: #f1f5f9; }
+        body { font-family: 'Helvetica Neue', Arial, "Hiragino Kaku Gothic ProN", sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        section { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { border-left: 6px solid var(--primary); padding-left: 12px; margin-top: 0; font-size: 1.3rem; }
+        .controls { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
+        .control-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+        select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; cursor: pointer; background: white; }
+        
+        .stats-grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: center; }
+        .chart-container { width: 350px; height: 350px; position: relative; }
+        .stats-labels { display: grid; grid-template-columns: 1fr; gap: 10px; min-width: 250px; }
+        .label-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; border-radius: 8px; background: #f8fafc; font-size: 1rem; border-left: 5px solid transparent; }
+
+        .scroll-area { max-height: 500px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; position: sticky; top: 0; z-index: 10; }
+        .high-temp { color: #ef4444; font-weight: bold; }
+        .low-temp { color: #3b82f6; font-weight: bold; }
+        .weather-cell { line-height: 1.2; }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+<div class="container">
+    <h1 style="text-align:center;">あの日の天気何だっけ？</h1>
+
+    <section>
+        <div class="controls">
+            <div class="control-group">
+                <label>地域:</label>
+                <select id="city" onchange="fetchAllData()"></select>
+            </div>
+            <div class="control-group">
+                <label>年月:</label>
+                <select id="targetMonth" onchange="fetchAllData()"></select>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2 id="statsTitle">月間の天気概要</h2>
+        <div class="stats-grid">
+            <div class="chart-container">
+                <canvas id="weatherChart"></canvas>
+            </div>
+            <div id="statsLabels" class="stats-labels"></div>
+        </div>
+    </section>
+
+    <section>
+        <h2>日別詳細 (降順)</h2>
+        <div class="scroll-area">
+            <table id="weatherTable">
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>天気</th>
+                        <th>最高/最低</th>
+                        <th>降水量</th>
+                        <th>最大風速</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script>
+// Chart.jsのプラグインを登録
+Chart.register(ChartDataLabels);
+
+let weatherChart = null;
+const prefs = [
+    {n:"北海道(札幌)", la:43.0621, lo:141.3544}, {n:"青森", la:40.8244, lo:140.74}, {n:"岩手(盛岡)", la:39.7036, lo:141.1527}, {n:"宮城(仙台)", la:38.2682, lo:140.8694}, {n:"秋田", la:39.72, lo:140.1026}, {n:"山形", la:38.2554, lo:140.3396}, {n:"福島", la:37.7503, lo:140.4675},
+    {n:"茨城(水戸)", la:36.3659, lo:140.4714}, {n:"栃木(宇都宮)", la:36.5658, lo:139.8836}, {n:"群馬(前橋)", la:36.3895, lo:139.0634}, {n:"埼玉", la:35.8617, lo:139.6455}, {n:"千葉", la:35.6073, lo:140.1063}, {n:"東京", la:35.6895, lo:139.6917}, {n:"神奈川(横浜)", la:35.4475, lo:139.6423},
+    {n:"新潟", la:37.9162, lo:139.0364}, {n:"富山", la:36.6953, lo:137.2113}, {n:"石川(金沢)", la:36.5613, lo:136.6562}, {n:"福井", la:36.0641, lo:136.2196}, {n:"山梨(甲府)", la:35.6639, lo:138.5683}, {n:"長野", la:36.6485, lo:138.1942}, {n:"岐阜", la:35.4233, lo:136.7607}, {n:"静岡", la:34.9756, lo:138.3828}, {n:"愛知(名古屋)", la:35.1814, lo:136.9066},
+    {n:"三重(津)", la:34.7186, lo:136.5053}, {n:"滋賀(大津)", la:35.0045, lo:135.8686}, {n:"京都", la:35.0116, lo:135.7681}, {n:"大阪", la:34.6937, lo:135.5023}, {n:"兵庫(神戸)", la:34.6901, lo:135.1955}, {n:"奈良", la:34.6851, lo:135.8048}, {n:"和歌山", la:34.2305, lo:135.1708},
+    {n:"鳥取", la:35.5011, lo:134.2351}, {n:"島根(松江)", la:35.4681, lo:133.0484}, {n:"岡山", la:34.6618, lo:133.9344}, {n:"広島", la:34.3853, lo:132.4553}, {n:"山口", la:34.1785, lo:131.4737},
+    {n:"徳島", la:34.0703, lo:134.5548}, {n:"香川(高松)", la:34.3428, lo:134.0466}, {n:"愛媛(松山)", la:33.8392, lo:132.7654}, {n:"高知", la:33.5597, lo:133.5311},
+    {n:"福岡", la:33.5902, lo:130.4017}, {n:"佐賀", la:33.2635, lo:130.3009}, {n:"長崎", la:32.7501, lo:129.8773}, {n:"熊本", la:32.7898, lo:130.7417}, {n:"大分", la:33.2382, lo:131.6126}, {n:"宮崎", la:31.9077, lo:131.4202}, {n:"鹿児島", la:31.5966, lo:130.5571}, {n:"沖縄(那覇)", la:26.2124, lo:127.6809}
+];
+
+function setupUI() {
+    const citySel = document.getElementById('city');
+    prefs.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = `${p.la},${p.lo}`; opt.text = p.n;
+        if(p.n === "東京") opt.selected = true;
+        citySel.appendChild(opt);
+    });
+
+    const monthSel = document.getElementById('targetMonth');
+    const now = new Date();
+    for (let y = now.getFullYear(); y >= 1950; y--) {
+        let startM = (y === now.getFullYear()) ? now.getMonth() + 1 : 12;
+        for (let m = startM; m >= 1; m--) {
+            const mm = String(m).padStart(2, '0');
+            const opt = document.createElement('option');
+            opt.value = `${y}-${mm}`; opt.text = `${y}年 ${mm}月`;
+            const lastMonth = new Date(); lastMonth.setMonth(lastMonth.getMonth()-1);
+            if(y === lastMonth.getFullYear() && m === (lastMonth.getMonth()+1)) opt.selected = true;
+            monthSel.appendChild(opt);
+        }
+    }
+}
+
+function getWeatherInfo(code) {
+    if (code <= 3) return { label: '晴れ/曇り', icon: '☀️', color: '#fbbf24' };
+    if (code >= 51 && code <= 67) return { label: '雨', icon: '🌧️', color: '#3b82f6' };
+    if (code >= 71 && code <= 77) return { label: '雪', icon: '❄️', color: '#94a3b8' };
+    return { label: 'その他', icon: '☁️', color: '#cbd5e1' };
+}
+
+async function fetchAllData() {
+    const citySel = document.getElementById('city');
+    const cityName = citySel.options[citySel.selectedIndex].text;
+    const [lat, lon] = citySel.value.split(',');
+    const month = document.getElementById('targetMonth').value;
+    
+    document.getElementById('statsTitle').innerText = `${cityName} - ${month}の天気概要`;
+    const [year, mon] = month.split('-');
+    const startDate = `${month}-01`;
+    const endDate = `${month}-${new Date(year, mon, 0).getDate()}`;
+
+    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&timezone=Asia%2FTokyo`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!data.daily) throw new Error();
+        updateStats(data.daily);
+        updateTable(data.daily);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function updateStats(daily) {
+    const counts = { '晴れ/曇り': 0, '雨': 0, '雪': 0, 'その他': 0 };
+    daily.weathercode.forEach(code => counts[getWeatherInfo(code).label]++);
+    const total = daily.weathercode.length;
+
+    const dataValues = Object.values(counts);
+    const dataLabels = Object.keys(counts);
+    const dataIcons = dataLabels.map(label => {
+        if(label === '晴れ/曇り') return '☀️';
+        if(label === '雨') return '🌧️';
+        if(label === '雪') return '❄️';
+        return '☁️';
+    });
+
+    const ctx = document.getElementById('weatherChart').getContext('2d');
+    if (weatherChart) weatherChart.destroy();
+    
+    weatherChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: dataLabels,
+            datasets: [{
+                data: dataValues,
+                backgroundColor: ['#fbbf24', '#3b82f6', '#94a3b8', '#cbd5e1'],
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    color: '#fff',
+                    font: { weight: 'bold', size: 14 },
+                    formatter: (value, ctx) => {
+                        if (value === 0) return null;
+                        const icon = dataIcons[ctx.dataIndex];
+                        const pct = (value / total * 100).toFixed(0);
+                        return `${icon}\n${value}日\n${pct}%`;
+                    },
+                    textAlign: 'center'
+                }
+            }
+        }
+    });
+
+    const labelContainer = document.getElementById('statsLabels');
+    labelContainer.innerHTML = '';
+    dataLabels.forEach((key, i) => {
+        const div = document.createElement('div');
+        div.className = 'label-item';
+        div.style.borderLeftColor = weatherChart.data.datasets[0].backgroundColor[i];
+        div.innerHTML = `<span>${dataIcons[i]} ${key}</span> <span><b>${counts[key]}</b> 日 (${(counts[key]/total*100).toFixed(1)}%)</span>`;
+        labelContainer.appendChild(div);
+    });
+}
+
+function updateTable(daily) {
+    const tbody = document.querySelector('#weatherTable tbody');
+    tbody.innerHTML = '';
+    const rows = daily.time.map((t, i) => ({
+        date: t, info: getWeatherInfo(daily.weathercode[i]),
+        maxT: daily.temperature_2m_max[i], minT: daily.temperature_2m_min[i],
+        precip: daily.precipitation_sum[i], wind: daily.windspeed_10m_max[i]
+    })).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.date}</td>
+            <td class="weather-cell">${row.info.icon}<br><small>${row.info.label}</small></td>
+            <td><span class="high-temp">${row.maxT}</span> / <span class="low-temp">${row.minT}</span></td>
+            <td>${row.precip} mm</td>
+            <td>${row.wind} m/s</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.onload = () => { setupUI(); fetchAllData(); };
+</script>
+
+</body>
+</html>
