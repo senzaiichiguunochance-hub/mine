@@ -4,144 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>国当てクイズ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #2c3e50; color: #ecf0f1; margin: 0; overflow-x: hidden; }
-        .container { max-width: 600px; margin: 20px auto; background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; backdrop-filter: blur(5px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; z-index: 10; }
-        #flag-img { width: 180px; height: auto; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); background: #34495e; }
-        .stats-box { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; margin: 10px 0; text-align: left; }
-        .game-info { font-size: 0.9em; margin-bottom: 10px; color: #bdc3c7; }
-        .options { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 20px; }
-        button { padding: 12px; font-size: 15px; cursor: pointer; border: none; border-radius: 8px; background: #3498db; color: white; transition: 0.3s; }
-        button:hover:not(:disabled) { background: #2980b9; transform: translateY(-2px); }
-        button:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.7; }
-        #result { margin-top: 20px; font-weight: bold; font-size: 1.3em; min-height: 1.5em; }
-        #next-btn { margin-top: 20px; background: #2ecc71; width: 100%; font-weight: bold; display: none; }
-        #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-        .combo { color: #f1c40f; font-size: 1.5em; text-shadow: 0 0 10px #f39c12; min-height: 1.2em; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #2c3e50; color: #ecf0f1; margin: 0; overflow: hidden; height: 100vh; }
+        #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: #1a252f; }
+        .container { position: relative; max-width: 480px; margin: 15px auto; background: rgba(44, 62, 80, 0.9); padding: 15px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; }
+        #flag-img { width: 120px; height: auto; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .stats-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin: 10px 0; text-align: left; font-size: 0.8em; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { padding: 8px; font-size: 13px; cursor: pointer; border: none; border-radius: 6px; background: #3498db; color: white; transition: 0.2s; }
+        button:hover:not(:disabled) { background: #2980b9; }
+        #next-btn { margin-top: 10px; background: #2ecc71; width: 100%; font-weight: bold; display: none; grid-column: span 2; padding: 10px; }
+        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-<canvas id="fireworks-canvas"></canvas>
+<div id="map"></div>
+<div id="loading-msg">🌍 地図データを照合中...</div>
 
-<div class="container">
-    <h1>🌍 国当てクイズ</h1>
-    <div id="loading-msg">データを読み込み中...</div>
-    
-    <div id="game-ui" style="display:none;">
-        <div class="game-info">
-            第 <span id="q-count">1</span> 問目 | 正解率: <span id="accuracy">0</span>%<br>
-            ✅正解: <span id="correct-total">0</span> | ❌不正解: <span id="wrong-total">0</span>
-        </div>
-        
-        <div id="combo-display" class="combo"></div>
-
-        <div id="game-board">
-            <img id="flag-img" src="" alt="国旗">
-            <div class="stats-box">
-                <div>📍 首都: <span id="stat-capital">---</span></div>
-                <div>💰 通貨: <span id="stat-currency">---</span></div>
-                <div>👥 人口: <span id="stat-population">---</span> 人</div>
-                <div>🗺 地方: <span id="stat-region">---</span></div>
-            </div>
-            <div class="options" id="options-container"></div>
-        </div>
-        
-        <div id="result"></div>
-        <button id="next-btn">次の問題へ</button>
+<div class="container" id="main-ui" style="display:none;">
+    <h2 style="margin:0 0 10px 0;">国当てクイズ</h2>
+    <div class="game-info">第 <span id="q-count">1</span> 問 | 正解率: <span id="accuracy">0</span>%</div>
+    <img id="flag-img" src="" alt="国旗">
+    <div class="stats-box">
+        <div>📍 首都: <span id="stat-capital">---</span></div>
+        <div>👥 人口: <span id="stat-pop">---</span></div>
+        <div>🗺 地方: <span id="stat-reg">---</span></div>
+        <div>💰 通貨: <span id="stat-cur">---</span></div>
     </div>
+    <div class="options" id="options-container"></div>
+    <div id="result" style="margin-top:10px; font-weight:bold; height:25px; font-size: 1.1em;"></div>
+    <button id="next-btn">次の問題へ</button>
 </div>
 
 <script>
-    let correctCountry = null;
+    let map;
+    let geoJsonLayer;
     let countriesData = [];
-    let stats = { q: 1, correct: 0, wrong: 0, combo: 0 };
+    let correctCountry = null;
+    let stats = { q: 1, correct: 0, wrong: 0 };
 
-    const getJPName = (c) => c.translations?.jpn?.common || c.name.common;
-    const getJPCapital = (c) => (c.capital ? c.capital[0] : "なし");
+    // 国を特定するための辞書 (key: ISO3コード, value: Leafletレイヤー)
+    const layerDict = {};
 
-    async function initGame() {
+    async function init() {
+        // 地図の初期化
+        map = L.map('map', { 
+            zoomControl: true,
+            worldCopyJump: true 
+        }).setView([20, 0], 2);
+
         try {
-            // API取得
-            const response = await fetch('https://restcountries.com/v3.1/all?fields=name,flags,capital,population,currencies,translations,region');
-            countriesData = await response.json();
-            // 読み込み完了後にUIを表示
+            // 1. 国情報の取得
+            const countryRes = await fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,capital,population,currencies,translations,region');
+            countriesData = await countryRes.json();
+
+            // 2. 地図データの取得 (より標準的なGeoJSONソース)
+            const geoRes = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
+            const geoData = await geoRes.json();
+
+            // 3. 地図を描画しつつ、辞書に登録
+            geoJsonLayer = L.geoJson(geoData, {
+                style: function() {
+                    return {
+                        fillColor: '#ffffff', // 初期：白
+                        weight: 1,
+                        color: '#2c3e50',
+                        fillOpacity: 0.8
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    // IDをキーにレイヤーを保存
+                    const id = (feature.id || feature.properties.id || feature.properties.iso_a3 || "").toUpperCase();
+                    if (id) {
+                        layerDict[id] = layer;
+                    }
+                }
+            }).addTo(map);
+
             document.getElementById('loading-msg').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
+            document.getElementById('main-ui').style.display = 'block';
             loadQuestion();
         } catch (e) {
-            document.getElementById('loading-msg').innerText = "データの取得に失敗しました。再読み込みしてください。";
+            console.error(e);
+            document.getElementById('loading-msg').innerText = "データのロードに失敗しました。";
         }
     }
 
     function loadQuestion() {
-        // UIリセット
         document.getElementById('result').innerText = "";
         document.getElementById('next-btn').style.display = "none";
         document.getElementById('q-count').innerText = stats.q;
 
-        // 問題作成
-        const shuffled = [...countriesData].sort(() => 0.5 - Math.random());
+        // 地図上に存在する国から選ぶ
+        const availableCountries = countriesData.filter(c => layerDict[c.cca3]);
+        const shuffled = availableCountries.sort(() => 0.5 - Math.random());
         const choices = shuffled.slice(0, 4);
         correctCountry = choices[0];
 
-        // 描画
         document.getElementById('flag-img').src = correctCountry.flags.svg;
-        document.getElementById('stat-capital').innerText = `${correctCountry.capital?.[0] || '---'} (${getJPCapital(correctCountry)})`;
-        document.getElementById('stat-population').innerText = correctCountry.population.toLocaleString();
-        document.getElementById('stat-region').innerText = correctCountry.region;
-        
-        const cKey = Object.keys(correctCountry.currencies || {})[0];
-        document.getElementById('stat-currency').innerText = cKey ? `${cKey} (${correctCountry.currencies[cKey].name})` : "---";
+        document.getElementById('stat-capital').innerText = correctCountry.capital?.[0] || '---';
+        document.getElementById('stat-pop').innerText = correctCountry.population.toLocaleString();
+        document.getElementById('stat-reg').innerText = correctCountry.region;
+        document.getElementById('stat-cur').innerText = Object.keys(correctCountry.currencies || {})[0] || '---';
 
         const container = document.getElementById('options-container');
         container.innerHTML = "";
-        
         choices.sort(() => 0.5 - Math.random()).forEach(c => {
             const btn = document.createElement('button');
-            btn.innerText = `${c.name.common} (${getJPName(c)})`;
-            btn.onclick = () => checkAnswer(c.name.common, btn);
+            btn.innerText = c.translations?.jpn?.common || c.name.common;
+            btn.onclick = () => checkAnswer(c, btn);
             container.appendChild(btn);
         });
     }
 
-    function checkAnswer(name, clickedBtn) {
-        const allBtns = document.querySelectorAll('.options button');
-        allBtns.forEach(b => {
-            b.disabled = true;
-            // 正解のボタンを強調
-            if (b.innerText.includes(getJPName(correctCountry))) {
-                b.style.background = "#2ecc71";
-            }
-        });
-
-        if (name === correctCountry.name.common) {
-            stats.correct++;
-            stats.combo++;
-            document.getElementById('result').innerHTML = "<span style='color: #2ecc71;'>正解！ 🎉</span>";
-            if (stats.combo >= 1) {
-                document.getElementById('combo-display').innerText = `${stats.combo} 連続正解中！ 🔥`;
-                launchMultipleFireworks(stats.combo);
-            }
-        } else {
-            clickedBtn.style.background = "#e74c3c";
-            stats.wrong++;
-            stats.combo = 0;
-            document.getElementById('combo-display').innerText = "";
-            document.getElementById('result').innerHTML = `<span style='color: #ff6b6b;'>残念！ 正解は ${getJPName(correctCountry)}</span>`;
+    function applyColor(cca3, color) {
+        const layer = layerDict[cca3];
+        if (layer) {
+            layer.setStyle({
+                fillColor: color,
+                fillOpacity: 1.0,
+                weight: 2,
+                color: '#ffffff'
+            });
+            // 視認性のために地図を移動
+            map.flyTo(layer.getBounds().getCenter(), 3, { animate: true, duration: 1 });
         }
-
-        updateStats();
-        document.getElementById('next-btn').style.display = "block";
     }
 
-    function updateStats() {
+    function checkAnswer(selected, btn) {
+        document.querySelectorAll('.options button').forEach(b => b.disabled = true);
+
+        if (selected.cca3 === correctCountry.cca3) {
+            stats.correct++;
+            document.getElementById('result').innerHTML = "<span style='color:#2ecc71'>正解！</span>";
+            applyColor(correctCountry.cca3, "#0000ff"); // 青
+        } else {
+            stats.wrong++;
+            btn.style.background = "#e74c3c";
+            document.getElementById('result').innerHTML = `<span style='color:#ff6b6b'>正解は ${correctCountry.translations?.jpn?.common}</span>`;
+            applyColor(correctCountry.cca3, "#ff0000"); // 赤
+        }
+        
         const total = stats.correct + stats.wrong;
-        const accuracy = total === 0 ? 0 : Math.round((stats.correct / total) * 100);
-        document.getElementById('correct-total').innerText = stats.correct;
-        document.getElementById('wrong-total').innerText = stats.wrong;
-        document.getElementById('accuracy').innerText = accuracy;
+        document.getElementById('accuracy').innerText = Math.round((stats.correct / total) * 100);
+        document.getElementById('next-btn').style.display = "block";
     }
 
     document.getElementById('next-btn').onclick = () => {
@@ -149,84 +158,7 @@
         loadQuestion();
     };
 
-    // --- 花火エンジン (Canvas) ---
-    const canvas = document.getElementById('fireworks-canvas');
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    class Particle {
-        constructor(x, y, color, velocity) {
-            this.x = x; this.y = y; this.color = color; this.velocity = velocity;
-            this.alpha = 1; this.friction = 0.95;
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
-            ctx.fill();
-            ctx.restore();
-        }
-        update() {
-            this.velocity.x *= this.friction;
-            this.velocity.y *= this.friction;
-            this.velocity.y += 0.15; // 重力
-            this.x += this.velocity.x;
-            this.y += this.velocity.y;
-            this.alpha -= 0.012;
-        }
-    }
-
-    function launchMultipleFireworks(count) {
-        // 連続正解数と同じ数だけ時間差で打ち上げる
-        for(let i=0; i<count; i++) {
-            setTimeout(() => {
-                const x = 100 + Math.random() * (canvas.width - 200);
-                const y = canvas.height * 0.2 + Math.random() * (canvas.height * 0.3);
-                createFirework(x, y);
-            }, i * 400);
-        }
-    }
-
-    function createFirework(x, y) {
-        const hue = Math.random() * 360;
-        const color = `hsl(${hue}, 100%, 60%)`;
-        for (let i = 0; i < 50; i++) {
-            const angle = (Math.PI * 2 / 50) * i;
-            const speed = Math.random() * 6 + 3;
-            particles.push(new Particle(x, y, color, {
-                x: Math.cos(angle) * speed,
-                y: Math.sin(angle) * speed
-            }));
-        }
-    }
-
-    function animate() {
-        // 背景を完全透明にせず、少しずつ塗ることで残像を残す
-        ctx.fillStyle = 'rgba(44, 62, 80, 0.3)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        for (let i = particles.length - 1; i >= 0; i--) {
-            particles[i].update();
-            particles[i].draw();
-            if (particles[i].alpha <= 0) {
-                particles.splice(i, 1);
-            }
-        }
-        requestAnimationFrame(animate);
-    }
-
-    initGame();
-    animate();
+    init();
 </script>
-
 </body>
 </html>
