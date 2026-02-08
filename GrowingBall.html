@@ -2,54 +2,49 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>成長するボール</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #020617; font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; color: white; display: flex; }
+        /* スワイプ時のブラウザ標準挙動（更新など）を禁止 */
+        body { 
+            margin: 0; overflow: hidden; background: #020617; 
+            font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; 
+            color: white; display: flex; 
+            touch-action: none; /* 画面全体のスクロールを無効化 */
+        }
         
-        /* 設定パネルの基本スタイル */
         #config-panel {
             width: 280px; height: 100vh; background: rgba(15, 23, 42, 0.95); border-right: 1px solid #334155;
             padding: 20px; box-sizing: border-box; z-index: 1000; display: flex; flex-direction: column; gap: 18px;
-            overflow-y: auto; transition: transform 0.3s ease, margin-left 0.3s ease;
+            overflow-y: auto; transition: transform 0.3s ease;
+            touch-action: pan-y; /* パネル内だけは上下スクロールを許可 */
         }
 
-        /* モバイル用トグルボタン */
         #menu-toggle {
             position: absolute; top: 15px; left: 15px; z-index: 1100;
             background: #38bdf8; border: none; color: white; padding: 8px 12px;
             border-radius: 4px; cursor: pointer; font-weight: bold; display: none;
         }
         
-        /* 画面幅が狭い（設定パネルが1/3以上を占める）時の挙動 */
         @media screen and (max-width: 840px) {
-            #config-panel {
-                position: absolute;
-                left: 0;
-                transform: translateX(-100%);
-            }
-            #config-panel.open {
-                transform: translateX(0);
-            }
-            #menu-toggle {
-                display: block;
-            }
+            #config-panel { position: absolute; left: 0; transform: translateX(-100%); }
+            #config-panel.open { transform: translateX(0); }
+            #menu-toggle { display: block; }
         }
 
         h2 { font-size: 18px; margin: 0 0 10px 0; color: #38bdf8; border-bottom: 2px solid #38bdf8; padding-bottom: 5px; }
         .control-group { display: flex; flex-direction: column; gap: 4px; }
         .label-row { display: flex; justify-content: space-between; align-items: center; }
         label { font-size: 14px; font-weight: bold; color: #f1f5f9; }
-        .desc { font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 2px; }
         .val-display { color: #38bdf8; font-family: monospace; font-weight: bold; }
         input[type="range"] { cursor: pointer; accent-color: #38bdf8; margin-top: 4px; }
         
         #game-container { flex-grow: 1; position: relative; overflow: hidden; height: 100vh; }
-        canvas { display: block; touch-action: none; width: 100%; height: 100%; }
+        canvas { display: block; width: 100%; height: 100%; }
         
         #ui-overlay { position: absolute; top: 20px; right: 20px; pointer-events: none; text-align: right; }
-        .score-val { font-size: 36px; font-weight: bold; color: #38bdf8; text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
-        #msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; font-weight: bold; opacity: 0; color: #fbbf24; pointer-events: none; transition: opacity 0.3s; z-index: 500; text-shadow: 0 0 20px #f59e0b; }
+        .score-val { font-size: 36px; font-weight: bold; color: #38bdf8; }
+        #msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; font-weight: bold; opacity: 0; color: #fbbf24; pointer-events: none; transition: opacity 0.3s; z-index: 500; }
         
         .nav-btn { position: absolute; top: 20px; right: 20px; font-size: 14px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; }
     </style>
@@ -105,10 +100,8 @@
 
         const settings = { maxBalls: 100, baseSize: 20, clearSize: 3.0, gimmickCount: 30, tolerance: 1.0 };
 
-        // パネルの出し入れ
         toggleBtn.addEventListener('click', () => {
             panel.classList.toggle('open');
-            // パネルが開閉し終わるタイミングでリサイズを実行
             setTimeout(resize, 300);
         });
 
@@ -128,21 +121,31 @@
 
         window.addEventListener('resize', resize);
         function resize() {
-            // パネルが隠れている、または絶対配置（モバイル）の場合は画面全体、そうでなければパネル分を引く
-            const panelWidth = (window.innerWidth <= 840 || !panel.classList.contains('open') && window.innerWidth <= 840) ? 0 : 280;
-            width = canvas.width = window.innerWidth - (window.innerWidth > 840 ? 280 : 0);
+            const isMobile = window.innerWidth <= 840;
+            width = canvas.width = window.innerWidth - (isMobile ? 0 : 280);
             height = canvas.height = window.innerHeight;
             paddle.y = height - 60;
             createStage();
         }
 
-        // マウスとタッチの両方に対応
+        // スマホのスワイプとマウス移動の両方を処理
         const handleMove = (e) => {
-            const clientX = (e.touches ? e.touches[0].clientX : e.clientX) - (window.innerWidth > 840 ? 280 : 0);
-            paddle.x = clientX - paddle.w / 2;
+            // タッチイベントかマウスイベントかを判定してX座標を取得
+            const clientX = (e.touches ? e.touches[0].clientX : e.clientX);
+            // 設定パネルが表示されているPCモードの場合は座標をオフセット
+            const isMobile = window.innerWidth <= 840;
+            const offsetX = isMobile ? 0 : 280;
+            
+            paddle.x = (clientX - offsetX) - paddle.w / 2;
         };
+
+        // イベントリスナーの登録（preventDefaultでブラウザのスクロールを止める）
         canvas.addEventListener('mousemove', handleMove);
-        canvas.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, {passive: false});
+        canvas.addEventListener('touchstart', handleMove, {passive: false});
+        canvas.addEventListener('touchmove', (e) => {
+            handleMove(e);
+            e.preventDefault(); // これによりスワイプ中の画面ガタつきを防止
+        }, {passive: false});
 
         function createStage() {
             gimmicks = []; guides = [];
