@@ -62,15 +62,15 @@
         </div>
 
         <div class="control-group">
-            <div class="label-row"><label>障害物の数</label><span class="val-display" id="val-gimmickCount">20</span></div>
+            <div class="label-row"><label>障害物の数</label><span class="val-display" id="val-gimmickCount">30</span></div>
             <div class="desc">配置される回転・移動ギミックの総数です。</div>
-            <input type="range" id="input-gimmickCount" min="0" max="100" value="20">
+            <input type="range" id="input-gimmickCount" min="0" max="100" value="30">
         </div>
 
         <div class="control-group">
-            <div class="label-row"><label>合体許容誤差</label><span class="val-display" id="val-tolerance">0.5</span></div>
+            <div class="label-row"><label>合体許容誤差</label><span class="val-display" id="val-tolerance">1.0</span></div>
             <div class="desc">サイズ差がこの数値以内なら大きい方に合体します。</div>
-            <input type="range" id="input-tolerance" min="0.1" max="1.0" step="0.1" value="0.5">
+            <input type="range" id="input-tolerance" min="0.1" max="2.0" step="0.1" value="1.0">
         </div>
     </div>
 
@@ -78,7 +78,7 @@
         <div style="font-size: 14px; color: #94a3b8;">SCORE</div>
         <div class="score-val" id="score">0</div>
     </div>
-    <div id="msg">FIREWORKS!</div>
+    <div id="msg">EXCELLENT!</div>
     <canvas id="gameCanvas"></canvas>
 
     <script>
@@ -88,7 +88,14 @@
         const currentBallsEl = document.getElementById('val-currentBalls');
         const msgEl = document.getElementById('msg');
 
-        const settings = { maxBalls: 100, baseSize: 20, clearSize: 3.0, gimmickCount: 20, tolerance: 0.5 };
+        // デフォルト設定の更新
+        const settings = { 
+            maxBalls: 100, 
+            baseSize: 20, 
+            clearSize: 3.0, 
+            gimmickCount: 30, 
+            tolerance: 1.0 
+        };
 
         document.querySelectorAll('input[type="range"]').forEach(input => {
             input.addEventListener('input', (e) => {
@@ -137,7 +144,7 @@
 
         // 花火エフェクト生成
         function createFirework(x, y, color) {
-            const count = 40 + Math.floor(Math.random() * 30);
+            const count = 50;
             for (let i = 0; i < count; i++) {
                 const angle = Math.random() * Math.PI * 2;
                 const speed = 2 + Math.random() * 8;
@@ -145,11 +152,27 @@
                     x: x, y: y,
                     vx: Math.cos(angle) * speed,
                     vy: Math.sin(angle) * speed,
-                    r: 2 + Math.random() * 4,
+                    r: 2 + Math.random() * 3,
                     life: 1.0,
-                    decay: 0.01 + Math.random() * 0.02,
+                    decay: 0.015 + Math.random() * 0.02,
                     color: color
                 });
+            }
+        }
+
+        // --- ボール補充ロジックの改善 ---
+        function spawnBalls() {
+            const gap = settings.maxBalls - balls.length;
+            if (gap > 0) {
+                // 不足している場合、1フレームにつき最大5個ずつ高速補充
+                for (let i = 0; i < Math.min(gap, 5); i++) {
+                    if (Math.random() < 0.5) { 
+                        balls.push({ 
+                            x: Math.random() * width, y: -settings.baseSize, vx: (Math.random()-0.5)*4, vy: 0, 
+                            size: 1.0, r: settings.baseSize / 2, color: 'hsl(210, 80%, 60%)', toDelete: false 
+                        });
+                    }
+                }
             }
         }
 
@@ -169,10 +192,9 @@
                     if (newB.size >= settings.clearSize) { 
                         newB.toDelete = true; 
                         score += Math.round(settings.clearSize * 200); 
-                        createFirework(newB.x, newB.y, newB.color); // 花火発動
-                        msgEl.innerText = "EXCELLENT!";
+                        createFirework(newB.x, newB.y, newB.color);
                         msgEl.style.opacity = 1;
-                        setTimeout(() => msgEl.style.opacity = 0, 800);
+                        setTimeout(() => msgEl.style.opacity = 0, 500);
                     }
                     return;
                 }
@@ -190,19 +212,13 @@
 
         function update() {
             time++;
-            if (balls.length < settings.maxBalls && Math.random() < 0.3) {
-                balls.push({ 
-                    x: Math.random() * width, y: -50, vx: (Math.random()-0.5)*4, vy: 0, 
-                    size: 1.0, r: settings.baseSize / 2, color: 'hsl(210, 80%, 60%)', toDelete: false 
-                });
-            }
+            spawnBalls();
             currentBallsEl.innerText = balls.length;
 
-            // パーティクル更新
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.x += p.vx; p.y += p.vy;
-                p.vy += 0.1; // 重力
+                p.vy += 0.15;
                 p.life -= p.decay;
                 if (p.life <= 0) particles.splice(i, 1);
             }
@@ -257,8 +273,8 @@
                 if (b.y > height) { score -= Math.round(b.size * 15); balls.splice(i, 1); }
                 if (b.x < 0 || b.x > width) b.vx *= -0.8;
                 
-                // 色更新
-                const hue = Math.max(0, 220 - (b.size - 1) * (180 / (settings.clearSize - 1)));
+                const range = (settings.clearSize - 1) || 1;
+                const hue = Math.max(0, 220 - (b.size - 1) * (180 / range));
                 b.color = `hsl(${hue}, 80%, 60%)`;
             }
             scoreEl.innerText = score;
@@ -280,16 +296,11 @@
 
             // パーティクル
             particles.forEach(p => {
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
             });
             ctx.globalAlpha = 1.0;
-
-            // バー
-            ctx.fillStyle = paddle.color;
-            ctx.shadowBlur = 10; ctx.shadowColor = paddle.color;
-            ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
+            ctx.fillStyle = paddle.color; ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
             ctx.shadowBlur = 0;
 
             // ボール
