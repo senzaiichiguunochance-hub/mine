@@ -43,7 +43,7 @@
         
         #ui-overlay { position: absolute; top: 20px; right: 20px; pointer-events: none; text-align: right; }
         .score-val { font-size: 36px; font-weight: bold; color: #38bdf8; text-shadow: 0 0 15px #38bdf8; }
-        #msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 50px; font-weight: bold; opacity: 0; color: #fbbf24; pointer-events: none; transition: opacity 0.3s; z-index: 500; text-shadow: 0 0 20px #f59e0b; }
+        #msg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-size: 60px; font-weight: bold; opacity: 0; color: #fbbf24; pointer-events: none; transition: opacity 0.3s; z-index: 500; text-shadow: 0 0 30px #f59e0b; }
         
         .nav-btn { position: absolute; top: 20px; right: 20px; font-size: 14px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; }
     </style>
@@ -58,7 +58,7 @@
         <div class="control-group">
             <div class="label-row"><label>最大ボール数</label><span class="val-display" id="val-maxBalls">100</span></div>
             <div class="desc">画面内に同時に存在できるボールの上限です。</div>
-            <input type="range" id="input-maxBalls" min="1" max="100" value="100">
+            <input type="range" id="input-maxBalls" min="1" max="200" value="100">
         </div>
 
         <div class="control-group">
@@ -168,7 +168,6 @@
         }
 
         function spawnBalls() {
-            // 最大数に達するまで毎フレーム生成（ただし1フレーム最大2個までに制限して負荷を調整）
             let count = 0;
             while (balls.length < settings.maxBalls && count < 2) {
                 balls.push({ 
@@ -192,10 +191,32 @@
                     newB.size *= 1.2;
                     newB.r = (settings.baseSize / 2) * newB.size;
                     score += 10;
+                    
+                    // --- 派手な花火エフェクト ---
                     if (newB.size >= settings.clearSize) { 
-                        newB.toDelete = true; score += 500; 
-                        for(let i=0; i<30; i++) particles.push({ x: newB.x, y: newB.y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, r: Math.random()*3, life: 1.0, decay: 0.02, color: `hsl(${Math.random()*360}, 80%, 60%)` });
-                        msgEl.style.opacity = 1; setTimeout(() => msgEl.style.opacity = 0, 500);
+                        newB.toDelete = true; 
+                        score += 500; 
+                        
+                        const fireworkCount = Math.floor(Math.random() * 5) + 1;
+                        for (let f = 0; f < fireworkCount; f++) {
+                            const startX = Math.random() * width;
+                            const startY = Math.random() * (height * 0.4);
+                            const hue = Math.random() * 360;
+                            for (let i = 0; i < 70; i++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const speed = Math.random() * 10 + 2;
+                                particles.push({ 
+                                    x: startX, y: startY, 
+                                    vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, 
+                                    r: Math.random() * 3 + 1.5, life: 1.0, 
+                                    decay: Math.random() * 0.02 + 0.01, 
+                                    color: `hsl(${hue}, 90%, 65%)`,
+                                    isFirework: true 
+                                });
+                            }
+                        }
+                        msgEl.style.opacity = 1; 
+                        setTimeout(() => msgEl.style.opacity = 0, 800);
                     }
                     return;
                 }
@@ -214,17 +235,29 @@
         function update() {
             time++; spawnBalls();
             currentBallsEl.innerText = balls.length;
+            
             for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= p.decay;
+                const p = particles[i]; 
+                p.x += p.vx; p.y += p.vy; 
+                if(p.isFirework) {
+                    p.vx *= 0.96; // 空気抵抗
+                    p.vy += 0.07; // 重力
+                } else {
+                    p.vy += 0.1;
+                }
+                p.life -= p.decay;
                 if (p.life <= 0) particles.splice(i, 1);
             }
+
             for (let i = 0; i < balls.length; i++) {
                 for (let j = i + 1; j < balls.length; j++) resolveBallCollision(balls[i], balls[j]);
             }
+
             gimmicks.forEach(g => {
                 if (g.type === 'rotator') g.angle += g.speed;
                 else g.x = g.originX + Math.sin(time * 0.05 + g.phase) * 60;
             });
+
             for (let i = balls.length - 1; i >= 0; i--) {
                 let b = balls[i];
                 if (b.toDelete) { balls.splice(i, 1); continue; }
@@ -270,8 +303,6 @@
             ctx.fillStyle = grad; ctx.strokeStyle = baseColor; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.roundRect(-w/2, -h/2, w, h, 4);
             ctx.fill(); ctx.stroke();
-            ctx.shadowBlur = 0; ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(-w/2 + 5, -h/2 + 3); ctx.lineTo(w/2 - 5, -h/2 + 3); ctx.stroke();
             ctx.restore();
         }
 
@@ -284,7 +315,18 @@
                 drawMetalBar(midX, midY, dist, 24, angle, '#1e293b');
             });
             gimmicks.forEach(g => drawMetalBar(g.x, g.y, g.w, g.h, g.angle, '#38bdf8'));
-            particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill(); });
+            
+            particles.forEach(p => { 
+                ctx.save();
+                ctx.globalAlpha = p.life; 
+                ctx.fillStyle = p.color; 
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); 
+                ctx.fill(); 
+                ctx.restore();
+            });
+            
             ctx.globalAlpha = 1.0;
             drawMetalBar(paddle.x + paddle.w/2, paddle.y + paddle.h/2, paddle.w, paddle.h, 0, '#00f3ff');
             balls.forEach(b => {
