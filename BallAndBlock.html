@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Ball vs Blocks Simulator - Circular Start</title>
+    <title>Ball vs Blocks Simulator</title>
     <style>
-        body { margin: 0; background: #0a0a0a; color: white; font-family: sans-serif; overflow: hidden; display: flex; }
+        body { margin: 0; background: #050505; color: white; font-family: sans-serif; overflow: hidden; display: flex; }
         
-        /* 設定パネルの基本スタイル */
+        /* 設定パネル */
         #settings { 
-            width: 300px; padding: 20px; background: #1a1a1a; border-right: 2px solid #333; 
+            width: 300px; padding: 20px; background: #111; border-right: 2px solid #333; 
             height: 100vh; overflow-y: auto; box-sizing: border-box;
             transition: transform 0.3s ease; z-index: 1000;
         }
@@ -23,36 +23,33 @@
         @media screen and (max-width: 900px) {
             #settings {
                 position: absolute; left: 0; transform: translateX(-100%);
-                background: rgba(26, 26, 26, 0.95);
+                background: rgba(17, 17, 17, 0.95);
             }
             #settings.open { transform: translateX(0); }
             #menu-toggle { display: block; }
         }
 
-        #game-container { flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        #game-container { flex-grow: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         canvas { background: #000; display: block; }
         
-        .control-group { margin-bottom: 20px; }
-        label { display: block; font-size: 0.85em; margin-bottom: 8px; color: #aaa; }
-        input[type="range"] { width: 100%; cursor: pointer; accent-color: #4CAF50; }
-        button#start-btn { width: 100%; padding: 14px; background: #4CAF50; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 1em; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8em; margin-bottom: 5px; color: #888; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        button#start-btn { width: 100%; padding: 12px; background: #4CAF50; border: none; color: white; font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+        button#start-btn:hover { background: #45a049; box-shadow: 0 0 15px #4CAF50; }
         
-        #hud { position: absolute; top: 10px; right: 20px; pointer-events: none; text-align: right; }
+        #hud { position: absolute; top: 10px; right: 20px; pointer-events: none; text-shadow: 0 0 10px rgba(255,255,255,0.5); text-align: right; }
         .stat { font-size: 1.2em; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
-        
-        .nav-btn {
-            position: absolute; top: 20px; right: 10px; font-size: 14px; color: #eee;
-            text-decoration: none; background: rgba(255,255,255,0.1);
-            padding: 5px 10px; border-radius: 4px; z-index: 1000;
-        }
+        #combo-container { color: #00f2ff; font-weight: bold; transform: scale(1); transition: 0.1s; }
+        .nav-btn { position: absolute; top: 20px; right: 10px; font-size: 14px; color: #eee; text-decoration: none; background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; z-index: 1000; display: none; }
     </style>
 </head>
 <body>
-<a href="menu.html" class="nav-btn">← Back to Menu</a>
 <button id="menu-toggle">Settings ☰</button>
+<a href="menu.html" class="nav-btn">メニューに戻る</a>
 
 <div id="settings">
-    <h2 style="margin-top: 0; color: #4CAF50;">Settings</h2>
+    <h2 style="color: #4CAF50;">NEON SIMULATOR</h2>
     <div class="control-group">
         <label>制限時間: <span id="val-time">60</span>秒</label>
         <input type="range" id="input-time" min="30" max="300" step="30" value="60">
@@ -66,15 +63,15 @@
         <input type="range" id="input-bSpeed" min="2" max="15" step="1" value="5">
     </div>
     <div class="control-group">
-        <label>ブロックの数: <span id="val-blocks">1000</span></label>
-        <input type="range" id="input-blocks" min="10" max="10000" step="10" value="1000">
+        <label>ブロックの数: <span id="val-blocks">300</span></label>
+        <input type="range" id="input-blocks" min="10" max="10000" step="10" value="300">
     </div>
     <div class="control-group">
         <label>中央へ寄る速さ: <span id="val-attract">0.01</span></label>
         <input type="range" id="input-attract" min="0" max="0.2" step="0.01" value="0.01">
     </div>
     <button id="start-btn">START / RESTART</button>
-    <hr style="border: 0; border-top: 1px solid #333; margin: 25px 0;">
+    <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
     <div class="stat">High Score: <span id="high-score">0</span></div>
 </div>
 
@@ -82,18 +79,19 @@
     <div id="hud">
         <div class="stat">Time: <span id="timer">0.0</span>s</div>
         <div class="stat">Score: <span id="score">0</span></div>
-        <div class="stat">Combo: <span id="combo">0</span></div>
+        <div id="combo-container" class="stat">Combo: <span id="combo">0</span></div>
     </div>
     <canvas id="gameCanvas"></canvas>
 </div>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d', { alpha: false });
+const ctx = canvas.getContext('2d');
 const startBtn = document.getElementById('start-btn');
 const settingsPanel = document.getElementById('settings');
 const toggleBtn = document.getElementById('menu-toggle');
 
+// UI初期化
 const inputs = ['time', 'balls', 'bSpeed', 'blocks', 'attract'];
 inputs.forEach(id => {
     const el = document.getElementById('input-' + id);
@@ -105,16 +103,27 @@ toggleBtn.onclick = () => {
     setTimeout(resize, 305);
 };
 
-let balls = [], blocks = [], particles = []; 
-let score = 0, highScore = 0, timeLeft = 0, isRunning = false;
-let lastTime = 0, combo = 0, lastHitTime = 0;
-const COMBO_WINDOW = 1.0;
-let shakeDuration = 0, shakeIntensity = 0;
+let balls = [];
+let blocks = [];
+let particles = [];
+let score = 0;
+let highScore = 0;
+let timeLeft = 0;
+let isRunning = false;
+let lastTime = 0;
+let combo = 0;
+let lastHitTime = 0;
+const COMBO_WINDOW = 1;
+let shakeDuration = 0;
+let shakeIntensity = 0;
 
 const blockBaseTypes = [
-    { color: '#00dfff', points: 1 }, { color: '#66ff00', points: 2 },
-    { color: '#ff00ff', points: 3 }, { color: '#ffff00', points: 5 },
-    { color: '#ff3300', points: 8 }, { color: '#ffffff', points: 10 }
+    { color: '#00f2ff', glow: '#00b8ff', points: 1 },
+    { color: '#7cfc00', glow: '#32cd32', points: 2 },
+    { color: '#ff00ff', glow: '#ff00ff', points: 3 },
+    { color: '#ffff00', glow: '#ffcc00', points: 5 },
+    { color: '#ff4d4d', glow: '#ff0000', points: 8 },
+    { color: '#ffffff', glow: '#00ffff', points: 10 }
 ];
 
 function resize() {
@@ -127,69 +136,99 @@ resize();
 
 class Particle {
     constructor(x, y, color) {
-        this.x = x; this.y = y; this.life = 1.0; this.color = color;
+        this.x = x; this.y = y; 
+        this.size = Math.random() * 3 + 1;
+        this.life = 1.0; 
+        this.color = color;
         const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * 4 + 1;
-        this.vx = Math.cos(angle) * speed;
+        const speed = Math.random() * 6 + 2;
+        this.vx = Math.cos(angle) * speed; 
         this.vy = Math.sin(angle) * speed;
     }
-    update() { this.x += this.vx; this.y += this.vy; this.life -= 0.03; }
+    update(deltaTime) {
+        this.x += this.vx; this.y += this.vy;
+        this.life -= 0.02;
+    }
     draw() {
+        ctx.save();
         ctx.fillStyle = this.color;
-        ctx.globalAlpha = this.life;
-        ctx.fillRect(this.x, this.y, 2, 2);
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.color;
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
     }
 }
 
-function createParticles(x, y, color, count = 10) {
-    for (let i = 0; i < count; i++) {
-        if (particles.length > 300) particles.shift();
-        particles.push(new Particle(x, y, color));
-    }
+function createParticles(x, y, color, count = 15) {
+    for (let i = 0; i < count; i++) particles.push(new Particle(x, y, color));
+}
+
+function triggerShake(intensity, duration) {
+    shakeIntensity = intensity; shakeDuration = duration;
 }
 
 class Ball {
-    constructor(speed, startX, startY) {
-        this.r = 5; this.x = startX; this.y = startY;
+    constructor(speed) {
+        this.r = 6; 
+        this.x = canvas.width / 2; 
+        this.y = canvas.height / 2;
         const angle = Math.random() * Math.PI * 2;
-        this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
-        this.history = [];
+        this.vx = Math.cos(angle) * speed; 
+        this.vy = Math.sin(angle) * speed;
+        this.history = []; // 軌跡
     }
-    update(speed) {
-        const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || speed;
-        this.vx = (this.vx / currentSpeed) * speed;
-        this.vy = (this.vy / currentSpeed) * speed;
+    update() {
         this.history.push({x: this.x, y: this.y});
-        if(this.history.length > 5) this.history.shift();
+        if(this.history.length > 8) this.history.shift();
+
         this.x += this.vx; this.y += this.vy;
-        if (this.x < this.r || this.x > canvas.width - this.r) this.vx *= -1;
-        if (this.y < this.r || this.y > canvas.height - this.r) this.vy *= -1;
+        if (this.x < this.r) { this.x = this.r; this.vx *= -1; }
+        if (this.x > canvas.width - this.r) { this.x = canvas.width - this.r; this.vx *= -1; }
+        if (this.y < this.r) { this.y = this.r; this.vy *= -1; }
+        if (this.y > canvas.height - this.r) { this.y = canvas.height - this.r; this.vy *= -1; }
     }
     draw() {
-        if (this.history.length > 1) {
-            ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 2;
-            ctx.moveTo(this.history[0].x, this.history[0].y);
-            for(let i=1; i<this.history.length; i++) ctx.lineTo(this.history[i].x, this.history[i].y);
-            ctx.stroke();
-        }
+        // トレイル描画
+        this.history.forEach((pos, i) => {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, this.r * (i / 8), 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${i / 20})`;
+            ctx.fill();
+        });
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#fff";
         ctx.fillStyle = "#fff";
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2); ctx.fill();
+        ctx.fill();
+        ctx.restore();
     }
 }
 
 class Block {
     constructor(x, y) {
-        this.size = 16; this.x = x; this.y = y;
+        this.size = 18; this.x = x; this.y = y;
         this.rotation = Math.random() * Math.PI;
         this.init();
     }
     init() {
         const rand = Math.random();
-        if (rand < 0.05) { this.type = 'explosive'; this.hp = 1; this.color = '#ff3300'; this.points = 25; }
-        else if (rand < 0.15) { this.type = 'tough'; this.hp = 3; this.color = '#888'; this.points = 15; }
-        else {
+        if (rand < 0.05) {
+            this.type = 'explosive'; this.hp = 1; 
+            this.color = '#ff4d4d'; this.glow = '#ff0000'; this.points = 25;
+        } else if (rand < 0.15) {
+            this.type = 'tough'; this.hp = 3; this.maxHp = 3;
+            this.color = '#a0a0a0'; this.glow = '#ffffff'; this.points = 15;
+        } else {
+            this.type = 'normal';
             const b = blockBaseTypes[Math.floor(Math.random() * blockBaseTypes.length)];
-            this.type = 'normal'; this.hp = 1; this.color = b.color; this.points = b.points;
+            this.color = b.color; this.glow = b.glow; this.points = b.points;
+            this.hp = 1;
         }
     }
     spawn() {
@@ -198,70 +237,52 @@ class Block {
         else if(side === 1) { this.x = canvas.width + 30; this.y = Math.random() * canvas.height; }
         else if(side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + 30; }
         else { this.x = -30; this.y = Math.random() * canvas.height; }
-        this.init();
+        this.vx = 0; this.vy = 0; this.init();
     }
     update(attraction) {
-        const dx = canvas.width / 2 - this.x, dy = canvas.height / 2 - this.y;
-        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        this.x += (dx / dist) * attraction * 55;
-        this.y += (dy / dist) * attraction * 55;
-        this.rotation += 0.03;
+        const dx = canvas.width / 2 - this.x;
+        const dy = canvas.height / 2 - this.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        this.x += (dx / dist) * attraction * 60;
+        this.y += (dy / dist) * attraction * 60;
+        this.rotation += 0.02;
     }
     draw() {
-        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation);
-        ctx.fillStyle = this.color; ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
-        ctx.strokeStyle = "#fff"; ctx.lineWidth = (this.type === 'tough') ? this.hp : 0.5;
-        ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = this.glow;
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+        if(this.type === 'tough') {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = this.hp;
+            ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+        }
         ctx.restore();
     }
 }
 
-function updateRealtimeSettings() {
-    const targetBallCount = parseInt(document.getElementById('input-balls').value);
-    const targetBlockCount = parseInt(document.getElementById('input-blocks').value);
-    const speed = parseFloat(document.getElementById('input-bSpeed').value);
-    const centerX = canvas.width / 2, centerY = canvas.height / 2;
-    while (balls.length < targetBallCount) balls.push(new Ball(speed, centerX, centerY));
-    while (balls.length > targetBallCount) balls.pop();
-    while (blocks.length < targetBlockCount) { const b = new Block(0, 0); b.spawn(); blocks.push(b); }
-    while (blocks.length > targetBlockCount) blocks.pop();
-}
-
-// ゲーム開始時の「太い円形（多重円環）配置」ロジック
 function initGame() {
-    resize();
-    balls = []; blocks = []; particles = []; score = 0; combo = 0;
+    balls = []; blocks = []; particles = [];
+    score = 0; combo = 0;
     timeLeft = parseFloat(document.getElementById('input-time').value);
-    
     const ballCount = parseInt(document.getElementById('input-balls').value);
     const blockCount = parseInt(document.getElementById('input-blocks').value);
     const ballSpeed = parseFloat(document.getElementById('input-bSpeed').value);
-    const centerX = canvas.width / 2, centerY = canvas.height / 2;
 
-    for (let i = 0; i < ballCount; i++) balls.push(new Ball(ballSpeed, centerX, centerY));
+    for (let i = 0; i < ballCount; i++) balls.push(new Ball(ballSpeed));
 
-    // ブロックを半径を変えながら層状に配置して「太い円」を作る
-    const layers = 5; // 5重の円
-    const blocksPerLayer = Math.floor(blockCount / layers);
-    const baseRadius = Math.min(canvas.width, canvas.height) * 0.35;
-
-    for (let l = 0; l < layers; l++) {
-        const layerRadius = baseRadius + (l * 20); // 20pxずつ外側に広げる
-        for (let i = 0; i < blocksPerLayer; i++) {
-            const angle = (i / blocksPerLayer) * Math.PI * 2;
-            const bx = centerX + Math.cos(angle) * layerRadius;
-            const by = centerY + Math.sin(angle) * layerRadius;
-            blocks.push(new Block(bx, by));
-        }
-    }
-    // 残りの端数を外周に追加
-    while(blocks.length < blockCount) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = baseRadius + (Math.random() * layers * 20);
-        blocks.push(new Block(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius));
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    for (let i = 0; i < blockCount; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * 250 + 150;
+        blocks.push(new Block(cx + Math.cos(a) * r, cy + Math.sin(a) * r));
     }
 
-    isRunning = true; lastTime = performance.now();
+    isRunning = true;
+    lastTime = performance.now();
     requestAnimationFrame(gameLoop);
     if (window.innerWidth <= 900) settingsPanel.classList.remove('open');
 }
@@ -271,15 +292,42 @@ function handleBlockDestruction(block) {
     combo = (now - lastHitTime < COMBO_WINDOW) ? combo + 1 : 1;
     lastHitTime = now;
     score += Math.round(block.points * (1 + (combo - 1) * 0.1));
-    createParticles(block.x, block.y, block.color, 12);
+    
+    createParticles(block.x, block.y, block.color, 20);
+    
     if (block.type === 'explosive') {
-        shakeDuration = 0.3; shakeIntensity = 8;
+        triggerShake(12, 0.4);
         blocks.forEach(other => {
-            const d2 = (block.x-other.x)**2 + (block.y-other.y)**2;
-            if (d2 < 10000) { score += other.points; createParticles(other.x, other.y, other.color, 5); other.spawn(); }
+            if (other !== block && Math.hypot(block.x - other.x, block.y - other.y) < 130) {
+                score += other.points;
+                createParticles(other.x, other.y, other.color, 8);
+                other.spawn();
+            }
         });
     }
     block.spawn();
+}
+
+function adjustEntitiesInRealtime() {
+    const targetBallCount = parseInt(document.getElementById('input-balls').value);
+    const targetBallSpeed = parseFloat(document.getElementById('input-bSpeed').value);
+    const targetBlockCount = parseInt(document.getElementById('input-blocks').value);
+
+    while (balls.length < targetBallCount) balls.push(new Ball(targetBallSpeed));
+    while (balls.length > targetBallCount) balls.pop();
+
+    balls.forEach(ball => {
+        const speed = Math.hypot(ball.vx, ball.vy);
+        if (speed > 0) {
+            ball.vx = (ball.vx / speed) * targetBallSpeed;
+            ball.vy = (ball.vy / speed) * targetBallSpeed;
+        }
+    });
+
+    while (blocks.length < targetBlockCount) {
+        const nb = new Block(0, 0); nb.spawn(); blocks.push(nb);
+    }
+    while (blocks.length > targetBlockCount) blocks.pop();
 }
 
 function gameLoop(timestamp) {
@@ -287,46 +335,78 @@ function gameLoop(timestamp) {
     const deltaTime = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     timeLeft -= deltaTime;
+
+    if (timestamp / 1000 - lastHitTime >= COMBO_WINDOW) combo = 0;
+
     if (timeLeft <= 0) {
-        isRunning = false;
-        if (score > highScore) { highScore = score; document.getElementById('high-score').textContent = highScore; }
-        alert("Game Over! Score: " + score); return;
+        timeLeft = 0; isRunning = false;
+        if (score > highScore) {
+            highScore = score;
+            document.getElementById('high-score').textContent = highScore;
+        }
+        alert("Game Over! Score: " + score);
+        return;
     }
-    updateRealtimeSettings();
-    const currentSpeed = parseFloat(document.getElementById('input-bSpeed').value);
-    const currentAttract = parseFloat(document.getElementById('input-attract').value);
-    ctx.globalAlpha = 1.0; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalCompositeOperation = 'lighter';
+    
+    adjustEntitiesInRealtime();
+
+    // 背景描画（少し残像が残るように0.2の不透明度で塗りつぶし）
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     if (shakeDuration > 0) {
         shakeDuration -= deltaTime;
-        ctx.save(); ctx.translate((Math.random()-0.5)*shakeIntensity, (Math.random()-0.5)*shakeIntensity);
+        ctx.save();
+        ctx.translate((Math.random() - 0.5) * shakeIntensity, (Math.random() - 0.5) * shakeIntensity);
     }
+
+    const attraction = parseFloat(document.getElementById('input-attract').value);
+    
     particles = particles.filter(p => p.life > 0);
     particles.forEach(p => { p.update(); p.draw(); });
-    const centerX = canvas.width/2, centerY = canvas.height/2;
+
+    const cx = canvas.width / 2, cy = canvas.height / 2;
     blocks.forEach(block => {
-        block.update(currentAttract);
-        if (Math.abs(block.x - centerX) < 12 && Math.abs(block.y - centerY) < 12) {
-            score = Math.max(0, score - 5); createParticles(block.x, block.y, "#f00", 5); block.spawn();
+        block.update(attraction);
+        if (Math.hypot(block.x - cx, block.y - cy) < 15) {
+            score = Math.max(0, score - 5);
+            createParticles(block.x, block.y, '#ff0000', 5);
+            block.spawn();
         }
         block.draw();
     });
+
     balls.forEach(ball => {
-        ball.update(currentSpeed);
+        ball.update();
         blocks.forEach(block => {
-            if (Math.abs(ball.x - block.x) < ball.r + 8 && Math.abs(ball.y - block.y) < ball.r + 8) {
-                if (Math.abs(ball.x - block.x) > Math.abs(ball.y - block.y)) ball.vx *= -1;
-                else ball.vy *= -1;
-                block.hp--; if (block.hp <= 0) handleBlockDestruction(block);
+            if (ball.x + ball.r > block.x - block.size/2 && ball.x - ball.r < block.x + block.size/2 &&
+                ball.y + ball.r > block.y - block.size/2 && ball.y - ball.r < block.y + block.size/2) {
+                
+                const ox = (ball.r + block.size/2) - Math.abs(ball.x - block.x);
+                const oy = (ball.r + block.size/2) - Math.abs(ball.y - block.y);
+                if (ox < oy) {
+                    ball.vx *= -1; ball.x += (ball.x < block.x ? -ox : ox);
+                } else {
+                    ball.vy *= -1; ball.y += (ball.y < block.y ? -oy : oy);
+                }
+                
+                block.hp--;
+                if (block.hp <= 0) handleBlockDestruction(block);
+                else createParticles(ball.x, ball.y, '#fff', 5);
             }
         });
         ball.draw();
     });
+
     if (shakeDuration > 0) ctx.restore();
-    ctx.globalCompositeOperation = 'source-over';
+
+    // HUD更新
     document.getElementById('timer').textContent = Math.max(0, timeLeft).toFixed(1);
     document.getElementById('score').textContent = score;
-    document.getElementById('combo').textContent = combo;
+    const comboEl = document.getElementById('combo');
+    comboEl.textContent = combo;
+    document.getElementById('combo-container').style.transform = combo > 0 ? `scale(${1 + Math.min(combo * 0.05, 1)})` : 'scale(1)';
+
     requestAnimationFrame(gameLoop);
 }
 
