@@ -161,9 +161,9 @@ async function init() {
 
     L.geoJson(geoData, {
         style: {
-            fillColor: '#ffffff',
-            fillOpacity: 0.2, // タイルが見えるように少し透過を下げるのがおすすめ
-            color: '#34495e',
+            fillColor: '#1a1a1a', // ここを暗いグレー/黒系に
+            fillOpacity: 0.7,     // 透明度を少し上げるとタイルと馴染みます
+            color: '#2c3e50',     // 国境線の色
             weight: 1
         },
         onEachFeature: (feature, layer) => {
@@ -177,8 +177,24 @@ async function init() {
     loadQuestion();
 }
 
+// 全国のスタイルを初期状態（黒っぽく）に戻す関数
+function resetMapStyle() {
+    Object.values(layerDict).forEach(layer => {
+        layer.setStyle({
+            fillColor: '#1a1a1a',
+            fillOpacity: 0.7,
+            color: '#2c3e50',
+            weight: 1
+        });
+        const el = layer.getElement();
+        if (el) {
+            el.classList.remove('neon-correct', 'neon-wrong');
+        }
+    });
+}
+
+// loadQuestion の最初に追加
 function loadQuestion() {
-    document.getElementById('result').innerText = '';
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('q-count').innerText = stats.q;
 
@@ -241,6 +257,7 @@ function checkAnswer(selected, btn) {
 
     document.getElementById('next-btn').style.display = 'block';
 }
+
 
 document.getElementById('next-btn').onclick = () => {
     stats.q++;
