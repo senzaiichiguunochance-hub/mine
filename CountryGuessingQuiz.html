@@ -1,166 +1,242 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>国当てクイズ</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background: #2c3e50; color: #ecf0f1; margin: 0; overflow: hidden; height: 100vh; }
-        #map { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: #1a252f; }
-        .container { position: relative; max-width: 480px; margin: 15px auto; background: rgba(44, 62, 80, 0.9); padding: 15px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; }
-        #flag-img { width: 120px; height: auto; border-radius: 4px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-        .stats-box { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; margin: 10px 0; text-align: left; font-size: 0.8em; }
-        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        button { padding: 8px; font-size: 13px; cursor: pointer; border: none; border-radius: 6px; background: #3498db; color: white; transition: 0.2s; }
-        button:hover:not(:disabled) { background: #2980b9; }
-        #next-btn { margin-top: 10px; background: #2ecc71; width: 100%; font-weight: bold; display: none; grid-column: span 2; padding: 10px; }
-        #loading-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; }
-    </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #2c3e50;
+    margin: 0;
+    overflow: hidden;
+    height: 100vh;
+    color: #ecf0f1;
+    text-align: center;
+}
+
+#map {
+    position: fixed;
+    inset: 0;
+    background: #1a252f;
+    z-index: 0;
+}
+
+/* ===========================
+   ネオン発光（共通）
+   =========================== */
+.leaflet-interactive {
+    transition: 
+        fill 0.4s ease,
+        stroke 0.4s ease,
+        filter 0.4s ease;
+}
+
+/* 正解（青ネオン） */
+.neon-correct {
+    filter:
+        drop-shadow(0 0 6px rgba(80,180,255,0.9))
+        drop-shadow(0 0 12px rgba(80,180,255,0.8))
+        drop-shadow(0 0 20px rgba(80,180,255,0.6));
+}
+
+/* 不正解（赤ネオン） */
+.neon-wrong {
+    filter:
+        drop-shadow(0 0 6px rgba(255,100,100,0.9))
+        drop-shadow(0 0 12px rgba(255,100,100,0.8))
+        drop-shadow(0 0 20px rgba(255,100,100,0.6));
+}
+
+/* UI */
+.container {
+    position: relative;
+    max-width: 480px;
+    margin: 15px auto;
+    background: rgba(44,62,80,0.9);
+    padding: 15px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    z-index: 10;
+}
+
+#flag-img {
+    width: 120px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+.options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+button {
+    padding: 8px;
+    font-size: 13px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #3498db;
+    color: #fff;
+}
+
+button:hover:not(:disabled) {
+    background: #2980b9;
+}
+
+#next-btn {
+    display: none;
+    margin-top: 10px;
+    width: 100%;
+    background: #2ecc71;
+    font-weight: bold;
+}
+
+#loading-msg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.85);
+    z-index: 20;
+    font-size: 1.2em;
+}
+</style>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
+<body>
 
 <div id="map"></div>
 <div id="loading-msg">🌍 地図データを照合中...</div>
 
 <div class="container" id="main-ui" style="display:none;">
-    <h2 style="margin:0 0 10px 0;">国当てクイズ</h2>
-    <div class="game-info">第 <span id="q-count">1</span> 問 | 正解率: <span id="accuracy">0</span>%</div>
-    <img id="flag-img" src="" alt="国旗">
-    <div class="stats-box">
-        <div>📍 首都: <span id="stat-capital">---</span></div>
-        <div>👥 人口: <span id="stat-pop">---</span></div>
-        <div>🗺 地方: <span id="stat-reg">---</span></div>
-        <div>💰 通貨: <span id="stat-cur">---</span></div>
-    </div>
+    <h2>国当てクイズ</h2>
+    <div>第 <span id="q-count">1</span> 問 | 正解率 <span id="accuracy">0</span>%</div>
+    <img id="flag-img">
     <div class="options" id="options-container"></div>
-    <div id="result" style="margin-top:10px; font-weight:bold; height:25px; font-size: 1.1em;"></div>
+    <div id="result" style="margin-top:10px;font-weight:bold;height:24px;"></div>
     <button id="next-btn">次の問題へ</button>
 </div>
 
 <script>
-    let map;
-    let geoJsonLayer;
-    let countriesData = [];
-    let correctCountry = null;
-    let stats = { q: 1, correct: 0, wrong: 0 };
+let map;
+let countriesData = [];
+let correctCountry;
+let stats = { q: 1, correct: 0, wrong: 0 };
+const layerDict = {};
 
-    // 国を特定するための辞書 (key: ISO3コード, value: Leafletレイヤー)
-    const layerDict = {};
+async function init() {
+    map = L.map('map').setView([20, 0], 2);
 
-    async function init() {
-        // 地図の初期化
-        map = L.map('map', { 
-            zoomControl: true,
-            worldCopyJump: true 
-        }).setView([20, 0], 2);
+    const countryRes = await fetch(
+        'https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations'
+    );
+    countriesData = await countryRes.json();
 
-        try {
-            // 1. 国情報の取得
-            const countryRes = await fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,capital,population,currencies,translations,region');
-            countriesData = await countryRes.json();
+    const geoRes = await fetch(
+        'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json'
+    );
+    const geoData = await geoRes.json();
 
-            // 2. 地図データの取得 (より標準的なGeoJSONソース)
-            const geoRes = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json');
-            const geoData = await geoRes.json();
-
-            // 3. 地図を描画しつつ、辞書に登録
-            geoJsonLayer = L.geoJson(geoData, {
-                style: function() {
-                    return {
-                        fillColor: '#ffffff', // 初期：白
-                        weight: 1,
-                        color: '#2c3e50',
-                        fillOpacity: 0.8
-                    };
-                },
-                onEachFeature: function(feature, layer) {
-                    // IDをキーにレイヤーを保存
-                    const id = (feature.id || feature.properties.id || feature.properties.iso_a3 || "").toUpperCase();
-                    if (id) {
-                        layerDict[id] = layer;
-                    }
-                }
-            }).addTo(map);
-
-            document.getElementById('loading-msg').style.display = 'none';
-            document.getElementById('main-ui').style.display = 'block';
-            loadQuestion();
-        } catch (e) {
-            console.error(e);
-            document.getElementById('loading-msg').innerText = "データのロードに失敗しました。";
+    L.geoJson(geoData, {
+        style: {
+            fillColor: '#ffffff',
+            fillOpacity: 0.8,
+            color: '#2c3e50',
+            weight: 1
+        },
+        onEachFeature: (feature, layer) => {
+            const id = (feature.id || '').toUpperCase();
+            if (id) layerDict[id] = layer;
         }
+    }).addTo(map);
+
+    document.getElementById('loading-msg').style.display = 'none';
+    document.getElementById('main-ui').style.display = 'block';
+    loadQuestion();
+}
+
+function loadQuestion() {
+    document.getElementById('result').innerText = '';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('q-count').innerText = stats.q;
+
+    const available = countriesData.filter(c => layerDict[c.cca3]);
+    const shuffled = available.sort(() => Math.random() - 0.5);
+    const choices = shuffled.slice(0, 4);
+    correctCountry = choices[0];
+
+    document.getElementById('flag-img').src = correctCountry.flags.svg;
+
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+
+    choices.sort(() => Math.random() - 0.5).forEach(c => {
+        const btn = document.createElement('button');
+        btn.textContent = c.translations?.jpn?.common || c.name.common;
+        btn.onclick = () => checkAnswer(c, btn);
+        container.appendChild(btn);
+    });
+}
+
+function applyNeon(layer, type) {
+    layer.setStyle({
+        fillColor: type === 'correct' ? '#3fa9f5' : '#ff5c5c',
+        fillOpacity: 0.9,
+        color: '#ffffff',
+        weight: 3
+    });
+
+    const el = layer.getElement();
+    if (el) {
+        el.classList.remove('neon-correct', 'neon-wrong');
+        el.classList.add(type === 'correct' ? 'neon-correct' : 'neon-wrong');
     }
 
-    function loadQuestion() {
-        document.getElementById('result').innerText = "";
-        document.getElementById('next-btn').style.display = "none";
-        document.getElementById('q-count').innerText = stats.q;
+    map.flyTo(layer.getBounds().getCenter(), 3, { duration: 1.2 });
+}
 
-        // 地図上に存在する国から選ぶ
-        const availableCountries = countriesData.filter(c => layerDict[c.cca3]);
-        const shuffled = availableCountries.sort(() => 0.5 - Math.random());
-        const choices = shuffled.slice(0, 4);
-        correctCountry = choices[0];
+function checkAnswer(selected, btn) {
+    document.querySelectorAll('.options button').forEach(b => b.disabled = true);
 
-        document.getElementById('flag-img').src = correctCountry.flags.svg;
-        document.getElementById('stat-capital').innerText = correctCountry.capital?.[0] || '---';
-        document.getElementById('stat-pop').innerText = correctCountry.population.toLocaleString();
-        document.getElementById('stat-reg').innerText = correctCountry.region;
-        document.getElementById('stat-cur').innerText = Object.keys(correctCountry.currencies || {})[0] || '---';
+    const layer = layerDict[correctCountry.cca3];
 
-        const container = document.getElementById('options-container');
-        container.innerHTML = "";
-        choices.sort(() => 0.5 - Math.random()).forEach(c => {
-            const btn = document.createElement('button');
-            btn.innerText = c.translations?.jpn?.common || c.name.common;
-            btn.onclick = () => checkAnswer(c, btn);
-            container.appendChild(btn);
-        });
+    if (selected.cca3 === correctCountry.cca3) {
+        stats.correct++;
+        document.getElementById('result').innerHTML =
+            "<span style='color:#6ecbff'>正解！</span>";
+        applyNeon(layer, 'correct');
+    } else {
+        stats.wrong++;
+        btn.style.background = '#e74c3c';
+        document.getElementById('result').innerHTML =
+            `正解は ${correctCountry.translations?.jpn?.common}`;
+        applyNeon(layer, 'wrong');
     }
 
-    function applyColor(cca3, color) {
-        const layer = layerDict[cca3];
-        if (layer) {
-            layer.setStyle({
-                fillColor: color,
-                fillOpacity: 1.0,
-                weight: 2,
-                color: '#ffffff'
-            });
-            // 視認性のために地図を移動
-            map.flyTo(layer.getBounds().getCenter(), 3, { animate: true, duration: 1 });
-        }
-    }
+    const total = stats.correct + stats.wrong;
+    document.getElementById('accuracy').innerText =
+        Math.round(stats.correct / total * 100);
 
-    function checkAnswer(selected, btn) {
-        document.querySelectorAll('.options button').forEach(b => b.disabled = true);
+    document.getElementById('next-btn').style.display = 'block';
+}
 
-        if (selected.cca3 === correctCountry.cca3) {
-            stats.correct++;
-            document.getElementById('result').innerHTML = "<span style='color:#2ecc71'>正解！</span>";
-            applyColor(correctCountry.cca3, "#0000ff"); // 青
-        } else {
-            stats.wrong++;
-            btn.style.background = "#e74c3c";
-            document.getElementById('result').innerHTML = `<span style='color:#ff6b6b'>正解は ${correctCountry.translations?.jpn?.common}</span>`;
-            applyColor(correctCountry.cca3, "#ff0000"); // 赤
-        }
-        
-        const total = stats.correct + stats.wrong;
-        document.getElementById('accuracy').innerText = Math.round((stats.correct / total) * 100);
-        document.getElementById('next-btn').style.display = "block";
-    }
+document.getElementById('next-btn').onclick = () => {
+    stats.q++;
+    loadQuestion();
+};
 
-    document.getElementById('next-btn').onclick = () => {
-        stats.q++;
-        loadQuestion();
-    };
-
-    init();
+init();
 </script>
 </body>
 </html>
