@@ -136,7 +136,18 @@ let stats = { q: 1, correct: 0, wrong: 0 };
 const layerDict = {};
 
 async function init() {
-    map = L.map('map').setView([20, 0], 2);
+    // 1. worldCopyJumpをtrueにして、世界をループできるように設定
+    map = L.map('map', {
+        worldCopyJump: true,
+        maxBoundsViscosity: 1.0
+    }).setView([20, 0], 2);
+
+    // 2. 背景にダーク系のタイルレイヤーを追加（これで「欠ける」見た目を防ぎます）
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
 
     const countryRes = await fetch(
         'https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations'
@@ -151,8 +162,8 @@ async function init() {
     L.geoJson(geoData, {
         style: {
             fillColor: '#ffffff',
-            fillOpacity: 0.8,
-            color: '#2c3e50',
+            fillOpacity: 0.2, // タイルが見えるように少し透過を下げるのがおすすめ
+            color: '#34495e',
             weight: 1
         },
         onEachFeature: (feature, layer) => {
