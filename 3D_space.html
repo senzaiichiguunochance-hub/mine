@@ -3,201 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Creative Block Builder - Mobile</title>
+    <title>Creative Block Builder - Teleport Numbering</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #87ceeb; font-family: sans-serif; -webkit-user-select: none; user-select: none; }
-        #crosshair {
-            position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
-            border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%);
-            pointer-events: none; z-index: 10;
-        }
-        #key-info {
-            position: absolute; top: 20px; left: 20px; color: white;
-            background: rgba(0,0,0,0.6); padding: 10px 15px; border-radius: 8px;
-            font-size: 13px; line-height: 1.6; z-index: 1000;
-        }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; }
+        #key-info { position: absolute; top: 20px; left: 20px; color: white; background: rgba(0,0,0,0.6); padding: 10px 15px; border-radius: 8px; font-size: 13px; line-height: 1.6; z-index: 1000; }
         #key-info b { font-size: 14px; display: block; margin-bottom: 5px; }
-        
-        #ui {
-            position: absolute; top: 200px; left: 20px; color: white;
-            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px;
-            font-size: 14px; line-height: 1.6; max-width: 250px;
-        }
-        #ui b { font-size: 16px; }
-
-        #movement-pad {
-            position: absolute; bottom: 20px; left: 20px; width: 150px; height: 100px;
-            opacity: 0.7; z-index: 100;
-        }
-        .move-btn {
-            position: absolute;
-            width: 50px; height: 50px;
-            background: rgba(255,255,255,0.3);
-            border: 1px solid white;
-            border-radius: 10px;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-size: 24px; font-weight: bold;
-            cursor: pointer;
-        }
-        .move-btn:active { background: rgba(255,255,255,0.6); }
+        #ui { position: absolute; top: 200px; left: 20px; color: white; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; font-size: 14px; line-height: 1.6; }
+        #movement-pad { position: absolute; bottom: 20px; left: 20px; width: 150px; height: 100px; z-index: 100; }
+        .move-btn { position: absolute; width: 50px; height: 50px; background: rgba(0,0,0,0.5); border: 1px solid white; border-radius: 5px; display: flex; justify-content: center; align-items: center; color: white; font-size: 20px; cursor: pointer; }
         #move-w { top: 0; left: 50px; }
         #move-a { top: 50px; left: 0; }
         #move-s { top: 50px; left: 50px; }
         #move-d { top: 50px; left: 100px; }
-        #move-jump { position: absolute; bottom: 20px; left: 180px; width: 80px; height: 50px; border-radius: 25px; }
-
-        #spell-bar {
-            position: absolute; bottom: 20px; right: 20px;
-            display: flex; flex-direction: column; gap: 8px; z-index: 100;
-        }
-        .spell-btn {
-            width: 50px; height: 50px;
-            background: rgba(0,0,0,0.4);
-            border: 2px solid #888;
-            border-radius: 8px;
-            font-size: 28px;
-            display: flex; justify-content: center; align-items: center;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .spell-btn.active {
-            border-color: white;
-            background: rgba(0, 120, 255, 0.7);
-            transform: scale(1.1);
-        }
+        #move-jump { position: absolute; bottom: 20px; left: 180px; width: 80px; height: 50px; border-radius: 25px; font-size: 14px; }
+        #spell-bar { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 100; }
+        .spell-btn { width: 54px; height: 54px; border-radius: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.3); font-size: 26px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .spell-btn.active { border: 2px solid #00d4ff; background: rgba(0, 212, 255, 0.3); transform: scale(1.15) translateX(-5px); box-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+        .menu-link { position: absolute; top: 20px; right: 20px; font-size: 14px; color: #fff; text-decoration: none; background: rgba(0,0,0,0.5); padding: 8px 16px; border-radius: 20px; z-index: 1001; }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1001;">メニューに戻る</a>
-
+    <a href="menu.html" class="menu-link">メニューに戻る</a>
     <div id="key-info">
         <b>キーボード魔法</b>
-        Z: ノーマル<br>
-        X: 花<br>
-        C: 氷<br>
-        V: 反重力<br>
-        B: ツタ<br>
-        N: ライト<br>
-        M: テレポート
+        Z: ノーマル / X: 花 / C: 氷<br>
+        V: 反重力 / B: ツタ / <b style="color:#00d4ff; display:inline;">N: テレポート</b>
     </div>
-
     <div id="crosshair"></div>
     <div id="ui">
         <b>操作方法:</b><br>
-        画面のボタンで移動・ジャンプ<br>
+        画面ボタンで移動・ジャンプ<br>
         右のボタンで魔法を選択<br>
-        左クリック: ブロック/魔法を使用<br>
-        右クリック: ブロックを破壊<br>
+        左クリック: 使用 / 右クリック: 破壊<br>
         <br>
         画面クリックで開始 / ESC: 解放
     </div>
-
-    <!-- 操作用UI -->
-    <div id="movement-pad">
-        <div id="move-w" class="move-btn">▲</div>
-        <div id="move-a" class="move-btn">◀</div>
-        <div id="move-s" class="move-btn">▼</div>
-        <div id="move-d" class="move-btn">▶</div>
-    </div>
+    <div id="movement-pad"><div id="move-w" class="move-btn">▲</div><div id="move-a" class="move-btn">◀</div><div id="move-s" class="move-btn">▼</div><div id="move-d" class="move-btn">▶</div></div>
     <div id="move-jump" class="move-btn">JUMP</div>
-
     <div id="spell-bar">
         <div class="spell-btn active" data-spell="normal">🧱</div>
         <div class="spell-btn" data-spell="flower">🌸</div>
         <div class="spell-btn" data-spell="ice">🧊</div>
         <div class="spell-btn" data-spell="gravity">🔮</div>
         <div class="spell-btn" data-spell="vine">🌿</div>
-        <div class="spell-btn" data-spell="light">💡</div>
         <div class="spell-btn" data-spell="teleport">🌀</div>
     </div>
 
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-            }
-        }
+        { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
-        // --- 基本設定 ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87ceeb);
-        scene.fog = new THREE.Fog(0x87ceeb, 10, 100);
+        scene.fog = new THREE.Fog(0x87ceeb, 1, 100);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
 
-        // --- ライティング ---
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
         const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        sunLight.position.set(100, 150, 100);
+        sunLight.position.set(50, 100, 50);
         sunLight.castShadow = true;
         scene.add(sunLight);
 
-        // --- 地面 ---
-        const planeGeo = new THREE.PlaneGeometry(200, 200);
-        const planeMat = new THREE.MeshStandardMaterial({ color: 0x55aa55 });
-        const floor = new THREE.Mesh(planeGeo, planeMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
+        const objects = [new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: 0x55aa55, roughness: 0.8 }))];
+        const floor = objects[0];
+        floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
         scene.add(floor);
-        const grid = new THREE.GridHelper(200, 100, 0x447744, 0x447744);
-        grid.position.y = 0.01;
-        scene.add(grid);
 
-        // --- ブロック/魔法の定義 ---
-        const objects = [floor];
-        const cubeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.8 });
-        const iceMat = new THREE.MeshStandardMaterial({ color: 0x1e90ff, transparent: true, opacity: 0.6, roughness: 0.2, metalness: 0.3 });
-        const gravityMat = new THREE.MeshStandardMaterial({ color: 0x8a2be2, wireframe: true, roughness: 0.5, metalness: 0.5 });
-        const vineMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.5, metalness: 0.2 });
-        const lightMat = new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 1, roughness: 0.2, metalness: 0.8 });
-        const teleportMatBase = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, roughness: 0.2, metalness: 0.8 });
+        const cubeMat = new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.1, clearcoat: 1.0 });
+        const iceMat = new THREE.MeshPhysicalMaterial({ color: 0xccf0ff, transparent: true, opacity: 0.7, transmission: 0.8, thickness: 2, ior: 1.5 });
+        const gravityMat = new THREE.MeshStandardMaterial({ color: 0x8a2be2, wireframe: true });
+        const vineMat = new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.5 });
+        const teleportMatBase = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 0.5 });
 
         let gravityZones = [];
-        let lightSources = new Map();
         let teleportPads = [];
         let activeTeleports = [];
+        let teleportSetCount = 0; // テレポートのセット数
 
-        // --- コントロール ---
         const controls = new PointerLockControls(camera, document.body);
-        document.body.addEventListener('click', (event) => {
-            if (event.target.closest('.move-btn') || event.target.closest('.spell-btn') || event.target.closest('#key-info')) {
-                return;
-            }
+        document.body.addEventListener('click', (e) => {
+            if (e.target.closest('.move-btn') || e.target.closest('.spell-btn')) return;
             controls.lock();
         });
 
-        // --- 状態変数 ---
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let canJump = false;
-
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = true;
         let currentSpell = 'normal';
-        const spellButtons = document.querySelectorAll('.spell-btn');
 
         function updateSpellSelection(newSpell) {
             currentSpell = newSpell;
-            spellButtons.forEach(btn => {
-                if (btn.dataset.spell === newSpell) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
+            document.querySelectorAll('.spell-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.spell === newSpell);
             });
         }
-        let teleportCooldown = 0;
-        const velocity = new THREE.Vector3();
-        const direction = new THREE.Vector3();
-        
-        // --- イベントリスナー ---
+
+        // --- キー設定変更：MからNへ ---
         document.addEventListener('keydown', (e) => {
             if (!controls.isLocked) return;
             switch (e.code) {
@@ -209,312 +121,188 @@
                 case 'KeyC': updateSpellSelection('ice'); break;
                 case 'KeyV': updateSpellSelection('gravity'); break;
                 case 'KeyB': updateSpellSelection('vine'); break;
-                case 'KeyN': updateSpellSelection('light'); break;
-                case 'KeyM': updateSpellSelection('teleport'); break;
+                case 'KeyN': updateSpellSelection('teleport'); break; 
             }
         });
         document.addEventListener('keyup', (e) => {
             switch (e.code) {
                 case 'KeyW': moveForward = false; break; case 'KeyS': moveBackward = false; break;
                 case 'KeyA': moveLeft = false; break; case 'KeyD': moveRight = false; break;
-
             }
         });
-        document.addEventListener('contextmenu', e => e.preventDefault());
 
         const raycaster = new THREE.Raycaster();
         document.addEventListener('mousedown', (e) => {
             if (!controls.isLocked) return;
-            if (e.target.closest('.move-btn') || e.target.closest('.spell-btn') || e.target.closest('#key-info')) {
-                return;
-            }
-            
             raycaster.setFromCamera({x:0, y:0}, camera);
             const intersects = raycaster.intersectObjects(objects);
             if (intersects.length > 0) {
                 const intersect = intersects[0];
-                if (e.button === 0) { // Left Click
+                if (e.button === 0) {
                     const pos = getPlacementPos(intersect.point, intersect.face);
-
-
-                    console.log('Placing block:', currentSpell, 'at pos:', pos.toArray(), 'Player pos:', controls.getObject().position.toArray());
+                    if (isPlayerColliding(pos)) return;
                     switch(currentSpell) {
-                        case 'normal': if (isPlayerColliding(pos, 2, 2, 2)) return; addBlock(pos); break;
-                        case 'flower': if (isPlayerColliding(pos, 2, 2, 2)) return; createFlower(pos); break;
-                        case 'ice': if (isPlayerColliding(pos, 2, 2, 2)) return; createIceBlock(pos); break;
-                        case 'gravity': if (isPlayerColliding(pos, 2, 2, 2)) return; createGravityBlock(pos); break;
-                        case 'vine': if (isPlayerColliding(pos, 2, 2, 2)) return; growVine(pos, intersect.face.normal); break;
-                        case 'light': if (isPlayerColliding(pos, 2, 2, 2)) return; createLightBlock(pos); break;
-                        case 'teleport':
-                            const teleportCollisionPos = pos.clone();
-                            teleportCollisionPos.y -= 0.75; // Adjust pos to represent the actual center of the thin teleport pad
-
-                            if (isPlayerColliding(teleportCollisionPos, 2, 0.5, 2)) return;
-                            createTeleportPad(pos);
-                            break;
-                        default: if (isPlayerColliding(pos, 2, 2, 2)) return; addBlock(pos); break;
+                        case 'normal': addBlock(pos); break;
+                        case 'flower': createFlower(pos); break;
+                        case 'ice': createIceBlock(pos); break;
+                        case 'gravity': createGravityBlock(pos); break;
+                        case 'vine': growVine(pos, intersect.face.normal); break;
+                        case 'teleport': createTeleportPad(pos); break;
                     }
-
-                } else if (e.button === 2) { // Right Click
+                } else if (e.button === 2) {
                     destroyBlock(intersect.object);
                 }
             }
         });
-        
-        function destroyBlock(objectToDestroy) {
-            if (objectToDestroy !== floor) {
-                scene.remove(objectToDestroy);
-                objects.splice(objects.indexOf(objectToDestroy), 1);
-                
-                gravityZones = gravityZones.filter(zone => zone !== objectToDestroy);
-                if (lightSources.has(objectToDestroy)) {
-                    scene.remove(lightSources.get(objectToDestroy));
-                    lightSources.delete(objectToDestroy);
-                }
-                if (objectToDestroy.isTeleportPad) {
-                    activeTeleports = activeTeleports.filter(p => p !== objectToDestroy && p !== objectToDestroy.link);
-                    if (objectToDestroy.link) {
-                        objectToDestroy.link.link = null;
-                        objectToDestroy.link.material.color.set(0xffaa00);
-                        teleportPads.push(objectToDestroy.link);
-                    }
-                    teleportPads = teleportPads.filter(p => p !== objectToDestroy);
-                }
-            }
+
+        // --- 連番ラベル作成関数 ---
+        function createNumberLabel(number) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.font = 'Bold 80px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(number, 64, 90);
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMat);
+            sprite.scale.set(1.5, 1.5, 1);
+            return sprite;
         }
-
-        function setupTouchControls() {
-            const moveButtons = {
-                'move-w': (pressed) => moveForward = pressed,
-                'move-s': (pressed) => moveBackward = pressed,
-                'move-a': (pressed) => moveLeft = pressed,
-                'move-d': (pressed) => moveRight = pressed,
-            };
-
-            for (const [id, action] of Object.entries(moveButtons)) {
-                const btn = document.getElementById(id);
-                btn.addEventListener('mousedown', (e) => { e.stopPropagation(); action(true); });
-                btn.addEventListener('mouseup', (e) => { e.stopPropagation(); action(false); });
-                btn.addEventListener('mouseleave', (e) => { e.stopPropagation(); action(false); });
-                btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); action(true); }, { passive: false });
-                btn.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); action(false); }, { passive: false });
-            }
-
-            const jumpBtn = document.getElementById('move-jump');
-            const jumpAction = () => { if (canJump && controls.isLocked) { velocity.y = 35; canJump = false; }};
-            jumpBtn.addEventListener('mousedown', (e) => { e.stopPropagation(); jumpAction(); });
-            jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); jumpAction(); }, { passive: false });
-
-            spellButtons.forEach(btn => {
-                const spell = btn.dataset.spell;
-                const spellAction = () => {
-                    currentSpell = spell;
-                    spellButtons.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                };
-                btn.addEventListener('mousedown', (e) => { e.stopPropagation(); spellAction(); });
-                btn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); spellAction(); }, { passive: false });
-            });
-        }
-        setupTouchControls();
-
 
         function getPlacementPos(point, face) {
             const pos = new THREE.Vector3().copy(point).add(face.normal);
             return pos.divideScalar(2).floor().multiplyScalar(2).addScalar(1);
         }
 
-        function isPlayerColliding(position, blockWidth = 2, blockHeight = 2, blockDepth = 2) {
+        function isPlayerColliding(pos) {
             const playerBox = new THREE.Box3().setFromCenterAndSize(controls.getObject().position, new THREE.Vector3(1.5, 3, 1.5));
-            const voxelBox = new THREE.Box3().setFromCenterAndSize(position, new THREE.Vector3(blockWidth, blockHeight, blockDepth));
+            const voxelBox = new THREE.Box3().setFromCenterAndSize(pos, new THREE.Vector3(2, 2, 2));
             return playerBox.intersectsBox(voxelBox);
         }
 
         function addBlock(pos) {
             const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), cubeMat);
-            voxel.position.copy(pos);
-            voxel.castShadow = true; voxel.receiveShadow = true;
+            voxel.position.copy(pos); voxel.castShadow = true; voxel.receiveShadow = true;
             scene.add(voxel); objects.push(voxel);
         }
+
         function createFlower(pos) {
-            const flowerGroup = new THREE.Group();
-            flowerGroup.position.copy(pos);
-
-            // Stem
-            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0x008000, roughness: 0.5 }));
-            stem.position.y = 0.75;
-            flowerGroup.add(stem);
-
-            // Petals
-            const petalColors = [0xffc0cb, 0xff1493, 0xffff00, 0x1e90ff, 0xffa07a]; // More vibrant colors
-            const chosenPetalColor = petalColors[Math.floor(Math.random() * petalColors.length)];
-            
-            const center = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700, emissiveIntensity: 0.5, roughness: 0.3 }));
-            center.position.y = 1.5;
-            flowerGroup.add(center);
-
-            const numPetals = 8;
-            for (let i = 0; i < numPetals; i++) {
-                const petal = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshStandardMaterial({
-                    color: chosenPetalColor,
-                    emissive: chosenPetalColor,
-                    emissiveIntensity: 0.3,
-                    roughness: 0.4,
-                    metalness: 0.2
-                }));
-                const angle = (i / numPetals) * Math.PI * 2;
-                petal.position.x = Math.cos(angle) * 0.4;
-                petal.position.z = Math.sin(angle) * 0.4;
-                petal.position.y = 1.5;
+            const flowerGroup = new THREE.Group(); flowerGroup.position.copy(pos);
+            const center = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xffd700 }));
+            center.position.y = 1.5; flowerGroup.add(center);
+            for (let i = 0; i < 6; i++) {
+                const petal = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 12), new THREE.MeshPhysicalMaterial({ color: 0xffc0cb, clearcoat: 1 }));
+                const angle = (i / 6) * Math.PI * 2;
+                petal.position.set(Math.cos(angle)*0.4, 1.5, Math.sin(angle)*0.4);
                 flowerGroup.add(petal);
             }
-
-            flowerGroup.castShadow = true;
-            scene.add(flowerGroup);
-            objects.push(flowerGroup);
+            scene.add(flowerGroup); objects.push(flowerGroup);
         }
+
         function createIceBlock(pos) {
             const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), iceMat);
-            voxel.position.copy(pos);
-            voxel.castShadow = true; scene.add(voxel); objects.push(voxel);
+            voxel.position.copy(pos); scene.add(voxel); objects.push(voxel);
         }
+
         function createGravityBlock(pos) {
             const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), gravityMat);
-            voxel.position.copy(pos);
-            scene.add(voxel); objects.push(voxel); gravityZones.push(voxel);
+            voxel.position.copy(pos); scene.add(voxel); objects.push(voxel); gravityZones.push(voxel);
         }
+
         function growVine(startPos, direction) {
             let currentPos = new THREE.Vector3().copy(startPos); let length = 0;
             const vineInterval = setInterval(() => {
                 if (length >= 10 || isPlayerColliding(currentPos)) { clearInterval(vineInterval); return; }
                 const segment = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), vineMat);
                 segment.position.copy(currentPos); scene.add(segment); objects.push(segment);
-                currentPos.add(direction.multiplyScalar(2)); length++;
-            }, 200);
+                currentPos.add(direction.clone().multiplyScalar(2)); length++;
+            }, 150);
         }
-        function createLightBlock(pos) {
-            const voxel = new THREE.Mesh(new THREE.BoxGeometry(2,2,2), lightMat);
-            voxel.position.copy(pos);
-            voxel.castShadow = true; scene.add(voxel); objects.push(voxel);
-            const pointLight = new THREE.PointLight(0xffff88, 1, 30, 1.5);
-            pointLight.position.copy(pos); 
-            scene.add(pointLight);
-            lightSources.set(voxel, pointLight);
-        }
+
         function createTeleportPad(pos) {
             const voxel = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 2), teleportMatBase.clone());
-            voxel.position.copy(pos);
-            voxel.position.y -= 0.75; // Adjust for the thinner teleport pad geometry
-            voxel.isTeleportPad = true; voxel.link = null;
+            voxel.position.copy(pos).y -= 0.75; voxel.isTeleportPad = true; 
             scene.add(voxel); objects.push(voxel);
             
             if (teleportPads.length > 0) {
                 const partner = teleportPads.pop();
-                voxel.link = partner;
-                partner.link = voxel;
+                teleportSetCount++;
+                voxel.link = partner; partner.link = voxel;
                 voxel.material.color.set(0x00ff00); partner.material.color.set(0x00ff00);
                 activeTeleports.push(voxel, partner);
-            } else {
-                voxel.material.color.set(0xffaa00);
-                teleportPads.push(voxel);
+                
+                // 番号を表示
+                const label1 = createNumberLabel(teleportSetCount);
+                label1.position.set(0, 1.5, 0); partner.add(label1);
+                const label2 = createNumberLabel(teleportSetCount);
+                label2.position.set(0, 1.5, 0); voxel.add(label2);
+            } else { 
+                voxel.material.color.set(0xffaa00); teleportPads.push(voxel); 
             }
         }
 
+        function destroyBlock(obj) {
+            if (obj === floor) return;
+            const target = (obj.parent && (obj.parent.type === 'Group' || obj.parent.isMesh)) ? obj.parent : obj;
+            scene.remove(target); objects.splice(objects.indexOf(target), 1);
+        }
 
+        const moveBtns = {'move-w': 'w', 'move-s': 's', 'move-a': 'a', 'move-d': 'd'};
+        Object.entries(moveBtns).forEach(([id, key]) => {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); if(key==='w')moveForward=true; if(key==='s')moveBackward=true; if(key==='a')moveLeft=true; if(key==='d')moveRight=true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); if(key==='w')moveForward=false; if(key==='s')moveBackward=false; if(key==='a')moveLeft=false; if(key==='d')moveRight=false; });
+        });
+        document.getElementById('move-jump').addEventListener('touchstart', (e) => { e.preventDefault(); if (canJump && controls.isLocked) { velocity.y = 35; canJump = false; }});
+        document.querySelectorAll('.spell-btn').forEach(btn => btn.addEventListener('touchstart', (e) => { e.preventDefault(); updateSpellSelection(btn.dataset.spell); }));
 
         camera.position.set(10, 5, 20);
         let prevTime = performance.now();
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        let teleportCooldown = 0;
 
         function animate() {
             requestAnimationFrame(animate);
             const time = performance.now();
             const delta = (time - prevTime) / 1000;
-
-            teleportCooldown = Math.max(0, teleportCooldown - delta);
-            const playerPosition = controls.getObject().position;
-
-            if (teleportCooldown === 0) {
-                for (const pad of activeTeleports) {
-                    if (pad.link && playerPosition.distanceTo(pad.position) < 2) {
-                        playerPosition.copy(pad.link.position).y += 2.5;
-                        teleportCooldown = 3;
-                        break;
-                    }
-                }
-            }
-            
             if (controls.isLocked) {
-                let baseGravity = 80.0;
-                for (const zone of gravityZones) {
-                    if (playerPosition.distanceTo(zone.position) < 15) {
-                        baseGravity = 20.0;
-                        break;
-                    }
-                }
-
-                velocity.y -= baseGravity * delta;
-                
-                let playerOnGround = false;
-                const oldY = playerPosition.y;
-                playerPosition.y += velocity.y * delta;
-                
-                const playerBox = new THREE.Box3().setFromCenterAndSize(playerPosition, new THREE.Vector3(1.5, 3, 1.5));
+                let g = 80.0;
+                for (const z of gravityZones) { if (camera.position.distanceTo(z.position) < 10) { g = 15.0; break; } }
+                velocity.y -= g * delta;
+                const oldY = camera.position.y;
+                controls.getObject().position.y += velocity.y * delta;
                 let collision = false;
-                for(const obj of objects) {
-                    const objBox = new THREE.Box3().setFromObject(obj);
-                    if(playerBox.intersectsBox(objBox)) {
-                        collision = true;
-                        break;
-                    }
+                const pBox = new THREE.Box3().setFromCenterAndSize(controls.getObject().position, new THREE.Vector3(1.5, 3, 1.5));
+                for(const o of objects) { if(o!==floor && pBox.intersectsBox(new THREE.Box3().setFromObject(o))) { collision = true; break; } }
+                if(collision || controls.getObject().position.y <= 1.55) {
+                    controls.getObject().position.y = (collision) ? oldY : 1.5;
+                    velocity.y = 0; canJump = true;
                 }
-                if(collision) {
-                    console.log('Collision detected!');
-                    console.log('  Player oldY:', oldY, 'newY (pre-reset):', playerPosition.y);
-                    console.log('  Velocity (pre-reset):', velocity.y);
-                    // Find the colliding object if possible for more context
-                    for(const obj of objects) { // Re-check collision to find the object
-                        const objBox = new THREE.Box3().setFromObject(obj);
-                        if(playerBox.intersectsBox(objBox)) {
-                            console.log('  Colliding object type:', obj.geometry.type, 'pos:', obj.position.toArray());
-                            break;
-                        }
-                    }
-                    playerPosition.y = oldY;
-                    velocity.y = 0;
-                    playerOnGround = true;
-                    canJump = true;
-                    console.log('  Player Y reset to:', playerPosition.y, 'Velocity reset to:', velocity.y);
-                }
-                
-                if (playerPosition.y < -50) {
-                    playerPosition.set(10, 5, 20);
-                    velocity.y = 0;
-                }
-
                 velocity.x -= velocity.x * 10.0 * delta;
                 velocity.z -= velocity.z * 10.0 * delta;
-
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
-
                 if (moveForward || moveBackward) velocity.z -= direction.z * 200.0 * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * 200.0 * delta;
-                
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
+                for (const pad of activeTeleports) {
+                    if (camera.position.distanceTo(pad.position) < 2 && teleportCooldown <= 0) {
+                        controls.getObject().position.copy(pad.link.position).y += 2.5;
+                        teleportCooldown = 2.0; break;
+                    }
+                }
+                teleportCooldown -= delta;
             }
-            
             prevTime = time;
             renderer.render(scene, camera);
         }
         animate();
-        
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
