@@ -1,266 +1,265 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>国当てクイズ</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<style>
-body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    background: #2c3e50;
-    margin: 0;
-    overflow: hidden;
-    height: 100vh;
-    color: #ecf0f1;
-    text-align: center;
-}
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #2c3e50; margin: 0; overflow: hidden; height: 100vh; color: #ecf0f1; text-align: center; }
+        #map { position: fixed; inset: 0; background: #1a252f; z-index: 0; }
 
-#map {
-    position: fixed;
-    inset: 0;
-    background: #1a252f;
-    z-index: 0;
-}
+        .ui-panel { position: relative; max-width: 480px; margin: 15px auto; background: rgba(44,62,80,0.9); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; }
 
-/* ===========================
-   ネオン発光（共通）
-   =========================== */
-.leaflet-interactive {
-    transition: 
-        fill 0.4s ease,
-        stroke 0.4s ease,
-        filter 0.4s ease;
-}
+        #start-menu { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(26, 37, 47, 0.9); z-index: 1000; }
+        .menu-content { background: #34495e; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; }
+        
+        label { display: block; text-align: left; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #bdc3c7; }
+        select { width: 100%; padding: 12px; margin: 0 0 20px 0; border-radius: 8px; background: #2c3e50; color: white; border: 1px solid #3498db; font-size: 16px; }
+        select:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* 正解（青ネオン） */
-.neon-correct {
-    filter:
-        drop-shadow(0 0 6px rgba(80,180,255,0.9))
-        drop-shadow(0 0 12px rgba(80,180,255,0.8))
-        drop-shadow(0 0 20px rgba(80,180,255,0.6));
-}
+        #timer-container { width: 100%; background: #1a252f; height: 8px; border-radius: 4px; margin: 10px 0; overflow: hidden; }
+        #timer-bar { width: 100%; height: 100%; background: #2ecc71; transition: width 0.1s linear; }
+        #flag-img { width: 120px; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); margin-bottom: 10px; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { padding: 12px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; background: #3498db; color: #fff; transition: 0.2s; }
+        button:hover:not(:disabled) { background: #2980b9; transform: translateY(-2px); }
+        .btn-start { background: #2ecc71; width: 100%; font-size: 18px; font-weight: bold; }
 
-/* 不正解（赤ネオン） */
-.neon-wrong {
-    filter:
-        drop-shadow(0 0 6px rgba(255,100,100,0.9))
-        drop-shadow(0 0 12px rgba(255,100,100,0.8))
-        drop-shadow(0 0 20px rgba(255,100,100,0.6));
-}
-
-/* UI */
-.container {
-    position: relative;
-    max-width: 480px;
-    margin: 15px auto;
-    background: rgba(44,62,80,0.9);
-    padding: 15px;
-    border-radius: 15px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    z-index: 10;
-}
-
-#flag-img {
-    width: 120px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-}
-
-.options {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
-
-button {
-    padding: 8px;
-    font-size: 13px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    background: #3498db;
-    color: #fff;
-}
-
-button:hover:not(:disabled) {
-    background: #2980b9;
-}
-
-#next-btn {
-    display: none;
-    margin-top: 10px;
-    width: 100%;
-    background: #2ecc71;
-    font-weight: bold;
-}
-
-#loading-msg {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0,0,0,0.85);
-    z-index: 20;
-    font-size: 1.2em;
-}
-</style>
+        #result-screen { display: none; position: fixed; inset: 0; background: rgba(44, 62, 80, 0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        
+        .leaflet-interactive { transition: 0.4s; }
+        .neon-correct { filter: drop-shadow(0 0 8px #3fa9f5) drop-shadow(0 0 20px #3fa9f5); }
+        .neon-wrong { filter: drop-shadow(0 0 8px #ff5c5c) drop-shadow(0 0 20px #ff5c5c); }
+    </style>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
 <div id="map"></div>
-<div id="loading-msg">🌍 地図データを照合中...</div>
 
-<div class="container" id="main-ui" style="display:none;">
-    <h2>国当てクイズ</h2>
-    <div>第 <span id="q-count">1</span> 問 | 正解率 <span id="accuracy">0</span>%</div>
-    <img id="flag-img">
+<div id="start-menu">
+    <div class="menu-content">
+        <h2 style="margin-top:0;">🌍 クイズ設定</h2>
+        <label>1. 難易度を選択:</label>
+        <select id="level-select" onchange="updateRegionOptions()">
+            <option value="1">Level 1: 有名な大国のみ</option>
+            <option value="2">Level 2: 標準</option>
+            <option value="3" selected>Level 3: 全ての国</option>
+        </select>
+        <label>2. 地域を選択:</label>
+        <select id="region-select">
+            <option value="all">全世界</option>
+            <option value="Asia">アジア</option>
+            <option value="Europe">ヨーロッパ</option>
+            <option value="Africa">アフリカ</option>
+            <option value="Americas">南北アメリカ</option>
+            <option value="Oceania">オセアニア</option>
+        </select>
+        <button class="btn-start" onclick="startGame()">ゲーム開始！</button>
+    </div>
+</div>
+
+<div class="ui-panel" id="main-ui" style="display:none;">
+    <div style="font-size: 0.9em; margin-bottom: 5px;">
+        <span id="display-mode" style="color:#3498db; font-weight:bold;"></span> | 第 <span id="q-count">1</span> / 10 問
+    </div>
+    <div id="timer-container"><div id="timer-bar"></div></div>
+    <img id="flag-img" src="">
+    <div id="score-info" style="font-size: 1.1em; margin-bottom: 5px;">Score: <span id="current-score">0</span></div>
     <div class="options" id="options-container"></div>
-    <div id="result" style="margin-top:10px;font-weight:bold;height:24px;"></div>
-    <button id="next-btn">次の問題へ</button>
+    <div id="result-text" style="margin-top:10px; font-weight:bold; height:24px;"></div>
+    <button id="next-btn" style="display:none; width:100%; background:#2ecc71; margin-top:10px;">次の問題へ</button>
+</div>
+
+<div id="result-screen">
+    <h1 style="font-size: 2.5em;">結果発表</h1>
+    <div id="final-score" style="font-size: 4em; color: #f1c40f;">0</div>
+    <div id="high-score-msg" style="margin-bottom: 30px;"></div>
+    <button onclick="location.reload()" style="padding: 15px 40px; background:#2ecc71;">メニューに戻る</button>
 </div>
 
 <script>
-let map;
-let countriesData = [];
-let correctCountry;
-let stats = { q: 1, correct: 0, wrong: 0 };
-const layerDict = {};
+let map, countriesData = [], filteredPool = [], correctCountry, layerDict = {};
+let stats = { q: 1, score: 0, combo: 0 };
+let timeLeft = 10, timerInterval;
+let usedCountryCodes = new Set();
+let isOceaniaLevel3 = false; // オセアニア特殊フラグ
+
+const FAMOUS_CODES = ['JPN','USA','CHN','FRA','GBR','DEU','ITA','CAN','BRA','IND','AUS','KOR','RUS','ESP','MEX','ARG','EGY','TUR','ZAF','SAU','IDN','VNM','THA','PHL','MYS'];
 
 async function init() {
-    // 1. worldCopyJumpをtrueにして、世界をループできるように設定
-    map = L.map('map', {
-        worldCopyJump: true,
-        maxBoundsViscosity: 1.0
-    }).setView([20, 0], 2);
+    map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-    // 2. 背景にダーク系のタイルレイヤーを追加（これで「欠ける」見た目を防ぎます）
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(map);
-
-    const countryRes = await fetch(
-        'https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations'
-    );
+    const [countryRes, geoRes] = await Promise.all([
+        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations,region'),
+        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+    ]);
+    
     countriesData = await countryRes.json();
-
-    const geoRes = await fetch(
-        'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json'
-    );
     const geoData = await geoRes.json();
 
     L.geoJson(geoData, {
-        style: {
-            fillColor: '#1a1a1a', // ここを暗いグレー/黒系に
-            fillOpacity: 0.7,     // 透明度を少し上げるとタイルと馴染みます
-            color: '#2c3e50',     // 国境線の色
-            weight: 1
-        },
+        style: { fillColor: '#1a1a1a', fillOpacity: 0.7, color: '#2c3e50', weight: 1 },
         onEachFeature: (feature, layer) => {
             const id = (feature.id || '').toUpperCase();
             if (id) layerDict[id] = layer;
         }
     }).addTo(map);
 
-    document.getElementById('loading-msg').style.display = 'none';
+    updateRegionOptions();
+}
+
+function updateRegionOptions() {
+    const level = document.getElementById('level-select').value;
+    const regionSelect = document.getElementById('region-select');
+    const options = regionSelect.options;
+
+    for (let i = 0; i < options.length; i++) {
+        const regionValue = options[i].value;
+        let count = countriesData.filter(c => layerDict[c.cca3]).length;
+        if (regionValue !== 'all') {
+            count = countriesData.filter(c => layerDict[c.cca3] && c.region === regionValue).length;
+        }
+        
+        if (level === '1') {
+            if (regionValue === 'all') count = countriesData.filter(c => layerDict[c.cca3] && FAMOUS_CODES.includes(c.cca3)).length;
+            else count = countriesData.filter(c => layerDict[c.cca3] && c.region === regionValue && FAMOUS_CODES.includes(c.cca3)).length;
+        }
+
+        // オセアニアかつLevel 3なら、10個未満でも許可する
+        if (regionValue === 'Oceania' && level === '3') {
+            options[i].disabled = false;
+        } else if (count < 10) {
+            options[i].disabled = true;
+            if (options[i].selected) regionSelect.value = 'all';
+        } else {
+            options[i].disabled = false;
+        }
+    }
+}
+
+function startGame() {
+    const region = document.getElementById('region-select').value;
+    const level = document.getElementById('level-select').value;
+
+    // オセアニア特殊フラグをセット
+    isOceaniaLevel3 = (region === 'Oceania' && level === '3');
+
+    filteredPool = countriesData.filter(c => layerDict[c.cca3]);
+    if (region !== 'all') filteredPool = filteredPool.filter(c => c.region === region);
+    if (level === '1') filteredPool = filteredPool.filter(c => FAMOUS_CODES.includes(c.cca3));
+
+    document.getElementById('display-mode').innerText = `${region === 'all' ? '全世界' : region} [Lv.${level}]`;
+    document.getElementById('start-menu').style.display = 'none';
     document.getElementById('main-ui').style.display = 'block';
     loadQuestion();
 }
 
-// 全国のスタイルを初期状態（黒っぽく）に戻す関数
-function resetMapStyle() {
-    Object.values(layerDict).forEach(layer => {
-        layer.setStyle({
-            fillColor: '#1a1a1a',
-            fillOpacity: 0.7,
-            color: '#2c3e50',
-            weight: 1
-        });
-        const el = layer.getElement();
-        if (el) {
-            el.classList.remove('neon-correct', 'neon-wrong');
-        }
-    });
-}
-
-// loadQuestion の最初に追加
 function loadQuestion() {
+    resetMapStyle();
     document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('result-text').innerText = '';
     document.getElementById('q-count').innerText = stats.q;
 
-    const available = countriesData.filter(c => layerDict[c.cca3]);
-    const shuffled = available.sort(() => Math.random() - 0.5);
-    const choices = shuffled.slice(0, 4);
-    correctCountry = choices[0];
+    // 通常は未使用の国から選ぶが、オセアニア特殊モードなら全プールから選ぶ（重複許可）
+    let targetPool;
+    if (isOceaniaLevel3) {
+        targetPool = filteredPool;
+    } else {
+        const availablePool = filteredPool.filter(c => !usedCountryCodes.has(c.cca3));
+        targetPool = availablePool.length > 0 ? availablePool : filteredPool;
+    }
+    
+    const shuffled = [...targetPool].sort(() => Math.random() - 0.5);
+    correctCountry = shuffled[0];
+    usedCountryCodes.add(correctCountry.cca3);
+
+    const otherChoices = countriesData
+        .filter(c => c.cca3 !== correctCountry.cca3 && layerDict[c.cca3])
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+    const finalChoices = [correctCountry, ...otherChoices].sort(() => Math.random() - 0.5);
 
     document.getElementById('flag-img').src = correctCountry.flags.svg;
-
     const container = document.getElementById('options-container');
     container.innerHTML = '';
 
-    choices.sort(() => Math.random() - 0.5).forEach(c => {
+    finalChoices.forEach(c => {
         const btn = document.createElement('button');
         btn.textContent = c.translations?.jpn?.common || c.name.common;
         btn.onclick = () => checkAnswer(c, btn);
         container.appendChild(btn);
     });
+
+    timeLeft = 10;
+    startTimer();
 }
 
-function applyNeon(layer, type) {
-    layer.setStyle({
-        fillColor: type === 'correct' ? '#3fa9f5' : '#ff5c5c',
-        fillOpacity: 0.9,
-        color: '#ffffff',
-        weight: 3
-    });
-
-    const el = layer.getElement();
-    if (el) {
-        el.classList.remove('neon-correct', 'neon-wrong');
-        el.classList.add(type === 'correct' ? 'neon-correct' : 'neon-wrong');
-    }
-
-    map.flyTo(layer.getBounds().getCenter(), 3, { duration: 1.2 });
+function startTimer() {
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        document.getElementById('timer-bar').style.width = (timeLeft * 10) + "%";
+        if (timeLeft <= 0) { clearInterval(timerInterval); checkAnswer(null, null); }
+    }, 100);
 }
 
 function checkAnswer(selected, btn) {
+    clearInterval(timerInterval);
     document.querySelectorAll('.options button').forEach(b => b.disabled = true);
-
     const layer = layerDict[correctCountry.cca3];
 
-    if (selected.cca3 === correctCountry.cca3) {
-        stats.correct++;
-        document.getElementById('result').innerHTML =
-            "<span style='color:#6ecbff'>正解！</span>";
+    if (selected && selected.cca3 === correctCountry.cca3) {
+        stats.combo++;
+        const earned = Math.round(timeLeft * 100 * (1 + stats.combo * 0.1));
+        stats.score += earned;
+        document.getElementById('result-text').innerHTML = `<span style="color:#6ecbff">正解！ +${earned}pt</span>`;
         applyNeon(layer, 'correct');
+        confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
     } else {
-        stats.wrong++;
-        btn.style.background = '#e74c3c';
-        document.getElementById('result').innerHTML =
-            `正解は ${correctCountry.translations?.jpn?.common}`;
+        stats.combo = 0;
+        if(btn) btn.style.background = '#e74c3c';
+        document.getElementById('result-text').innerHTML = `<span style="color:#ff5c5c">正解：${correctCountry.translations?.jpn?.common}</span>`;
         applyNeon(layer, 'wrong');
     }
 
-    const total = stats.correct + stats.wrong;
-    document.getElementById('accuracy').innerText =
-        Math.round(stats.correct / total * 100);
-
-    document.getElementById('next-btn').style.display = 'block';
+    document.getElementById('current-score').innerText = stats.score;
+    const nextBtn = document.getElementById('next-btn');
+    nextBtn.style.display = 'block';
+    if (stats.q >= 10) { nextBtn.innerText = "リザルトを確認"; nextBtn.onclick = showResults; }
+    else { nextBtn.onclick = () => { stats.q++; loadQuestion(); }; }
 }
 
+function applyNeon(layer, type) {
+    if (!layer) return;
+    map.flyTo(layer.getBounds().getCenter(), 3, { duration: 1 });
+    layer.setStyle({ fillColor: type === 'correct' ? '#3498db' : '#e74c3c', fillOpacity: 0.8, weight: 3, color: '#fff' });
+    const el = layer.getElement();
+    if (el) el.classList.add(type === 'correct' ? 'neon-correct' : 'neon-wrong');
+}
 
-document.getElementById('next-btn').onclick = () => {
-    stats.q++;
-    loadQuestion();
-};
+function resetMapStyle() {
+    Object.values(layerDict).forEach(layer => {
+        layer.setStyle({ fillColor: '#1a1a1a', fillOpacity: 0.7, color: '#2c3e50', weight: 1 });
+        const el = layer.getElement();
+        if (el) { el.classList.remove('neon-correct'); el.classList.remove('neon-wrong'); }
+    });
+}
+
+function showResults() {
+    document.getElementById('main-ui').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'flex';
+    document.getElementById('final-score').innerText = stats.score;
+    const best = localStorage.getItem('highScore') || 0;
+    if (stats.score > best) { localStorage.setItem('highScore', stats.score); document.getElementById('high-score-msg').innerText = "✨ 自己ベスト更新！ ✨"; }
+    else { document.getElementById('high-score-msg').innerText = `ベストスコア: ${best}`; }
+}
 
 init();
 </script>
