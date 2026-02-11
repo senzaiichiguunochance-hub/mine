@@ -9,31 +9,38 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #2c3e50; margin: 0; overflow: hidden; height: 100vh; color: #ecf0f1; text-align: center; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #1a252f; margin: 0; overflow: hidden; height: 100vh; color: #ecf0f1; text-align: center; }
         #map { position: fixed; inset: 0; background: #1a252f; z-index: 0; }
 
-        .ui-panel { position: relative; max-width: 480px; margin: 15px auto; background: rgba(44,62,80,0.9); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; }
+        /* UIパネル */
+        .ui-panel { position: relative; max-width: 480px; margin: 15px auto; background: rgba(44,62,80,0.95); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 10; }
 
-        #start-menu { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(26, 37, 47, 0.9); z-index: 1000; }
-        .menu-content { background: #34495e; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; }
+        /* スタートメニュー */
+        #start-menu { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(26, 37, 47, 0.95); z-index: 1000; }
+        .menu-content { background: #34495e; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         
         label { display: block; text-align: left; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: #bdc3c7; }
         select { width: 100%; padding: 12px; margin: 0 0 20px 0; border-radius: 8px; background: #2c3e50; color: white; border: 1px solid #3498db; font-size: 16px; }
         select:disabled { opacity: 0.3; cursor: not-allowed; }
 
+        /* ゲーム中パーツ */
         #timer-container { width: 100%; background: #1a252f; height: 8px; border-radius: 4px; margin: 10px 0; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: #2ecc71; transition: width 0.1s linear; }
         #flag-img { width: 120px; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); margin-bottom: 10px; }
         .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
         button { padding: 12px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; background: #3498db; color: #fff; transition: 0.2s; }
         button:hover:not(:disabled) { background: #2980b9; transform: translateY(-2px); }
+        button:disabled { opacity: 0.6; cursor: default; }
         .btn-start { background: #2ecc71; width: 100%; font-size: 18px; font-weight: bold; }
 
+        /* リザルト画面 */
         #result-screen { display: none; position: fixed; inset: 0; background: rgba(44, 62, 80, 0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
         
-        .leaflet-interactive { transition: 0.4s; }
-        .neon-correct { filter: drop-shadow(0 0 8px #3fa9f5) drop-shadow(0 0 20px #3fa9f5); }
-        .neon-wrong { filter: drop-shadow(0 0 8px #ff5c5c) drop-shadow(0 0 20px #ff5c5c); }
+        /* 地図の演出 */
+        .leaflet-interactive { transition: fill 0.3s, filter 0.3s; stroke-linejoin: round; outline: none; }
+        .neon-correct { filter: drop-shadow(0 0 10px #3fa9f5); }
+        .neon-wrong { filter: drop-shadow(0 0 10px #ff5c5c); }
     </style>
 </head>
 <body>
@@ -44,12 +51,14 @@
 <div id="start-menu">
     <div class="menu-content">
         <h2 style="margin-top:0;">🌍 クイズ設定</h2>
+        
         <label>1. 難易度を選択:</label>
         <select id="level-select" onchange="updateRegionOptions()">
             <option value="1">Level 1: 有名な大国のみ</option>
             <option value="2">Level 2: 標準</option>
             <option value="3" selected>Level 3: 全ての国</option>
         </select>
+
         <label>2. 地域を選択:</label>
         <select id="region-select">
             <option value="all">全世界</option>
@@ -59,6 +68,7 @@
             <option value="Americas">南北アメリカ</option>
             <option value="Oceania">オセアニア</option>
         </select>
+
         <button class="btn-start" onclick="startGame()">ゲーム開始！</button>
     </div>
 </div>
@@ -87,14 +97,20 @@ let map, countriesData = [], filteredPool = [], correctCountry, layerDict = {};
 let stats = { q: 1, score: 0, combo: 0 };
 let timeLeft = 10, timerInterval;
 let usedCountryCodes = new Set();
-let isOceaniaLevel3 = false; // オセアニア特殊フラグ
+let isOceaniaLevel3 = false;
 
-const FAMOUS_CODES = ['JPN','USA','CHN','FRA','GBR','DEU','ITA','CAN','BRA','IND','AUS','KOR','RUS','ESP','MEX','ARG','EGY','TUR','ZAF','SAU','IDN','VNM','THA','PHL','MYS'];
+// 有名な国リスト
+const FAMOUS_CODES = ['JPN','USA','CHN','FRA','GBR','DEU','ITA','CAN','BRA','IND','AUS','KOR','RUS','ESP','MEX','ARG','EGY','TUR','ZAF','SAU','IDN','VNM','THA','PHL','MYS','CHE','NLD','SWE','NOR'];
 
 async function init() {
-    map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    // 地図の初期化（タイルなし）
+    map = L.map('map', { 
+        worldCopyJump: true,
+        maxBounds: [[-85, -180], [85, 180]],
+        minZoom: 2
+    }).setView([20, 0], 2);
 
+    // データ取得
     const [countryRes, geoRes] = await Promise.all([
         fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations,region'),
         fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
@@ -103,8 +119,9 @@ async function init() {
     countriesData = await countryRes.json();
     const geoData = await geoRes.json();
 
+    // GeoJSON描画
     L.geoJson(geoData, {
-        style: { fillColor: '#1a1a1a', fillOpacity: 0.7, color: '#2c3e50', weight: 1 },
+        style: { fillColor: '#2c3e50', fillOpacity: 1, color: '#1a252f', weight: 1 },
         onEachFeature: (feature, layer) => {
             const id = (feature.id || '').toUpperCase();
             if (id) layerDict[id] = layer;
@@ -122,16 +139,14 @@ function updateRegionOptions() {
     for (let i = 0; i < options.length; i++) {
         const regionValue = options[i].value;
         let count = countriesData.filter(c => layerDict[c.cca3]).length;
-        if (regionValue !== 'all') {
-            count = countriesData.filter(c => layerDict[c.cca3] && c.region === regionValue).length;
-        }
+        if (regionValue !== 'all') count = countriesData.filter(c => layerDict[c.cca3] && c.region === regionValue).length;
         
         if (level === '1') {
             if (regionValue === 'all') count = countriesData.filter(c => layerDict[c.cca3] && FAMOUS_CODES.includes(c.cca3)).length;
             else count = countriesData.filter(c => layerDict[c.cca3] && c.region === regionValue && FAMOUS_CODES.includes(c.cca3)).length;
         }
 
-        // オセアニアかつLevel 3なら、10個未満でも許可する
+        // オセアニア×Lv3は特別許可
         if (regionValue === 'Oceania' && level === '3') {
             options[i].disabled = false;
         } else if (count < 10) {
@@ -146,8 +161,6 @@ function updateRegionOptions() {
 function startGame() {
     const region = document.getElementById('region-select').value;
     const level = document.getElementById('level-select').value;
-
-    // オセアニア特殊フラグをセット
     isOceaniaLevel3 = (region === 'Oceania' && level === '3');
 
     filteredPool = countriesData.filter(c => layerDict[c.cca3]);
@@ -161,19 +174,14 @@ function startGame() {
 }
 
 function loadQuestion() {
-    resetMapStyle();
+    resetMapStyle(); // スタイルのみリセット（カメラ位置は維持）
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('result-text').innerText = '';
     document.getElementById('q-count').innerText = stats.q;
 
-    // 通常は未使用の国から選ぶが、オセアニア特殊モードなら全プールから選ぶ（重複許可）
-    let targetPool;
-    if (isOceaniaLevel3) {
-        targetPool = filteredPool;
-    } else {
-        const availablePool = filteredPool.filter(c => !usedCountryCodes.has(c.cca3));
-        targetPool = availablePool.length > 0 ? availablePool : filteredPool;
-    }
+    // 出題ロジック
+    let targetPool = isOceaniaLevel3 ? filteredPool : filteredPool.filter(c => !usedCountryCodes.has(c.cca3));
+    if (targetPool.length === 0) targetPool = filteredPool;
     
     const shuffled = [...targetPool].sort(() => Math.random() - 0.5);
     correctCountry = shuffled[0];
@@ -181,11 +189,10 @@ function loadQuestion() {
 
     const otherChoices = countriesData
         .filter(c => c.cca3 !== correctCountry.cca3 && layerDict[c.cca3])
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+        .sort(() => Math.random() - 0.5).slice(0, 3);
 
     const finalChoices = [correctCountry, ...otherChoices].sort(() => Math.random() - 0.5);
-
+    
     document.getElementById('flag-img').src = correctCountry.flags.svg;
     const container = document.getElementById('options-container');
     container.innerHTML = '';
@@ -228,7 +235,7 @@ function checkAnswer(selected, btn) {
         document.getElementById('result-text').innerHTML = `<span style="color:#ff5c5c">正解：${correctCountry.translations?.jpn?.common}</span>`;
         applyNeon(layer, 'wrong');
     }
-
+    
     document.getElementById('current-score').innerText = stats.score;
     const nextBtn = document.getElementById('next-btn');
     nextBtn.style.display = 'block';
@@ -238,17 +245,24 @@ function checkAnswer(selected, btn) {
 
 function applyNeon(layer, type) {
     if (!layer) return;
-    map.flyTo(layer.getBounds().getCenter(), 3, { duration: 1 });
-    layer.setStyle({ fillColor: type === 'correct' ? '#3498db' : '#e74c3c', fillOpacity: 0.8, weight: 3, color: '#fff' });
+    
+    // 回答時に正解の国へズームする演出
+    map.flyTo(layer.getBounds().getCenter(), 4, { duration: 1.2 });
+
+    layer.setStyle({ 
+        fillColor: type === 'correct' ? '#3498db' : '#e74c3c', 
+        fillOpacity: 1, weight: 2, color: '#fff' 
+    });
     const el = layer.getElement();
     if (el) el.classList.add(type === 'correct' ? 'neon-correct' : 'neon-wrong');
 }
 
 function resetMapStyle() {
+    // スタイル（色）だけを元に戻す。カメラ位置(flyTo等)は一切触らない。
     Object.values(layerDict).forEach(layer => {
-        layer.setStyle({ fillColor: '#1a1a1a', fillOpacity: 0.7, color: '#2c3e50', weight: 1 });
+        layer.setStyle({ fillColor: '#2c3e50', fillOpacity: 1, color: '#1a252f', weight: 1 });
         const el = layer.getElement();
-        if (el) { el.classList.remove('neon-correct'); el.classList.remove('neon-wrong'); }
+        if (el) { el.classList.remove('neon-correct', 'neon-wrong'); }
     });
 }
 
