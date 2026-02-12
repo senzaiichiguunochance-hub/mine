@@ -22,6 +22,7 @@
         .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         button { padding: 12px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; background: #3498db; color: #fff; transition: 0.2s; }
         button:hover:not(:disabled) { background: #2980b9; transform: translateY(-2px); }
+        button:disabled { background: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
         .btn-start { background: #2ecc71; width: 100%; font-size: 18px; font-weight: bold; }
         #result-screen { display: none; position: fixed; inset: 0; background: rgba(44, 62, 80, 0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
         .leaflet-interactive { transition: fill 0.3s, filter 0.3s; stroke-linejoin: round; }
@@ -52,7 +53,7 @@
             <option value="Americas">南北アメリカ</option>
             <option value="Oceania">オセアニア</option>
         </select>
-        <button class="btn-start" onclick="startGame()">ゲーム開始！</button>
+        <button id="start-btn" class="btn-start" onclick="startGame()" disabled>読み込み中...</button>
     </div>
 </div>
 
@@ -87,36 +88,46 @@ let isOceaniaLevel3 = false;
 const FAMOUS_CODES = ['JPN','USA','CHN','FRA','GBR','DEU','ITA','CAN','BRA','IND','AUS','KOR','RUS','ESP','MEX','ARG','EGY','TUR','ZAF','SAU','IDN','VNM','THA','PHL','MYS'];
 
 async function init() {
-    map = L.map('map', { 
-        worldCopyJump: true,
-        minZoom: 1,
-        maxZoom: 10,
-        zoomSnap: 0.1,
-        renderer: L.svg({ padding: 10.0 })
-    }).setView([20, 0], 2);
+    try {
+        map = L.map('map', { 
+            worldCopyJump: true,
+            minZoom: 1,
+            maxZoom: 10,
+            zoomSnap: 0.1,
+            renderer: L.svg({ padding: 10.0 })
+        }).setView([20, 0], 2);
 
-    const [countryRes, geoRes] = await Promise.all([
-        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations,region'),
-        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
-    ]);
-    
-    countriesData = await countryRes.json();
-    const geoData = await geoRes.json();
+        const [countryRes, geoRes] = await Promise.all([
+            fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations,region'),
+            fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+        ]);
+        
+        countriesData = await countryRes.json();
+        const geoData = await geoRes.json();
 
-    [-720, -360, 0, 360, 720].forEach(offset => {
-        L.geoJson(geoData, {
-            coordsToLatLng: coords => L.latLng(coords[1], coords[0] + offset),
-            style: { fillColor: '#2c3e50', fillOpacity: 1, color: '#1a252f', weight: 1 },
-            onEachFeature: (feature, layer) => {
-                const id = (feature.id || '').toUpperCase();
-                if (id && offset === 0) layerDict[id] = layer;
-            }
-        }).addTo(map);
-    });
+        [-720, -360, 0, 360, 720].forEach(offset => {
+            L.geoJson(geoData, {
+                coordsToLatLng: coords => L.latLng(coords[1], coords[0] + offset),
+                style: { fillColor: '#2c3e50', fillOpacity: 1, color: '#1a252f', weight: 1 },
+                onEachFeature: (feature, layer) => {
+                    const id = (feature.id || '').toUpperCase();
+                    if (id && offset === 0) layerDict[id] = layer;
+                }
+            }).addTo(map);
+        });
 
-    // 起動時にハイスコアをロードして表示
-    updateHighScoreDisplay();
-    updateRegionOptions();
+        updateHighScoreDisplay();
+        updateRegionOptions();
+
+        // 全データの準備が整ったらボタンを有効化
+        const startBtn = document.getElementById('start-btn');
+        startBtn.disabled = false;
+        startBtn.innerText = 'ゲーム開始！';
+
+    } catch (error) {
+        console.error("データの読み込み中にエラーが発生しました:", error);
+        document.getElementById('start-btn').innerText = '読み込み失敗 (再読み込みしてください)';
+    }
 }
 
 function updateHighScoreDisplay() {
@@ -133,6 +144,7 @@ function updateRegionOptions() {
         let count = countriesData.filter(c => layerDict[c.cca3]).length;
         if (regionValue !== 'all') count = countriesData.filter(c => layerDict[c.cca3] && c.region === regionValue).length;
         if (level === '1') count = countriesData.filter(c => layerDict[c.cca3] && FAMOUS_CODES.includes(c.cca3) && (regionValue === 'all' || c.region === regionValue)).length;
+        
         if (regionValue === 'Oceania' && level === '3') options[i].disabled = false;
         else if (count < 10) options[i].disabled = true;
         else options[i].disabled = false;
@@ -163,6 +175,12 @@ function loadQuestion() {
     let targetPool = isOceaniaLevel3 ? filteredPool : filteredPool.filter(c => !usedCountryCodes.has(c.cca3));
     if (targetPool.length === 0) targetPool = filteredPool;
     
+    // データが空の場合の安全策
+    if (targetPool.length === 0) {
+        alert("国のリストが読み込まれていません。ページを再読み込みしてください。");
+        return;
+    }
+
     const shuffled = [...targetPool].sort(() => Math.random() - 0.5);
     correctCountry = shuffled[0];
     usedCountryCodes.add(correctCountry.cca3);
@@ -232,12 +250,14 @@ function applyNeon(layer, type) {
     let targetLng = center.lng;
     while (targetLng - currentCenter.lng > 180) targetLng -= 360;
     while (targetLng - currentCenter.lng < -180) targetLng += 360;
+    
     map.fire('movestart'); 
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
             map.flyTo([center.lat, targetLng], 4, { duration: 1.5, easeLinearity: 0.25, noMoveStart: true });
         });
     });
+    
     layer.setStyle({ fillColor: type === 'correct' ? '#3498db' : '#e74c3c', fillOpacity: 1, weight: 2, color: '#fff' });
     const el = layer.getElement();
     if (el) {
@@ -259,7 +279,6 @@ function showResults() {
     document.getElementById('result-screen').style.display = 'flex';
     document.getElementById('final-score').innerText = stats.score;
 
-    // ハイスコア処理
     const highScore = parseInt(localStorage.getItem('countryQuiz_highScore') || 0);
     if (stats.score > highScore) {
         localStorage.setItem('countryQuiz_highScore', stats.score);
@@ -267,7 +286,8 @@ function showResults() {
     }
 }
 
-init();
+// DOMが読み込まれてから初期化
+window.addEventListener('load', init);
 </script>
 </body>
 </html>
