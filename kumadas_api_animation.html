@@ -2,20 +2,20 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>クマ出没タイムライン - レイアウト調整版</title>
+<title>秋田県クマ出没タイムライン・シミュレーター</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <style>
     body { margin: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background: #1a1a2e; color: white; overflow: hidden; }
     #map { height: 100vh; width: 100vw; z-index: 1; }
     
-    /* 操作パネル */
+    /* UIパネル */
     #ui-panel {
         position: absolute; top: 20px; left: 20px; z-index: 1000;
-        background: rgba(26, 26, 46, 0.95); padding: 20px;
+        background: rgba(26, 26, 46, 0.95); padding: 15px;
         border-radius: 12px; border: 1px solid #4ecca3;
         box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        width: 250px;
+        width: 220px;
     }
     .input-group { margin-bottom: 12px; }
     label { display: block; font-size: 0.75rem; color: #4ecca3; margin-bottom: 3px; }
@@ -29,27 +29,18 @@
         cursor: pointer; transition: 0.3s;
     }
     button:hover { background: #45b293; }
-    button:disabled { background: #555; cursor: not-allowed; }
 
-    /* 【変更点】現在の日付表示：画面中央上部よりやや下（青森付近） */
+    /* 日付表示 */
     #current-date-display {
-        position: absolute; 
-        top: 15%; /* 上から15%の位置（青森県あたりにかかる高さ） */
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1000;
-        background: rgba(0, 0, 0, 0.7); 
-        padding: 12px 30px;
-        border-radius: 50px; 
-        border: 2px solid #4ecca3;
-        font-size: 2.2rem; 
-        font-weight: bold; 
-        font-family: 'Courier New', monospace;
-        text-shadow: 0 0 10px #4ecca3;
-        display: none;
-        pointer-events: none; /* 地図操作の邪魔にならないように */
+        position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+        z-index: 1000; background: rgba(0, 0, 0, 0.7); 
+        padding: 10px 30px; border-radius: 50px; 
+        border: 2px solid #4ecca3; font-size: 2rem; 
+        font-weight: bold; font-family: 'Courier New', monospace;
+        text-shadow: 0 0 10px #4ecca3; display: none; pointer-events: none;
     }
 
+    /* クマアイコンのアニメーション */
     .bear-icon {
         font-size: 45px; text-align: center;
         filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
@@ -57,7 +48,7 @@
     }
     @keyframes bear-pop {
         0% { transform: scale(0); opacity: 0; }
-        20% { transform: scale(1.4); opacity: 1; }
+        20% { transform: scale(1.5); opacity: 1; }
         100% { transform: scale(1); opacity: 0; }
     }
 </style>
@@ -65,7 +56,7 @@
 <body>
 
 <div id="ui-panel">
-    <h3 style="margin:0 0 15px 0; font-size: 1.1rem;">秋田クマ・シミュレーター</h3>
+    <h3 style="margin:0 0 10px 0; font-size: 1rem;">クマ監視シミュレーター</h3>
     <div class="input-group">
         <label>開始日</label>
         <input type="date" id="startDate">
@@ -74,8 +65,8 @@
         <label>終了日</label>
         <input type="date" id="endDate">
     </div>
-    <button id="btnStart">再生開始</button>
-    <div id="status" style="font-size: 0.75rem; margin-top: 10px; color: #aaa;">データ読込中...</div>
+    <button id="btnStart">シミュレーション開始</button>
+    <div id="status" style="font-size: 0.7rem; margin-top: 8px; color: #aaa;">API通信中...</div>
 </div>
 
 <div id="current-date-display"></div>
@@ -85,8 +76,8 @@
 const BASE_URL = "https://ckan.pref.akita.lg.jp/api/3/action/datastore_search";
 const RESOURCE_ID = "326bfe79-3f64-401b-9862-b37a477c7211";
 
-// 地図初期化（少し北寄り、青森が見える位置に調整）
-const map = L.map("map", { zoomControl: false }).setView([40.0, 140.5], 8);
+// 地図初期化（秋田県全体を拡大表示）
+const map = L.map("map", { zoomControl: false }).setView([39.7, 140.3], 9.5);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
     attribution: "© OpenStreetMap"
 }).addTo(map);
@@ -94,6 +85,7 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
 let sightingsData = [];
 let timer = null;
 
+// デフォルトの日付範囲（本日～3か月前）を設定
 function setInitialDates() {
     const end = new Date();
     const start = new Date();
@@ -102,18 +94,20 @@ function setInitialDates() {
     document.getElementById('startDate').value = start.toISOString().split('T')[0];
 }
 
+// 秋田県オープンデータAPIからデータを取得
 async function fetchData() {
     try {
         const url = `${BASE_URL}?resource_id=${RESOURCE_ID}&limit=99999`;
         const response = await fetch(url);
         const data = await response.json();
         sightingsData = data.result.records;
-        document.getElementById('status').innerText = "✅ データ準備完了";
+        document.getElementById('status').innerText = "✅ 準備完了";
     } catch (e) {
-        document.getElementById('status').innerText = "❌ データ取得失敗";
+        document.getElementById('status').innerText = "❌ 読込失敗";
     }
 }
 
+// 指定期間のデータを1秒間隔で再生
 function startSimulation() {
     if (timer) clearInterval(timer);
     
@@ -122,12 +116,12 @@ function startSimulation() {
     const dateDisplay = document.getElementById('current-date-display');
     const btn = document.getElementById('btnStart');
     
-    if (!startVal || !endVal) return alert("日付を選択してください");
+    if (!startVal || !endVal) return alert("日付を設定してください");
 
     const startLimit = new Date(startVal);
     const endLimit = new Date(endVal);
 
-    // 期間フィルタリング
+    // 出没日がある日だけを抽出してソート
     let dailyBears = {};
     sightingsData.forEach(r => {
         const dStr = (r["目撃日時"] || r["出没日時"] || "").split(' ')[0];
@@ -139,15 +133,10 @@ function startSimulation() {
     });
 
     const sortedDates = Object.keys(dailyBears).sort((a, b) => new Date(a) - new Date(b));
-    
-    if (sortedDates.length === 0) {
-        return alert("指定期間にデータがありません。");
-    }
+    if (sortedDates.length === 0) return alert("該当データなし");
 
-    // 再生開始
     dateDisplay.style.display = 'block';
     btn.disabled = true;
-    btn.innerText = "再生中...";
     let index = 0;
 
     timer = setInterval(() => {
@@ -163,13 +152,13 @@ function startSimulation() {
         index++;
         if (index >= sortedDates.length) {
             clearInterval(timer);
-            dateDisplay.innerText += " (終了)";
+            dateDisplay.innerText += " (完了)";
             btn.disabled = false;
-            btn.innerText = "再開する";
         }
     }, 1000);
 }
 
+// 🐻マークを1秒間表示
 function showBearMarker(lat, lng) {
     const bearIcon = L.divIcon({
         html: '<div class="bear-icon">🐻</div>',
