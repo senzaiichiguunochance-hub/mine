@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>街のインフラ検索マップ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; height: 100vh; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; }
+        #map { flex-grow: 1; z-index: 1; }
+
+        /* 上部メニュー */
+        .icon-menu {
+            background: white; padding: 10px; z-index: 1000;
+            display: flex; flex-wrap: wrap; gap: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .filter-btn {
+            background: white; border: 2px solid #ddd; border-radius: 25px;
+            padding: 8px 14px; font-size: 13px; cursor: pointer;
+            display: flex; align-items: center; gap: 5px; transition: 0.2s;
+        }
+
+        .filter-btn.active { color: white; border-color: transparent; font-weight: bold; }
+        
+        /* 各インフラのアクティブカラー */
+        .btn-bench.active { background: #4a90e2; }
+        .btn-trash.active { background: #555; }
+        .btn-lamp.active { background: #f1c40f; color: #333; }
+        .btn-fire.active { background: #e74c3c; }
+        .btn-manhole.active { background: #8e44ad; }
+        .btn-tower.active { background: #e67e22; }
+        .btn-substation.active { background: #d35400; }
+        .btn-water.active { background: #3498db; }
+        .btn-comm.active { background: #9b59b6; }
+
+        /* 地図上の巨大アイコン（3倍サイズ） */
+        .map-icon-container {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 35px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 55px !important;
+            height: 55px !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .locate-btn {
+            position: absolute; bottom: 30px; right: 20px; z-index: 1000;
+            background: #4a90e2; color: white; border: none; border-radius: 50%;
+            width: 60px; height: 60px; font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            cursor: pointer;
+        }
+
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 1001; background: rgba(0,0,0,0.8); color: white;
+            padding: 12px 24px; border-radius: 30px; display: none;
+        }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+<div class="icon-menu">
+    <button class="filter-btn btn-bench" onclick="toggleFilter(this, 'amenity=bench')">🪑 ベンチ</button>
+    <button class="filter-btn btn-trash" onclick="toggleFilter(this, 'amenity=waste_basket')">🗑️ ゴミ箱</button>
+    <button class="filter-btn btn-lamp" onclick="toggleFilter(this, 'highway=street_lamp')">💡 街灯</button>
+    <button class="filter-btn btn-fire" onclick="toggleFilter(this, 'emergency=fire_hydrant')">🚒 消火栓</button>
+    <button class="filter-btn btn-manhole" onclick="toggleFilter(this, 'manhole=*')">⭕ マンホール</button>
+    <button class="filter-btn btn-tower" onclick="toggleFilter(this, 'power=tower')">🗼 鉄塔</button>
+    <button class="filter-btn btn-substation" onclick="toggleFilter(this, 'power=substation')">⚡ 変電所</button>
+    <button class="filter-btn btn-water" onclick="toggleFilter(this, 'man_made=water_tower')">💧 給水塔</button>
+    <button class="filter-btn btn-comm" onclick="toggleFilter(this, 'man_made=communication_tower')">📡 通信塔</button>
+</div>
+
+<div id="loading">探検中...</div>
+<div id="map"></div>
+<button class="locate-btn" onclick="moveToCurrent()">📍</button>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    let activeQueries = new Set();
+    let markers = [];
+
+    function toggleFilter(btn, query) {
+        btn.classList.toggle('active');
+        if (activeQueries.has(query)) { activeQueries.delete(query); } 
+        else { activeQueries.add(query); }
+        fetchData();
+    }
+
+    function moveToCurrent() {
+        map.locate({setView: true, maxZoom: 17});
+    }
+
+    async function fetchData() {
+        if (activeQueries.size === 0 || map.getZoom() < 15) {
+            clearMarkers();
+            return;
+        }
+        document.getElementById('loading').style.display = 'block';
+        const b = map.getBounds();
+        const s = b.getSouthWest(), n = b.getNorthEast();
+        
+        const subQueries = Array.from(activeQueries).map(q => {
+            const [k, v] = q.split('=');
+            const selector = v === '*' ? `["${k}"]` : `["${k}"="${v}"]`;
+            // 点(node)とエリア(way)の両方を取得
+            return `node${selector}(${s.lat},${s.lng},${n.lat},${n.lng});way${selector}(${s.lat},${s.lng},${n.lat},${n.lng});`;
+        }).join("");
+        
+        const query = `[out:json][timeout:30];(${subQueries});out center;`;
+        const url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            drawMarkers(data.elements);
+        } catch (e) { console.error(e); }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    function clearMarkers() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+    }
+
+    function drawMarkers(elements) {
+        clearMarkers();
+        elements.forEach(el => {
+            const t = el.tags || {};
+            const emoji = getEmoji(t);
+            const lat = el.lat || (el.center && el.center.lat);
+            const lon = el.lon || (el.center && el.center.lon);
+
+            const customIcon = L.divIcon({
+                html: `<div class="map-icon-container">${emoji}</div>`,
+                className: '',
+                iconSize: [55, 55],
+                iconAnchor: [27, 27]
+            });
+
+            // ポップアップには名前や詳細情報を表示
+            let popupText = `<b>${getCategoryName(t)}</b>`;
+            if (t.name) popupText += `<br>${t.name}`;
+            if (t.material) popupText += `<br>材質: ${t.material}`;
+            if (t.surface) popupText += `<br>路面: ${t.surface}`;
+
+            const m = L.marker([lat, lon], { icon: customIcon })
+                .bindPopup(popupText)
+                .addTo(map);
+            markers.push(m);
+        });
+    }
+
+    function getEmoji(t) {
+        if (t.amenity === "bench") return "🪑";
+        if (t.amenity === "waste_basket") return "🗑️";
+        if (t.highway === "street_lamp") return "💡";
+        if (t.emergency === "fire_hydrant") return "🚒";
+        if (t.manhole) return "⭕";
+        if (t.power === "tower") return "🗼";
+        if (t.power === "substation") return "⚡";
+        if (t.man_made === "water_tower") return "💧";
+        if (t.man_made === "communication_tower") return "📡";
+        return "⚙️";
+    }
+
+    function getCategoryName(t) {
+        if (t.amenity === "bench") return "ベンチ";
+        if (t.amenity === "waste_basket") return "ゴミ箱";
+        if (t.highway === "street_lamp") return "街灯";
+        if (t.emergency === "fire_hydrant") return "消火栓";
+        if (t.manhole) return "マンホール";
+        if (t.power === "tower") return "送電鉄塔";
+        if (t.power === "substation") return "変電所";
+        if (t.man_made === "water_tower") return "給水塔";
+        if (t.man_made === "communication_tower") return "通信タワー";
+        return "インフラ";
+    }
+
+    map.on('moveend', fetchData);
+</script>
+</body>
+</html>
