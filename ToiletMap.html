@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>多機能トイレマップ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; display: flex; height: 100vh; font-family: sans-serif; }
+        .control-panel {
+            width: 320px; height: 100%; overflow-y: auto;
+            background: #fdfdfd; padding: 20px; box-sizing: border-box;
+            border-right: 1px solid #ddd; z-index: 1001;
+        }
+        h2 { font-size: 1.1rem; border-bottom: 2px solid #333; padding-bottom: 8px; }
+        h4 { margin: 15px 0 5px 0; color: #555; font-size: 0.9rem; }
+        #count-display { background: #eee; padding: 5px; border-radius: 4px; font-size: 0.9rem; text-align: center; margin-bottom: 10px; }
+        .filter-group label { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 0.85rem; cursor: pointer; }
+        select { width: 100%; padding: 5px; margin-bottom: 10px; }
+        #map { flex-grow: 1; height: 100%; }
+        .popup-info { font-size: 0.85rem; min-width: 150px; }
+        .tag-yes { color: #28a745; font-weight: bold; }
+        .tag-no { color: #dc3545; }
+        .tag-unknown { color: #999; }
+        
+        /* 凡例のスタイル */
+        .legend { background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.2); line-height: 1.5; font-size: 12px; }
+        .legend i { width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 5px; }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+<div class="control-panel">
+    <h2>フィルタ</h2>
+    <div id="count-display">位置情報取得中...</div>
+
+    <div class="filter-group">
+        <h4>1. 設備・機能</h4>
+        <label><input type="checkbox" class="filter-check" data-tag="wheelchair" data-val="yes"> ♿ 車椅子対応</label>
+        <label><input type="checkbox" class="filter-check" data-tag="ostomate" data-val="yes"> 🚽 オストメイト対応</label>
+        <label><input type="checkbox" class="filter-check" data-tag="diaper_change" data-val="yes"> 👶 おむつ替え台</label>
+        <label><input type="checkbox" class="filter-check" data-tag="baby_chair" data-val="yes"> 💺 ベビーキープ</label>
+        <label><input type="checkbox" class="filter-check" data-tag="changing_table" data-val="yes"> 👗 着替え用台</label>
+        <label><input type="checkbox" class="filter-check" data-tag="unisex" data-val="yes"> 🚻 男女共用</label>
+    </div>
+
+    <div class="filter-group">
+        <h4>2. 利用条件・料金</h4>
+        <label>料金設定:
+            <select id="filter-fee">
+                <option value="">指定なし（すべて）</option>
+                <option value="no">無料のみ</option>
+                <option value="yes">有料のみ</option>
+            </select>
+        </label>
+        <label>利用制限:
+            <select id="filter-access" class="filter-select" data-tag="access">
+                <option value="">指定なし（すべて）</option>
+                <option value="public">誰でも可 (public)</option>
+                <option value="customers">店舗利用者のみ (customers)</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="filter-group">
+        <h4>3. 設備の種類</h4>
+        <label><input type="checkbox" class="filter-check" data-tag="drinking_water" data-val="yes"> 💧 水飲み場併設</label>
+        <label><input type="checkbox" class="filter-check" data-tag="hand_washing" data-val="yes"> 🧼 手洗い場あり</label>
+        <label>便器形式:
+            <select id="filter-position" class="filter-select" data-tag="toilets:position">
+                <option value="">指定なし</option>
+                <option value="seated">洋式 (seated)</option>
+                <option value="squat">和式 (squat)</option>
+            </select>
+        </label>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 1. 地図の基本設定
+    const map = L.map('map').setView([35.6812, 139.7671], 16); // 初期位置は東京駅
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 有料用アイコンの定義
+    const redIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+    });
+
+    let rawData = [];
+    let markers = [];
+
+    // 2. 現在地の取得処理
+    map.locate({setView: true, maxZoom: 16});
+
+    map.on('locationfound', function(e) {
+        L.circle(e.latlng, e.accuracy / 2).addTo(map); // 現在地の精度範囲を表示
+        fetchToilets(); // 現在地が決まったらデータを取得
+    });
+
+    map.on('locationerror', function() {
+        alert("位置情報が取得できませんでした。東京駅を表示します。");
+        fetchToilets();
+    });
+
+    // 3. データ取得
+    async function fetchToilets() {
+        if (map.getZoom() < 15) return;
+        const b = map.getBounds();
+        const s = b.getSouthWest(), n = b.getNorthEast();
+        const query = `[out:json][timeout:30];(node["amenity"="toilets"](${s.lat},${s.lng},${n.lat},${n.lng});way["amenity"="toilets"](${s.lat},${s.lng},${n.lat},${n.lng}););out center;`;
+        try {
+            const res = await fetch('https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query));
+            const data = await res.json();
+            rawData = data.elements;
+            updateMarkers();
+        } catch (e) { console.error(e); }
+    }
+
+    // 4. 描画
+    function updateMarkers() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        const checks = Array.from(document.querySelectorAll('.filter-check')).filter(i => i.checked).map(i => ({t: i.dataset.tag, v: i.dataset.val}));
+        const selectAccess = document.getElementById('filter-access').value;
+        const selectPosition = document.getElementById('filter-position').value;
+        const selectFee = document.getElementById('filter-fee').value;
+
+        const filtered = rawData.filter(el => {
+            const t = el.tags || {};
+            if (selectFee !== "" && t.fee !== selectFee) return false;
+            if (selectAccess !== "" && t.access !== selectAccess) return false;
+            if (selectPosition !== "" && t["toilets:position"] !== selectPosition) return false;
+            if (!checks.every(f => t[f.t] === f.v)) return false;
+            return true;
+        });
+
+        document.getElementById('count-display').innerText = `表示中: ${filtered.length}件`;
+
+        filtered.forEach(el => {
+            const t = el.tags || {};
+            const lat = el.lat || el.center.lat;
+            const lon = el.lon || el.center.lon;
+
+            const format = (key, label) => {
+                const val = t[key];
+                if (val === "yes") return `<li>${label}: <span class="tag-yes">あり</span></li>`;
+                if (val === "no") return `<li>${label}: <span class="tag-no">なし</span></li>`;
+                return `<li>${label}: <span class="tag-unknown">不明</span></li>`;
+            };
+
+            const feeLabel = t.fee === "yes" ? "有料" : (t.fee === "no" ? "無料" : "不明");
+
+            const popupHtml = `
+                <div class="popup-info">
+                    <strong>${t.name || "公衆トイレ"}</strong><hr>
+                    料金: ${feeLabel}${t.charge ? ' ('+t.charge+')' : ''}<br>
+                    制限: ${t.access || "不明"}<br>
+                    <ul style="margin:5px 0; padding-left:18px;">
+                        ${format('wheelchair', '♿車椅子')}
+                        ${format('ostomate', '🚽オストメイト')}
+                        ${format('diaper_change', '👶おむつ替え')}
+                    </ul>
+                    便座: ${t["toilets:position"] || "不明"}
+                </div>
+            `;
+            
+            // 有料なら赤、それ以外は標準の青
+            const markerOptions = (t.fee === "yes") ? {icon: redIcon} : {};
+            const m = L.marker([lat, lon], markerOptions).addTo(map).bindPopup(popupHtml);
+            markers.push(m);
+        });
+    }
+
+    map.on('moveend', fetchToilets);
+    document.querySelectorAll('input, select').forEach(el => el.addEventListener('change', updateMarkers));
+</script>
+
+</body>
+</html>
