@@ -19,6 +19,12 @@
         #timer-container { width: 100%; background: #1a252f; height: 8px; border-radius: 4px; margin: 10px 0; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: #2ecc71; transition: width 0.1s linear; }
         #flag-img { width: 120px; border-radius: 4px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); margin-bottom: 10px; }
+        
+        /* 追加情報のスタイル */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.8em; margin-bottom: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; }
+        .info-item { text-align: left; color: #bdc3c7; }
+        .info-item span { color: #fff; font-weight: bold; }
+
         .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         button { padding: 12px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; background: #3498db; color: #fff; transition: 0.2s; }
         button:hover:not(:disabled) { background: #2980b9; transform: translateY(-2px); }
@@ -63,6 +69,14 @@
     </div>
     <div id="timer-container"><div id="timer-bar"></div></div>
     <img id="flag-img" src="">
+    
+    <div class="info-grid">
+        <div class="info-item">📍 首都: <span id="info-capital">-</span></div>
+        <div class="info-item">🗺 地方: <span id="info-subregion">-</span></div>
+        <div class="info-item">💰 通貨: <span id="info-currency">-</span></div>
+        <div class="info-item">👥 人口: <span id="info-population">-</span></div>
+    </div>
+
     <div id="score-info" style="font-size: 1.1em; margin-bottom: 5px;">
         Score: <span id="current-score">0</span> 
         <span style="font-size: 0.8em; color: #bdc3c7; margin-left: 10px;">(High Score: <span id="high-score">0</span>)</span>
@@ -97,8 +111,9 @@ async function init() {
             renderer: L.svg({ padding: 10.0 })
         }).setView([20, 0], 2);
 
+        // APIから追加フィールドを取得
         const [countryRes, geoRes] = await Promise.all([
-            fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations,region'),
+            fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,translations,region,subregion,capital,currencies,population'),
             fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
         ]);
         
@@ -185,10 +200,16 @@ function loadQuestion() {
     correctCountry = shuffled[0];
     usedCountryCodes.add(correctCountry.cca3);
     
+    // 国情報の表示更新
+    document.getElementById('flag-img').src = correctCountry.flags.svg;
+    document.getElementById('info-capital').innerText = correctCountry.capital?.[0] || '不明';
+    document.getElementById('info-subregion').innerText = correctCountry.subregion || '不明';
+    document.getElementById('info-currency').innerText = correctCountry.currencies ? Object.values(correctCountry.currencies).map(curr => curr.name).join(', ') : '不明';
+    document.getElementById('info-population').innerText = correctCountry.population?.toLocaleString() + ' 人';
+
     const otherChoices = countriesData.filter(c => c.cca3 !== correctCountry.cca3 && layerDict[c.cca3]).sort(() => Math.random() - 0.5).slice(0, 3);
     const finalChoices = [correctCountry, ...otherChoices].sort(() => Math.random() - 0.5);
     
-    document.getElementById('flag-img').src = correctCountry.flags.svg;
     const container = document.getElementById('options-container');
     container.innerHTML = '';
     
@@ -251,10 +272,13 @@ function applyNeon(layer, type) {
     while (targetLng - currentCenter.lng > 180) targetLng -= 360;
     while (targetLng - currentCenter.lng < -180) targetLng += 360;
     
+    // UIパネルで隠れないよう、少し南側（緯度を下げる）を注視点にする
+    const viewLat = center.lat + 10; 
+
     map.fire('movestart'); 
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-            map.flyTo([center.lat, targetLng], 4, { duration: 1.5, easeLinearity: 0.25, noMoveStart: true });
+            map.flyTo([viewLat, targetLng], 4, { duration: 1.5, easeLinearity: 0.25, noMoveStart: true });
         });
     });
     
