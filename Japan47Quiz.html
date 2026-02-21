@@ -10,45 +10,55 @@
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #0b0e11; margin: 0; overflow: hidden; height: 100vh; color: #ecf0f1; text-align: center; }
         #map { position: fixed; inset: 0; background: #0b0e11; z-index: 0; }
-        .ui-panel { position: relative; max-width: 480px; margin: 15px auto; background: rgba(30,39,46,0.92); padding: 20px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.7); z-index: 10; pointer-events: auto; }
         
-        .top-nav { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .nav-btn { font-size: 14px; color: #333; text-decoration: none; background: rgba(255,255,255,0.9); padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: 0.2s; }
+        /* 右上のボタンエリア */
+        .top-nav { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+        .nav-btn { font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.9); padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: 0.2s; }
         .nav-btn:hover { background: #fff; transform: scale(1.05); }
 
+        /* 問題パネル：ボタンと被らないように上部にマージンを確保 */
+        .ui-panel { position: relative; max-width: 400px; margin: 80px auto 10px; background: rgba(30,39,46,0.92); padding: 15px; border-radius: 15px; backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.7); z-index: 10; pointer-events: auto; }
+        
         #start-menu { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(11, 14, 17, 0.98); z-index: 1000; }
-        .menu-content { background: #1e272e; padding: 30px; border-radius: 20px; width: 90%; max-width: 450px; border: 1px solid #34495e; }
+        .menu-content { background: #1e272e; padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid #34495e; }
         label { display: block; text-align: left; margin: 10px 0 5px; font-weight: bold; font-size: 0.85em; color: #8e9aaf; text-transform: uppercase; letter-spacing: 1px; }
         select { width: 100%; padding: 12px; border-radius: 8px; background: #0b0e11; color: white; border: 1px solid #3498db; font-size: 16px; margin-bottom: 10px; outline: none; }
         #highscore-display { background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; margin-top: 5px; border-left: 4px solid #f1c40f; text-align: left; }
         .hs-val { color: #f1c40f; font-weight: bold; font-size: 1.2em; }
-        #timer-container { width: 100%; background: #000; height: 8px; border-radius: 4px; margin: 10px 0; overflow: hidden; }
+        #timer-container { width: 100%; background: #000; height: 6px; border-radius: 4px; margin: 10px 0; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: #2ecc71; transition: width 0.1s linear; }
-        #shape-preview { height: 180px; background: rgba(0,0,0,0.6); margin-bottom: 15px; border-radius: 8px; display: none; align-items: center; justify-content: center; border: 1px solid #3498db; }
-        #shape-svg { height: 160px; width: 160px; fill: #3498db; filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6)); }
+        #shape-preview { height: 150px; background: rgba(0,0,0,0.6); margin-bottom: 15px; border-radius: 8px; display: none; align-items: center; justify-content: center; border: 1px solid #3498db; }
+        #shape-svg { height: 130px; width: 130px; fill: #3498db; filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6)); }
         .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        button { padding: 12px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; background: #3498db; color: #fff; transition: 0.2s; font-weight: bold; }
+        button { padding: 10px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; background: #3498db; color: #fff; transition: 0.2s; font-weight: bold; }
         button:hover:not(:disabled) { background: #2980b9; transform: translateY(-2px); }
         .btn-start { background: #2ecc71; width: 100%; font-size: 18px; font-weight: bold; padding: 15px; margin-top: 20px; }
         .btn-start:disabled { background: #34495e; cursor: not-allowed; }
         #result-screen { display: none; position: fixed; inset: 0; background: rgba(11, 14, 17, 0.98); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+
+        /* スマホ向け調整 */
+        @media screen and (max-width: 480px) {
+            .ui-panel { margin-top: 110px; width: 85%; }
+            .top-nav { top: 10px; right: 10px; }
+            .nav-btn { font-size: 11px; padding: 5px 10px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="top-nav">
     <a href="menu.html" class="nav-btn">メニューに戻る</a>
-    <button onclick="location.reload()" class="nav-btn" style="color: #e67e22;">モード選択（リセット）</button>
+    <button onclick="location.reload()" class="nav-btn" style="color: #e67e22;">リセット</button>
 </div>
 
 <div id="map"></div>
 
 <div id="start-menu">
     <div class="menu-content">
-        <h2 style="margin:0 0 10px 0;">🗾 47都道府県クイズ</h2>
-        <p id="loading-msg" style="color:#f1c40f; font-size: 0.9em;">地図データ読み込み中...</p>
+        <h2 style="margin:0 0 10px 0;">🗾 都道府県クイズ</h2>
+        <p id="loading-msg" style="color:#f1c40f; font-size: 0.9em;">データ読み込み中...</p>
         
-        <label>1. モード選択</label>
+        <label>モード</label>
         <select id="mode-select" onchange="updateHighScoreDisplay()">
             <option value="1">地図指し（場所 → 名前）</option>
             <option value="2">形状（形 → 名前）</option>
@@ -56,9 +66,9 @@
             <option value="4">地図クリック（名前 → 場所）</option>
         </select>
 
-        <label style="margin-top:15px;">2. 地域選択</label>
+        <label>地域</label>
         <select id="region-select" onchange="updateHighScoreDisplay()">
-            <option value="all">全国 (47都道府県)</option>
+            <option value="all">全国</option>
             <option value="hokkaido_tohoku">北海道・東北</option>
             <option value="kanto">関東</option>
             <option value="chubu">中部</option>
@@ -68,7 +78,7 @@
         </select>
 
         <div id="highscore-display">
-            <span style="font-size: 0.8em; opacity: 0.7;">この設定のハイスコア</span><br>
+            <span style="font-size: 0.8em; opacity: 0.7;">ハイスコア:</span>
             <span id="best-score" class="hs-val">0</span> <span style="font-size:0.8em">pts</span>
         </div>
 
@@ -77,21 +87,21 @@
 </div>
 
 <div class="ui-panel" id="main-ui" style="display:none;">
-    <div style="font-size: 0.9em; opacity: 0.8;">Question <span id="q-count">1</span> / <span id="q-total">--</span></div>
+    <div style="font-size: 0.8em; opacity: 0.8;">Quest <span id="q-count">1</span> / <span id="q-total">--</span></div>
     <div id="timer-container"><div id="timer-bar"></div></div>
     <div id="shape-preview"><svg id="shape-svg" viewBox="0 0 100 100"></svg></div>
-    <h3 id="question-text" style="margin: 10px 0; min-height: 1.5em;">...</h3>
+    <h3 id="question-text" style="margin: 8px 0; font-size: 1.1em;">...</h3>
     <div class="options" id="options-container"></div>
-    <div id="result-text" style="height:30px; margin-top:10px; font-weight:bold;"></div>
-    <button id="next-btn" style="display:none; width:100%; background:#2ecc71; margin-top:10px;">次の問題へ</button>
+    <div id="result-text" style="height:25px; margin-top:10px; font-weight:bold; font-size: 0.9em;"></div>
+    <button id="next-btn" style="display:none; width:100%; background:#2ecc71; margin-top:10px;">次へ</button>
 </div>
 
 <div id="result-screen">
-    <h1 style="margin-bottom: 0;">FINISH!</h1>
-    <div id="final-score" style="font-size: 6em; color: #f1c40f; font-weight: bold; line-height: 1;">0</div>
-    <p id="completion-text" style="margin-bottom: 30px; opacity: 0.7;"></p>
+    <h1>FINISH!</h1>
+    <div id="final-score" style="font-size: 5em; color: #f1c40f; font-weight: bold;">0</div>
+    <p id="completion-text" style="opacity: 0.7;"></p>
     <div id="new-record" style="color: #2ecc71; font-weight: bold; margin-bottom: 20px; display: none;">🏆 NEW RECORD!</div>
-    <button onclick="location.reload()" style="padding:15px 50px; background:#3498db; color:white; border:none; border-radius:30px; font-size:1.2em; cursor:pointer; font-weight:bold;">タイトルへ戻る</button>
+    <button onclick="location.reload()" style="padding:12px 40px; background:#3498db; color:white; border:none; border-radius:30px; font-size:1.1em; cursor:pointer; font-weight:bold;">タイトルへ</button>
 </div>
 
 <script>
@@ -128,18 +138,17 @@ async function init() {
             }
         }).addTo(map);
 
-        // 前回保存した設定を復元
         const savedMode = localStorage.getItem('last_selected_mode');
         const savedRegion = localStorage.getItem('last_selected_region');
         if (savedMode) document.getElementById('mode-select').value = savedMode;
         if (savedRegion) document.getElementById('region-select').value = savedRegion;
 
-        document.getElementById('loading-msg').innerText = "✅ 地理データ読み込み完了";
+        document.getElementById('loading-msg').innerText = "✅ 準備完了";
         document.getElementById('start-btn').disabled = false;
         document.getElementById('start-btn').innerText = "ゲーム開始";
         updateHighScoreDisplay();
     } catch (e) {
-        document.getElementById('loading-msg').innerText = "❌ データの取得に失敗しました。";
+        document.getElementById('loading-msg').innerText = "❌ データ読み込み失敗";
     }
 }
 
@@ -154,13 +163,10 @@ function updateHighScoreDisplay() {
 function startGame() {
     gameMode = document.getElementById('mode-select').value;
     selectedRegion = document.getElementById('region-select').value;
-
-    // 現在の選択を保存
     localStorage.setItem('last_selected_mode', gameMode);
     localStorage.setItem('last_selected_region', selectedRegion);
 
     prefList = Object.keys(layerDict);
-    
     if(selectedRegion !== 'all') {
         const targetPrefs = regionMap[selectedRegion].split(',');
         prefList = prefList.filter(p => targetPrefs.includes(p));
@@ -236,7 +242,11 @@ function showShapeSVG(name) {
 
 function focusPref(name) {
     const l = layerDict[name];
-    map.flyToBounds(l.getBounds(), { padding: [300, 300], duration: 1.5 });
+    // スマホ（画面幅480px以下）ならパディングを大きくして都道府県を小さめに表示
+    const isMobile = window.innerWidth <= 480;
+    const pad = isMobile ? [120, 120] : [250, 250];
+    
+    map.flyToBounds(l.getBounds(), { padding: pad, duration: 1.2 });
     l.setStyle({ fillColor: '#f1c40f', fillOpacity: 0.9, color: '#fff', weight: 2 });
 }
 
