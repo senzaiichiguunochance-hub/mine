@@ -9,8 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         /* 海の色を薄い青に設定 */
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #151222; margin: 0; overflow: hidden; height: 100vh; color: #2c3e50; text-align: center; }
-        #map { position: fixed; inset: 0; background: #151222; z-index: 0; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #0C200B; margin: 0; overflow: hidden; height: 100vh; color: #2c3e50; text-align: center; }
+        #map { position: fixed; inset: 0; background: #0C200B; z-index: 0; }
         
         .top-nav { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
         .nav-btn { font-size: 12px; color: #fff; text-decoration: none; background: rgba(52, 73, 94, 0.8); padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); transition: 0.2s; }
@@ -192,17 +192,22 @@ function loadQuestion() {
 
     if(gameMode === "1") {
         qText.innerText = "この都道府県はどこ？";
-        focusPref(currentCorrectPref);
+        // いったん日本全体に戻してからズームする演出
+        map.setView([36, 138], 5);
+        setTimeout(() => {
+            focusPref(currentCorrectPref);
+        }, 100);
     } else if(gameMode === "2") {
         qText.innerText = "この形の都道府県は？";
         shapePrev.style.display = 'flex';
         showShapeSVG(currentCorrectPref);
-        map.setView([45, 138], 5); // 形状クイズ中も地図は少し下げて表示
+        map.setView([45, 138], 5); 
     } else if(gameMode === "3") {
         qText.innerText = `県庁所在地が「${capitals[currentCorrectPref]}」なのは？`;
         map.setView([40, 138], 5);
     } else if(gameMode === "4") {
         qText.innerText = `「${currentCorrectPref}」をクリック！`;
+        map.setView([36, 138], 5); // クリックモードも全体表示
     }
     setupOptions();
     startTimer();
