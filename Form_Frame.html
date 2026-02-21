@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FORM & FRAME</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #f8f8f8; 
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+        }
+        canvas { display: block; }
+
+        /* メインタイトル */
+        .main-title {
+            position: absolute;
+            top: 40px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none; /* マウス操作を邪魔しない */
+            z-index: 100;
+        }
+        .main-title h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 200;
+            letter-spacing: 12px;
+            color: #222;
+            text-transform: uppercase;
+        }
+
+        /* UIコンテナ（ご提示の構成を維持） */
+        .ui-container {
+            position: absolute;
+            bottom: 40px; /* 操作しやすいように下に配置 */
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .label { 
+            color: #aaa; 
+            font-size: 10px; 
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: -10px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px;
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #666;
+            background: transparent;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background: rgba(0, 0, 0, 0.03);
+            color: #000;
+        }
+
+        button.active {
+            background: #000;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+    <div class="main-title">
+        <h1 id="title-text">FORM & FRAME</h1>
+    </div>
+
+    <div class="ui-container">
+        <div class="label">BASIC COLLECTION (SOLID)</div>
+        <div class="button-group">
+            <button id="btn-torusBasic" onclick="updateShape('torusBasic')">Knot</button>
+            <button id="btn-icoBasic" onclick="updateShape('icoBasic')">Crystal</button>
+            <button id="btn-sphereBasic" onclick="updateShape('sphereBasic')">Sphere</button>
+        </div>
+        
+        <div class="label">ADVANCED COLLECTION (WIREFRAME)</div>
+        <div class="button-group">
+            <button id="btn-knot" onclick="updateShape('knot')">Cyber Knot</button>
+            <button id="btn-crystal" onclick="updateShape('crystal')">Cyber Crystal</button>
+            <button id="btn-orb" onclick="updateShape('orb')">Cyber Orb</button>
+        </div>
+    </div>
+
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": { "three": "https://unpkg.com/three@0.150.1/build/three.module.js" }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf8f8f8);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // ライト設定
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        mainLight.position.set(5, 10, 7.5);
+        scene.add(mainLight);
+
+        const fillLight = new THREE.PointLight(0xffffff, 0.5);
+        fillLight.position.set(-5, -5, 5);
+        scene.add(fillLight);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+
+        // 塵のパーティクル
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = new Float32Array(1500 * 3);
+        for(let i=0; i < 1500 * 3; i++) starPos[i] = (Math.random() - 0.5) * 30;
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xcccccc, size: 0.02 });
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // ジオメトリ
+        const geometries = {
+            torusBasic: new THREE.TorusKnotGeometry(1, 0.3, 150, 20),
+            icoBasic: new THREE.IcosahedronGeometry(1.5, 0),
+            sphereBasic: new THREE.SphereGeometry(1.2, 32, 32),
+            knot: new THREE.TorusKnotGeometry(1, 0.28, 250, 40),
+            crystal: new THREE.IcosahedronGeometry(1.6, 0),
+            orb: new THREE.SphereGeometry(1.4, 64, 64)
+        };
+
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x00ffcc, // ユーザー様設定の色を初期値に
+            metalness: 0.5, 
+            roughness: 0.3 
+        });
+
+        const mesh = new THREE.Mesh(geometries.torusBasic, material);
+        scene.add(mesh);
+
+        // --- インタラクション管理 ---
+        const mouse = { x: 0, y: 0 };
+        const target = { x: 0, y: 0 };
+        const titleElement = document.getElementById('title-text');
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        // 切り替え機能
+        window.updateShape = (type) => {
+            mesh.geometry = geometries[type];
+            
+            if(type.includes('Basic')) {
+                if(type === 'torusBasic') material.color.set(0x00ffcc);
+                if(type === 'icoBasic') material.color.set(0xff0066);
+                if(type === 'sphereBasic') material.color.set(0xff9900);
+                material.wireframe = false;
+                material.transparent = false;
+                material.opacity = 1.0;
+                material.flatShading = false;
+            } else {
+                // Advanced: 鮮やかな色のワイヤーフレーム
+                if(type === 'knot') material.color.set(0x00ffcc);
+                if(type === 'crystal') material.color.set(0xff0066);
+                if(type === 'orb') material.color.set(0xff9900);
+                
+                material.wireframe = true;
+                material.transparent = true;
+                material.opacity = 0.7;
+                material.flatShading = (type === 'crystal');
+            }
+
+            material.needsUpdate = true;
+
+            document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            const clickedBtn = document.getElementById('btn-' + type);
+            if(clickedBtn) clickedBtn.classList.add('active');
+        };
+
+        // 初回設定
+        document.getElementById('btn-torusBasic').classList.add('active');
+
+        function animate() {
+            requestAnimationFrame(animate);
+            target.x += (mouse.x - target.x) * 0.05;
+            target.y += (mouse.y - target.y) * 0.05;
+
+            // オブジェクトの動き
+            mesh.rotation.y += 0.008;
+            mesh.rotation.x = -target.y * 1.0;
+            mesh.position.x = target.x * 1.2;
+
+            // パーティクル
+            stars.rotation.y += 0.0003;
+
+            // タイトルのわずかな揺れ演出
+            if (titleElement) {
+                titleElement.style.transform = `translate(${target.x * 10}px, ${-target.y * 5}px)`;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
