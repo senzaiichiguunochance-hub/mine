@@ -191,9 +191,9 @@ function loadQuestion() {
     shapePrev.style.display = 'none';
 
     if(gameMode === "1") {
+        // 【地図指し】のみ：いったん日本全体に戻してからズームする
         qText.innerText = "この都道府県はどこ？";
-        // いったん日本全体に戻してからズームする演出
-        map.setView([36, 138], 5);
+        map.setView([36, 138], 5); 
         setTimeout(() => {
             focusPref(currentCorrectPref);
         }, 100);
@@ -207,7 +207,6 @@ function loadQuestion() {
         map.setView([40, 138], 5);
     } else if(gameMode === "4") {
         qText.innerText = `「${currentCorrectPref}」をクリック！`;
-        map.setView([36, 138], 5); // クリックモードも全体表示
     }
     setupOptions();
     startTimer();
