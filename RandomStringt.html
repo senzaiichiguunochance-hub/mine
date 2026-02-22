@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Full Screen Matrix Randomizer</title>
+    <title>Global Matrix</title>
     <style>
         body {
             background-color: black;
@@ -14,11 +14,14 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            font-family: 'Courier New', 'MS Gothic', monospace;
+            /* フォント指定を強化：
+               'Segoe UI Symbol' (Windows), 'Apple Color Emoji' (Mac/iOS), 
+               'Noto Sans' (Android) など、記号に強いフォントを優先 
+            */
+            font-family: Consolas, 'Courier New', 'Segoe UI Symbol', 'Apple Color Emoji', 'Arial Unicode MS', 'MS Gothic', sans-serif;
             font-weight: bold;
         }
 
-        /* ヘッダーエリア（ボタン用） */
         #header {
             height: 50px;
             display: flex;
@@ -36,29 +39,26 @@
             border: 1px solid #444;
             cursor: pointer;
             font-size: 14px;
-            text-transform: uppercase;
             letter-spacing: 2px;
+            transition: 0.2s;
         }
-        #reset-btn:hover { background: #333; border-color: #666; }
+        #reset-btn:hover { background: #333; border-color: #00ff00; color: #00ff00; }
 
-        /* グリッドコンテナ（残り全ての領域） */
         #grid {
             flex-grow: 1;
             display: grid;
-            /* JavaScriptで動的に列数を設定 */
             justify-content: center;
             align-content: center;
             overflow: hidden;
         }
 
         .cell {
-            /* 1文字のサイズを固定して計算しやすくする */
-            width: 18px;
-            height: 22px;
+            width: 22px;
+            height: 26px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 16px;
+            font-size: 18px;
             user-select: none;
         }
     </style>
@@ -68,7 +68,7 @@
 
 
 <div id="header">
-    <button id="reset-btn">Randomize All</button>
+    <button id="reset-btn">Next Category Set</button>
 </div>
 <div id="grid"></div>
 
@@ -77,42 +77,53 @@
     const btn = document.getElementById('reset-btn');
     
     const charSets = {
-        alphabet: 'abcdefghijklmnopqrstuvwxyz'.split(''),
+        alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split(''),
         numbers: '0123456789'.split(''),
         hiragana: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん'.split(''),
-        katakana: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'.split('')
+        katakana: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'.split(''),
+        cyrillic: 'БГДЁЖЗИЙКЛМНПФЦЧШЩЪЫЬЭЮЯ'.split(''),
+        greek: 'αβγδεζηθικλμνξοπρστυφχψω'.split(''),
+        symbols: '★☆△▲○●□■◈◇◆▷▶◁◀⚙⚡⚓'.split(''),
+        emoji: ['👾','🤖','💻','📱','💾','📡','🛰','🚀','🛸','🌀']
     };
 
+    let categoryKeys = Object.keys(charSets);
+    let usedCategories = [];
     let intervals = [];
 
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
     function initGrid() {
-        // 1. お掃除
         intervals.forEach(id => clearInterval(id));
         intervals = [];
         grid.innerHTML = '';
 
-        // 2. 画面サイズから行列数を計算
-        const cellWidth = 18;
-        const cellHeight = 22;
+        if (usedCategories.length === 0) {
+            usedCategories = shuffle([...categoryKeys]);
+        }
+        const currentCategoryKey = usedCategories.pop();
+        const currentChars = charSets[currentCategoryKey];
+
+        const cellWidth = 22;
+        const cellHeight = 26;
         const cols = Math.floor(window.innerWidth / cellWidth);
-        const rows = Math.floor((window.innerHeight - 50) / cellHeight); // ヘッダー分引く
+        const rows = Math.floor((window.innerHeight - 50) / cellHeight);
         const totalCells = cols * rows;
 
-        // グリッドレイアウトを動的に適用
         grid.style.gridTemplateColumns = `repeat(${cols}, ${cellWidth}px)`;
         grid.style.gridTemplateRows = `repeat(${rows}, ${cellHeight}px)`;
 
-        // 3. ランダムな色決定
         const hue = Math.floor(Math.random() * 360);
         const brightColor = `hsl(${hue}, 100%, 65%)`;
         const dimColor = `hsl(${hue}, 80%, 30%)`;
         const glow = `0 0 10px hsl(${hue}, 100%, 50%)`;
 
-        // 4. 文字種決定
-        const keys = Object.keys(charSets);
-        const currentChars = charSets[keys[Math.floor(Math.random() * keys.length)]];
-
-        // 5. セル生成
         const fragment = document.createDocumentFragment();
         for (let i = 0; i < totalCells; i++) {
             const cell = document.createElement('div');
@@ -122,7 +133,7 @@
             cell.style.color = isBright ? brightColor : dimColor;
             if (isBright) cell.style.textShadow = glow;
 
-            const speed = Math.floor(Math.random() * 2991) + 10;
+            const speed = Math.floor(Math.random() * 2990) + 10;
             let currentIndex = Math.floor(Math.random() * currentChars.length);
             cell.textContent = currentChars[currentIndex];
 
@@ -137,11 +148,8 @@
         grid.appendChild(fragment);
     }
 
-    // イベント設定
     btn.addEventListener('click', initGrid);
-    window.addEventListener('resize', initGrid); // 画面サイズ変更時も再計算
-
-    // 初回実行
+    window.addEventListener('resize', initGrid);
     initGrid();
 </script>
 
