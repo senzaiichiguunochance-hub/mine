@@ -125,7 +125,7 @@
         const tail = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 20, Math.PI), mMainColor);
         tail.rotation.y = Math.PI/2; tail.position.set(0,-0.3,-0.5); body.add(tail);
 
-        // システム
+        // --- システム変数 ---
         const ghosts = []; 
         const clones = []; 
         let activeAction = null, actionTime = 0, spinDir = 1;
@@ -151,7 +151,7 @@
             if (actionQueue.length === 0) actionQueue = [...allActions].sort(() => Math.random() - 0.5);
             activeAction = actionQueue.shift();
             actionTime = 0; spinDir = Math.random() > 0.5 ? 1 : -1;
-            isMovingManually = false; // アクション開始時は移動を止める
+            isMovingManually = false;
 
             if (activeAction === 'ninjutsu') {
                 for(let i = 0; i < 2; i++) {
@@ -167,7 +167,7 @@
             const v = new THREE.Vector3(mouse.x, mouse.y, 0.5).unproject(camera);
             const dir = v.sub(camera.position).normalize();
             targetPos.copy(camera.position).add(dir.multiplyScalar(12));
-            isMovingManually = true; // マウスが動いた時だけ移動フラグを立てる
+            isMovingManually = true;
         }
 
         window.addEventListener('mousemove', (e) => updateTarget(e.clientX, e.clientY));
@@ -177,9 +177,10 @@
             if(raycaster.intersectObjects(kuromiRoot.children, true).length > 0) triggerAction();
         });
 
-        document.getElementById('size-slider').addEventListener('input', (e) => {
+        const slider = document.getElementById('size-slider');
+        slider.addEventListener('input', (e) => {
             const s = e.target.value/100; document.getElementById('size-val').textContent = e.target.value;
-            kuromiRoot.scale.set(s,s,s);
+            if (!activeAction) kuromiRoot.scale.set(s,s,s);
         });
         colorPicker.addEventListener('input', (e) => mMainColor.color.set(e.target.value));
 
@@ -187,15 +188,15 @@
             requestAnimationFrame(animate);
             const time = Date.now() * 0.012;
             const dist = kuromiRoot.position.distanceTo(targetPos);
+            const baseScale = slider.value / 100;
 
-            // 移動ロジック (アクション中以外 & マウス移動中 & 距離がある場合)
+            // 移動ロジック
             if (!activeAction && isMovingManually && dist > 0.5) {
                 kuromiRoot.lookAt(targetPos); kuromiRoot.translateZ(0.12);
                 animGroup.position.y = Math.abs(Math.sin(time)) * 0.5;
                 armL.position.z = 0.2 + Math.sin(time)*0.5; armR.position.z = 0.2 - Math.sin(time)*0.5;
                 legL.position.z = 0.1 - Math.sin(time)*0.5; legR.position.z = 0.1 + Math.sin(time)*0.5;
             } else if (!activeAction) {
-                // 停止時
                 isMovingManually = false;
                 kuromiRoot.lookAt(camera.position.x, 0, camera.position.z + 10);
                 animGroup.position.y *= 0.8;
@@ -214,10 +215,8 @@
                         });
                         break;
                     case 'afterimageDash':
-                        const r = 3;
-                        kuromiRoot.position.x = Math.cos(p * 4) * r;
-                        kuromiRoot.position.z = Math.sin(p * 4) * r;
-                        kuromiRoot.lookAt(Math.cos((p+0.1)*4)*r, 0, Math.sin((p+0.1)*4)*r);
+                        kuromiRoot.position.x += Math.cos(p * 4) * 0.2;
+                        kuromiRoot.position.z += Math.sin(p * 4) * 0.2;
                         if (Math.floor(p*20)%2===0) createGhost();
                         break;
                     case 'jump': actionPivot.position.y = Math.sin(p)*4; break;
@@ -245,27 +244,33 @@
                     case 'squat': animGroup.position.y = -Math.abs(Math.sin(p*5))*1.5; break;
                     case 'tilt': head.rotation.z = Math.sin(p*2)*0.8; break;
                     case 'superSpin': actionPivot.rotation.y = p*20; break;
-                    case 'giant': kuromiRoot.scale.multiplyScalar(1.05); break;
+                    case 'giant': 
+                        const gS = baseScale * (1 + Math.sin(p)*0.8);
+                        kuromiRoot.scale.set(gS, gS, gS); 
+                        break;
                     case 'ghost': mMainColor.opacity = Math.abs(Math.sin(p*5)); mMainColor.transparent = true; break;
                     case 'rainbow': mMainColor.color.setHSL((p*0.5)%1, 0.8, 0.5); break;
                     case 'vibrate': animGroup.position.x = Math.random()*0.2; animGroup.position.z = Math.random()*0.2; break;
-                    case 'backStep': kuromiRoot.translateZ(-0.2); break;
+                    case 'backStep': 
+                        kuromiRoot.translateZ(-0.2); 
+                        const bS = baseScale * (1 - Math.sin(p)*0.3);
+                        kuromiRoot.scale.set(bS, bS, bS);
+                        break;
                 }
 
                 if (actionTime >= Math.PI) {
                     if (clones.length > 0) { clones.forEach(c => scene.remove(c.obj)); clones.length = 0; }
                     activeAction = null; isMovingManually = false;
-                    // 位置と回転の完全リセット
-                    kuromiRoot.position.set(0,0,0); kuromiRoot.rotation.set(0,0,0);
                     actionPivot.position.set(0,0,0); actionPivot.rotation.set(0,0,0);
                     animGroup.rotation.set(0,0,0); animGroup.position.set(0,0,0);
                     head.rotation.set(0,0,0); head.scale.set(1,1,1);
+                    skull.scale.set(1, 0.8, 0.2); skull.position.set(0, 0.65, 1.0);
                     mMainColor.opacity = 1.0; mMainColor.transparent = false; mMainColor.color.set(colorPicker.value);
                     [armL, armR, legL, legR].forEach(m => { m.position.y = 0; m.rotation.set(0,0,0); m.position.z = 0.2; });
                     armL.position.x = -0.8; armR.position.x = 0.8; torso.scale.set(1, 1.2, 0.8);
                     legL.position.set(-0.35, -0.85, 0.1); legR.position.set(0.35, -0.85, 0.1);
-                    const s = slider.value/100; kuromiRoot.scale.set(s,s,s);
-                    targetPos.set(0,0,0); // ターゲットもリセット
+                    // 全アクション終了時に現在のスライダー値に基づいたサイズへ復帰
+                    kuromiRoot.scale.set(baseScale, baseScale, baseScale);
                 }
             }
 
