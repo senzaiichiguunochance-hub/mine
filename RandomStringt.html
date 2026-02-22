@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Screen Matrix Randomizer</title>
+    <style>
+        body {
+            background-color: black;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'Courier New', 'MS Gothic', monospace;
+            font-weight: bold;
+        }
+
+        /* ヘッダーエリア（ボタン用） */
+        #header {
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #111;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+
+        #reset-btn {
+            padding: 8px 24px;
+            background: #222;
+            color: #eee;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        #reset-btn:hover { background: #333; border-color: #666; }
+
+        /* グリッドコンテナ（残り全ての領域） */
+        #grid {
+            flex-grow: 1;
+            display: grid;
+            /* JavaScriptで動的に列数を設定 */
+            justify-content: center;
+            align-content: center;
+            overflow: hidden;
+        }
+
+        .cell {
+            /* 1文字のサイズを固定して計算しやすくする */
+            width: 18px;
+            height: 22px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <button id="reset-btn">Randomize All</button>
+</div>
+<div id="grid"></div>
+
+<script>
+    const grid = document.getElementById('grid');
+    const btn = document.getElementById('reset-btn');
+    
+    const charSets = {
+        alphabet: 'abcdefghijklmnopqrstuvwxyz'.split(''),
+        numbers: '0123456789'.split(''),
+        hiragana: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん'.split(''),
+        katakana: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'.split('')
+    };
+
+    let intervals = [];
+
+    function initGrid() {
+        // 1. お掃除
+        intervals.forEach(id => clearInterval(id));
+        intervals = [];
+        grid.innerHTML = '';
+
+        // 2. 画面サイズから行列数を計算
+        const cellWidth = 18;
+        const cellHeight = 22;
+        const cols = Math.floor(window.innerWidth / cellWidth);
+        const rows = Math.floor((window.innerHeight - 50) / cellHeight); // ヘッダー分引く
+        const totalCells = cols * rows;
+
+        // グリッドレイアウトを動的に適用
+        grid.style.gridTemplateColumns = `repeat(${cols}, ${cellWidth}px)`;
+        grid.style.gridTemplateRows = `repeat(${rows}, ${cellHeight}px)`;
+
+        // 3. ランダムな色決定
+        const hue = Math.floor(Math.random() * 360);
+        const brightColor = `hsl(${hue}, 100%, 65%)`;
+        const dimColor = `hsl(${hue}, 80%, 30%)`;
+        const glow = `0 0 10px hsl(${hue}, 100%, 50%)`;
+
+        // 4. 文字種決定
+        const keys = Object.keys(charSets);
+        const currentChars = charSets[keys[Math.floor(Math.random() * keys.length)]];
+
+        // 5. セル生成
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < totalCells; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            
+            const isBright = Math.random() > 0.5;
+            cell.style.color = isBright ? brightColor : dimColor;
+            if (isBright) cell.style.textShadow = glow;
+
+            const speed = Math.floor(Math.random() * 2991) + 10;
+            let currentIndex = Math.floor(Math.random() * currentChars.length);
+            cell.textContent = currentChars[currentIndex];
+
+            const intervalId = setInterval(() => {
+                currentIndex = (currentIndex + 1) % currentChars.length;
+                cell.textContent = currentChars[currentIndex];
+            }, speed);
+            
+            intervals.push(intervalId);
+            fragment.appendChild(cell);
+        }
+        grid.appendChild(fragment);
+    }
+
+    // イベント設定
+    btn.addEventListener('click', initGrid);
+    window.addEventListener('resize', initGrid); // 画面サイズ変更時も再計算
+
+    // 初回実行
+    initGrid();
+</script>
+
+</body>
+</html>
