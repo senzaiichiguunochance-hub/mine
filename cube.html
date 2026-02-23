@@ -2,43 +2,38 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Cybernetic Neon Cube</title>
+    <title>Multi-View Cyber Cube</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
         #ui { 
             position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            transform: translate(-50%, -50%); 
+            top: 20px; 
             width: 100%; 
             text-align: center; 
-            color: white; 
+            color: #00ffff; 
             pointer-events: none; 
             z-index: 10;
+            text-shadow: 0 0 5px #00ffff;
         }
-        .status { 
-            font-size: 48px; 
-            font-weight: bold;
-            letter-spacing: 12px; 
-            color: #fff; 
-            text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
-            opacity: 0.8;
-            transition: all 0.5s ease;
-        }
-        #sub-text {
-            font-size: 14px;
-            letter-spacing: 2px;
-            color: #00ffff;
-            margin-top: 10px;
-            text-transform: uppercase;
+        .status { font-size: 24px; letter-spacing: 6px; font-weight: bold; }
+        /* グリッド線の装飾（サイバー感） */
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            pointer-events: none;
+            background: 
+                linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px) 50% 50% / 50% 50%,
+                linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px) 50% 50% / 50% 50%;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div class="status" id="status-text">INITIALIZING</div>
-        <div id="sub-text">Neural Core Link Active</div>
+        <div class="status" id="status-text">SYSTEM ONLINE</div>
+        <div style="font-size: 10px; opacity: 0.6;">MULTI-ANGLE SURVEILLANCE MODE</div>
     </div>
+    <div class="overlay"></div>
 
     <script type="importmap">
         {
@@ -51,24 +46,25 @@
 
     <script type="module">
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
         import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        let scene, camera, renderer, controls, composer;
-        let pieces = [];
-        let moveHistory = [];
+        let scene, renderer, composer;
+        let pieces = [], moveHistory = [];
         
+        // 5つのビューの設定
+        const views = [
+            { left: 0.25, bottom: 0.25, width: 0.5,  height: 0.5,  eye: [6, 6, 9],    up: [0, 1, 0] }, // 中央（メイン）
+            { left: 0,    bottom: 0.7,  width: 0.25, height: 0.25, eye: [0, 10, 0],   up: [0, 0, -1] }, // 左上（真上から）
+            { left: 0.75, bottom: 0.7,  width: 0.25, height: 0.25, eye: [8, 2, -8],   up: [0, 1, 0] }, // 右上（背面斜め）
+            { left: 0,    bottom: 0,    width: 0.25, height: 0.25, eye: [-8, -4, 8],  up: [0, 1, 0] }, // 左下（底面斜め）
+            { left: 0.75, bottom: 0,    width: 0.25, height: 0.25, eye: [0, 0, 12],   up: [0, 1, 0] }  // 右下（真正面）
+        ];
+
         const COLORS = {
-            right:  0x0077ff, // Neon Blue
-            left:   0x00ff66, // Neon Green
-            top:    0xffffff, // White
-            bottom: 0xffdd00, // Neon Yellow
-            front:  0xff0044, // Neon Red
-            back:   0xff8800, // Neon Orange
-            inner:  0x050505  // Deep Black
+            right: 0x0077ff, left: 0x00ff66, top: 0xffffff, bottom: 0xffdd00, front: 0xff0044, back: 0xff8800, inner: 0x050505
         };
 
         init();
@@ -77,77 +73,40 @@
 
         function init() {
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x000000, 5, 20);
-
-            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
-            camera.position.set(7, 7, 10);
-
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.autoClear = false; // マルチビューのために自動クリアをオフ
             document.body.appendChild(renderer.domElement);
 
-            // ブルームエフェクトの設定
-            const renderScene = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-            bloomPass.threshold = 0.2;
-            bloomPass.strength = 0.8;
-            bloomPass.radius = 0.5;
+            // 各ビューにカメラを設定
+            views.forEach(v => {
+                const cam = new THREE.PerspectiveCamera(45, (window.innerWidth * v.width) / (window.innerHeight * v.height), 0.1, 100);
+                cam.position.set(...v.eye);
+                cam.up.set(...v.up);
+                cam.lookAt(0, 0, 0);
+                v.camera = cam;
+            });
 
-            composer = new EffectComposer(renderer);
-            composer.addPass(renderScene);
-            composer.addPass(bloomPass);
+            // ライティング
+            scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+            const p1 = new THREE.PointLight(0xffffff, 50); p1.position.set(5, 8, 5); scene.add(p1);
 
-            controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.autoRotate = true;
-            controls.autoRotateSpeed = 0.5;
-
-            // ライト
-            scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-            const pointLight = new THREE.PointLight(0xffffff, 20);
-            pointLight.position.set(5, 5, 5);
-            scene.add(pointLight);
-
-            createBackground();
             createCube();
         }
 
-        function createBackground() {
-            const geometry = new THREE.BufferGeometry();
-            const vertices = [];
-            for (let i = 0; i < 2000; i++) {
-                vertices.push(THREE.MathUtils.randFloatSpread(50));
-                vertices.push(THREE.MathUtils.randFloatSpread(50));
-                vertices.push(THREE.MathUtils.randFloatSpread(50));
-            }
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            const particles = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x444444, size: 0.05 }));
-            scene.add(particles);
-        }
-
         function createCube() {
-            // 角の丸いジオメトリを使用
-            const geom = new RoundedBoxGeometry(0.92, 0.92, 0.92, 4, 0.08);
-            
+            const geom = new RoundedBoxGeometry(0.92, 0.92, 0.92, 3, 0.08);
             for (let x = -1; x <= 1; x++) {
                 for (let y = -1; y <= 1; y++) {
                     for (let z = -1; z <= 1; z++) {
-                        const mats = Array(6).fill().map(() => new THREE.MeshStandardMaterial({
-                            color: COLORS.inner,
-                            roughness: 0.1,
-                            metalness: 0.8,
-                            emissive: 0x000000
-                        }));
-
-                        if (x === 1)  apply(mats[0], COLORS.right);
+                        const mats = Array(6).fill().map(() => new THREE.MeshStandardMaterial({ color: COLORS.inner, metalness: 0.8, roughness: 0.2 }));
+                        if (x === 1) apply(mats[0], COLORS.right);
                         if (x === -1) apply(mats[1], COLORS.left);
-                        if (y === 1)  apply(mats[2], COLORS.top);
+                        if (y === 1) apply(mats[2], COLORS.top);
                         if (y === -1) apply(mats[3], COLORS.bottom);
-                        if (z === 1)  apply(mats[4], COLORS.front);
+                        if (z === 1) apply(mats[4], COLORS.front);
                         if (z === -1) apply(mats[5], COLORS.back);
-
                         const mesh = new THREE.Mesh(geom, mats);
                         mesh.position.set(x, y, z);
                         scene.add(mesh);
@@ -157,35 +116,26 @@
             }
         }
 
-        function apply(m, c) { 
-            m.color.setHex(c); 
-            m.emissive.setHex(c); 
-            m.emissiveIntensity = 0.6; 
-        }
+        function apply(m, c) { m.color.setHex(c); m.emissive.setHex(c); m.emissiveIntensity = 0.5; }
 
         async function rotateLayer(axis, layer, angle) {
             return new Promise(resolve => {
                 const group = new THREE.Group();
                 scene.add(group);
-                
                 const targets = [];
                 const worldPos = new THREE.Vector3();
                 pieces.forEach(p => {
                     p.getWorldPosition(worldPos);
                     if (Math.round(worldPos[axis]) === layer) targets.push(p);
                 });
-
                 targets.forEach(p => group.attach(p));
 
                 let progress = 0;
                 const targetRad = angle * (Math.PI / 2);
-                
                 function step() {
-                    progress += 0.06; // スムーズな速度
-                    // イージング関数 (SmoothStep)
+                    progress += 0.08;
                     const t = Math.min(progress, 1);
                     const ease = t * t * (3 - 2 * t);
-                    
                     if (progress < 1) {
                         group.rotation[axis] = targetRad * ease;
                         requestAnimationFrame(step);
@@ -194,11 +144,7 @@
                         targets.forEach(p => {
                             scene.attach(p);
                             p.position.set(Math.round(p.position.x), Math.round(p.position.y), Math.round(p.position.z));
-                            p.rotation.set(
-                                Math.round(p.rotation.x / (Math.PI/2)) * (Math.PI/2),
-                                Math.round(p.rotation.y / (Math.PI/2)) * (Math.PI/2),
-                                Math.round(p.rotation.z / (Math.PI/2)) * (Math.PI/2)
-                            );
+                            p.rotation.set(Math.round(p.rotation.x/(Math.PI/2))*(Math.PI/2), Math.round(p.rotation.y/(Math.PI/2))*(Math.PI/2), Math.round(p.rotation.z/(Math.PI/2))*(Math.PI/2));
                             p.updateMatrixWorld();
                         });
                         scene.remove(group);
@@ -211,49 +157,60 @@
 
         async function run() {
             const txt = document.getElementById('status-text');
-            const sub = document.getElementById('sub-text');
-            await new Promise(r => setTimeout(r, 2000));
-
-            // SCRAMBLE
-            txt.innerText = "SCRAMBLING";
-            sub.innerText = "Randomizing core entropy...";
             const axes = ['x', 'y', 'z'], layers = [-1, 0, 1];
-            for(let i=0; i<15; i++) {
-                const m = { axis: axes[Math.floor(Math.random()*3)], layer: layers[Math.floor(Math.random()*3)], angle: Math.random() > 0.5 ? 1 : -1 };
-                moveHistory.push(m);
-                await rotateLayer(m.axis, m.layer, m.angle);
+            
+            while(true) {
+                await new Promise(r => setTimeout(r, 1000));
+                txt.innerText = "SCRAMBLING";
+                for(let i=0; i<10; i++) {
+                    const m = { axis: axes[Math.floor(Math.random()*3)], layer: layers[Math.floor(Math.random()*3)], angle: Math.random() > 0.5 ? 1 : -1 };
+                    moveHistory.push(m);
+                    await rotateLayer(m.axis, m.layer, m.angle);
+                }
+                
+                txt.innerText = "SOLVING";
+                while(moveHistory.length > 0) {
+                    const m = moveHistory.pop();
+                    await rotateLayer(m.axis, m.layer, -m.angle);
+                }
+                txt.innerText = "STABLE";
+                await new Promise(r => setTimeout(r, 2000));
             }
-
-            txt.innerText = "STANDBY";
-            sub.innerText = "Analyzing solution path...";
-            await new Promise(r => setTimeout(r, 1500));
-
-            // SOLVE
-            txt.innerText = "SOLVING";
-            txt.style.textShadow = "0 0 20px #ff0044, 0 0 40px #ff0044";
-            sub.innerText = "Executing reverse chronological sequence";
-            while(moveHistory.length > 0) {
-                const m = moveHistory.pop();
-                await rotateLayer(m.axis, m.layer, -m.angle);
-            }
-
-            txt.innerText = "RESTORED";
-            txt.style.color = "#ffffff";
-            txt.style.textShadow = "0 0 20px #fff, 0 0 40px #00ffff";
-            sub.innerText = "System integrity at 100%";
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            if (controls) controls.update();
-            composer.render();
+            
+            renderer.clear();
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            views.forEach(v => {
+                const left = v.left * w;
+                const bottom = v.bottom * h;
+                const width = v.width * w;
+                const height = v.height * h;
+
+                renderer.setViewport(left, bottom, width, height);
+                renderer.setScissor(left, bottom, width, height);
+                renderer.setScissorTest(true);
+
+                // 各カメラを少しずつ回転させて動きを出す
+                v.camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.002);
+                v.camera.lookAt(0, 0, 0);
+
+                renderer.render(scene, v.camera);
+            });
         }
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            renderer.setSize(w, h);
+            views.forEach(v => {
+                v.camera.aspect = (w * v.width) / (h * v.height);
+                v.camera.updateProjectionMatrix();
+            });
         });
     </script>
 </body>
