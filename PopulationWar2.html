@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>世界人口サバイバル - 最終改良版</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        #map { height: 100vh; width: 100vw; background: #000b14; }
+        .panel { position: fixed; color: white; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; z-index: 1000; backdrop-filter: blur(5px); border: 1px solid #333; pointer-events: none; }
+        .top-left { top: 10px; left: 10px; width: 220px; pointer-events: auto; }
+        .bottom-right { bottom: 10px; right: 10px; width: 240px; font-size: 13px; }
+        .ranking-title { border-bottom: 1px solid #555; margin-bottom: 8px; color: #ffcc00; font-weight: bold; }
+        .ranking-item { display: flex; justify-content: space-between; margin-bottom: 3px; }
+        input[type=range] { width: 100%; cursor: pointer; }
+        #mode-msg { color: #ff4444; font-weight: bold; font-size: 1.2em; text-align: center; display: none; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="panel top-left">
+    <b>サバイバル設定</b><br>
+    移動速度: <span id="speed-val">1.0</span>x<br>
+    <input type="range" id="speed-slider" min="0" max="5" step="0.1" value="1"><br>
+    生存数: <span id="count">-</span>
+    <div id="mode-msg">TARGETING MODE</div>
+</div>
+
+<div class="panel bottom-right">
+    <div class="ranking-title">🏆 生存数ランキング</div>
+    <div id="ranking-list"></div>
+</div>
+
+<div id="map"></div>
+
+<script>
+let map, dots = [], geoLayers = [];
+let currentSpeedMultiplier = 1.0;
+let frameCount = 0;
+const PEOPLE_PER_DOT = 1000000;
+const COLLISION_DIST = 0.7;
+
+function getHighlyDivergentColor(index) {
+    const h = (index * 0.618033988749895) % 1;
+    return `hsl(${h * 360}, 85%, 60%)`;
+}
+
+async function init() {
+    map = L.map('map', { worldCopyJump: true, preferCanvas: true }).setView([20, 0], 2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+
+    const [countryRes, geoRes] = await Promise.all([
+        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,population'),
+        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
+    ]);
+    
+    const countriesData = await countryRes.json();
+    const geoData = await geoRes.json();
+    const countryMap = new Map(countriesData.map(c => [c.cca3, c]));
+
+    L.geoJson(geoData, {
+        style: { fillOpacity: 0, weight: 0 },
+        onEachFeature: (feature, layer) => {
+            geoLayers.push(layer);
+            const country = countryMap.get(feature.id);
+            const color = getHighlyDivergentColor(geoData.features.indexOf(feature));
+            if (country && country.population >= PEOPLE_PER_DOT) {
+                generateInitialDots(layer, country, color);
+            }
+        }
+    }).addTo(map);
+
+    document.getElementById('speed-slider').addEventListener('input', (e) => {
+        currentSpeedMultiplier = parseFloat(e.target.value);
+        document.getElementById('speed-val').innerText = currentSpeedMultiplier.toFixed(1);
+    });
+
+    animate();
+}
+
+function generateInitialDots(layer, country, color) {
+    const bounds = layer.getBounds();
+    const numDots = Math.floor(country.population / PEOPLE_PER_DOT);
+    for (let i = 0; i < numDots; i++) {
+        const lat = bounds.getSouth() + Math.random() * (bounds.getNorth() - bounds.getSouth());
+        const lng = bounds.getWest() + Math.random() * (bounds.getEast() - bounds.getWest());
+        const circle = L.circleMarker([lat, lng], {
+            radius: 3, fillColor: color, color: '#fff', weight: 0.5, fillOpacity: 0.9, interactive: false
+        }).addTo(map);
+        dots.push({
+            el: circle, lat: lat, lng: lng, color: color, name: country.name.common,
+            vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15, 
+            active: true, target: null, homeLayer: layer 
+        });
+    }
+}
+
+function checkLand(lat, lng) {
+    const pt = L.latLng(lat, lng);
+    for (let i = 0; i < geoLayers.length; i++) {
+        if (geoLayers[i].getBounds().contains(pt)) return true;
+    }
+    return false;
+}
+
+function animate() {
+    frameCount++;
+    const aliveDots = dots.filter(d => d.active);
+    const stats = {};
+    const isSuddenDeath = aliveDots.length <= 500;
+    document.getElementById('mode-msg').style.display = isSuddenDeath ? 'block' : 'none';
+
+    aliveDots.forEach((dot, idx) => {
+        // 1. 移動ベクトル更新
+        if (isSuddenDeath) {
+            // 追跡モード: 近い敵への最短距離ベクトルを計算
+            let minDist = Infinity;
+            let enemy = null;
+            // 負荷軽減のため全探索はせずランダムサンプリング
+            for (let i = 0; i < 20; i++) {
+                let other = aliveDots[Math.floor(Math.random() * aliveDots.length)];
+                if (other.color !== dot.color) {
+                    let d = Math.abs(dot.lat - other.lat) + Math.abs(dot.lng - other.lng);
+                    if (d < minDist) { minDist = d; enemy = other; }
+                }
+            }
+            if (enemy) {
+                const angle = Math.atan2(enemy.lat - dot.lat, enemy.lng - dot.lng);
+                dot.vx += Math.cos(angle) * 0.05;
+                dot.vy += Math.sin(angle) * 0.05;
+            }
+        } else {
+            // 通常モード: 陸地優先
+            if (frameCount % 8 === 0) {
+                const onLand = checkLand(dot.lat, dot.lng);
+                if (!onLand) {
+                    // 海なら強制的に「生まれた国の中心」の方向へ向きを変える
+                    const homeCenter = dot.homeLayer.getBounds().getCenter();
+                    const angle = Math.atan2(homeCenter.lat - dot.lat, homeCenter.lng - dot.lng);
+                    dot.vx = Math.cos(angle) * 0.2;
+                    dot.vy = Math.sin(angle) * 0.2;
+                } else {
+                    // 陸なら常にランダムな加速を加えてピンボール化を防ぐ
+                    dot.vx += (Math.random() - 0.5) * 0.08;
+                    dot.vy += (Math.random() - 0.5) * 0.08;
+                }
+            }
+        }
+
+        // 慣性と摩擦
+        dot.vx *= 0.96;
+        dot.vy *= 0.96;
+
+        const limit = isSuddenDeath ? 0.6 : 0.3;
+        dot.vx = Math.max(-limit, Math.min(limit, dot.vx));
+        dot.vy = Math.max(-limit, Math.min(limit, dot.vy));
+        
+        dot.lat += dot.vy * currentSpeedMultiplier;
+        dot.lng += dot.vx * currentSpeedMultiplier;
+
+        // 地図の端の処理
+        if (dot.lat > 85 || dot.lat < -85) dot.vy *= -1.2;
+        if (dot.lng > 180) dot.lng = -180;
+        if (dot.lng < -180) dot.lng = 180;
+
+        dot.el.setLatLng([dot.lat, dot.lng]);
+        stats[dot.name] = (stats[dot.name] || 0) + 1;
+    });
+
+    // 衝突判定 (2フレームに1回)
+    if (frameCount % 2 === 0) {
+        for (let i = 0; i < aliveDots.length; i++) {
+            const a = aliveDots[i];
+            for (let j = i + 1; j < aliveDots.length; j++) {
+                const b = aliveDots[j];
+                if (a.color === b.color) continue;
+                if (Math.abs(a.lat - b.lat) < COLLISION_DIST && Math.abs(a.lng - b.lng) < COLLISION_DIST) {
+                    battle(a, b);
+                }
+            }
+        }
+    }
+
+    if (frameCount % 10 === 0) updateUI(aliveDots.length, stats);
+    requestAnimationFrame(animate);
+}
+
+function battle(a, b) {
+    const res = Math.random();
+    if (res < 0.45) removeDot(a);
+    else if (res < 0.9) removeDot(b);
+}
+
+function removeDot(dot) {
+    if (dot.active) {
+        dot.active = false;
+        map.removeLayer(dot.el);
+    }
+}
+
+function updateUI(total, stats) {
+    document.getElementById('count').innerText = total.toLocaleString();
+    const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    document.getElementById('ranking-list').innerHTML = sorted.map(([name, count], i) => `
+        <div class="ranking-item">
+            <span class="country-name">${i+1}. ${name}</span>
+            <span>${count} 点</span>
+        </div>
+    `).join('');
+}
+
+window.onload = init;
+</script>
+</body>
+</html>
