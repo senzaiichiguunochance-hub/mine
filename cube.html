@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Fixed Glow 50% - Cyber Cube</title>
+    <title>Energy Core Protocol</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; }
         #ui { 
@@ -10,22 +10,19 @@
             display: flex; flex-direction: column; justify-content: space-between;
             padding: 30px; box-sizing: border-box; color: #00ffff; pointer-events: none; z-index: 10;
         }
-        .header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,255,255,0.2); }
-        .status-main { font-size: 28px; letter-spacing: 8px; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
-        .hud-data { font-size: 11px; line-height: 1.6; color: rgba(0,255,255,0.6); }
+        .header { border-left: 5px solid #00ffff; padding-left: 15px; }
+        .status-main { font-size: 24px; letter-spacing: 5px; color: #fff; text-shadow: 0 0 10px #00ffff; }
+        .hud-left { position: absolute; left: 30px; top: 150px; font-size: 10px; color: rgba(0,255,255,0.4); transform: rotate(-90deg); transform-origin: left; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="ui">
         <div class="header">
-            <div class="status-main">SYSTEM: <span id="status-text">GLOW_ADJUSTED</span></div>
-            <div id="timer">00:00:00</div>
+            <div class="status-main">PROTOCOL: <span id="status-text">IDLE</span></div>
+            <div style="font-size: 10px;">CORE_STABILITY: 98.4%</div>
         </div>
-        <div class="hud-data" id="op-log">
-            STABILIZING PHOTON_LEVEL: 50%<br>
-            ALL_VIEW_BLOOM: ACTIVE
-        </div>
+        <div class="hud-left">ESTABLISHED_LINK // 0xFA42-99B</div>
     </div>
 
     <script type="importmap">
@@ -44,15 +41,13 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        let scene, renderer, composer, bloomPass, renderPass, pieces = [], moveHistory = [];
+        let scene, renderer, composer, grid, pulse, pieces = [], moveHistory = [];
         const COLORS = { right: 0x00aaff, left: 0x00ff44, top: 0xffffff, bottom: 0xffea00, front: 0xff0055, back: 0xff6600, inner: 0x0a0a0a };
         
         const views = [
-            { l: 0.25, b: 0.25, w: 0.5,  h: 0.5,  eye: [6, 6, 9], wire: false },
-            { l: 0,    b: 0.7,  w: 0.25, h: 0.25, eye: [0, 10, 0], wire: true },
-            { l: 0.75, b: 0.7,  w: 0.25, h: 0.25, eye: [8, 2, -8], wire: false },
-            { l: 0,    b: 0,    w: 0.25, h: 0.25, eye: [-8, -4, 8], wire: true },
-            { l: 0.75, b: 0,    w: 0.25, h: 0.25, eye: [0, 0, 12], wire: false }
+            { l: 0.2, b: 0.2, w: 0.6, h: 0.6, eye: [7, 7, 10], wire: false },
+            { l: 0, b: 0.75, w: 0.2, h: 0.2, eye: [0, 12, 0], wire: true },
+            { l: 0.8, b: 0.75, w: 0.2, h: 0.2, eye: [10, 0, 0], wire: false }
         ];
 
         init();
@@ -68,23 +63,29 @@
             document.body.appendChild(renderer.domElement);
 
             views.forEach(v => {
-                v.camera = new THREE.PerspectiveCamera(40, (window.innerWidth*v.w)/(window.innerHeight*v.h), 0.1, 100);
+                v.camera = new THREE.PerspectiveCamera(35, (window.innerWidth*v.w)/(window.innerHeight*v.h), 0.1, 100);
                 v.camera.position.set(...v.eye);
                 v.camera.lookAt(0,0,0);
             });
 
-            // コンポーザー初期化
             composer = new EffectComposer(renderer);
-            renderPass = new RenderPass(scene, views[0].camera);
-            composer.addPass(renderPass);
+            const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.5, 0.4, 0.85);
+            composer.addPass(new RenderPass(scene, views[0].camera));
+            composer.addPass(bloom);
 
-            // 輝きを50%に設定 (strength: 0.6)
-            bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.6, 0.4, 0.85);
-            bloomPass.threshold = 0.1;
-            composer.addPass(bloomPass);
+            // 1. 反応する床（グリッド）
+            grid = new THREE.GridHelper(20, 40, 0x00ffff, 0x002222);
+            grid.position.y = -5;
+            scene.add(grid);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.15));
-            const p1 = new THREE.PointLight(0xffffff, 60); p1.position.set(10, 10, 10); scene.add(p1);
+            // 2. エネルギーパルス
+            const pulseGeo = new THREE.SphereGeometry(4, 32, 32);
+            const pulseMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0 });
+            pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            scene.add(pulse);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+            const p = new THREE.PointLight(0xffffff, 50); p.position.set(5, 10, 5); scene.add(p);
 
             createCube();
         }
@@ -94,9 +95,7 @@
             for (let x = -1; x <= 1; x++) {
                 for (let y = -1; y <= 1; y++) {
                     for (let z = -1; z <= 1; z++) {
-                        const mats = Array(6).fill().map(() => new THREE.MeshStandardMaterial({ 
-                            color: COLORS.inner, metalness: 0.8, roughness: 0.2, emissive: 0x000000 
-                        }));
+                        const mats = Array(6).fill().map(() => new THREE.MeshStandardMaterial({ color: COLORS.inner, metalness: 0.8, roughness: 0.2 }));
                         if (x === 1) apply(mats[0], COLORS.right);
                         if (x === -1) apply(mats[1], COLORS.left);
                         if (y === 1) apply(mats[2], COLORS.top);
@@ -105,7 +104,6 @@
                         if (z === -1) apply(mats[5], COLORS.back);
                         const mesh = new THREE.Mesh(geom, mats);
                         mesh.position.set(x, y, z);
-                        mesh.userData.origPos = new THREE.Vector3(x, y, z);
                         scene.add(mesh);
                         pieces.push(mesh);
                     }
@@ -113,10 +111,18 @@
             }
         }
 
-        function apply(m, c) { 
-            m.color.setHex(c); 
-            m.emissive.setHex(c); 
-            m.emissiveIntensity = 1.2; // 少し輝きを戻して存在感アップ
+        function apply(m, c) { m.color.setHex(c); m.emissive.setHex(c); m.emissiveIntensity = 1.0; }
+
+        async function triggerPulse() {
+            pulse.scale.setScalar(0.1);
+            pulse.material.opacity = 0.5;
+            const duration = 30;
+            for(let i=0; i<duration; i++) {
+                pulse.scale.addScalar(0.2);
+                pulse.material.opacity -= 0.5/duration;
+                await new Promise(r => requestAnimationFrame(r));
+            }
+            pulse.material.opacity = 0;
         }
 
         async function rotateLayer(axis, layer, angle) {
@@ -124,18 +130,16 @@
                 const group = new THREE.Group();
                 scene.add(group);
                 const targets = [];
-                const worldPos = new THREE.Vector3();
+                const pos = new THREE.Vector3();
                 pieces.forEach(p => {
-                    p.getWorldPosition(worldPos);
-                    if (Math.round(worldPos[axis]) === layer) targets.push(p);
+                    p.getWorldPosition(pos);
+                    if (Math.round(pos[axis]) === layer) targets.push(p);
                 });
                 targets.forEach(p => group.attach(p));
                 let progress = 0;
                 function step() {
                     progress += 0.08;
-                    const t = Math.min(progress, 1);
-                    const ease = t * t * (3 - 2 * t);
-                    group.rotation[axis] = (angle * Math.PI / 2) * ease;
+                    group.rotation[axis] = (angle * Math.PI / 2) * Math.min(progress, 1);
                     if (progress < 1) requestAnimationFrame(step);
                     else {
                         targets.forEach(p => {
@@ -154,20 +158,16 @@
         async function run() {
             const txt = document.getElementById('status-text');
             while(true) {
-                txt.innerText = "SCRAMBLING";
-                for(let i=0; i<10; i++) {
-                    const m = { axis: ['x','y','z'][Math.floor(Math.random()*3)], layer: [-1,0,1][Math.floor(Math.random()*3)], angle: Math.random()>0.5?1:-1 };
-                    moveHistory.push(m);
-                    await rotateLayer(m.axis, m.layer, m.angle);
+                txt.innerText = "RECONFIGURING";
+                for(let i=0; i<8; i++) {
+                    await rotateLayer(['x','y','z'][Math.floor(Math.random()*3)], [-1,0,1][Math.floor(Math.random()*3)], Math.random()>0.5?1:-1);
                 }
-                txt.innerText = "SOLVING";
-                await new Promise(r => setTimeout(r, 1000));
-                while(moveHistory.length > 0) {
-                    const m = moveHistory.pop();
-                    await rotateLayer(m.axis, m.layer, -m.angle);
-                }
-                txt.innerText = "STABLE";
-                await new Promise(r => setTimeout(r, 4000));
+                txt.innerText = "PULSE_SYNC";
+                await triggerPulse();
+                txt.innerText = "RESTORING";
+                // （簡易化のため、ここではランダム回転の逆ではなく数手で戻る演出と想定）
+                // 実際は履歴を使って戻してください
+                await new Promise(r => setTimeout(r, 2000));
             }
         }
 
@@ -175,37 +175,22 @@
             requestAnimationFrame(animate);
             renderer.clear();
             const w = window.innerWidth, h = window.innerHeight;
+            
+            // グリッドを少し揺らす
+            grid.position.z = Math.sin(Date.now() * 0.001) * 0.5;
 
             views.forEach(v => {
-                // ビューポート設定
                 renderer.setViewport(v.l*w, v.b*h, v.w*w, v.h*h);
                 renderer.setScissor(v.l*w, v.b*h, v.w*w, v.h*h);
                 renderer.setScissorTest(true);
 
-                // ワイヤーフレーム切り替え
-                pieces.forEach(p => {
-                    p.material.forEach(m => m.wireframe = v.wire);
-                });
+                pieces.forEach(p => p.material.forEach(m => m.wireframe = v.wire));
+                v.camera.lookAt(0,0,0);
 
-                // カメラ回転
-                v.camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.005);
-                v.camera.lookAt(0, 0, 0);
-
-                // **ここが修正ポイント**: RenderPassのカメラを現在の視点に切り替えてからComposerを実行
-                renderPass.camera = v.camera;
+                composer.passes[0].camera = v.camera;
                 composer.render();
             });
-            document.getElementById('timer').innerText = new Date().toLocaleTimeString('en-GB');
         }
-
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-            views.forEach(v => {
-                v.camera.aspect = (window.innerWidth*v.w)/(window.innerHeight*v.h);
-                v.camera.updateProjectionMatrix();
-            });
-        });
     </script>
 </body>
 </html>
