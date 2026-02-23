@@ -2,15 +2,43 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Perfect Specs & Vivid Colors</title>
+    <title>Cybernetic Neon Cube</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #111; font-family: sans-serif; }
-        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; }
-        .status { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #ui { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 100%; 
+            text-align: center; 
+            color: white; 
+            pointer-events: none; 
+            z-index: 10;
+        }
+        .status { 
+            font-size: 48px; 
+            font-weight: bold;
+            letter-spacing: 12px; 
+            color: #fff; 
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+            opacity: 0.8;
+            transition: all 0.5s ease;
+        }
+        #sub-text {
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #00ffff;
+            margin-top: 10px;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
-    <div id="ui"><div class="status" id="status-text">Ready</div></div>
+    <div id="ui">
+        <div class="status" id="status-text">INITIALIZING</div>
+        <div id="sub-text">Neural Core Link Active</div>
+    </div>
 
     <script type="importmap">
         {
@@ -21,78 +49,106 @@
         }
     </script>
 
-    <script id="main-script" type="module">
+    <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        let scene, camera, renderer, controls;
+        let scene, camera, renderer, controls, composer;
         let pieces = [];
         let moveHistory = [];
         
-        // --- 修正：仕様を守った鮮やかな配色 (Vivid BOY Scheme) ---
         const COLORS = {
-            right:  0x0045ad, // 鮮やかな青
-            left:   0x009b48, // 鮮やかな緑
-            top:    0xffffff, // 純白
-            bottom: 0xffd500, // 鮮やかな黄
-            front:  0xb71234, // 深みのある赤
-            back:   0xff5800, // 鮮やかなオレンジ
-            inner:  0x1a1a1a  // 内部のプラスチック黒
+            right:  0x0077ff, // Neon Blue
+            left:   0x00ff66, // Neon Green
+            top:    0xffffff, // White
+            bottom: 0xffdd00, // Neon Yellow
+            front:  0xff0044, // Neon Red
+            back:   0xff8800, // Neon Orange
+            inner:  0x050505  // Deep Black
         };
 
         init();
         animate();
-        runSimulation();
+        run();
 
         function init() {
             scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(5, 5, 8);
+            scene.fog = new THREE.Fog(0x000000, 5, 20);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+            camera.position.set(7, 7, 10);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-            // 色を綺麗に見せるためのレンダラー設定
-            renderer.outputColorSpace = THREE.SRGBColorSpace;
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ReinhardToneMapping;
             document.body.appendChild(renderer.domElement);
+
+            // ブルームエフェクトの設定
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.2;
+            bloomPass.strength = 0.8;
+            bloomPass.radius = 0.5;
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
 
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
 
-            // ライティング：多方向から光を当てて角の光沢を出す
-            const amb = new THREE.AmbientLight(0xffffff, 0.8); scene.add(amb);
-            const sun1 = new THREE.DirectionalLight(0xffffff, 1.2); sun1.position.set(5, 10, 7); scene.add(sun1);
-            const sun2 = new THREE.DirectionalLight(0xffffff, 0.5); sun2.position.set(-5, -5, -2); scene.add(sun2);
+            // ライト
+            scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+            const pointLight = new THREE.PointLight(0xffffff, 20);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
 
+            createBackground();
             createCube();
         }
 
+        function createBackground() {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            for (let i = 0; i < 2000; i++) {
+                vertices.push(THREE.MathUtils.randFloatSpread(50));
+                vertices.push(THREE.MathUtils.randFloatSpread(50));
+                vertices.push(THREE.MathUtils.randFloatSpread(50));
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const particles = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x444444, size: 0.05 }));
+            scene.add(particles);
+        }
+
         function createCube() {
-            // 角を少し丸く見せるための細工（隙間を僅かに空ける）
-            const geom = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+            // 角の丸いジオメトリを使用
+            const geom = new RoundedBoxGeometry(0.92, 0.92, 0.92, 4, 0.08);
             
             for (let x = -1; x <= 1; x++) {
                 for (let y = -1; y <= 1; y++) {
                     for (let z = -1; z <= 1; z++) {
-                        const materials = [];
-                        for(let i=0; i<6; i++) {
-                            materials.push(new THREE.MeshStandardMaterial({
-                                color: COLORS.inner,
-                                roughness: 0.1, // 少し光沢を出す
-                                metalness: 0.2
-                            }));
-                        }
+                        const mats = Array(6).fill().map(() => new THREE.MeshStandardMaterial({
+                            color: COLORS.inner,
+                            roughness: 0.1,
+                            metalness: 0.8,
+                            emissive: 0x000000
+                        }));
 
-                        // 仕様通りの配色割り当て
-                        if (x === 1)  applyColor(materials[0], COLORS.right);
-                        if (x === -1) applyColor(materials[1], COLORS.left);
-                        if (y === 1)  applyColor(materials[2], COLORS.top);
-                        if (y === -1) applyColor(materials[3], COLORS.bottom);
-                        if (z === 1)  applyColor(materials[4], COLORS.front);
-                        if (z === -1) applyColor(materials[5], COLORS.back);
+                        if (x === 1)  apply(mats[0], COLORS.right);
+                        if (x === -1) apply(mats[1], COLORS.left);
+                        if (y === 1)  apply(mats[2], COLORS.top);
+                        if (y === -1) apply(mats[3], COLORS.bottom);
+                        if (z === 1)  apply(mats[4], COLORS.front);
+                        if (z === -1) apply(mats[5], COLORS.back);
 
-                        const mesh = new THREE.Mesh(geom, materials);
+                        const mesh = new THREE.Mesh(geom, mats);
                         mesh.position.set(x, y, z);
                         scene.add(mesh);
                         pieces.push(mesh);
@@ -101,11 +157,10 @@
             }
         }
 
-        function applyColor(mat, colorHex) {
-            mat.color.setHex(colorHex);
-            // 表面に微かな反射光を足して高級感を出す
-            mat.emissive.setHex(colorHex);
-            mat.emissiveIntensity = 0.05;
+        function apply(m, c) { 
+            m.color.setHex(c); 
+            m.emissive.setHex(c); 
+            m.emissiveIntensity = 0.6; 
         }
 
         async function rotateLayer(axis, layer, angle) {
@@ -113,10 +168,11 @@
                 const group = new THREE.Group();
                 scene.add(group);
                 
-                const targets = pieces.filter(p => {
-                    const pos = new THREE.Vector3();
-                    p.getWorldPosition(pos);
-                    return Math.round(pos[axis]) === layer;
+                const targets = [];
+                const worldPos = new THREE.Vector3();
+                pieces.forEach(p => {
+                    p.getWorldPosition(worldPos);
+                    if (Math.round(worldPos[axis]) === layer) targets.push(p);
                 });
 
                 targets.forEach(p => group.attach(p));
@@ -124,63 +180,80 @@
                 let progress = 0;
                 const targetRad = angle * (Math.PI / 2);
                 
-                function move() {
-                    progress += 0.08;
+                function step() {
+                    progress += 0.06; // スムーズな速度
+                    // イージング関数 (SmoothStep)
+                    const t = Math.min(progress, 1);
+                    const ease = t * t * (3 - 2 * t);
+                    
                     if (progress < 1) {
-                        // 滑らかな回転曲線
-                        const ease = 1 - Math.pow(1 - progress, 3);
                         group.rotation[axis] = targetRad * ease;
-                        requestAnimationFrame(move);
+                        requestAnimationFrame(step);
                     } else {
                         group.rotation[axis] = targetRad;
                         targets.forEach(p => {
                             scene.attach(p);
                             p.position.set(Math.round(p.position.x), Math.round(p.position.y), Math.round(p.position.z));
+                            p.rotation.set(
+                                Math.round(p.rotation.x / (Math.PI/2)) * (Math.PI/2),
+                                Math.round(p.rotation.y / (Math.PI/2)) * (Math.PI/2),
+                                Math.round(p.rotation.z / (Math.PI/2)) * (Math.PI/2)
+                            );
                             p.updateMatrixWorld();
                         });
                         scene.remove(group);
                         resolve();
                     }
                 }
-                move();
+                step();
             });
         }
 
-        async function runSimulation() {
-            const status = document.getElementById('status-text');
-            await new Promise(r => setTimeout(r, 1500));
+        async function run() {
+            const txt = document.getElementById('status-text');
+            const sub = document.getElementById('sub-text');
+            await new Promise(r => setTimeout(r, 2000));
 
-            // 1. スクランブル
-            status.innerText = "Scrambling...";
+            // SCRAMBLE
+            txt.innerText = "SCRAMBLING";
+            sub.innerText = "Randomizing core entropy...";
             const axes = ['x', 'y', 'z'], layers = [-1, 0, 1];
-            for(let i=0; i<20; i++) {
+            for(let i=0; i<15; i++) {
                 const m = { axis: axes[Math.floor(Math.random()*3)], layer: layers[Math.floor(Math.random()*3)], angle: Math.random() > 0.5 ? 1 : -1 };
                 moveHistory.push(m);
                 await rotateLayer(m.axis, m.layer, m.angle);
             }
 
-            await new Promise(r => setTimeout(r, 1000));
+            txt.innerText = "STANDBY";
+            sub.innerText = "Analyzing solution path...";
+            await new Promise(r => setTimeout(r, 1500));
 
-            // 2. 解決（論理的な逆再生）
-            status.innerText = "Solving...";
+            // SOLVE
+            txt.innerText = "SOLVING";
+            txt.style.textShadow = "0 0 20px #ff0044, 0 0 40px #ff0044";
+            sub.innerText = "Executing reverse chronological sequence";
             while(moveHistory.length > 0) {
                 const m = moveHistory.pop();
                 await rotateLayer(m.axis, m.layer, -m.angle);
             }
 
-            status.innerText = "Solved!";
+            txt.innerText = "RESTORED";
+            txt.style.color = "#ffffff";
+            txt.style.textShadow = "0 0 20px #fff, 0 0 40px #00ffff";
+            sub.innerText = "System integrity at 100%";
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
+            if (controls) controls.update();
+            composer.render();
         }
 
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
 </body>
