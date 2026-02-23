@@ -2,48 +2,76 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>世界人口サバイバル - 最終改良版</title>
+    <title>世界人口サバイバル - スタック解消＆調整版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
         #map { height: 100vh; width: 100vw; background: #000b14; }
-        .panel { position: fixed; color: white; background: rgba(0,0,0,0.8); padding: 12px; border-radius: 8px; z-index: 1000; backdrop-filter: blur(5px); border: 1px solid #333; pointer-events: none; }
-        .top-left { top: 10px; left: 10px; width: 220px; pointer-events: auto; }
-        .bottom-right { bottom: 10px; right: 10px; width: 240px; font-size: 13px; }
-        .ranking-title { border-bottom: 1px solid #555; margin-bottom: 8px; color: #ffcc00; font-weight: bold; }
-        .ranking-item { display: flex; justify-content: space-between; margin-bottom: 3px; }
-        input[type=range] { width: 100%; cursor: pointer; }
-        #mode-msg { color: #ff4444; font-weight: bold; font-size: 1.2em; text-align: center; display: none; margin-top: 5px; }
+        .panel { position: fixed; color: white; background: rgba(0,0,0,0.85); padding: 8px; border-radius: 6px; z-index: 1000; border: 1px solid #444; pointer-events: none; }
+        .top-left { top: 10px; left: 10px; width: 230px; font-size: 11px; pointer-events: auto; }
+        .bottom-right { bottom: 10px; right: 10px; width: 160px; height: 30vh; display: flex; flex-direction: column; pointer-events: auto; border: 1px solid #555; }
+        #announcer { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%); color: #ff4444; text-align: center; z-index: 2000; pointer-events: none; }
+        .eliminated-msg { font-size: 1.8rem; font-weight: bold; opacity: 0; animation: fadeOutMsg 2s forwards; text-shadow: 0 0 10px red; }
+        @keyframes fadeOutMsg { 0% { opacity: 0; } 10% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px); } }
+        .ranking-list { flex-grow: 1; overflow-y: auto; font-size: 10px; border-top: 1px solid #555; }
+        .ranking-item { display: flex; justify-content: space-between; padding: 2px 5px; white-space: nowrap; }
+        #sd-msg { color: #ff0000; font-weight: 900; font-size: 14px; margin-top: 5px; display: none; text-align: center; animation: blink 0.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        input[type="range"] { width: 100%; margin: 2px 0; }
+        ::-webkit-scrollbar { width: 3px; }
     </style>
 </head>
 <body>
 
+<div id="announcer"></div>
 <div class="panel top-left">
-    <b>サバイバル設定</b><br>
-    移動速度: <span id="speed-val">1.0</span>x<br>
-    <input type="range" id="speed-slider" min="0" max="5" step="0.1" value="1"><br>
-    生存数: <span id="count">-</span>
-    <div id="mode-msg">TARGETING MODE</div>
+    <label>速度: <span id="speed-val">1.0</span>x</label>
+    <input type="range" id="speed-slider" min="0" max="5" step="0.1" value="1">
+    
+    <label>サドンデス開始残数: <span id="sd-threshold-val">500</span></label>
+    <input type="range" id="sd-slider" min="10" max="10000" step="10" value="500">
+
+    <label>遠征頻度: <span id="ex-val">0.50</span>%</label>
+    <input type="range" id="ex-slider" min="0" max="100" step="0.01" value="0.5">
+
+    <div style="margin-top:5px;">生存ドット数: <b id="total-count">-</b></div>
+    <div id="sd-msg">🔥 SUDDEN DEATH 🔥</div>
 </div>
 
 <div class="panel bottom-right">
-    <div class="ranking-title">🏆 生存数ランキング</div>
-    <div id="ranking-list"></div>
+    <div style="text-align:center; font-size:10px; color:#ffcc00; padding:2px;">🏆 勢力図</div>
+    <div class="ranking-list" id="ranking-list"></div>
 </div>
-
 <div id="map"></div>
 
 <script>
-let map, dots = [], geoLayers = [];
-let currentSpeedMultiplier = 1.0;
-let frameCount = 0;
-const PEOPLE_PER_DOT = 1000000;
-const COLLISION_DIST = 0.7;
+let map, dots = [], geoDataStore = [];
+let currentSpeed = 1.0, sdThreshold = 500, exRate = 0.005;
+let isSuddenDeath = false, isGameOver = false;
+let activeNames = new Set();
+const COLLISION_DIST = 1.0;
 
-function getHighlyDivergentColor(index) {
-    const h = (index * 0.618033988749895) % 1;
-    return `hsl(${h * 360}, 85%, 60%)`;
+function isInside(pt, poly) {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        if (((poly[i].lat <= pt.lat && pt.lat < poly[j].lat) || (poly[j].lat <= pt.lat && pt.lat < poly[i].lat)) &&
+            (pt.lng < (poly[j].lng - poly[i].lng) * (pt.lat - poly[i].lat) / (poly[j].lat - poly[i].lat) + poly[i].lng)) c = !c;
+    }
+    return c;
+}
+
+function checkLandStrict(lat, lng) {
+    const pt = {lat, lng};
+    for (let i = 0; i < geoDataStore.length; i++) {
+        const c = geoDataStore[i];
+        if (lat >= c.b[0] && lat <= c.b[1] && lng >= c.b[2] && lng <= c.b[3]) {
+            for (let ring of c.polys) {
+                if (isInside(pt, ring)) return true;
+            }
+        }
+    }
+    return false;
 }
 
 async function init() {
@@ -51,165 +79,197 @@ async function init() {
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
 
     const [countryRes, geoRes] = await Promise.all([
-        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,population'),
+        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,population,translations'),
         fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
     ]);
-    
     const countriesData = await countryRes.json();
-    const geoData = await geoRes.json();
-    const countryMap = new Map(countriesData.map(c => [c.cca3, c]));
+    const worldGeo = await geoRes.json();
+    
+    const countryMap = new Map(countriesData.map(c => [c.cca3, { 
+        name: c.translations?.jpn?.common || c.name.common, 
+        pop: c.population 
+    }]));
 
-    L.geoJson(geoData, {
-        style: { fillOpacity: 0, weight: 0 },
-        onEachFeature: (feature, layer) => {
-            geoLayers.push(layer);
-            const country = countryMap.get(feature.id);
-            const color = getHighlyDivergentColor(geoData.features.indexOf(feature));
-            if (country && country.population >= PEOPLE_PER_DOT) {
-                generateInitialDots(layer, country, color);
-            }
+    worldGeo.features.forEach((feature, index) => {
+        const info = countryMap.get(feature.id);
+        if (!info || info.pop < 1000000) return;
+        
+        let polys = [];
+        if (feature.geometry.type === "Polygon") {
+            polys.push(feature.geometry.coordinates[0].map(c => ({lng: c[0], lat: c[1]})));
+        } else if (feature.geometry.type === "MultiPolygon") {
+            feature.geometry.coordinates.forEach(p => polys.push(p[0].map(c => ({lng: c[0], lat: c[1]}))));
         }
-    }).addTo(map);
 
-    document.getElementById('speed-slider').addEventListener('input', (e) => {
-        currentSpeedMultiplier = parseFloat(e.target.value);
-        document.getElementById('speed-val').innerText = currentSpeedMultiplier.toFixed(1);
+        const l = L.geoJson(feature);
+        const b = l.getBounds();
+        const entry = {
+            name: info.name, polys: polys,
+            b: [b.getSouth(), b.getNorth(), b.getWest(), b.getEast()],
+            center: b.getCenter(),
+            color: `hsl(${(index * 137.5) % 360}, 80%, 60%)`
+        };
+        geoDataStore.push(entry);
+        
+        const num = Math.floor(info.pop / 1000000);
+        const now = Date.now();
+        for (let i = 0; i < num; i++) {
+            let lat, lng, found = false;
+            for(let attempt=0; attempt<30; attempt++){
+                lat = entry.b[0] + Math.random() * (entry.b[1] - entry.b[0]);
+                lng = entry.b[2] + Math.random() * (entry.b[3] - entry.b[2]);
+                if(checkLandStrict(lat, lng)) { found = true; break; }
+            }
+            if(!found) { lat = entry.center.lat; lng = entry.center.lng; }
+
+            const circle = L.circleMarker([lat, lng], { radius: 2.2, fillColor: entry.color, color: '#fff', weight: 0.3, fillOpacity: 0.9, interactive: false }).addTo(map);
+            dots.push({ el: circle, lat, lng, color: entry.color, name: info.name, vx: 0, vy: 0, active: true, ex: false, lastMove: now, lastX: lng, lastY: lat });
+        }
+        activeNames.add(info.name);
     });
 
-    animate();
+    document.getElementById('speed-slider').oninput = (e) => {
+        currentSpeed = parseFloat(e.target.value);
+        document.getElementById('speed-val').innerText = currentSpeed.toFixed(1);
+    };
+
+    document.getElementById('sd-slider').oninput = (e) => {
+        sdThreshold = parseInt(e.target.value);
+        document.getElementById('sd-threshold-val').innerText = sdThreshold;
+        refreshSD();
+    };
+
+    document.getElementById('ex-slider').oninput = (e) => {
+        const val = parseFloat(e.target.value);
+        document.getElementById('ex-val').innerText = val.toFixed(2);
+        exRate = val * 0.005; // 頻度を調整
+    };
+
+    requestAnimationFrame(update);
 }
 
-function generateInitialDots(layer, country, color) {
-    const bounds = layer.getBounds();
-    const numDots = Math.floor(country.population / PEOPLE_PER_DOT);
-    for (let i = 0; i < numDots; i++) {
-        const lat = bounds.getSouth() + Math.random() * (bounds.getNorth() - bounds.getSouth());
-        const lng = bounds.getWest() + Math.random() * (bounds.getEast() - bounds.getWest());
-        const circle = L.circleMarker([lat, lng], {
-            radius: 3, fillColor: color, color: '#fff', weight: 0.5, fillOpacity: 0.9, interactive: false
-        }).addTo(map);
-        dots.push({
-            el: circle, lat: lat, lng: lng, color: color, name: country.name.common,
-            vx: (Math.random() - 0.5) * 0.15, vy: (Math.random() - 0.5) * 0.15, 
-            active: true, target: null, homeLayer: layer 
-        });
+function refreshSD() {
+    const aliveCount = dots.filter(d => d.active).length;
+    if (aliveCount < sdThreshold) {
+        isSuddenDeath = true;
+        document.getElementById('sd-msg').style.display = 'block';
+    } else {
+        isSuddenDeath = false;
+        document.getElementById('sd-msg').style.display = 'none';
     }
 }
 
-function checkLand(lat, lng) {
-    const pt = L.latLng(lat, lng);
-    for (let i = 0; i < geoLayers.length; i++) {
-        if (geoLayers[i].getBounds().contains(pt)) return true;
-    }
-    return false;
+function triggerForcedMove(dot) {
+    dot.ex = true;
+    const t = geoDataStore[Math.floor(Math.random()*geoDataStore.length)];
+    dot.tx = t.center.lng; 
+    dot.ty = t.center.lat;
+    dot.lastMove = Date.now(); // タイマーリセット
 }
 
-function animate() {
-    frameCount++;
-    const aliveDots = dots.filter(d => d.active);
+function update() {
+    if (isGameOver) return;
+    const now = Date.now();
+    const alive = dots.filter(d => d.active);
     const stats = {};
-    const isSuddenDeath = aliveDots.length <= 500;
-    document.getElementById('mode-msg').style.display = isSuddenDeath ? 'block' : 'none';
+    alive.forEach(d => stats[d.name] = (stats[d.name] || 0) + 1);
+    const ranking = Object.entries(stats).sort((a,b) => b[1] - a[1]);
+    const topName = ranking.length > 0 ? ranking[0][0] : "";
 
-    aliveDots.forEach((dot, idx) => {
-        // 1. 移動ベクトル更新
-        if (isSuddenDeath) {
-            // 追跡モード: 近い敵への最短距離ベクトルを計算
-            let minDist = Infinity;
-            let enemy = null;
-            // 負荷軽減のため全探索はせずランダムサンプリング
-            for (let i = 0; i < 20; i++) {
-                let other = aliveDots[Math.floor(Math.random() * aliveDots.length)];
-                if (other.color !== dot.color) {
-                    let d = Math.abs(dot.lat - other.lat) + Math.abs(dot.lng - other.lng);
-                    if (d < minDist) { minDist = d; enemy = other; }
-                }
+    if (alive.length < sdThreshold && !isSuddenDeath) {
+        isSuddenDeath = true;
+        document.getElementById('sd-msg').style.display = 'block';
+    }
+
+    const grid = {};
+    alive.forEach(d => {
+        const k = `${Math.floor(d.lng/2)},${Math.floor(d.lat/2)}`;
+        if(!grid[k]) grid[k] = [];
+        grid[k].push(d);
+    });
+
+    alive.forEach(dot => {
+        if (!dot.active) return;
+        const k = `${Math.floor(dot.lng/2)},${Math.floor(dot.lat/2)}`;
+        (grid[k]||[]).forEach(other => {
+            if (dot === other || !other.active || dot.name === other.name) return;
+            if (Math.abs(dot.lat - other.lat) < COLLISION_DIST && Math.abs(dot.lng - other.lng) < COLLISION_DIST) {
+                if (!isSuddenDeath && Math.random() > 0.15) return;
+                const winProb = (other.name === topName) ? 0.98 : (dot.name === topName ? 0.02 : 0.5);
+                if (Math.random() < winProb) { other.active = false; map.removeLayer(other.el); }
+                else { dot.active = false; map.removeLayer(dot.el); }
             }
-            if (enemy) {
-                const angle = Math.atan2(enemy.lat - dot.lat, enemy.lng - dot.lng);
-                dot.vx += Math.cos(angle) * 0.05;
-                dot.vy += Math.sin(angle) * 0.05;
+        });
+    });
+
+    const sdMult = isSuddenDeath ? 3.0 : 1.0;
+    alive.forEach(dot => {
+        if (!dot.active) return;
+
+        // 10秒スタックチェック
+        if (now - dot.lastMove > 10000) {
+            const dist = Math.abs(dot.lng - dot.lastX) + Math.abs(dot.lat - dot.lastY);
+            if (dist < 0.1) {
+                triggerForcedMove(dot); // 強制移動
+            } else {
+                dot.lastMove = now; dot.lastX = dot.lng; dot.lastY = dot.lat;
+            }
+        }
+
+        // 通常の遠征抽選
+        if (!dot.ex && Math.random() < exRate * 0.1) {
+            triggerForcedMove(dot);
+        }
+
+        let nvx = dot.vx, nvy = dot.vy;
+        if (dot.ex) {
+            nvx = (dot.tx > dot.lng ? 4 : -4); nvy = (dot.ty > dot.lat ? 4 : -4);
+            if (checkLandStrict(dot.lat, dot.lng) && Math.random() < 0.05) dot.ex = false;
+        } else {
+            nvx = (nvx * 0.9) + (Math.random() - 0.5) * 2.0;
+            nvy = (nvy * 0.9) + (Math.random() - 0.5) * 2.0;
+            const mag = Math.sqrt(nvx*nvx + nvy*nvy);
+            if (mag > 5) { nvx = (nvx/mag)*5; nvy = (nvy/mag)*5; }
+        }
+
+        const moveX = nvx * currentSpeed * 0.08 * sdMult;
+        const moveY = nvy * currentSpeed * 0.08 * sdMult;
+
+        if (!dot.ex) {
+            if (checkLandStrict(dot.lat + moveY, dot.lng + moveX)) {
+                dot.lat += moveY; dot.lng += moveX;
+                dot.vx = nvx; dot.vy = nvy;
+            } else {
+                dot.vx = -nvx * 1.2; dot.vy = -nvy * 1.2;
             }
         } else {
-            // 通常モード: 陸地優先
-            if (frameCount % 8 === 0) {
-                const onLand = checkLand(dot.lat, dot.lng);
-                if (!onLand) {
-                    // 海なら強制的に「生まれた国の中心」の方向へ向きを変える
-                    const homeCenter = dot.homeLayer.getBounds().getCenter();
-                    const angle = Math.atan2(homeCenter.lat - dot.lat, homeCenter.lng - dot.lng);
-                    dot.vx = Math.cos(angle) * 0.2;
-                    dot.vy = Math.sin(angle) * 0.2;
-                } else {
-                    // 陸なら常にランダムな加速を加えてピンボール化を防ぐ
-                    dot.vx += (Math.random() - 0.5) * 0.08;
-                    dot.vy += (Math.random() - 0.5) * 0.08;
-                }
-            }
+            dot.lat += moveY; dot.lng += moveX;
+            dot.vx = nvx; dot.vy = nvy;
         }
 
-        // 慣性と摩擦
-        dot.vx *= 0.96;
-        dot.vy *= 0.96;
-
-        const limit = isSuddenDeath ? 0.6 : 0.3;
-        dot.vx = Math.max(-limit, Math.min(limit, dot.vx));
-        dot.vy = Math.max(-limit, Math.min(limit, dot.vy));
-        
-        dot.lat += dot.vy * currentSpeedMultiplier;
-        dot.lng += dot.vx * currentSpeedMultiplier;
-
-        // 地図の端の処理
-        if (dot.lat > 85 || dot.lat < -85) dot.vy *= -1.2;
-        if (dot.lng > 180) dot.lng = -180;
-        if (dot.lng < -180) dot.lng = 180;
-
+        if (dot.lng > 180) dot.lng = -180; else if (dot.lng < -180) dot.lng = 180;
         dot.el.setLatLng([dot.lat, dot.lng]);
-        stats[dot.name] = (stats[dot.name] || 0) + 1;
     });
 
-    // 衝突判定 (2フレームに1回)
-    if (frameCount % 2 === 0) {
-        for (let i = 0; i < aliveDots.length; i++) {
-            const a = aliveDots[i];
-            for (let j = i + 1; j < aliveDots.length; j++) {
-                const b = aliveDots[j];
-                if (a.color === b.color) continue;
-                if (Math.abs(a.lat - b.lat) < COLLISION_DIST && Math.abs(a.lng - b.lng) < COLLISION_DIST) {
-                    battle(a, b);
-                }
-            }
+    const currentNames = new Set(ranking.map(e => e[0]));
+    activeNames.forEach(name => {
+        if (!currentNames.has(name)) {
+            const m = document.createElement('div'); m.className = 'eliminated-msg'; m.innerText = `${name} 消滅`;
+            document.getElementById('announcer').appendChild(m); setTimeout(() => m.remove(), 2000);
+            activeNames.delete(name);
         }
+    });
+
+    if (ranking.length === 1 && alive.length < 50) {
+        isGameOver = true;
+        document.getElementById('announcer').innerHTML = `<div style="font-size:2.5rem; color:white; font-weight:900; background:rgba(0,0,0,0.9); padding:20px; border:4px solid white;">👑 ${topName} 統一</div>`;
     }
 
-    if (frameCount % 10 === 0) updateUI(aliveDots.length, stats);
-    requestAnimationFrame(animate);
-}
+    document.getElementById('total-count').innerText = alive.length.toLocaleString();
+    document.getElementById('ranking-list').innerHTML = ranking.map(([n, c], i) => `<div class="ranking-item" style="${n===topName?'color:red;':''}"><span>${i+1}.${n.slice(0,8)}</span><b>${c}</b></div>`).join('');
 
-function battle(a, b) {
-    const res = Math.random();
-    if (res < 0.45) removeDot(a);
-    else if (res < 0.9) removeDot(b);
+    requestAnimationFrame(update);
 }
-
-function removeDot(dot) {
-    if (dot.active) {
-        dot.active = false;
-        map.removeLayer(dot.el);
-    }
-}
-
-function updateUI(total, stats) {
-    document.getElementById('count').innerText = total.toLocaleString();
-    const sorted = Object.entries(stats).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    document.getElementById('ranking-list').innerHTML = sorted.map(([name, count], i) => `
-        <div class="ranking-item">
-            <span class="country-name">${i+1}. ${name}</span>
-            <span>${count} 点</span>
-        </div>
-    `).join('');
-}
-
 window.onload = init;
 </script>
 </body>
