@@ -2,38 +2,41 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Multi-View Cyber Cube</title>
+    <title>Advanced Cyber Cube System</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; }
         #ui { 
-            position: absolute; 
-            top: 20px; 
-            width: 100%; 
-            text-align: center; 
-            color: #00ffff; 
-            pointer-events: none; 
-            z-index: 10;
-            text-shadow: 0 0 5px #00ffff;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 30px; box-sizing: border-box; color: #00ffff; pointer-events: none; z-index: 10;
         }
-        .status { font-size: 24px; letter-spacing: 6px; font-weight: bold; }
-        /* グリッド線の装飾（サイバー感） */
-        .overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            border: 1px solid rgba(0, 255, 255, 0.1);
-            pointer-events: none;
-            background: 
-                linear-gradient(90deg, rgba(0,255,255,0.05) 1px, transparent 1px) 50% 50% / 50% 50%,
-                linear-gradient(rgba(0,255,255,0.05) 1px, transparent 1px) 50% 50% / 50% 50%;
+        .header { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,255,255,0.3); }
+        .status-main { font-size: 32px; letter-spacing: 10px; text-shadow: 0 0 10px #00ffff; }
+        .hud-data { font-size: 12px; line-height: 1.5; color: rgba(0,255,255,0.7); }
+        .footer { font-size: 10px; display: flex; justify-content: space-between; }
+        #glitch-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 255, 255, 0.05); opacity: 0; pointer-events: none; z-index: 5;
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div id="glitch-overlay"></div>
     <div id="ui">
-        <div class="status" id="status-text">SYSTEM ONLINE</div>
-        <div style="font-size: 10px; opacity: 0.6;">MULTI-ANGLE SURVEILLANCE MODE</div>
+        <div class="header">
+            <div>SYSTEM: <span id="status-text">INIT_SEQUENCE</span></div>
+            <div id="timer">00:00:00</div>
+        </div>
+        <div class="hud-data" id="op-log">
+            READY TO COMPUTE...<br>
+            AWAITING INPUT...
+        </div>
+        <div class="footer">
+            <div>CORE_TEMP: 32°C</div>
+            <div>SECTOR_ALPHA: ACTIVE</div>
+        </div>
     </div>
-    <div class="overlay"></div>
 
     <script type="importmap">
         {
@@ -47,25 +50,17 @@
     <script type="module">
         import * as THREE from 'three';
         import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        let scene, renderer, composer;
-        let pieces = [], moveHistory = [];
+        let scene, renderer, pieces = [], moveHistory = [];
+        const COLORS = { right: 0x0077ff, left: 0x00ff66, top: 0xffffff, bottom: 0xffdd00, front: 0xff0044, back: 0xff8800, inner: 0x050505 };
         
-        // 5つのビューの設定
         const views = [
-            { left: 0.25, bottom: 0.25, width: 0.5,  height: 0.5,  eye: [6, 6, 9],    up: [0, 1, 0] }, // 中央（メイン）
-            { left: 0,    bottom: 0.7,  width: 0.25, height: 0.25, eye: [0, 10, 0],   up: [0, 0, -1] }, // 左上（真上から）
-            { left: 0.75, bottom: 0.7,  width: 0.25, height: 0.25, eye: [8, 2, -8],   up: [0, 1, 0] }, // 右上（背面斜め）
-            { left: 0,    bottom: 0,    width: 0.25, height: 0.25, eye: [-8, -4, 8],  up: [0, 1, 0] }, // 左下（底面斜め）
-            { left: 0.75, bottom: 0,    width: 0.25, height: 0.25, eye: [0, 0, 12],   up: [0, 1, 0] }  // 右下（真正面）
+            { l: 0.25, b: 0.25, w: 0.5,  h: 0.5,  eye: [6, 6, 9], wire: false },
+            { l: 0,    b: 0.7,  w: 0.25, h: 0.25, eye: [0, 10, 0], wire: true }, // 左上: ワイヤー
+            { l: 0.75, b: 0.7,  w: 0.25, h: 0.25, eye: [8, 2, -8], wire: false },
+            { l: 0,    b: 0,    w: 0.25, h: 0.25, eye: [-8, -4, 8], wire: true }, // 左下: ワイヤー
+            { l: 0.75, b: 0,    w: 0.25, h: 0.25, eye: [0, 0, 12], wire: false }
         ];
-
-        const COLORS = {
-            right: 0x0077ff, left: 0x00ff66, top: 0xffffff, bottom: 0xffdd00, front: 0xff0044, back: 0xff8800, inner: 0x050505
-        };
 
         init();
         animate();
@@ -76,21 +71,17 @@
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.autoClear = false; // マルチビューのために自動クリアをオフ
+            renderer.autoClear = false;
             document.body.appendChild(renderer.domElement);
 
-            // 各ビューにカメラを設定
             views.forEach(v => {
-                const cam = new THREE.PerspectiveCamera(45, (window.innerWidth * v.width) / (window.innerHeight * v.height), 0.1, 100);
-                cam.position.set(...v.eye);
-                cam.up.set(...v.up);
-                cam.lookAt(0, 0, 0);
-                v.camera = cam;
+                v.camera = new THREE.PerspectiveCamera(40, (window.innerWidth*v.w)/(window.innerHeight*v.h), 0.1, 100);
+                v.camera.position.set(...v.eye);
+                v.camera.lookAt(0,0,0);
             });
 
-            // ライティング
             scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-            const p1 = new THREE.PointLight(0xffffff, 50); p1.position.set(5, 8, 5); scene.add(p1);
+            const p = new THREE.PointLight(0xffffff, 60); p.position.set(5, 10, 5); scene.add(p);
 
             createCube();
         }
@@ -109,6 +100,7 @@
                         if (z === -1) apply(mats[5], COLORS.back);
                         const mesh = new THREE.Mesh(geom, mats);
                         mesh.position.set(x, y, z);
+                        mesh.userData.origPos = new THREE.Vector3(x, y, z); // 初期位置保存
                         scene.add(mesh);
                         pieces.push(mesh);
                     }
@@ -116,9 +108,33 @@
             }
         }
 
-        function apply(m, c) { m.color.setHex(c); m.emissive.setHex(c); m.emissiveIntensity = 0.5; }
+        function apply(m, c) { m.color.setHex(c); m.emissive.setHex(c); m.emissiveIntensity = 0.4; }
 
-        async function rotateLayer(axis, layer, angle) {
+        async function explodeEffect(expand = true) {
+            const duration = 40;
+            for(let i=0; i<=duration; i++) {
+                const factor = expand ? i/duration : (duration-i)/duration;
+                pieces.forEach(p => {
+                    const dir = p.userData.origPos.clone().normalize();
+                    p.position.copy(p.userData.origPos).add(dir.multiplyScalar(factor * 2));
+                    p.scale.setScalar(1 - factor * 0.3);
+                });
+                await new Promise(r => requestAnimationFrame(r));
+            }
+        }
+
+        function triggerGlitch() {
+            const overlay = document.getElementById('glitch-overlay');
+            overlay.style.opacity = "0.5";
+            setTimeout(() => overlay.style.opacity = "0", 50);
+        }
+
+        async function rotateLayer(axis, layer, angle, isSolving = false) {
+            const log = document.getElementById('op-log');
+            log.innerHTML = `EXEC: ROTATE_${axis.toUpperCase()}(L:${layer}, A:${angle})<br>` + log.innerHTML.split('<br>').slice(0, 5).join('<br>');
+            
+            if (isSolving && Math.random() > 0.9) triggerGlitch();
+
             return new Promise(resolve => {
                 const group = new THREE.Group();
                 scene.add(group);
@@ -131,21 +147,17 @@
                 targets.forEach(p => group.attach(p));
 
                 let progress = 0;
-                const targetRad = angle * (Math.PI / 2);
                 function step() {
-                    progress += 0.08;
+                    progress += 0.1;
                     const t = Math.min(progress, 1);
                     const ease = t * t * (3 - 2 * t);
-                    if (progress < 1) {
-                        group.rotation[axis] = targetRad * ease;
-                        requestAnimationFrame(step);
-                    } else {
-                        group.rotation[axis] = targetRad;
+                    group.rotation[axis] = (angle * Math.PI / 2) * ease;
+                    if (progress < 1) requestAnimationFrame(step);
+                    else {
                         targets.forEach(p => {
                             scene.attach(p);
                             p.position.set(Math.round(p.position.x), Math.round(p.position.y), Math.round(p.position.z));
                             p.rotation.set(Math.round(p.rotation.x/(Math.PI/2))*(Math.PI/2), Math.round(p.rotation.y/(Math.PI/2))*(Math.PI/2), Math.round(p.rotation.z/(Math.PI/2))*(Math.PI/2));
-                            p.updateMatrixWorld();
                         });
                         scene.remove(group);
                         resolve();
@@ -157,58 +169,58 @@
 
         async function run() {
             const txt = document.getElementById('status-text');
-            const axes = ['x', 'y', 'z'], layers = [-1, 0, 1];
-            
             while(true) {
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 2000));
+                
+                txt.innerText = "DECONSTRUCTING";
+                await explodeEffect(true);
+                await explodeEffect(false);
+
                 txt.innerText = "SCRAMBLING";
-                for(let i=0; i<10; i++) {
+                const axes = ['x', 'y', 'z'], layers = [-1, 0, 1];
+                for(let i=0; i<12; i++) {
                     const m = { axis: axes[Math.floor(Math.random()*3)], layer: layers[Math.floor(Math.random()*3)], angle: Math.random() > 0.5 ? 1 : -1 };
                     moveHistory.push(m);
                     await rotateLayer(m.axis, m.layer, m.angle);
                 }
-                
+
                 txt.innerText = "SOLVING";
+                await new Promise(r => setTimeout(r, 1000));
                 while(moveHistory.length > 0) {
                     const m = moveHistory.pop();
-                    await rotateLayer(m.axis, m.layer, -m.angle);
+                    await rotateLayer(m.axis, m.layer, -m.angle, true);
                 }
-                txt.innerText = "STABLE";
-                await new Promise(r => setTimeout(r, 2000));
+                txt.innerText = "SYNCHRONIZED";
+                await new Promise(r => setTimeout(r, 3000));
             }
         }
 
         function animate() {
             requestAnimationFrame(animate);
-            
             renderer.clear();
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+            const w = window.innerWidth, h = window.innerHeight;
 
             views.forEach(v => {
-                const left = v.left * w;
-                const bottom = v.bottom * h;
-                const width = v.width * w;
-                const height = v.height * h;
-
-                renderer.setViewport(left, bottom, width, height);
-                renderer.setScissor(left, bottom, width, height);
+                renderer.setViewport(v.l*w, v.b*h, v.w*w, v.h*h);
+                renderer.setScissor(v.l*w, v.b*h, v.w*w, v.h*h);
                 renderer.setScissorTest(true);
 
-                // 各カメラを少しずつ回転させて動きを出す
-                v.camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.002);
-                v.camera.lookAt(0, 0, 0);
+                // ワイヤーフレーム演出の切り替え
+                pieces.forEach(p => {
+                    p.material.forEach(m => m.wireframe = v.wire);
+                });
 
+                v.camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), 0.005);
+                v.camera.lookAt(0, 0, 0);
                 renderer.render(scene, v.camera);
             });
+            document.getElementById('timer').innerText = new Date().toLocaleTimeString('en-GB');
         }
 
         window.addEventListener('resize', () => {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            renderer.setSize(w, h);
+            renderer.setSize(window.innerWidth, window.innerHeight);
             views.forEach(v => {
-                v.camera.aspect = (w * v.width) / (h * v.height);
+                v.camera.aspect = (window.innerWidth*v.w)/(window.innerHeight*v.h);
                 v.camera.updateProjectionMatrix();
             });
         });
