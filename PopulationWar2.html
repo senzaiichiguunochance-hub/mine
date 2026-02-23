@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>世界人口サバイバル - 最終決着・同率1位対応版</title>
+    <title>世界人口サバイバル - 陸地優先・追走版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -83,7 +83,7 @@ async function init() {
     const countriesData = await countryRes.json();
     const worldGeo = await geoRes.json();
     
-    // country > name ロジック
+    // country > name 
     const countryMap = new Map(countriesData.map(c => [c.cca3, { name: c.translations?.jpn?.common || c.name.common, pop: c.population }]));
 
     worldGeo.features.forEach((feature, index) => {
@@ -120,29 +120,28 @@ async function init() {
 function update() {
     if (isGameOver) return;
     const now = Date.now(), alive = dots.filter(d => d.active);
-    
-    // ランキング作成
     const stats = {}; alive.forEach(d => stats[d.name] = (stats[d.name] || 0) + 1);
     const ranking = Object.entries(stats).sort((a,b) => b[1] - a[1]);
-    
-    // 【1位複数対応】最大値を持つ国すべてを「強者」とする
     const maxPop = ranking.length > 0 ? ranking[0][1] : 0;
     const topTierNames = new Set(ranking.filter(r => r[1] === maxPop).map(r => r[0]));
 
-    // 【終了判定】生き残りが1国のみ
     if (ranking.length === 1 && alive.length > 0) {
         isGameOver = true;
         document.getElementById('announcer').innerHTML = `<div class="win-pop">👑 覇者 👑<br>${ranking[0][0]}</div>`;
         return;
     }
 
-    // サドンデス判定
-    if (alive.length < sdThreshold && !isSuddenDeath) { isSuddenDeath = true; showMsg("🔥 SUDDEN DEATH 🔥", "sd-pop"); }
+    if (alive.length < sdThreshold && !isSuddenDeath) { 
+        isSuddenDeath = true; 
+        showMsg("🔥 SUDDEN DEATH 🔥", "sd-pop"); 
+    }
+
+    const grid = {}; alive.forEach(d => { const k = `${Math.floor(d.lng/5)},${Math.floor(d.lat/5)}`; if(!grid[k]) grid[k]=[]; grid[k].push(d); });
 
     alive.forEach(dot => {
         if (!dot.active) return;
         
-        // 5秒自滅判定
+        // 5秒自滅チェック
         if (!dot.nextCheck || now > dot.nextCheck) {
             if (checkLandStrict(dot.lat, dot.lng)) { dot.lastLandTime = now; }
             else if (now - dot.lastLandTime > 5000) { dot.active = false; map.removeLayer(dot.el); return; }
@@ -153,50 +152,93 @@ function update() {
             dot.nextCheck = now + 1000;
         }
 
-        // 移動
-        if (!dot.ex && Math.random() < exRate * 0.1) {
-            dot.ex = true; const t = geoDataStore[Math.floor(Math.random()*geoDataStore.length)];
-            dot.tx = t.center.lng; dot.ty = t.center.lat;
-        }
         let nvx = dot.vx, nvy = dot.vy;
-        if (dot.ex) {
-            nvx = (dot.tx > dot.lng ? 4 : -4); nvy = (dot.ty > dot.lat ? 4 : -4);
-            if (checkLandStrict(dot.lat, dot.lng) && Math.random() < 0.05) dot.ex = false;
-        } else {
-            nvx = (nvx * 0.9) + (Math.random() - 0.5) * 2.5; nvy = (nvy * 0.9) + (Math.random() - 0.5) * 2.5;
-            if (dot.lat > 75) nvy -= 2; if (dot.lat < -75) nvy += 2;
+        let isSeeking = false;
+
+        // サドンデス時のターゲット選定
+        if (isSuddenDeath) {
+            let minDist = 999, target = null;
+            for(let x=-2; x<=2; x++) { // 索敵範囲を少し広げる
+                for(let y=-2; y<=2; y++) {
+                    const k = `${Math.floor(dot.lng/5)+x},${Math.floor(dot.lat/5)+y}`;
+                    (grid[k]||[]).forEach(other => {
+                        if (other.name !== dot.name) {
+                            const d = Math.abs(dot.lat - other.lat) + Math.abs(dot.lng - other.lng);
+                            if (d < minDist) { minDist = d; target = other; }
+                        }
+                    });
+                }
+            }
+            if (target) {
+                nvx = (target.lng > dot.lng ? 4.5 : -4.5);
+                nvy = (target.lat > dot.lat ? 4.5 : -4.5);
+                isSeeking = true;
+            }
         }
-        const moveMult = currentSpeed * 0.08 * (isSuddenDeath ? 3 : 1);
-        dot.lat += nvy * moveMult; dot.lng += nvx * moveMult;
+
+        // 通常時の遠征・放浪
+        if (!isSeeking) {
+            if (!dot.ex && Math.random() < exRate * 0.1) {
+                dot.ex = true; const t = geoDataStore[Math.floor(Math.random()*geoDataStore.length)];
+                dot.tx = t.center.lng; dot.ty = t.center.lat;
+            }
+            if (dot.ex) {
+                nvx = (dot.tx > dot.lng ? 4 : -4); nvy = (dot.ty > dot.lat ? 4 : -4);
+                if (checkLandStrict(dot.lat, dot.lng) && Math.random() < 0.05) dot.ex = false;
+            } else {
+                nvx = (nvx * 0.9) + (Math.random() - 0.5) * 2.5;
+                nvy = (nvy * 0.9) + (Math.random() - 0.5) * 2.5;
+            }
+        }
+
+        // 極地反発（常に有効）
+        if (dot.lat > 75) nvy -= 2.5; if (dot.lat < -75) nvy += 2.5;
+
+        const moveMult = currentSpeed * 0.08 * (isSuddenDeath ? 2.5 : 1.0);
+        let moveX = nvx * moveMult, moveY = nvy * moveMult;
+
+        // 【陸地優先ロジック】遠征中でない場合は、進む先が陸地かチェック
+        if (!dot.ex) {
+            if (checkLandStrict(dot.lat + moveY, dot.lng + moveX)) {
+                dot.lat += moveY; dot.lng += moveX; dot.vx = nvx; dot.vy = nvy;
+            } else {
+                // 海に当たりそうなら、反射して陸地を探す（サドンデス中でも陸伝いを優先させる）
+                dot.vx = -nvx * 1.5; dot.vy = -nvy * 1.5;
+                // たまに無理やり海を渡る（対岸へ行くため）
+                if (isSuddenDeath && Math.random() < 0.02) { 
+                    dot.lat += moveY; dot.lng += moveX; 
+                }
+            }
+        } else {
+            // 遠征中は海を渡る
+            dot.lat += moveY; dot.lng += moveX;
+        }
+
         if (dot.lng > 180) dot.lng = -180; else if (dot.lng < -180) dot.lng = 180;
+        if (dot.lat > 85) dot.lat = 85; if (dot.lat < -85) dot.lat = -85;
         dot.el.setLatLng([dot.lat, dot.lng]);
     });
 
-    // 衝突（パンデミック対応勝率）
-    const grid = {}; alive.forEach(d => { if(d.active){ const k = `${Math.floor(d.lng/2)},${Math.floor(d.lat/2)}`; if(!grid[k]) grid[k]=[]; grid[k].push(d); } });
+    // 衝突
     alive.forEach(dot => {
         if(!dot.active) return;
-        const k = `${Math.floor(dot.lng/2)},${Math.floor(dot.lat/2)}`;
+        const k = `${Math.floor(dot.lng/5)},${Math.floor(dot.lat/5)}`;
         (grid[k]||[]).forEach(other => {
             if (dot === other || !other.active || dot.name === other.name) return;
             if (Math.abs(dot.lat - other.lat) < COLLISION_DIST && Math.abs(dot.lng - other.lng) < COLLISION_DIST) {
-                // topTierNamesに含まれる国は強者として判定
                 const isDotTop = topTierNames.has(dot.name);
                 const isOtherTop = topTierNames.has(other.name);
                 let winProb = 0.5;
-                if (isOtherTop && !isDotTop) winProb = 0.98; // 相手だけが1位グループなら相手が勝つ
-                else if (isDotTop && !isOtherTop) winProb = 0.02; // 自分だけが1位グループなら自分が勝つ
-                
+                if (isOtherTop && !isDotTop) winProb = 0.98;
+                else if (isDotTop && !isOtherTop) winProb = 0.02;
                 if (Math.random() < winProb) { other.active = false; map.removeLayer(other.el); }
                 else { dot.active = false; map.removeLayer(dot.el); }
             }
         });
     });
 
-    // 消滅メッセージ
     const currentNames = new Set(ranking.map(e => e[0]));
     activeNames.forEach(name => { if (!currentNames.has(name)) { showMsg(`${name} 消滅`); activeNames.delete(name); } });
-    
     document.getElementById('total-count').innerText = alive.length.toLocaleString();
     document.getElementById('ranking-list').innerHTML = ranking.map(([n, c], i) => `<div class="ranking-item" style="${topTierNames.has(n)?'color:red;font-weight:bold;':''}"><span>${i+1}.${n.slice(0,8)}</span><b>${c}</b></div>`).join('');
     requestAnimationFrame(update);
