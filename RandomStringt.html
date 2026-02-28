@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Matrix - Blink Mode</title>
+    <title>Global Matrix</title>
     <style>
         body {
             background-color: black;
@@ -19,43 +19,75 @@
         }
 
         #header {
-            height: 50px;
+            height: 60px;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #111;
-            border-bottom: 1px solid #333;
+            background: #050505;
+            border-bottom: 1px solid #1a1a1a;
             flex-shrink: 0;
         }
 
+        /* 常にぼんやり点滅するボタンの設定 */
         #reset-btn {
-            padding: 8px 24px;
-            background: #222;
-            color: #eee;
-            border: 1px solid #444;
+            padding: 10px 28px;
+            background: #0a1a0a; 
+            color: #00ff00; 
+            border: 1px solid #004400; 
             cursor: pointer;
             font-size: 14px;
-            letter-spacing: 2px;
-            transition: 0.2s;
+            letter-spacing: 3px;
+            font-weight: bold;
+            text-transform: uppercase;
+            outline: none;
+            position: relative;
+            transition: all 0.5s ease;
+            
+            /* 工場の明かりのような不規則な点滅アニメーション */
+            animation: factoryLight 6s infinite ease-in-out;
         }
-#reset-btn {
-    padding: 8px 24px;
-    /* 背景を少し暗い緑にして、常時発光しているベースを作る */
-    background: #1a331a; 
-    /* 文字の色は明るい緑。暗闇で光っているように */
-    color: #00ff00; 
-    /* 枠線も緑に */
-    border: 1px solid #00ff00; 
-    cursor: pointer;
-    font-size: 14px;
-    letter-spacing: 2px;
-    font-weight: bold;
-    text-shadow: 0 0 5px #00ff00; /* 文字自体も少し発光させる */
 
-    /* アニメーションの設定 */
-    /* 名前: industrialBlink, 時間: 5秒(お好みで), 滑らかさ: ease-in-out, 繰り返しの回数: 無限 */
-    animation: industrialBlink 5s ease-in-out infinite;
-}
+        /* ホバー時は少しだけ反応を強くする */
+        #reset-btn:hover {
+            background: #00ff00;
+            color: #000;
+            border-color: #fff;
+            box-shadow: 0 0 20px #00ff00;
+            animation-play-state: paused; /* ホバー中は点滅を止める（お好みで） */
+        }
+
+        /* 点滅アニメーションの定義 */
+        @keyframes factoryLight {
+            0%, 100% {
+                box-shadow: 0 0 5px #004400;
+                border-color: #004400;
+                color: #008800;
+                opacity: 0.7;
+            }
+            40% {
+                box-shadow: 0 0 15px #008800;
+                border-color: #00aa00;
+                color: #00ff00;
+                opacity: 1;
+            }
+            45% {
+                /* 瞬間的に少し暗くして電圧の不安定さを演出 */
+                box-shadow: 0 0 2px #002200;
+                opacity: 0.5;
+            }
+            50% {
+                box-shadow: 0 0 20px #00ff00;
+                border-color: #00ff00;
+                color: #adffad;
+                opacity: 1;
+            }
+            80% {
+                box-shadow: 0 0 8px #006600;
+                border-color: #006600;
+                color: #00cc00;
+                opacity: 0.8;
+            }
+        }
 
         #grid {
             flex-grow: 1;
@@ -63,6 +95,7 @@
             justify-content: center;
             align-content: center;
             overflow: hidden;
+            background-color: black;
         }
 
         .cell {
@@ -73,6 +106,24 @@
             align-items: center;
             font-size: 18px;
             user-select: none;
+        }
+
+        .menu-link {
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            font-size: 12px; 
+            color: #444; 
+            text-decoration: none; 
+            background: rgba(255,255,255,0.05); 
+            padding: 5px 10px; 
+            border-radius: 2px; 
+            z-index: 1000;
+            border: 1px solid #222;
+        }
+        .menu-link:hover {
+            color: #ccc;
+            background: rgba(255,255,255,0.1);
         }
     </style>
 </head>
@@ -125,7 +176,7 @@
         const cellWidth = 22;
         const cellHeight = 26;
         const cols = Math.floor(window.innerWidth / cellWidth);
-        const rows = Math.floor((window.innerHeight - 50) / cellHeight);
+        const rows = Math.floor((window.innerHeight - 60) / cellHeight);
         const totalCells = cols * rows;
 
         grid.style.gridTemplateColumns = `repeat(${cols}, ${cellWidth}px)`;
@@ -148,21 +199,17 @@
             const speed = Math.floor(Math.random() * 2990) + 10;
             let currentIndex = Math.floor(Math.random() * currentChars.length);
             
-            // 初回表示
             cell.textContent = currentChars[currentIndex];
             let isBlankStep = false; 
 
             const intervalId = setInterval(() => {
                 if (isBlankStep) {
-                    // 空白を表示するステップ
                     cell.textContent = '';
                     isBlankStep = false;
                 } else {
-                    // 文字を更新するステップ
                     currentIndex = (currentIndex + 1) % currentChars.length;
                     cell.textContent = currentChars[currentIndex];
                     
-                    // 文字セットの最後に到達したら、次は空白フラグを立てる
                     if (currentIndex === currentChars.length - 1) {
                         isBlankStep = true;
                     }
