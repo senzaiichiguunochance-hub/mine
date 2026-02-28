@@ -38,7 +38,24 @@
             letter-spacing: 2px;
             transition: 0.2s;
         }
-        #reset-btn:hover { background: #333; border-color: #00ff00; color: #00ff00; }
+#reset-btn {
+    padding: 8px 24px;
+    /* 背景を少し暗い緑にして、常時発光しているベースを作る */
+    background: #1a331a; 
+    /* 文字の色は明るい緑。暗闇で光っているように */
+    color: #00ff00; 
+    /* 枠線も緑に */
+    border: 1px solid #00ff00; 
+    cursor: pointer;
+    font-size: 14px;
+    letter-spacing: 2px;
+    font-weight: bold;
+    text-shadow: 0 0 5px #00ff00; /* 文字自体も少し発光させる */
+
+    /* アニメーションの設定 */
+    /* 名前: industrialBlink, 時間: 5秒(お好みで), 滑らかさ: ease-in-out, 繰り返しの回数: 無限 */
+    animation: industrialBlink 5s ease-in-out infinite;
+}
 
         #grid {
             flex-grow: 1;
@@ -63,7 +80,7 @@
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
 <div id="header">
-    <button id="reset-btn">Next Category Set</button>
+    <button id="reset-btn">ここをClickして文字を切り替えます</button>
 </div>
 <div id="grid"></div>
 
