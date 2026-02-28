@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Matrix</title>
+    <title>Global Matrix - Blink Mode</title>
     <style>
         body {
             background-color: black;
@@ -14,10 +14,6 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            /* フォント指定を強化：
-               'Segoe UI Symbol' (Windows), 'Apple Color Emoji' (Mac/iOS), 
-               'Noto Sans' (Android) など、記号に強いフォントを優先 
-            */
             font-family: Consolas, 'Courier New', 'Segoe UI Symbol', 'Apple Color Emoji', 'Arial Unicode MS', 'MS Gothic', sans-serif;
             font-weight: bold;
         }
@@ -65,7 +61,6 @@
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
 
 <div id="header">
     <button id="reset-btn">Next Category Set</button>
@@ -135,11 +130,26 @@
 
             const speed = Math.floor(Math.random() * 2990) + 10;
             let currentIndex = Math.floor(Math.random() * currentChars.length);
+            
+            // 初回表示
             cell.textContent = currentChars[currentIndex];
+            let isBlankStep = false; 
 
             const intervalId = setInterval(() => {
-                currentIndex = (currentIndex + 1) % currentChars.length;
-                cell.textContent = currentChars[currentIndex];
+                if (isBlankStep) {
+                    // 空白を表示するステップ
+                    cell.textContent = '';
+                    isBlankStep = false;
+                } else {
+                    // 文字を更新するステップ
+                    currentIndex = (currentIndex + 1) % currentChars.length;
+                    cell.textContent = currentChars[currentIndex];
+                    
+                    // 文字セットの最後に到達したら、次は空白フラグを立てる
+                    if (currentIndex === currentChars.length - 1) {
+                        isBlankStep = true;
+                    }
+                }
             }, speed);
             
             intervals.push(intervalId);
