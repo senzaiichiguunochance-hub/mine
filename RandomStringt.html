@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Matrix</title>
+    <title>Global Matrix - Ultimate Edition</title>
     <style>
         body {
             background-color: black;
@@ -14,7 +14,7 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            font-family: Consolas, 'Courier New', 'Segoe UI Symbol', 'Apple Color Emoji', 'Arial Unicode MS', 'MS Gothic', sans-serif;
+            font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', 'Apple Color Emoji', 'Arial Unicode MS', 'MS Gothic', Consolas, sans-serif;
             font-weight: bold;
         }
 
@@ -26,9 +26,9 @@
             background: #050505;
             border-bottom: 1px solid #1a1a1a;
             flex-shrink: 0;
+            z-index: 2000;
         }
 
-        /* 常にぼんやり点滅するボタンの設定 */
         #reset-btn {
             padding: 10px 28px;
             background: #0a1a0a; 
@@ -36,57 +36,24 @@
             border: 1px solid #004400; 
             cursor: pointer;
             font-size: 14px;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             font-weight: bold;
             text-transform: uppercase;
             outline: none;
-            position: relative;
             transition: all 0.5s ease;
-            
-            /* 工場の明かりのような不規則な点滅アニメーション */
             animation: factoryLight 6s infinite ease-in-out;
         }
 
-        /* ホバー時は少しだけ反応を強くする */
         #reset-btn:hover {
             background: #00ff00;
             color: #000;
-            border-color: #fff;
             box-shadow: 0 0 20px #00ff00;
-            animation-play-state: paused; /* ホバー中は点滅を止める（お好みで） */
         }
 
-        /* 点滅アニメーションの定義 */
         @keyframes factoryLight {
-            0%, 100% {
-                box-shadow: 0 0 5px #004400;
-                border-color: #004400;
-                color: #008800;
-                opacity: 0.7;
-            }
-            40% {
-                box-shadow: 0 0 15px #008800;
-                border-color: #00aa00;
-                color: #00ff00;
-                opacity: 1;
-            }
-            45% {
-                /* 瞬間的に少し暗くして電圧の不安定さを演出 */
-                box-shadow: 0 0 2px #002200;
-                opacity: 0.5;
-            }
-            50% {
-                box-shadow: 0 0 20px #00ff00;
-                border-color: #00ff00;
-                color: #adffad;
-                opacity: 1;
-            }
-            80% {
-                box-shadow: 0 0 8px #006600;
-                border-color: #006600;
-                color: #00cc00;
-                opacity: 0.8;
-            }
+            0%, 100% { box-shadow: 0 0 5px #004400; color: #008800; opacity: 0.7; }
+            40% { box-shadow: 0 0 15px #008800; color: #00ff00; opacity: 1; }
+            50% { box-shadow: 0 0 20px #00ff00; color: #adffad; opacity: 1; }
         }
 
         #grid {
@@ -96,42 +63,30 @@
             align-content: center;
             overflow: hidden;
             background-color: black;
+            gap: 2px;
         }
 
         .cell {
-            width: 22px;
-            height: 26px;
             display: flex;
             justify-content: center;
             align-items: center;
             font-size: 18px;
             user-select: none;
+            white-space: nowrap;
         }
 
         .menu-link {
-            position: absolute; 
-            top: 20px; 
-            right: 20px; 
-            font-size: 12px; 
-            color: #444; 
-            text-decoration: none; 
-            background: rgba(255,255,255,0.05); 
-            padding: 5px 10px; 
-            border-radius: 2px; 
-            z-index: 1000;
-            border: 1px solid #222;
-        }
-        .menu-link:hover {
-            color: #ccc;
-            background: rgba(255,255,255,0.1);
+            position: absolute; top: 15px; right: 20px; font-size: 14px; color: #ccc; 
+            text-decoration: none; background: rgba(255,255,255,0.1); padding: 6px 12px; 
+            border-radius: 4px; z-index: 1000; border: 1px solid #333;
         }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<a href="menu.html" class="menu-link">メニューに戻る</a>
 
 <div id="header">
-    <button id="reset-btn">ここをClickして文字を切り替えます</button>
+    <button id="reset-btn">マトリックスを切り替え</button>
 </div>
 <div id="grid"></div>
 
@@ -140,14 +95,21 @@
     const btn = document.getElementById('reset-btn');
     
     const charSets = {
+        // --- 既存の文字 ---
         alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split(''),
         numbers: '0123456789'.split(''),
         hiragana: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん'.split(''),
         katakana: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン'.split(''),
-        cyrillic: 'БГДЁЖЗИЙКЛМНПФЦЧШЩЪЫЬЭЮЯ'.split(''),
-        greek: 'αβγδεζηθικλμνξοπρστυφχψω'.split(''),
         symbols: '★☆△▲○●□■◈◇◆▷▶◁◀⚙⚡⚓'.split(''),
-        emoji: ['👾','🤖','💻','📱','💾','📡','🛰','🚀','🛸','🌀']
+        
+        // --- 絵文字 (Emoji - 1文字) ---
+        emoji_faces: ['😊','😂','🤣','😍','🤔','🙄','😎','🥳','😱','😭','😡','🤮','🤡','👻'],
+        emoji_misc: ['🔥','💎','✨','🌟','🍀','🎈','🎁','🚀','🛸','🌀','👾','🤖','💻','💾'],
+        
+        // --- 顔文字 (Kaomoji - 複数文字) ---
+        kaomoji_happy: ['(❁´◡`❁)', '(*^_^*)', '(≧▽≦)', '(´∀｀*)', '(^_-)-☆', '٩(ˊᗜˋ*)و', '(o゜▽゜)o', '(〃▽〃)', 'o(〃＾▽＾〃)o', '(★ ω ★)'],
+        kaomoji_action: ['(｡･ω･｡)ﾉ♡', '（づ￣3￣）づ', '¯\\_(ツ)_/¯', '(╯°□°）╯︵ ┻━┻', 'ヘ( ^o^)ノ', '┌(・。・)┘♪', 'm(_ _)m'],
+        kaomoji_surprised: ['( ﾟдﾟ)', 'Σ(･ω･ﾉ)ﾉ', '（◎0◎）', '(⊙_⊙;)', '(((ﾟдﾟ)))', 'w(ﾟДﾟ)w', '(꒪⌓꒪)']
     };
 
     let categoryKeys = Object.keys(charSets);
@@ -173,8 +135,12 @@
         const currentCategoryKey = usedCategories.pop();
         const currentChars = charSets[currentCategoryKey];
 
-        const cellWidth = 22;
-        const cellHeight = 26;
+        // カテゴリに応じてセルの幅を動的に変える
+        let isKaomoji = currentCategoryKey.startsWith('kaomoji');
+        let isEmoji = currentCategoryKey.startsWith('emoji');
+        
+        const cellWidth = isKaomoji ? 100 : (isEmoji ? 35 : 24);
+        const cellHeight = 32;
         const cols = Math.floor(window.innerWidth / cellWidth);
         const rows = Math.floor((window.innerHeight - 60) / cellHeight);
         const totalCells = cols * rows;
@@ -192,11 +158,14 @@
             const cell = document.createElement('div');
             cell.className = 'cell';
             
-            const isBright = Math.random() > 0.5;
-            cell.style.color = isBright ? brightColor : dimColor;
-            if (isBright) cell.style.textShadow = glow;
+            // 絵文字カテゴリ以外には色と光彩をつける
+            if (!isEmoji) {
+                const isBright = Math.random() > 0.5;
+                cell.style.color = isBright ? brightColor : dimColor;
+                if (isBright) cell.style.textShadow = glow;
+            }
 
-            const speed = Math.floor(Math.random() * 2990) + 10;
+            const speed = Math.floor(Math.random() * 3000) + 500;
             let currentIndex = Math.floor(Math.random() * currentChars.length);
             
             cell.textContent = currentChars[currentIndex];
@@ -209,10 +178,7 @@
                 } else {
                     currentIndex = (currentIndex + 1) % currentChars.length;
                     cell.textContent = currentChars[currentIndex];
-                    
-                    if (currentIndex === currentChars.length - 1) {
-                        isBlankStep = true;
-                    }
+                    if (currentIndex === currentChars.length - 1) isBlankStep = true;
                 }
             }, speed);
             
