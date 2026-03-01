@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>アヒルの滑り台</title>
+    <style>body { margin: 0; overflow: hidden; background: #e0f7fa; }</style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// --- ライト ---
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(20, 50, 20);
+scene.add(dirLight);
+
+// --- 装置 ---
+const stairHeight = 30;
+const stairMat = new THREE.MeshStandardMaterial({ 
+    color: 0xBBDEFB, transparent: true, opacity: 0.5, roughness: 0.1, metalness: 0.5 
+});
+const stair = new THREE.Mesh(new THREE.BoxGeometry(4, stairHeight, 2), stairMat);
+stair.position.set(0, stairHeight/2, 0);
+scene.add(stair);
+
+// 階段ステップ
+const stepCount = 60;
+const stepMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.8 });
+for (let i = 0; i < stepCount; i++) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.2, 0.8), stepMat);
+    step.position.set(0, (i * (stairHeight/stepCount)) - stairHeight/2 + 0.1, 0.6);
+    stair.add(step);
+}
+
+// 滑り台 (少しランダム)
+const slidePoints = [new THREE.Vector3(0, stairHeight, 0)];
+for (let i = 1; i <= 5; i++) {
+    const angle = i * Math.PI * 0.7 + (Math.random() * 0.5);
+    const radius = 8 + (Math.random() * 7);
+    const y = stairHeight - (i * 5.5);
+    slidePoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius));
+}
+slidePoints.push(new THREE.Vector3(0, 1.5, 8));
+const slideCurve = new THREE.CatmullRomCurve3(slidePoints);
+const slideMesh = new THREE.Mesh(
+    new THREE.TubeGeometry(slideCurve, 150, 0.6, 12, false),
+    new THREE.MeshStandardMaterial({ color: 0xffa500, transparent: true, opacity: 0.6 })
+);
+scene.add(slideMesh);
+
+const trackCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 1.5, 8), new THREE.Vector3(0, 1.5, 1.5)]);
+scene.add(new THREE.Mesh(new THREE.TubeGeometry(trackCurve, 20, 0.4, 8, false), new THREE.MeshStandardMaterial({ color: 0x5D4037 })));
+
+// --- アヒル作成 (20羽：1番目ピンク, 10番目青, 他黄色) ---
+const ducks = [];
+const totalDucks = 20;
+
+function createDuck(color) {
+    const duck = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.2 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), mat);
+    body.scale.set(1.2, 1, 1);
+    duck.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), mat);
+    head.position.set(0.6, 0.8, 0);
+    duck.add(head);
+    const beak = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.2, 0.3), new THREE.MeshStandardMaterial({ color: 0xFF5722 }));
+    beak.position.set(1.2, 0.8, 0);
+    duck.add(beak);
+    return duck;
+}
+
+for (let i = 0; i < totalDucks; i++) {
+    let color = 0xFFD700; 
+    if (i === 0) color = 0xFF69B4;      // ピンク
+    else if (i === 9) color = 0x1E90FF; // 青 (20羽の半分付近)
+    const duck = createDuck(color);
+    scene.add(duck);
+    ducks.push(duck);
+}
+
+// --- アニメーション & ランダム自動カメラ ---
+const clock = new THREE.Clock();
+let isUserInteracting = false;
+controls.addEventListener('start', () => isUserInteracting = true);
+controls.addEventListener('end', () => isUserInteracting = false);
+
+function animate() {
+    requestAnimationFrame(animate);
+    const elapsed = clock.getElapsedTime();
+    controls.update();
+
+    ducks.forEach((duck, i) => {
+        const time = (elapsed + i * (20 / totalDucks)) % 20; // 1周20秒に短縮
+        const p = time / 20;
+        if (p < 0.35) {
+            const sp = p / 0.35;
+            duck.position.set(0, Math.floor(sp * 60) * (30/60) + 0.8, 1.2);
+            duck.rotation.set(0, Math.PI/2, 0);
+        } else if (p < 0.9) {
+            const slideP = (p-0.35)/0.55;
+            duck.position.copy(slideCurve.getPointAt(slideP));
+            duck.lookAt(slideCurve.getPointAt(Math.min(slideP+0.005, 1)));
+            duck.rotation.y += Math.PI;
+        } else {
+            const trackP = (p-0.9)/0.1;
+            duck.position.copy(trackCurve.getPointAt(trackP));
+            duck.rotation.set(0, -Math.PI/2, 0);
+        }
+    });
+
+    if (!isUserInteracting) {
+        // 回転速度と周期
+        const rotSpeed = elapsed * 0.2;
+        const zoomSpeed = elapsed * 0.35;
+        const pitchSpeed = elapsed * 0.5; // 上下角度の周期
+        
+        // ズーム範囲: 最大値を近づけた (7 ～ 45)
+        const currentRadius = 26 + Math.sin(zoomSpeed) * 19; 
+        
+        // カメラ座標
+        camera.position.x = Math.cos(rotSpeed) * currentRadius;
+        camera.position.z = Math.sin(rotSpeed) * currentRadius;
+        
+        // 高さ(y)をよりランダムに振る
+        // ズームイン/アウトと周期をずらすことで「常に上から」「常に下から」を防ぐ
+        camera.position.y = 15 + Math.sin(pitchSpeed) * 12 + Math.cos(zoomSpeed * 0.7) * 5; 
+        
+        // 注視点も少し上下に動かしてダイナミックに
+        camera.lookAt(0, 15 + Math.sin(elapsed * 0.2) * 5, 0);
+    }
+
+    renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>
