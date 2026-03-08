@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>アヒルの滑り台</title>
     <style>body { margin: 0; overflow: hidden; background: #e0f7fa; }</style>
 </head>
@@ -88,14 +89,17 @@ function createDuck(color) {
 for (let i = 0; i < totalDucks; i++) {
     let color = 0xFFD700; 
     if (i === 0) color = 0xFF69B4;      // ピンク
-    else if (i === 9) color = 0x1E90FF; // 青 (20羽の半分付近)
+    else if (i === 9) color = 0x1E90FF; // 青（10番目）
     const duck = createDuck(color);
     scene.add(duck);
     ducks.push(duck);
 }
 
-// --- アニメーション & ランダム自動カメラ ---
+// --- アニメーション & 自動カメラ ---
 const clock = new THREE.Clock();
+const LAP_SEC = 20;           // 1周の秒数
+const PHASE_STAIRS = 0.35;    // 階段の割合
+const PHASE_SLIDE = 0.9;      // 滑り台終了の割合
 let isUserInteracting = false;
 controls.addEventListener('start', () => isUserInteracting = true);
 controls.addEventListener('end', () => isUserInteracting = false);
@@ -106,19 +110,19 @@ function animate() {
     controls.update();
 
     ducks.forEach((duck, i) => {
-        const time = (elapsed + i * (20 / totalDucks)) % 20; // 1周20秒に短縮
-        const p = time / 20;
-        if (p < 0.35) {
-            const sp = p / 0.35;
-            duck.position.set(0, Math.floor(sp * 60) * (30/60) + 0.8, 1.2);
+        const time = (elapsed + i * (LAP_SEC / totalDucks)) % LAP_SEC;
+        const p = time / LAP_SEC;
+        if (p < PHASE_STAIRS) {
+            const sp = p / PHASE_STAIRS;
+            duck.position.set(0, Math.floor(sp * stepCount) * (stairHeight / stepCount) + 0.8, 1.2);
             duck.rotation.set(0, Math.PI/2, 0);
-        } else if (p < 0.9) {
-            const slideP = (p-0.35)/0.55;
+        } else if (p < PHASE_SLIDE) {
+            const slideP = (p - PHASE_STAIRS) / (PHASE_SLIDE - PHASE_STAIRS);
             duck.position.copy(slideCurve.getPointAt(slideP));
-            duck.lookAt(slideCurve.getPointAt(Math.min(slideP+0.005, 1)));
-            duck.rotation.y += Math.PI;
+            duck.lookAt(slideCurve.getPointAt(Math.min(slideP + 0.005, 1)));
+            duck.rotation.y += Math.PI;  // 進行方向に合わせて向きを反転
         } else {
-            const trackP = (p-0.9)/0.1;
+            const trackP = (p - PHASE_SLIDE) / (1 - PHASE_SLIDE);
             duck.position.copy(trackCurve.getPointAt(trackP));
             duck.rotation.set(0, -Math.PI/2, 0);
         }
