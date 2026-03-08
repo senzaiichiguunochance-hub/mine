@@ -21,9 +21,10 @@
         #controls {
             width: 100%;
             background-color: rgba(30, 30, 30, 0.9);
-            padding: 15px;
+            padding: 10px;
             display: flex;
             justify-content: center;
+            flex-wrap: wrap;
             gap: 15px;
             z-index: 100;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5);
@@ -37,13 +38,18 @@
             margin-bottom: 4px;
             color: #ccc;
         }
-        input {
-            padding: 8px;
-            width: 280px;
+        input[type="text"] {
+            padding: 6px;
+            width: 220px;
             background: #333;
             border: 1px solid #444;
             color: #fff;
             border-radius: 4px;
+        }
+        input[type="file"] {
+            font-size: 11px;
+            color: #bbb;
+            margin-top: 4px;
         }
         #display-area {
             flex-grow: 1;
@@ -57,7 +63,7 @@
             max-width: 80vw;
             max-height: 70vh;
             display: block;
-            position: relative;
+            object-fit: contain;
         }
         @keyframes mild-shake {
             0% { transform: translate(0, 0) rotate(0deg) scale(1); }
@@ -72,22 +78,19 @@
     </style>
 </head>
 <body>
-<a href="..\menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
 <div id="controls">
     <div class="input-group">
-        <label><h1>画像をクリックしてください　<font color=red>※音が出ます</font></h1></label>
-    </div>
-</div>
-<div id="controls">
-    <div class="input-group">
-        <label for="img-url">画像URL (Google画像検索URL可)</label>
-        <input type="text" id="img-url" placeholder="Default: Token Image" spellcheck="false">
+        <label>画像 (URL入力 または ファイル選択)</label>
+        <input type="text" id="img-url" placeholder="Web画像URL" spellcheck="false">
+        <input type="file" id="img-file" accept="image/*">
     </div>
     <div class="input-group">
-        <label for="audio-url">音源URL</label>
-        <input type="text" id="audio-url" placeholder="Default: ..\Sound\short\battle2\爆発2.mp3" spellcheck="false">
+        <label>音源 (URL入力 または ファイル選択)</label>
+        <input type="text" id="audio-url" placeholder="Web音声URL" spellcheck="false">
+        <input type="file" id="audio-file" accept="audio/*">
     </div>
 </div>
 
@@ -95,18 +98,23 @@
     <img id="target-img" src="https://pbs.twimg.com/media/HA3MhgZaAAcxgLz?format=jpg" alt="Target">
 </div>
 
-<audio id="effect-audio" src="..\Sound\short\battle2\爆発2.mp3"></audio>
+<audio id="effect-audio" src="Sound\short\battle2\爆発2.mp3"></audio>
 
 <script>
     const imgInput = document.getElementById('img-url');
+    const imgFile = document.getElementById('img-file');
     const audioInput = document.getElementById('audio-url');
+    const audioFile = document.getElementById('audio-file');
+    
     const targetImg = document.getElementById('target-img');
     const effectAudio = document.getElementById('effect-audio');
     const displayArea = document.getElementById('display-area');
 
     const DEFAULT_IMG = 'https://pbs.twimg.com/media/HA3MhgZaAAcxgLz?format=jpg';
-    const DEFAULT_AUDIO = '..\Sound\short\battle2\爆発2.mp3';
+    const DEFAULT_AUDIO = 'Sound\short\battle2\爆発2.mp3';
 
+    // --- 画像の処理 ---
+    // Web URL入力
     imgInput.addEventListener('input', () => {
         let url = imgInput.value.trim();
         if (url.includes('google.com/imgres')) {
@@ -119,37 +127,52 @@
         targetImg.src = url || DEFAULT_IMG;
     });
 
-    targetImg.addEventListener('error', () => {
-        if (targetImg.src !== DEFAULT_IMG) targetImg.src = DEFAULT_IMG;
+    // ローカルファイル選択
+    imgFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                targetImg.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
     });
 
+    // --- 音声の処理 ---
+    // Web URL入力
     audioInput.addEventListener('input', () => {
         const url = audioInput.value.trim();
         effectAudio.src = url || DEFAULT_AUDIO;
         effectAudio.load();
     });
 
+    // ローカルファイル選択
+    audioFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            effectAudio.src = url;
+            effectAudio.load();
+        }
+    });
+
+    // --- アクション ---
     displayArea.addEventListener('mousedown', (e) => {
-        if (e.target.tagName === 'INPUT') return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') return;
         
         effectAudio.currentTime = 0;
         effectAudio.play().then(() => {
             targetImg.classList.add('active-shake');
-        }).catch(err => {
-            console.error("再生失敗:", err);
-            // ローカルファイルが見つからない場合の警告
-            if (effectAudio.src.endsWith('fire.mp3')) {
-                alert("fire.mp3 が見つかりません。HTMLと同じフォルダにファイルを置いてください。");
-            }
-        });
+        }).catch(err => console.error("再生失敗:", err));
     });
 
     effectAudio.addEventListener('ended', () => {
         targetImg.classList.remove('active-shake');
     });
 
-    effectAudio.addEventListener('error', (e) => {
-        console.warn("Audio load error:", e);
+    targetImg.addEventListener('error', () => {
+        if (targetImg.src !== DEFAULT_IMG) targetImg.src = DEFAULT_IMG;
     });
 </script>
 
