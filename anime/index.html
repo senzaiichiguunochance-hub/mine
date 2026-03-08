@@ -86,8 +86,8 @@
         <input type="text" id="img-url" placeholder="Default: Token Image" spellcheck="false">
     </div>
     <div class="input-group">
-        <label for="audio-url">音源URL (空欄で fire.mp3)</label>
-        <input type="text" id="audio-url" placeholder="Default: fire.mp3" spellcheck="false">
+        <label for="audio-url">音源URL</label>
+        <input type="text" id="audio-url" placeholder="Default: ..\Sound\short\battle2\爆発2.mp3" spellcheck="false">
     </div>
 </div>
 
@@ -95,7 +95,7 @@
     <img id="target-img" src="https://pbs.twimg.com/media/HA3MhgZaAAcxgLz?format=jpg" alt="Target">
 </div>
 
-<audio id="effect-audio" src="fire.mp3"></audio>
+<audio id="effect-audio" src="..\Sound\short\battle2\爆発2.mp3"></audio>
 
 <script>
     const imgInput = document.getElementById('img-url');
@@ -105,7 +105,7 @@
     const displayArea = document.getElementById('display-area');
 
     const DEFAULT_IMG = 'https://pbs.twimg.com/media/HA3MhgZaAAcxgLz?format=jpg';
-    const DEFAULT_AUDIO = 'fire.mp3';
+    const DEFAULT_AUDIO = '..\Sound\short\battle2\爆発2.mp3';
 
     imgInput.addEventListener('input', () => {
         let url = imgInput.value.trim();
