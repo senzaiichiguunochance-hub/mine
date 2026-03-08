@@ -72,15 +72,12 @@
     </style>
 </head>
 <body>
-<a href="..\menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
+<a href="../menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
 <div id="controls">
     <div class="input-group">
-        <label><h1>画像をクリックしてください　<font color=red>※音が出ます</font></h1></label>
+        <h1>画像をクリックしてください　<span style="color: red;">※音が出ます</span></h1>
     </div>
-</div>
-<div id="controls">
     <div class="input-group">
         <label for="img-url">画像URL (Google画像検索URL可)</label>
         <input type="text" id="img-url" placeholder="Default: Token Image" spellcheck="false">
@@ -92,7 +89,7 @@
 </div>
 
 <div id="display-area">
-    <img id="target-img" src="https://pbs.twimg.com/media/HA3MhgZaAAcxgLz?format=jpg" alt="Target">
+    <img id="target-img" src="https://pbs.twimg.com/media/HA3MhgZaAAcxgLz?format=jpg" alt="表示画像">
 </div>
 
 <audio id="effect-audio" src="fire.mp3"></audio>
@@ -114,7 +111,9 @@
                 const urlObj = new URL(url);
                 const extracted = urlObj.searchParams.get('imgurl');
                 if (extracted) url = decodeURIComponent(extracted);
-            } catch (e) {}
+            } catch (_) {
+                /* 不正なURLの場合はそのまま使用 */
+            }
         }
         targetImg.src = url || DEFAULT_IMG;
     });
