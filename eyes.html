@@ -9,12 +9,12 @@
             margin: 0;
             overflow: hidden;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            /* 背景を白に変更 */
             background-color: #ffffff; 
-            font-family: sans-serif;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             user-select: none;
         }
 
@@ -27,7 +27,28 @@
             align-items: center;
         }
 
-        /* 下に重なる目玉（固定） */
+        /* 引用元・説明エリア */
+        .source-info {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 12px 18px;
+            border-radius: 12px;
+            border-left: 4px solid #333;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        .source-info a {
+            color: #007AFF;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        /* 目玉のスタイル */
         #eyes-image {
             position: absolute;
             width: 150px; 
@@ -36,11 +57,10 @@
             pointer-events: none;
             top: 50%;
             left: 50%;
-            /* 瞳の位置調整：画像に合わせて数値をいじってください */
             transform: translate(-50%, -55%); 
         }
 
-        /* 上に重なる顔・涙（動く） */
+        /* 顔の輪郭スタイル */
         #face-outline-image {
             position: absolute;
             width: 320px; 
@@ -48,10 +68,22 @@
             z-index: 10;
             top: 50%;
             left: 50%;
-            /* translateはJS側で制御します */
             transform: translate(-50%, -50%);
-            /* 細かい動きに対応するため transition を少し速めに */
             transition: transform 0.05s linear; 
+        }
+
+        /* 振動アニメーション */
+        @keyframes mild-shake {
+            0% { transform: translate(var(--base-x, -50%), var(--base-y, -50%)) rotate(0deg); }
+            25% { transform: translate(calc(var(--base-x, -50%) - 5px), calc(var(--base-y, -50%) + 3px)) rotate(-2deg); }
+            50% { transform: translate(calc(var(--base-x, -50%) + 5px), calc(var(--base-y, -50%) - 3px)) rotate(2deg); }
+            75% { transform: translate(calc(var(--base-x, -50%) - 3px), calc(var(--base-y, -50%) - 5px)) rotate(-1deg); }
+            100% { transform: translate(var(--base-x, -50%), var(--base-y, -50%)) rotate(0deg); }
+        }
+
+        /* 振動用クラス */
+        .active-vibe {
+            animation: mild-shake 0.1s infinite !important;
         }
 
         /* 操作パネル */
@@ -79,23 +111,30 @@
         .left { grid-column: 1; grid-row: 2; }
         .down { grid-column: 2; grid-row: 2; }
         .right { grid-column: 3; grid-row: 2; }
+
+        /* Vibeボタン：目(E)と顔(F) */
+        .vibe-eye { grid-column: 1; grid-row: 1; font-size: 12px; font-weight: bold; background: rgba(0, 122, 255, 0.8); }
+        .vibe-face { grid-column: 3; grid-row: 1; font-size: 12px; font-weight: bold; background: rgba(220, 50, 50, 0.8); }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-<div>
-キーボードの上下左右でも動かせます<br>
-引用元：<a href="https://www.youtube.com/shorts/7UNGmqEGSC0">美大生の休み時間ｗ</a>
-</div>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
 
 <div id="character-area">
-    <img src="eyes.png" id="eyes-image" alt="eyes">
-    <img src="face.png" id="face-outline-image" alt="face">
+    <img src="eyes.png" id="eyes-image" alt="eyes" style="--base-x: -50%; --base-y: -55%;">
+    <img src="face.png" id="face-outline-image" alt="face" style="--base-x: -50%; --base-y: -50%;">
+</div>
+
+<div class="source-info">
+    🕹️ 矢印キーで操作可能 / Eキー:目振動 / Fキー:顔振動<br>
+    🎬 引用元：<a href="https://www.youtube.com/shorts/7UNGmqEGSC0" target="_blank">美大生の休み時間ｗ</a>
 </div>
 
 <div class="controls">
+    <button class="btn vibe-eye" onclick="toggleVibe('eye')">EYE</button>
     <button class="btn up" onclick="applyMove('up')">▲</button>
+    <button class="btn vibe-face" onclick="toggleVibe('face')">FACE</button>
     <button class="btn left" onclick="applyMove('left')">◀</button>
     <button class="btn down" onclick="applyMove('down')">▼</button>
     <button class="btn right" onclick="applyMove('right')">▶</button>
@@ -103,13 +142,12 @@
 
 <script>
     const face = document.getElementById('face-outline-image');
+    const eyes = document.getElementById('eyes-image');
     let offsetX = 0;
     let offsetY = 0;
 
-    // --- 設定変更ポイント ---
-    const step = 5;      // 移動量
-    const limit = 150;   // 限界
-    // -----------------------
+    const step = 5;
+    const limit = 150;
 
     function applyMove(direction) {
         switch(direction) {
@@ -122,7 +160,18 @@
         offsetX = Math.max(-limit, Math.min(limit, offsetX));
         offsetY = Math.max(-limit, Math.min(limit, offsetY));
         
+        // 顔の位置を更新
+        face.style.setProperty('--base-x', `calc(-50% + ${offsetX}px)`);
+        face.style.setProperty('--base-y', `calc(-50% + ${offsetY}px)`);
         face.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+    }
+
+    function toggleVibe(target) {
+        if (target === 'eye') {
+            eyes.classList.toggle('active-vibe');
+        } else {
+            face.classList.toggle('active-vibe');
+        }
     }
 
     window.addEventListener('keydown', (e) => {
@@ -132,6 +181,10 @@
         if (e.key === 'ArrowDown')  applyMove('down');
         if (e.key === 'ArrowLeft')  applyMove('left');
         if (e.key === 'ArrowRight') applyMove('right');
+        
+        // ショートカットキー設定
+        if (e.key.toLowerCase() === 'e') toggleVibe('eye');
+        if (e.key.toLowerCase() === 'f') toggleVibe('face');
     });
 </script>
 
