@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シュール顔操作</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* 背景を白に変更 */
+            background-color: #ffffff; 
+            font-family: sans-serif;
+            user-select: none;
+        }
+
+        #character-area {
+            position: relative;
+            width: 400px; 
+            height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 下に重なる目玉（固定） */
+        #eyes-image {
+            position: absolute;
+            width: 150px; 
+            height: auto;
+            z-index: 5;
+            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            /* 瞳の位置調整：画像に合わせて数値をいじってください */
+            transform: translate(-50%, -55%); 
+        }
+
+        /* 上に重なる顔・涙（動く） */
+        #face-outline-image {
+            position: absolute;
+            width: 320px; 
+            height: auto;
+            z-index: 10;
+            top: 50%;
+            left: 50%;
+            /* translateはJS側で制御します */
+            transform: translate(-50%, -50%);
+            /* 細かい動きに対応するため transition を少し速めに */
+            transition: transform 0.05s linear; 
+        }
+
+        /* 操作パネル */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(2, 60px);
+            gap: 10px;
+        }
+
+        .btn {
+            width: 60px; height: 60px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none; border-radius: 50%;
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px;
+        }
+        .btn:active { background: #000; }
+        .up { grid-column: 2; }
+        .left { grid-column: 1; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 2; }
+        .right { grid-column: 3; grid-row: 2; }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<div>
+キーボードの上下左右でも動かせます<br>
+引用元：<a href="https://www.youtube.com/shorts/7UNGmqEGSC0">美大生の休み時間ｗ</a>
+</div>
+
+<div id="character-area">
+    <img src="eyes.png" id="eyes-image" alt="eyes">
+    <img src="face.png" id="face-outline-image" alt="face">
+</div>
+
+<div class="controls">
+    <button class="btn up" onclick="applyMove('up')">▲</button>
+    <button class="btn left" onclick="applyMove('left')">◀</button>
+    <button class="btn down" onclick="applyMove('down')">▼</button>
+    <button class="btn right" onclick="applyMove('right')">▶</button>
+</div>
+
+<script>
+    const face = document.getElementById('face-outline-image');
+    let offsetX = 0;
+    let offsetY = 0;
+
+    // --- 設定変更ポイント ---
+    const step = 5;      // 移動量
+    const limit = 150;   // 限界
+    // -----------------------
+
+    function applyMove(direction) {
+        switch(direction) {
+            case 'up':    offsetY -= step; break;
+            case 'down':  offsetY += step; break;
+            case 'left':  offsetX -= step; break;
+            case 'right': offsetX += step; break;
+        }
+        
+        offsetX = Math.max(-limit, Math.min(limit, offsetX));
+        offsetY = Math.max(-limit, Math.min(limit, offsetY));
+        
+        face.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) e.preventDefault();
+        
+        if (e.key === 'ArrowUp')    applyMove('up');
+        if (e.key === 'ArrowDown')  applyMove('down');
+        if (e.key === 'ArrowLeft')  applyMove('left');
+        if (e.key === 'ArrowRight') applyMove('right');
+    });
+</script>
+
+</body>
+</html>
