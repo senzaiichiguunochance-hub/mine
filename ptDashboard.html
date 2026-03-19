@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者詳細ダッシュボード</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --header-height: 12vh;
+            --sidebar-width: 20%;
+            --bg-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            overflow: hidden;
+        }
+
+        /* ヘッダ設定 */
+        header {
+            height: var(--header-height);
+            width: 100%;
+            position: fixed;
+            top: 0;
+            background: #fff;
+            border-bottom: 2px solid var(--border-color);
+            z-index: 1000;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .patient-primary {
+            display: flex;
+            align-items: baseline;
+            gap: 20px;
+        }
+
+        .patient-primary .id-badge {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .patient-primary .name-kanji {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .patient-secondary {
+            font-size: 0.85rem;
+            color: #666;
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        /* ボディ構成 */
+        .container {
+            display: flex;
+            margin-top: var(--header-height);
+            height: calc(100vh - var(--header-height));
+        }
+
+        /* 左側：リスト部 */
+        aside {
+            width: var(--sidebar-width);
+            border-right: 1px solid var(--border-color);
+            background: #fdfdfd;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .nav-category {
+            font-weight: bold;
+            padding: 8px;
+            background: #eee;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+
+        .nav-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #007bff;
+        }
+
+        .nav-item:hover {
+            background: #e9ecef;
+            text-decoration: underline;
+        }
+
+        /* 右側：データ部 */
+        main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: var(--bg-color);
+            scroll-behavior: smooth;
+        }
+
+        section {
+            margin-bottom: 50px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .group-title {
+            border-left: 5px solid #333;
+            padding-left: 10px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .sub-group-title {
+            font-size: 1.2rem;
+            margin: 20px 0 10px 0;
+            color: #444;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="patient-primary">
+        <span class="id-badge">カルテNO: A0001</span>
+        <span class="name-kanji">患者　テスト子</span>
+        <span style="font-size: 1rem;">(カンジャ　テストコ)</span>
+    </div>
+    <div class="patient-secondary">
+        <span>患者ID: 1</span>
+        <span>生年月日: 2000/01/01</span>
+        <span>性別: 女</span>
+        <span>預り金: ¥0</span>
+        <span style="color: red; font-weight: bold;">未収金: ¥10,000</span>
+    </div>
+</header>
+
+<div class="container">
+    <aside>
+        <div class="nav-category">予約</div>
+        <div class="nav-item" onclick="scrollToId('reserve-date')">予約年月日</div>
+        <div class="nav-item" onclick="scrollToId('reserve-month')">予約年月</div>
+        <div class="nav-item" onclick="scrollToId('reserve-year')">予約年</div>
+
+        <div class="nav-category">売上</div>
+        <div class="nav-item" onclick="scrollToId('sales-date')">売上年月日</div>
+        <div class="nav-item" onclick="scrollToId('sales-month')">売上年月</div>
+        <div class="nav-item" onclick="scrollToId('sales-year')">売上年</div>
+        <div class="nav-item" onclick="scrollToId('sales-multi')">複数売上</div>
+
+        <div class="nav-category">役務</div>
+        <div class="nav-item" onclick="scrollToId('service-list')">役務一覧</div>
+    </aside>
+
+    <main id="main-content">
+        <section id="reserve-section">
+            <h2 class="group-title">予約</h2>
+            <div id="reserve-date">
+                <h3 class="sub-group-title">予約年月日</h3>
+                <div class="chart-container"><canvas id="chart-reserve-date"></canvas></div>
+            </div>
+            <div id="reserve-month">
+                <h3 class="sub-group-title">予約年月</h3>
+                <div class="chart-container"><canvas id="chart-reserve-month"></canvas></div>
+            </div>
+            <div id="reserve-year">
+                <h3 class="sub-group-title">予約年</h3>
+                <div class="chart-container"><canvas id="chart-reserve-year"></canvas></div>
+            </div>
+        </section>
+
+        <section id="sales-section">
+            <h2 class="group-title">売上</h2>
+            <div id="sales-date">
+                <h3 class="sub-group-title">売上年月日</h3>
+                <div class="chart-container"><canvas id="chart-sales-date"></canvas></div>
+            </div>
+            <div id="sales-month">
+                <h3 class="sub-group-title">売上年月</h3>
+                <div class="chart-container"><canvas id="chart-sales-month"></canvas></div>
+            </div>
+            <div id="sales-year">
+                <h3 class="sub-group-title">売上年</h3>
+                <div class="chart-container"><canvas id="chart-sales-year"></canvas></div>
+            </div>
+            <div id="sales-multi">
+                <h3 class="sub-group-title">複数売上 (内容別)</h3>
+                <div id="multi-sales-charts"></div>
+            </div>
+        </section>
+
+        <section id="service-section">
+            <h2 class="group-title">役務</h2>
+            <div id="service-list">
+                <h3 class="sub-group-title">役務完了状況</h3>
+                <div id="service-charts"></div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // --- スクロール関数 ---
+    function scrollToId(id) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    // --- データ定義 ---
+    const reservations = [
+        { id: 1, date: '2026/01/01', detail: 'ヒアルロン酸注入' },
+        { id: 2, date: '2026/01/02', detail: 'ボトックス注射' }
+    ];
+
+    const salesDetails = [
+        { id: 1, date: '2026/01/01', type: 'コース', item: 'ヒアルロン酸注入', price: 7000 },
+        { id: 1, date: '2026/01/01', type: '物品', item: '脱脂綿', price: 3000 },
+        { id: 2, date: '2026/01/01', type: '物品', item: 'ミネラルウォーター', price: 1000 },
+        { id: 3, date: '2026/01/02', type: '施術', item: 'ボトックス注射', price: 20000 }
+    ];
+
+    const services = [
+        { id: 1, item: 'ヒアルロン酸注入', total: 10, done: 3, details: [
+            { count: 1, date: '2020/01/01' }, { count: 2, date: '2020/02/02' }, { count: 3, date: '2020/03/03' }
+        ]},
+        { id: 2, item: 'スッキリ小顔フェイシャル', total: 3, done: 1, details: [
+            { count: 1, date: '2021/01/01' }
+        ]},
+        { id: 3, item: 'スペシャル美肌コース', total: 2, done: 2, details: [
+            { count: 1, date: '2022/01/01' }, { count: 2, date: '2022/02/01' }
+        ]}
+    ];
+
+    // --- 補助関数 ---
+    const getChartOptions = (tooltips) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: (context) => tooltips[context.dataIndex]
+                }
+            }
+        },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    });
+
+    // --- 予約グラフ ---
+    // 年月日
+    new Chart(document.getElementById('chart-reserve-date'), {
+        type: 'bar',
+        data: {
+            labels: reservations.map(r => r.date),
+            datasets: [{ label: '予約数', data: reservations.map(() => 1), backgroundColor: '#007bff' }]
+        },
+        options: getChartOptions(reservations.map(r => r.detail))
+    });
+
+    // 年月
+    const reserveMonths = ['2026/01'];
+    new Chart(document.getElementById('chart-reserve-month'), {
+        type: 'bar',
+        data: {
+            labels: reserveMonths,
+            datasets: [{ label: '予約数', data: [2], backgroundColor: '#17a2b8' }]
+        },
+        options: getChartOptions(['2026/01/01:ヒアルロン酸注入, 2026/01/02:ボトックス注射'])
+    });
+
+    // 年
+    new Chart(document.getElementById('chart-reserve-year'), {
+        type: 'bar',
+        data: {
+            labels: ['2026'],
+            datasets: [{ label: '予約数', data: [2], backgroundColor: '#6c757d' }]
+        },
+        options: getChartOptions(['2026/01/01:ヒアルロン酸注入, 2026/01/02:ボトックス注射'])
+    });
+
+    // --- 売上グラフ ---
+    const salesAgg = {
+        '2026/01/01': 11000,
+        '2026/01/02': 20000
+    };
+
+    const salesDateTooltips = [
+        "ヒアルロン酸注入:7000, 脱脂綿:3000, ミネラルウォーター:1000",
+        "ボトックス注射:20000"
+    ];
+
+    new Chart(document.getElementById('chart-sales-date'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(salesAgg),
+            datasets: [{ label: '売上金額', data: Object.values(salesAgg), backgroundColor: '#28a745' }]
+        },
+        options: getChartOptions(salesDateTooltips)
+    });
+
+    // 売上年月・年は簡易的に実装（同様のロジック）
+    new Chart(document.getElementById('chart-sales-month'), {
+        type: 'bar',
+        data: { labels: ['2026/01'], datasets: [{ label: '売上金額', data: [31000], backgroundColor: '#20c997' }] },
+        options: getChartOptions(["2026/01/01:ヒアルロン酸注入... 他"])
+    });
+    new Chart(document.getElementById('chart-sales-year'), {
+        type: 'bar',
+        data: { labels: ['2026'], datasets: [{ label: '売上金額', data: [31000], backgroundColor: '#343a40' }] },
+        options: getChartOptions(["2026/01/01:ヒアルロン酸注入... 他"])
+    });
+
+    // --- 複数売上 (内容別) ---
+    // 同一内容が2件以上のもの（今回のデータにはないため、仕様に従いロジックを準備。例として脱脂綿等があれば表示）
+    // 提示データでは重複がないため、全項目を出すか空にするかですが、構造のみ作成
+    const multiSalesContainer = document.getElementById('multi-sales-charts');
+    // 仮に「ヒアルロン酸注入」が複数あると想定した場合のループ処理
+    ["ヒアルロン酸注入", "ボトックス注射"].forEach(itemName => {
+        const div = document.createElement('div');
+        div.innerHTML = `<p style="font-size:0.9rem; margin-bottom:5px;">${itemName}</p><div class="chart-container"><canvas id="sales-item-${itemName}"></canvas></div>`;
+        multiSalesContainer.appendChild(div);
+        
+        const filtered = salesDetails.filter(d => d.item === itemName);
+        new Chart(document.getElementById(`sales-item-${itemName}`), {
+            type: 'bar',
+            data: {
+                labels: filtered.map(f => f.date),
+                datasets: [{ label: '金額', data: filtered.map(f => f.price), backgroundColor: '#ffc107' }]
+            },
+            options: getChartOptions(filtered.map(f => `${f.date}: ¥${f.price}`))
+        });
+    });
+
+    // --- 役務グラフ ---
+    const serviceContainer = document.getElementById('service-charts');
+    services.forEach(s => {
+        const div = document.createElement('div');
+        div.innerHTML = `<p style="font-weight:bold;">${s.item} (全${s.total}回)</p><div class="chart-container"><canvas id="service-chart-${s.id}"></canvas></div>`;
+        serviceContainer.appendChild(div);
+
+        new Chart(document.getElementById(`service-chart-${s.id}`), {
+            type: 'bar',
+            data: {
+                labels: s.details.map(d => d.date),
+                datasets: [{ label: '完了', data: s.details.map(() => 1), backgroundColor: '#6f42c1' }]
+            },
+            options: getChartOptions(s.details.map(d => `第${d.count}回`))
+        });
+    });
+</script>
+
+</body>
+</html>
