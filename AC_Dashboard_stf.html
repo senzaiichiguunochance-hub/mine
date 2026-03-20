@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>スタッフ総合分析ダッシュボード - ツールチップ合計追加版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --h-height: 10vh; --s-width: 240px; }
+
+        /* --- カラーテーマ定義 --- */
+        .theme-pretty { --bg-m: #e6fffa; --bg-c: #ffffff; --bg-h: #38b2ac; --bg-s: #f0fff4; --text: #234e52; --accent: #319795; --border: #b2f5ea; --h-text: #fff; }
+        .theme-cute { --bg-m: #fff5f7; --bg-c: #ffffff; --bg-h: #fbb6ce; --bg-s: #fff0f6; --text: #702459; --accent: #d53f8c; --border: #fed7e2; --h-text: #fff; }
+        .theme-cool { --bg-m: #0a192f; --bg-c: #112240; --bg-h: #172a45; --bg-s: #112240; --text: #ccd6f6; --accent: #64ffda; --border: #233554; --h-text: #64ffda; }
+        .theme-stylish { --bg-m: #000; --bg-c: #111; --bg-h: #1a1a1a; --bg-s: #000; --text: #fff; --accent: #ccff00; --border: #333; --h-text: #ccff00; }
+        .theme-white { --bg-m: #fff; --bg-c: #fff; --bg-h: #f8f9fa; --bg-s: #f8f9fa; --text: #000; --accent: #007bff; --border: #ddd; --h-text: #333; }
+        .theme-dark { --bg-m: #222; --bg-c: #333; --bg-h: #111; --bg-s: #222; --text: #eee; --accent: #bb86fc; --border: #444; --h-text: #bb86fc; }
+
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg-m); color: var(--text); overflow: hidden; transition: 0.3s; }
+        header { height: var(--h-height); width: 100%; position: fixed; top: 0; z-index: 1000; background: var(--bg-h); color: var(--h-text); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; box-sizing: border-box; border-bottom: 2px solid var(--border); }
+        .theme-selector { background: #fff !important; color: #000 !important; padding: 5px 10px; border: 2px solid #000; border-radius: 4px; font-weight: bold; cursor: pointer; }
+
+        .container { display: flex; margin-top: var(--h-height); height: 90vh; }
+        aside { width: var(--s-width); border-right: 1px solid var(--border); background: var(--bg-s); overflow-y: auto; padding: 10px; flex-shrink: 0; }
+        main { flex: 1; overflow-y: auto; padding: 30px; scroll-behavior: smooth; }
+        
+        section { margin-bottom: 50px; background: var(--bg-c); padding: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .chart-box { height: 280px; margin-bottom: 30px; width: 100%; }
+        
+        .nav-l { font-weight: bold; padding: 12px 5px 5px; border-bottom: 1px solid var(--border); margin-top: 10px; }
+        .nav-m { padding: 6px 15px; cursor: pointer; color: var(--accent); font-weight: bold; font-size: 0.9rem; }
+        .nav-s { padding: 4px 30px; cursor: pointer; font-size: 0.8rem; opacity: 0.7; }
+        .nav-s:hover, .nav-m:hover { opacity: 1; text-decoration: underline; }
+
+        h2 { border-left: 6px solid var(--accent); padding-left: 15px; margin: 0 0 25px 0; }
+        h3 { background: rgba(128,128,128,0.1); padding: 8px 12px; border-radius: 6px; font-size: 1rem; margin-top: 30px; display: flex; justify-content: space-between; }
+        h4 { color: var(--accent); margin: 15px 0 10px 10px; font-size: 0.9rem; border-bottom: 1px dashed var(--accent); padding-bottom: 3px; }
+        .total-badge { font-weight: bold; color: var(--accent); }
+    </style>
+</head>
+<body class="theme-pretty">
+
+<header>
+    <div>
+        <div style="font-size: 0.85rem; opacity: 0.9;">スタッフID: 1</div>
+        <div style="font-size: 1.4rem; font-weight: bold;">職員　テスト子</div>
+    </div>
+    <select id="theme-select" class="theme-selector" onchange="applyTheme(this.value)">
+        <option value="theme-pretty">キレイ</option>
+        <option value="theme-cute">カワイイ</option>
+        <option value="theme-cool">クール</option>
+        <option value="theme-stylish">カッコイイ</option>
+        <option value="theme-white">ホワイト</option>
+        <option value="theme-dark">ダーク</option>
+    </select>
+</header>
+
+<div class="container">
+    <aside id="side-nav"></aside>
+    <main id="main-content"></main>
+</div>
+
+<script>
+    function applyTheme(t) { 
+        document.body.className = t; 
+        localStorage.setItem('staff-theme', t); 
+    }
+
+    // --- 1. データ準備 ---
+    const contents = ['ヒアルロン酸注入', 'ボトックス注射', '脱脂綿', 'ミネラルウォーター', '美肌フェイシャル'];
+    const dataRes = []; 
+    const dataSal = [];
+    const dataSvcRaw = []; 
+
+    for(let i=0; i<300; i++) {
+        const y = 2025 + Math.floor(Math.random()*2);
+        const m = Math.floor(Math.random()*12) + 1;
+        const d = Math.floor(Math.random()*28) + 1;
+        const ds = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+        const ym = ds.substring(0,7);
+        const pId = 100 + Math.floor(Math.random()*900);
+
+        dataRes.push({ date: ds, ym, y: String(y), detailCount: Math.floor(Math.random()*4)+1 });
+        dataSal.push({ date: ds, ym, y: String(y), item: contents[Math.floor(Math.random()*contents.length)], totalAmount: Math.floor(Math.random()*50+1)*1000, detailCount: Math.floor(Math.random()*3)+1 });
+        dataSvcRaw.push({ date: ds, content: contents[Math.floor(Math.random()*2)], patientId: pId });
+    }
+
+    const svcList = [...new Set(dataSvcRaw.map(s => s.content))];
+    const go = (id) => document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+
+    window.onload = () => {
+        const savedTheme = localStorage.getItem('staff-theme') || 'theme-pretty';
+        document.getElementById('theme-select').value = savedTheme;
+        applyTheme(savedTheme);
+
+        const side = document.getElementById('side-nav');
+        const main = document.getElementById('main-content');
+
+        const totalResCount = dataRes.length;
+        const totalSalAmount = dataSal.reduce((s,v) => s + v.totalAmount, 0);
+        const totalSvcCount = dataSvcRaw.length;
+
+        const menu = [
+            { title: '予約', id: 'sec-res', subs: [
+                {n:'予約年月日', id:'rd', suffix: `(${totalResCount}件)`}, 
+                {n:'予約年月', id:'rm', suffix: `(${totalResCount}件)`}, 
+                {n:'予約年', id:'ry', suffix: `(${totalResCount}件)`}
+            ]},
+            { title: '売上', id: 'sec-sal', subs: [
+                {n:'売上年月日', id:'sd', suffix: `(${totalSalAmount.toLocaleString()}円)`}, 
+                {n:'売上年月', id:'sm', suffix: `(${totalSalAmount.toLocaleString()}円)`}, 
+                {n:'売上年', id:'sy', suffix: `(${totalSalAmount.toLocaleString()}円)`},
+                {n:'複数売上', id:'smulti', suffix: `(${totalSalAmount.toLocaleString()}円)`, children: contents}
+            ]},
+            { title: '役務', id: 'sec-svc', subs: [
+                {n:'役務完了実績', id:'svcl', suffix: `(${totalSvcCount}回)`, children: svcList}
+            ]}
+        ];
+
+        menu.forEach(cat => {
+            side.innerHTML += `<div class="nav-l">${cat.title}</div>`;
+            let sHtml = `<section id="${cat.id}"><h2>${cat.title}</h2>`;
+            cat.subs.forEach(sub => {
+                side.innerHTML += `<div class="nav-m" onclick="go('${sub.id}')">${sub.n}</div>`;
+                sHtml += `<div id="${sub.id}"><h3><span>${sub.n}</span><span class="total-badge">${sub.suffix}</span></h3>`;
+                if(sub.children) {
+                    sub.children.forEach(c => {
+                        const cid = `target-${sub.id}-${c.replace(/\s+/g,'')}`;
+                        let itemLabel = "";
+                        if(sub.id === 'smulti') {
+                            const sum = dataSal.filter(s => s.item === c).reduce((s,v) => s + v.totalAmount, 0);
+                            itemLabel = `（${sum.toLocaleString()}円）`;
+                        } else if(sub.id === 'svcl') {
+                            const count = dataSvcRaw.filter(s => s.content === c).length;
+                            itemLabel = `（${count}回）`;
+                        }
+                        side.innerHTML += `<div class="nav-s" onclick="go('${cid}')">・ ${c}</div>`;
+                        sHtml += `<div id="${cid}"><h4>▶ ${c} ${itemLabel}</h4><div class="chart-box"><canvas id="c-${cid}"></canvas></div></div>`;
+                    });
+                } else {
+                    sHtml += `<div class="chart-box"><canvas id="c-${sub.id}"></canvas></div>`;
+                }
+                sHtml += `</div>`;
+            });
+            sHtml += `</section>`;
+            main.innerHTML += sHtml;
+        });
+
+        renderAll();
+    };
+
+    function renderAll() {
+        const createChart = (id, labels, data, tooltips, color, yLabel) => {
+            const ctx = document.getElementById(`c-${id}`);
+            if(!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { 
+                            displayColors: false, 
+                            callbacks: { label: (ctx) => Array.isArray(tooltips[ctx.dataIndex]) ? tooltips[ctx.dataIndex] : [tooltips[ctx.dataIndex]] } 
+                        } 
+                    },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: yLabel } } }
+                }
+            });
+        };
+
+        const resAgg = (k) => {
+            const m = {};
+            dataRes.forEach(r => { if(!m[r[k]]) m[r[k]] = { c: 0, d: 0 }; m[r[k]].c++; m[r[k]].d += r.detailCount; });
+            const ks = Object.keys(m).sort();
+            return { ks, counts: ks.map(x=>m[x].c), tips: ks.map(x=>[`予約数: ${m[x].c}件`, `予約明細: ${m[x].d}件`]) };
+        };
+        createChart('rd', resAgg('date').ks.slice(-15), resAgg('date').counts.slice(-15), resAgg('date').tips.slice(-15), '#3182ce', '件数');
+        createChart('rm', resAgg('ym').ks, resAgg('ym').counts, resAgg('ym').tips, '#805ad5', '件数');
+        createChart('ry', resAgg('y').ks, resAgg('y').counts, resAgg('y').tips, '#4a5568', '件数');
+
+        const salAgg = (k) => {
+            const m = {};
+            dataSal.forEach(s => { if(!m[s[k]]) m[s[k]] = { a: 0, s: 0, d: 0 }; m[s[k]].a += s.totalAmount; m[s[k]].s++; m[s[k]].d += s.detailCount; });
+            const ks = Object.keys(m).sort();
+            return { ks, amts: ks.map(x=>m[x].a), tips: ks.map(x=>[`金額: ¥${m[x].a.toLocaleString()}`, `売上数: ${m[x].s}件`, `明細数: ${m[x].d}件`]) };
+        };
+        createChart('sd', salAgg('date').ks.slice(-15), salAgg('date').amts.slice(-15), salAgg('date').tips.slice(-15), '#38a169', '金額(円)');
+        createChart('sm', salAgg('ym').ks, salAgg('ym').amts, salAgg('ym').tips, '#2c7a7b', '金額(円)');
+        createChart('sy', salAgg('y').ks, salAgg('y').amts, salAgg('y').tips, '#2d3748', '金額(円)');
+
+        // --- 複数売上 (ツールチップに合計金額を追加) ---
+        contents.forEach(name => {
+            const filtered = dataSal.filter(s => s.item === name);
+            const m = {};
+            filtered.forEach(f => { 
+                if(!m[f.ym]) m[f.ym] = { a: 0, logs: [] }; 
+                m[f.ym].a += f.totalAmount; 
+                m[f.ym].logs.push(`${f.date}: ¥${f.totalAmount.toLocaleString()}`); 
+            });
+            const ks = Object.keys(m).sort();
+            
+            // ツールチップ用データの生成
+            const tooltips = ks.map(x => {
+                const header = [`合計金額: ¥${m[x].a.toLocaleString()}`];
+                return header.concat(m[x].logs);
+            });
+
+            createChart(`target-smulti-${name.replace(/\s+/g,'')}`, ks, ks.map(x=>m[x].a), tooltips, '#d69e2e', '金額(円)');
+        });
+
+        svcList.forEach(name => {
+            const filtered = dataSvcRaw.filter(s => s.content === name);
+            const m = {};
+            filtered.forEach(f => { if(!m[f.date]) m[f.date] = { c: 0, p: [] }; m[f.date].c++; m[f.date].p.push(String(f.patientId)); });
+            const ks = Object.keys(m).sort();
+            createChart(`target-svcl-${name.replace(/\s+/g,'')}`, ks, ks.map(x=>m[x].c), ks.map(x => [`完了回数: ${m[x].c}回`, `患者ID`].concat(m[x].p)), '#e53e3e', '完了回数');
+        });
+    }
+</script>
+</body>
+</html>

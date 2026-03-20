@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>患者ダッシュボード - 詳細集計版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --header-height: 12vh; --sidebar-width: 260px; }
+        .theme-pretty { --bg-main: #e6fffa; --bg-card: #ffffff; --bg-header: #38b2ac; --bg-side: #f0fff4; --text: #234e52; --accent: #319795; --border: #b2f5ea; --h-text: #fff; }
+        .theme-cute { --bg-main: #fff5f7; --bg-card: #ffffff; --bg-header: #fbb6ce; --bg-side: #fff0f6; --text: #702459; --accent: #d53f8c; --border: #fed7e2; --h-text: #fff; }
+        .theme-cool { --bg-main: #0a192f; --bg-card: #112240; --bg-header: #172a45; --bg-side: #112240; --text: #ccd6f6; --accent: #64ffda; --border: #233554; --h-text: #64ffda; }
+        .theme-stylish { --bg-main: #000; --bg-card: #111; --bg-header: #1a1a1a; --bg-side: #000; --text: #fff; --accent: #ccff00; --border: #333; --h-text: #ccff00; }
+        .theme-white { --bg-main: #fff; --bg-card: #fff; --bg-header: #f8f9fa; --bg-side: #f8f9fa; --text: #000; --accent: #007bff; --border: #ddd; --h-text: #333; }
+        .theme-dark { --bg-main: #222; --bg-card: #333; --bg-header: #111; --bg-side: #222; --text: #eee; --accent: #bb86fc; --border: #444; --h-text: #bb86fc; }
+
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; background: var(--bg-main); color: var(--text); overflow: hidden; transition: 0.3s; }
+        header { height: var(--header-height); width: 100%; position: fixed; top: 0; background: var(--bg-header); color: var(--h-text); border-bottom: 2px solid var(--border); z-index: 1000; padding: 10px 20px; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; }
+        .theme-selector { background: #fff !important; color: #000 !important; padding: 5px 10px; border: 2px solid #000; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        
+        .container { display: flex; margin-top: var(--header-height); height: calc(100vh - var(--header-height)); }
+        aside { width: var(--sidebar-width); border-right: 1px solid var(--border); background: var(--bg-side); overflow-y: auto; padding: 10px; flex-shrink: 0; }
+        .nav-cat { font-weight: bold; padding: 12px 5px 5px; border-bottom: 1px solid var(--border); margin-bottom: 5px; }
+        .nav-sub { padding: 4px 10px; cursor: pointer; font-size: 0.9rem; color: var(--accent); font-weight: bold; }
+        .nav-child { padding: 2px 25px; cursor: pointer; font-size: 0.8rem; opacity: 0.7; }
+        .nav-child:hover { opacity: 1; text-decoration: underline; }
+
+        main { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+        section { margin-bottom: 50px; background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .chart-box { margin-bottom: 30px; height: 260px; width: 100%; }
+        h2 { border-left: 6px solid var(--accent); padding-left: 12px; }
+        h3 { background: rgba(128,128,128,0.1); padding: 5px 10px; border-radius: 4px; font-size: 1rem; display: flex; justify-content: space-between; }
+        .total-badge { font-weight: bold; color: var(--accent); }
+    </style>
+</head>
+<body class="theme-white">
+
+<header>
+    <div>
+        <div style="font-size: 1.4rem; font-weight: bold;">A0001 患者 テスト子</div>
+        <div style="font-size: 0.8rem; opacity: 0.9;">患者ID: 123 | 2000/01/01生 | 女 | 未収金: 10,000</div>
+    </div>
+    <select id="theme-select" class="theme-selector" onchange="applyTheme(this.value)">
+        <option value="theme-pretty">キレイ</option>
+        <option value="theme-cute">カワイイ</option>
+        <option value="theme-cool">クール</option>
+        <option value="theme-stylish">カッコイイ</option>
+        <option value="theme-white">ホワイト</option>
+        <option value="theme-dark">ダーク</option>
+    </select>
+</header>
+
+<div class="container">
+    <aside id="sidebar"></aside>
+    <main id="main-content"></main>
+</div>
+
+<script>
+    // --- 1. データ準備 ---
+    const productNames = ['ヒアルロン酸注入', 'ボトックス注射', '脱脂綿', 'ミネラルウォーター', '美肌フェイシャル'];
+    const dataRecords = [];
+    for(let i=0; i<300; i++) {
+        const y = 2024 + Math.floor(Math.random()*3);
+        const m = Math.floor(Math.random()*12);
+        const d = Math.floor(Math.random()*28)+1;
+        const dateStr = `${y}/${String(m+1).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+        dataRecords.push({
+            date: dateStr,
+            year: String(y),
+            month: dateStr.substring(0,7),
+            item: productNames[Math.floor(Math.random()*productNames.length)],
+            price: Math.floor(Math.random()*50+1)*1000
+        });
+    }
+
+    // 役務データ（総回数を追加）
+    const serviceRecords = [
+        { name: 'ヒアルロン酸注入', history: ['2024/02/01', '2024/06/15', '2025/01/10'], total: 5 },
+        { name: '美肌フェイシャル', history: ['2025/12/20', '2026/03/01'], total: 10 }
+    ];
+
+    function applyTheme(t) { document.body.className = t; localStorage.setItem('user-theme', t); }
+    const go = (id) => { const el = document.getElementById(id); if(el) el.scrollIntoView({ behavior: 'smooth' }); };
+
+    window.onload = () => {
+        const saved = localStorage.getItem('user-theme') || 'theme-pretty';
+        document.getElementById('theme-select').value = saved;
+        applyTheme(saved);
+
+        const sidebar = document.getElementById('sidebar');
+        const main = document.getElementById('main-content');
+
+        const totalCount = dataRecords.length;
+        const totalAmount = dataRecords.reduce((sum, r) => sum + r.price, 0);
+        const totalSvcCount = serviceRecords.reduce((sum, s) => sum + s.history.length, 0);
+
+        const menuStructure = [
+            { title: '予約', id: 'sec-res', subs: [
+                { name: '予約年月日', id: 'res-date', suffix: `(${totalCount}件)` },
+                { name: '予約年月', id: 'res-month', suffix: `(${totalCount}件)` },
+                { name: '予約年', id: 'res-year', suffix: `(${totalCount}件)` }
+            ]},
+            { title: '売上', id: 'sec-sal', subs: [
+                { name: '売上年月日', id: 'sal-date', suffix: `(${totalAmount.toLocaleString()}円)` },
+                { name: '売上年月', id: 'sal-month', suffix: `(${totalAmount.toLocaleString()}円)` },
+                { name: '売上年', id: 'sal-year', suffix: `(${totalAmount.toLocaleString()}円)` },
+                { name: '複数売上', id: 'sal-multi', suffix: `(${totalAmount.toLocaleString()}円)`, children: productNames }
+            ]},
+            { title: '役務', id: 'sec-svc', subs: [
+                { name: '役務完了状況', id: 'svc-list', suffix: `(${totalSvcCount}回)`, children: serviceRecords.map(s => s.name) }
+            ]}
+        ];
+
+        menuStructure.forEach(cat => {
+            const catHeader = document.createElement('div');
+            catHeader.className = 'nav-cat';
+            catHeader.innerText = cat.title;
+            sidebar.appendChild(catHeader);
+
+            const section = document.createElement('section');
+            section.id = cat.id;
+            section.innerHTML = `<h2>${cat.title}</h2>`;
+            main.appendChild(section);
+
+            cat.subs.forEach(sub => {
+                const subItem = document.createElement('div');
+                subItem.className = 'nav-sub';
+                subItem.innerText = sub.name;
+                subItem.onclick = () => go(sub.id);
+                sidebar.appendChild(subItem);
+
+                const subContainer = document.createElement('div');
+                subContainer.id = sub.id;
+                subContainer.innerHTML = `<h3><span>${sub.name}</span><span class="total-badge">${sub.suffix}</span></h3>`;
+                section.appendChild(subContainer);
+
+                if (sub.children) {
+                    sub.children.forEach(child => {
+                        const childId = `target-${sub.id}-${child.replace(/\s+/g, '')}`;
+                        let itemTotal = "";
+                        
+                        if(sub.id === 'sal-multi') {
+                            const sum = dataRecords.filter(r => r.item === child).reduce((s, v) => s + v.price, 0);
+                            itemTotal = `（${sum.toLocaleString()}円）`;
+                        } else if(sub.id === 'svc-list') {
+                            const svc = serviceRecords.find(s => s.name === child);
+                            // 完了回数/総回数の表示に変更
+                            itemTotal = svc ? `（${svc.history.length} / ${svc.total}回）` : `（0回）`;
+                        }
+
+                        const childItem = document.createElement('div');
+                        childItem.className = 'nav-child';
+                        childItem.innerText = `・ ${child}`;
+                        childItem.onclick = (e) => { e.stopPropagation(); go(childId); };
+                        sidebar.appendChild(childItem);
+
+                        const childBox = document.createElement('div');
+                        childBox.id = childId;
+                        childBox.innerHTML = `<h4 style="margin:10px 0 5px 15px; color:var(--accent);">▶ ${child} ${itemTotal}</h4><div class="chart-box"><canvas id="canvas-${childId}"></canvas></div>`;
+                        subContainer.appendChild(childBox);
+                    });
+                } else {
+                    const chartBox = document.createElement('div');
+                    chartBox.className = 'chart-box';
+                    chartBox.innerHTML = `<canvas id="canvas-${sub.id}"></canvas>`;
+                    subContainer.appendChild(chartBox);
+                }
+            });
+        });
+
+        drawAllCharts();
+    };
+
+    function drawAllCharts() {
+        const getAggregatedData = (key) => {
+            const map = {};
+            dataRecords.forEach(r => {
+                const k = r[key];
+                if(!map[k]) map[k] = [];
+                map[k].push(r);
+            });
+            const sortedKeys = Object.keys(map).sort();
+            return {
+                labels: sortedKeys,
+                counts: sortedKeys.map(k => map[k].length),
+                prices: sortedKeys.map(k => map[k].reduce((sum, cur) => sum + cur.price, 0)),
+                // ツールチップに合計金額を挿入するよう修正
+                tooltips: sortedKeys.map(k => {
+                    const total = map[k].reduce((sum, cur) => sum + cur.price, 0);
+                    const header = [`合計金額: ¥${total.toLocaleString()}`];
+                    const details = map[k].map(r => `${r.date} : ${r.item} (¥${r.price.toLocaleString()})`).slice(0, 10);
+                    return header.concat(details);
+                })
+            };
+        };
+
+        const render = (id, labels, data, tips, color) => {
+            const ctx = document.getElementById(id);
+            if (!ctx) return;
+            new Chart(ctx, {
+                type: 'bar',
+                data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { 
+                            displayColors: false, 
+                            callbacks: { label: (c) => tips[c.dataIndex] } 
+                        } 
+                    }
+                }
+            });
+        };
+
+        // 予約・売上グラフの描画
+        const resData = getAggregatedData('date');
+        render('canvas-res-date', resData.labels.slice(-15), resData.counts.slice(-15), resData.tooltips.slice(-15), '#3182ce');
+        render('canvas-res-month', getAggregatedData('month').labels, getAggregatedData('month').counts, getAggregatedData('month').tooltips, '#805ad5');
+        render('canvas-res-year', getAggregatedData('year').labels, getAggregatedData('year').counts, getAggregatedData('year').tooltips, '#4a5568');
+
+        render('canvas-sal-date', getAggregatedData('date').labels.slice(-15), getAggregatedData('date').prices.slice(-15), getAggregatedData('date').tooltips.slice(-15), '#38a169');
+        render('canvas-sal-month', getAggregatedData('month').labels, getAggregatedData('month').prices, getAggregatedData('month').tooltips, '#2c7a7b');
+        render('canvas-sal-year', getAggregatedData('year').labels, getAggregatedData('year').prices, getAggregatedData('year').tooltips, '#2d3748');
+
+        // 複数売上個別（ツールチップは既存のまま：金額のみ）
+        productNames.forEach(name => {
+            const filtered = dataRecords.filter(r => r.item === name).slice(-10);
+            const childId = `target-sal-multi-${name.replace(/\s+/g, '')}`;
+            render(`canvas-${childId}`, filtered.map(f=>f.date), filtered.map(f=>f.price), filtered.map(f=>[`¥${f.price.toLocaleString()}`]), '#d69e2e');
+        });
+
+        // 役務完了状況
+        serviceRecords.forEach(s => {
+            const childId = `target-svc-list-${s.name.replace(/\s+/g, '')}`;
+            render(`canvas-${childId}`, s.history, s.history.map(()=>1), s.history.map((d, i)=>[`${i+1}回目完了`]), '#e53e3e');
+        });
+    }
+</script>
+</body>
+</html>
