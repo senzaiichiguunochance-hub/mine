@@ -29,7 +29,15 @@
         .chart-box { margin-bottom: 30px; height: 260px; width: 100%; }
         h2 { border-left: 6px solid var(--accent); padding-left: 12px; }
         h3 { background: rgba(128,128,128,0.1); padding: 8px 12px; border-radius: 6px; font-size: 1rem; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 30px; }
-        .total-badge { font-weight: bold; color: var(--accent); }
+        .total-badge {
+            font-weight: bold;
+            color: #fff;
+            background: #2c7a7b; /* 固定色にすると安定 */
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* ちょい浮かせる */
+        }
     </style>
 </head>
 <body class="theme-white">
@@ -95,18 +103,18 @@
 
         const menuStructure = [
             { title: '予約', id: 'sec-res', subs: [
-                { name: '予約年月日', id: 'res-date', suffix: `(${totalCount}件)` },
-                { name: '予約年月', id: 'res-month', suffix: `(${totalCount}件)` },
-                { name: '予約年', id: 'res-year', suffix: `(${totalCount}件)` }
+                { name: '予約年月日', id: 'res-date', suffix: `${totalCount}件` },
+                { name: '予約年月', id: 'res-month', suffix: `${totalCount}件` },
+                { name: '予約年', id: 'res-year', suffix: `${totalCount}件` }
             ]},
             { title: '売上', id: 'sec-sal', subs: [
-                { name: '売上年月日', id: 'sal-date', suffix: `(${totalAmount.toLocaleString()}円)` },
-                { name: '売上年月', id: 'sal-month', suffix: `(${totalAmount.toLocaleString()}円)` },
-                { name: '売上年', id: 'sal-year', suffix: `(${totalAmount.toLocaleString()}円)` },
-                { name: '複数売上', id: 'sal-multi', suffix: `(${totalAmount.toLocaleString()}円)`, children: productNames }
+                { name: '売上年月日', id: 'sal-date', suffix: `${totalAmount.toLocaleString()}円` },
+                { name: '売上年月', id: 'sal-month', suffix: `${totalAmount.toLocaleString()}円` },
+                { name: '売上年', id: 'sal-year', suffix: `${totalAmount.toLocaleString()}円` },
+                { name: '複数売上', id: 'sal-multi', suffix: `${totalAmount.toLocaleString()}円`, children: productNames }
             ]},
             { title: '役務', id: 'sec-svc', subs: [
-                { name: '役務完了状況', id: 'svc-list', suffix: `(${totalSvcCount}回)`, children: serviceRecords.map(s => s.name) }
+                { name: '役務完了状況', id: 'svc-list', suffix: `${totalSvcCount}回`, children: serviceRecords.map(s => s.name) }
             ]}
         ];
 
@@ -140,11 +148,10 @@
                         
                         if(sub.id === 'sal-multi') {
                             const sum = dataRecords.filter(r => r.item === child).reduce((s, v) => s + v.price, 0);
-                            itemTotal = `（${sum.toLocaleString()}円）`;
+                            itemTotal = `<span class="total-badge">${sum.toLocaleString()}円</span>`;
                         } else if(sub.id === 'svc-list') {
                             const svc = serviceRecords.find(s => s.name === child);
-                            // 完了回数/総回数の表示に変更
-                            itemTotal = svc ? `（${svc.history.length} / ${svc.total}回）` : `（0回）`;
+                            itemTotal = svc ? `<span class="total-badge">${svc.history.length} / ${svc.total}回</span>` : `<span class="total-badge">0回</span>`;
                         }
 
                         const childItem = document.createElement('div');

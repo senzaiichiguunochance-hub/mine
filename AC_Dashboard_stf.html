@@ -34,7 +34,15 @@
         h2 { border-left: 6px solid var(--accent); padding-left: 15px; margin: 0 0 25px 0; }
         h3 { background: rgba(128,128,128,0.1); padding: 8px 12px; border-radius: 6px; font-size: 1rem; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 30px; }
         h4 { color: var(--accent); margin: 15px 0 10px 10px; font-size: 0.9rem; border-bottom: 1px dashed var(--accent); padding-bottom: 3px; }
-        .total-badge { font-weight: bold; color: var(--accent); }
+        .total-badge {
+            font-weight: bold;
+            color: #fff;
+            background: #2c7a7b; /* 固定色にすると安定 */
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* ちょい浮かせる */
+        }
     </style>
 </head>
 <body class="theme-pretty">
@@ -101,18 +109,18 @@
 
         const menu = [
             { title: '予約', id: 'sec-res', subs: [
-                {n:'予約年月日', id:'rd', suffix: `(${totalResCount}件)`}, 
-                {n:'予約年月', id:'rm', suffix: `(${totalResCount}件)`}, 
-                {n:'予約年', id:'ry', suffix: `(${totalResCount}件)`}
+                {n:'予約年月日', id:'rd', suffix: `${totalResCount}件`}, 
+                {n:'予約年月', id:'rm', suffix: `${totalResCount}件`}, 
+                {n:'予約年', id:'ry', suffix: `${totalResCount}件`}
             ]},
             { title: '売上', id: 'sec-sal', subs: [
-                {n:'売上年月日', id:'sd', suffix: `(${totalSalAmount.toLocaleString()}円)`}, 
-                {n:'売上年月', id:'sm', suffix: `(${totalSalAmount.toLocaleString()}円)`}, 
-                {n:'売上年', id:'sy', suffix: `(${totalSalAmount.toLocaleString()}円)`},
-                {n:'複数売上', id:'smulti', suffix: `(${totalSalAmount.toLocaleString()}円)`, children: contents}
+                {n:'売上年月日', id:'sd', suffix: `${totalSalAmount.toLocaleString()}円`}, 
+                {n:'売上年月', id:'sm', suffix: `${totalSalAmount.toLocaleString()}円`}, 
+                {n:'売上年', id:'sy', suffix: `${totalSalAmount.toLocaleString()}円`},
+                {n:'複数売上', id:'smulti', suffix: `${totalSalAmount.toLocaleString()}円`, children: contents}
             ]},
             { title: '役務', id: 'sec-svc', subs: [
-                {n:'役務完了実績', id:'svcl', suffix: `(${totalSvcCount}回)`, children: svcList}
+                {n:'役務完了実績', id:'svcl', suffix: `${totalSvcCount}回`, children: svcList}
             ]}
         ];
 
@@ -128,10 +136,10 @@
                         let itemLabel = "";
                         if(sub.id === 'smulti') {
                             const sum = dataSal.filter(s => s.item === c).reduce((s,v) => s + v.totalAmount, 0);
-                            itemLabel = `（${sum.toLocaleString()}円）`;
+                            itemLabel = `<span class="total-badge">${sum.toLocaleString()}円</span>`;
                         } else if(sub.id === 'svcl') {
                             const count = dataSvcRaw.filter(s => s.content === c).length;
-                            itemLabel = `（${count}回）`;
+                            itemLabel = `<span class="total-badge">${count}回</span>`;
                         }
                         side.innerHTML += `<div class="nav-s" onclick="go('${cid}')">・ ${c}</div>`;
                         sHtml += `<div id="${cid}"><h4>▶ ${c} ${itemLabel}</h4><div class="chart-box"><canvas id="c-${cid}"></canvas></div></div>`;
