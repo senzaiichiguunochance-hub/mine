@@ -5,6 +5,7 @@
     <title>患者ダッシュボード</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* --- 既存のスタイル（完全維持） --- */
         :root { --header-height: 12vh; --sidebar-width: 260px; }
         .theme-pretty { --bg-main: #e6fffa; --bg-card: #ffffff; --bg-header: #38b2ac; --bg-side: #f0fff4; --text: #234e52; --accent: #319795; --border: #b2f5ea; --h-text: #fff; }
         .theme-cute { --bg-main: #fff5f7; --bg-card: #ffffff; --bg-header: #fbb6ce; --bg-side: #fff0f6; --text: #702459; --accent: #d53f8c; --border: #fed7e2; --h-text: #fff; }
@@ -26,17 +27,28 @@
 
         main { flex: 1; overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
         section { margin-bottom: 50px; background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
-        .chart-box { margin-bottom: 30px; height: 260px; width: 100%; }
+        
+        /* 巨大化防止：高さを固定 */
+        .chart-box { margin-bottom: 30px; height: 260px; width: 100%; position: relative; }
+        
         h2 { border-left: 6px solid var(--accent); padding-left: 12px; }
         h3 { background: rgba(128,128,128,0.1); padding: 8px 12px; border-radius: 6px; font-size: 1rem; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 30px; }
         h4 { color: var(--accent); margin: 20px 0 10px 10px; font-size: 0.9rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: center; gap: 12px;}
         .total-badge { font-weight: bold; color: #fff; background: #2c7a7b; padding: 6px 14px; border-radius: 9999px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);}
 
-        /* --- 追加機能用スタイル（既存には干渉しません） --- */
-        .ext-toolbar { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 5px 15px; padding: 4px; background: rgba(128,128,128,0.05); border-radius: 4px; }
-        .ext-toolbar button, .ext-toolbar select { font-size: 10px; padding: 2px 4px; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 3px; color: #333; }
-        .ext-toolbar button:hover { background: #f0f0f0; }
-        .ext-toolbar span { font-size: 10px; align-self: center; margin: 0 4px; opacity: 0.6; }
+        /* ツールバー用スタイル */
+        .ext-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 15px 15px; padding: 8px; align-items: center; }
+        .ext-toolbar button, .ext-toolbar select {
+            padding: 6px 14px; border: none; border-radius: 8px; cursor: pointer;
+            font-weight: bold; font-size: 13px; transition: 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: white; outline: none;
+        }
+        .btn-type, .btn-sort { background-color: #6d9eeb; }
+        .ext-toolbar button.active { background-color: #3f51b5 !important; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+        .btn-tool { background-color: #61c0bf; }
+        .ext-toolbar select { background-color: #757de8; appearance: none; text-align: center; }
+        .ext-toolbar button:hover { opacity: 0.8; transform: translateY(-1px); }
+        .ext-toolbar span { color: #ccc; margin: 0 4px; }
     </style>
 </head>
 <body class="theme-white">
@@ -62,7 +74,6 @@
 </div>
 
 <script>
-    // --- 1. データ準備（既存仕様ママ） ---
     const productNames = ['ヒアルロン酸注入', 'ボトックス注射', '脱脂綿', 'ミネラルウォーター', '美肌フェイシャル'];
     const dataRecords = [];
     for(let i=0; i<300; i++) {
@@ -86,6 +97,9 @@
 
     function applyTheme(t) { document.body.className = t; localStorage.setItem('user-theme', t); }
     const go = (id) => { const el = document.getElementById(id); if(el) el.scrollIntoView({ behavior: 'smooth' }); };
+
+    const chartInstances = {};
+    const chartBackups = {};
 
     window.onload = () => {
         const saved = localStorage.getItem('user-theme') || 'theme-pretty';
@@ -118,22 +132,14 @@
 
         menuStructure.forEach(cat => {
             const catHeader = document.createElement('div');
-            catHeader.className = 'nav-cat';
-            catHeader.innerText = cat.title;
-            sidebar.appendChild(catHeader);
-
+            catHeader.className = 'nav-cat'; catHeader.innerText = cat.title; sidebar.appendChild(catHeader);
             const section = document.createElement('section');
-            section.id = cat.id;
-            section.innerHTML = `<h2>${cat.title}</h2>`;
-            main.appendChild(section);
+            section.id = cat.id; section.innerHTML = `<h2>${cat.title}</h2>`; main.appendChild(section);
 
             cat.subs.forEach(sub => {
                 const subItem = document.createElement('div');
-                subItem.className = 'nav-sub';
-                subItem.innerText = sub.name;
-                subItem.onclick = () => go(sub.id);
+                subItem.className = 'nav-sub'; subItem.innerText = sub.name; subItem.onclick = () => go(sub.id);
                 sidebar.appendChild(subItem);
-
                 const subContainer = document.createElement('div');
                 subContainer.id = sub.id;
                 subContainer.innerHTML = `<h3><span>${sub.name}</span><span class="total-badge">${sub.suffix}</span></h3>`;
@@ -143,7 +149,6 @@
                     sub.children.forEach(child => {
                         const childId = `target-${sub.id}-${child.replace(/\s+/g, '')}`;
                         let itemTotal = "";
-                        
                         if(sub.id === 'sal-multi') {
                             const sum = dataRecords.filter(r => r.item === child).reduce((s, v) => s + v.price, 0);
                             itemTotal = `<span class="total-badge">${sum.toLocaleString()}円</span>`;
@@ -151,23 +156,17 @@
                             const svc = serviceRecords.find(s => s.name === child);
                             itemTotal = svc ? `<span class="total-badge">${svc.history.length} / ${svc.total}回</span>` : `<span class="total-badge">0回</span>`;
                         }
-
                         const childItem = document.createElement('div');
-                        childItem.className = 'nav-child';
-                        childItem.innerText = `・ ${child}`;
+                        childItem.className = 'nav-child'; childItem.innerText = `・ ${child}`;
                         childItem.onclick = (e) => { e.stopPropagation(); go(childId); };
                         sidebar.appendChild(childItem);
-
                         const childBox = document.createElement('div');
                         childBox.id = childId;
                         childBox.innerHTML = `<h4 style="margin:10px 0 5px 15px; color:var(--accent);">▶ ${child} ${itemTotal}</h4><div class="chart-box"><canvas id="canvas-${childId}"></canvas></div>`;
                         subContainer.appendChild(childBox);
                     });
                 } else {
-                    const chartBox = document.createElement('div');
-                    chartBox.className = 'chart-box';
-                    chartBox.innerHTML = `<canvas id="canvas-${sub.id}"></canvas>`;
-                    subContainer.appendChild(chartBox);
+                    subContainer.innerHTML += `<div class="chart-box"><canvas id="canvas-${sub.id}"></canvas></div>`;
                 }
             });
         });
@@ -176,17 +175,10 @@
         attachToolbars();
     };
 
-    const chartInstances = {};
-    const chartBackups = {};
-
     function drawAllCharts() {
         const getAggregatedData = (key) => {
             const map = {};
-            dataRecords.forEach(r => {
-                const k = r[key];
-                if(!map[k]) map[k] = [];
-                map[k].push(r);
-            });
+            dataRecords.forEach(r => { if(!map[r[key]]) map[r[key]] = []; map[r[key]].push(r); });
             const sortedKeys = Object.keys(map).sort();
             return {
                 labels: sortedKeys,
@@ -194,9 +186,7 @@
                 prices: sortedKeys.map(k => map[k].reduce((sum, cur) => sum + cur.price, 0)),
                 tooltips: sortedKeys.map(k => {
                     const total = map[k].reduce((sum, cur) => sum + cur.price, 0);
-                    const header = [`合計金額: ¥${total.toLocaleString()}`];
-                    const details = map[k].map(r => `${r.date} : ${r.item} (¥${r.price.toLocaleString()})`).slice(0, 10);
-                    return header.concat(details);
+                    return [`合計金額: ¥${total.toLocaleString()}`, ...map[k].map(r => `${r.date} : ${r.item} (¥${r.price.toLocaleString()})`).slice(0, 10)];
                 })
             };
         };
@@ -204,135 +194,111 @@
         const render = (id, labels, data, tips, color) => {
             const canvas = document.getElementById(id);
             if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            const instance = new Chart(ctx, {
+            const instance = new Chart(canvas.getContext('2d'), {
                 type: 'bar',
                 data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
                 options: {
+                    responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { display: false }, 
-                        tooltip: { 
-                            displayColors: false, 
-                            callbacks: { label: (c) => tips[c.dataIndex] } 
-                        } 
-                    }
+                    plugins: { legend: { display: false }, tooltip: { displayColors: false, callbacks: { label: (c) => tips[c.dataIndex] } } }
                 }
             });
             chartInstances[id] = instance;
-            chartBackups[id] = { labels: [...labels], data: [...data], tips: [...tips], color: color };
+            chartBackups[id] = { labels: [...labels], data: [...data], tips: [...tips], color: color, currentTips: [...tips] };
         };
 
         const resData = getAggregatedData('date');
         render('canvas-res-date', resData.labels.slice(-15), resData.counts.slice(-15), resData.tooltips.slice(-15), '#3182ce');
         render('canvas-res-month', getAggregatedData('month').labels, getAggregatedData('month').counts, getAggregatedData('month').tooltips, '#805ad5');
         render('canvas-res-year', getAggregatedData('year').labels, getAggregatedData('year').counts, getAggregatedData('year').tooltips, '#4a5568');
-
         render('canvas-sal-date', getAggregatedData('date').labels.slice(-15), getAggregatedData('date').prices.slice(-15), getAggregatedData('date').tooltips.slice(-15), '#38a169');
         render('canvas-sal-month', getAggregatedData('month').labels, getAggregatedData('month').prices, getAggregatedData('month').tooltips, '#2c7a7b');
         render('canvas-sal-year', getAggregatedData('year').labels, getAggregatedData('year').prices, getAggregatedData('year').tooltips, '#2d3748');
 
         productNames.forEach(name => {
             const filtered = dataRecords.filter(r => r.item === name).slice(-10);
-            const childId = `canvas-target-sal-multi-${name.replace(/\s+/g, '')}`;
-            render(childId, filtered.map(f=>f.date), filtered.map(f=>f.price), filtered.map(f=>[`¥${f.price.toLocaleString()}`]), '#d69e2e');
+            const cid = `canvas-target-sal-multi-${name.replace(/\s+/g, '')}`;
+            render(cid, filtered.map(f=>f.date), filtered.map(f=>f.price), filtered.map(f=>[`¥${f.price.toLocaleString()}`]), '#d69e2e');
         });
 
         serviceRecords.forEach(s => {
-            const childId = `canvas-target-svc-list-${s.name.replace(/\s+/g, '')}`;
-            render(childId, s.history, s.history.map(()=>1), s.history.map((d, i)=>[`${i+1}回目完了`]), '#e53e3e');
+            const cid = `canvas-target-svc-list-${s.name.replace(/\s+/g, '')}`;
+            render(cid, s.history, s.history.map(()=>1), s.history.map((d, i)=>[`${i+1}回目完了`]), '#e53e3e');
         });
     }
-
-    // --- 追加機能ロジック（既存コードを変更せず外付けで動作） ---
 
     function attachToolbars() {
         Object.keys(chartInstances).forEach(id => {
             const canvas = document.getElementById(id);
             const toolbar = document.createElement('div');
-            toolbar.className = 'ext-toolbar';
+            toolbar.className = 'ext-toolbar'; toolbar.id = `toolbar-${id}`;
             toolbar.innerHTML = `
-                <button onclick="extChangeType('${id}','bar')">棒</button>
-                <button onclick="extChangeType('${id}','horizontalBar')">横棒</button>
-                <button onclick="extChangeType('${id}','line')">折れ線</button>
-                <button onclick="extChangeType('${id}','area')">面</button>
-                <button onclick="extChangeType('${id}','pie')">円</button>
-                <button onclick="extChangeType('${id}','doughnut')">ド</button>
-                <button onclick="extChangeType('${id}','radar')">雷</button>
+                <button class="btn-type active" onclick="extChangeType('${id}','bar', this)">棒</button>
+                <button class="btn-type" onclick="extChangeType('${id}','horizontalBar', this)">横棒</button>
+                <button class="btn-type" onclick="extChangeType('${id}','line', this)">折れ線</button>
+                <button class="btn-type" onclick="extChangeType('${id}','area', this)">面</button>
+                <button class="btn-type" onclick="extChangeType('${id}','pie', this)">円</button>
+                <button class="btn-type" onclick="extChangeType('${id}','doughnut', this)">ドーナツ</button>
+                <button class="btn-type" onclick="extChangeType('${id}','radar', this)">レーダー</button>
                 <span>|</span>
-                <button onclick="extSort('${id}','label')">項目</button>
-                <button onclick="extSort('${id}','desc')">降順</button>
-                <button onclick="extSort('${id}','asc')">昇順</button>
+                <button class="btn-sort active" onclick="extSort('${id}','label', this)">項目順</button>
+                <button class="btn-sort" onclick="extSort('${id}','desc', this)">降順</button>
+                <button class="btn-sort" onclick="extSort('${id}','asc', this)">昇順</button>
                 <span>|</span>
-                <select onchange="extLimit('${id}',this.value)">
+                <select id="limit-${id}" onchange="extLimit('${id}',this.value)">
                     <option value="999">全部</option><option value="5">Top5</option><option value="10">Top10</option>
                 </select>
                 <span>|</span>
-                <button onclick="extExport('${id}','csv')">CSV</button>
-                <button onclick="extExport('${id}','svg')">SVG</button>
-                <button onclick="extExport('${id}','png')">PNG</button>
+                <button class="btn-tool" onclick="extExport('${id}','csv')">CSV</button>
+                <button class="btn-tool" onclick="extExport('${id}','svg')">SVG</button>
+                <button class="btn-tool" onclick="extExport('${id}','png')">PNG</button>
             `;
-            canvas.parentNode.insertBefore(toolbar, canvas);
+            canvas.parentNode.parentNode.insertBefore(toolbar, canvas.parentNode);
         });
     }
 
-window.extChangeType = (id, type) => {
+    window.extChangeType = (id, type, btn) => {
         const chart = chartInstances[id];
         const backup = chartBackups[id];
-        
-        // 1. 基本タイプの決定
+        const container = document.getElementById(`toolbar-${id}`);
+        container.querySelectorAll('.btn-type').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
         const isHorizontal = (type === 'horizontalBar');
         const baseType = (['pie', 'doughnut', 'radar'].includes(type)) ? type : (isHorizontal ? 'bar' : (type === 'area' ? 'line' : type));
         
         chart.config.type = baseType;
-        
-        // 2. 軸設定（scales）の完全初期化と再構築
-        // 横棒の場合は indexAxis を 'y' にし、数値軸(x)と項目軸(y)を定義し直す
         if (['pie', 'doughnut', 'radar'].includes(baseType)) {
-            chart.config.options.scales = {}; // 円グラフ系は軸不要
+            chart.config.options.scales = {};
         } else {
             chart.config.options.indexAxis = isHorizontal ? 'y' : 'x';
             chart.config.options.scales = {
-                x: { 
-                    beginAtZero: true,
-                    ticks: { font: { size: 10 } }
-                },
-                y: { 
-                    beginAtZero: true,
-                    ticks: { font: { size: 10 } }
-                }
+                x: { beginAtZero: true, ticks: { font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 } } }
             };
-            
-            // 売上グラフなど、ツールチップに「¥」がある場合は数値軸にカンマ等の設定を戻す（任意）
-            // ここではシンプルに描画エラーを防ぐための基本構成を優先しています
         }
-        
-        // 3. スタイルの適用
         chart.data.datasets[0].fill = (type === 'area');
-        chart.config.options.plugins.legend.display = (['pie', 'doughnut', 'radar'].includes(type));
-        
-        if (['pie', 'doughnut', 'radar'].includes(type)) {
-            chart.data.datasets[0].backgroundColor = chart.data.labels.map((_, i) => `hsl(${i * 45}, 70%, 60%)`);
-        } else {
-            chart.data.datasets[0].backgroundColor = backup.color;
-        }
-
-        // 4. 更新
+        chart.config.options.plugins.legend.display = (['pie', 'doughnut', 'radar'].includes(baseType));
+        chart.data.datasets[0].backgroundColor = (['pie', 'doughnut', 'radar'].includes(baseType)) 
+            ? chart.data.labels.map((_, i) => `hsl(${i * 45}, 70%, 60%)`) : backup.color;
         chart.update();
     };
-    
-    window.extSort = (id, mode) => {
+
+    window.extSort = (id, mode, btn) => {
         const chart = chartInstances[id];
         const backup = chartBackups[id];
-        let list = backup.labels.map((l, i) => ({ l, d: backup.data[i], t: backup.tips[i] }));
+        const container = document.getElementById(`toolbar-${id}`);
+        container.querySelectorAll('.btn-sort').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
+        let list = backup.labels.map((l, i) => ({ l, d: backup.data[i], t: backup.tips[i] }));
         if (mode === 'desc') list.sort((a, b) => b.d - a.d);
         else if (mode === 'asc') list.sort((a, b) => a.d - b.d);
         else list.sort((a, b) => a.l.localeCompare(b.l));
 
         chart.data.labels = list.map(x => x.l);
         chart.data.datasets[0].data = list.map(x => x.d);
-        chartBackups[id].currentTips = list.map(x => x.t); 
+        chartBackups[id].currentTips = list.map(x => x.t);
         chart.options.plugins.tooltip.callbacks.label = (c) => chartBackups[id].currentTips[c.dataIndex];
         chart.update();
     };
@@ -348,14 +314,15 @@ window.extChangeType = (id, type) => {
 
     window.extExport = (id, format) => {
         const chart = chartInstances[id];
+        const canvas = document.getElementById(id);
         if (format === 'csv') {
             let csv = "項目,値\n" + chart.data.labels.map((l, i) => `${l},${chart.data.datasets[0].data[i]}`).join("\n");
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv' })); a.download = `${id}.csv`; a.click();
         } else if (format === 'png') {
-            const a = document.createElement('a'); a.href = chart.toDataURL('image/png'); a.download = `${id}.png`; a.click();
+            const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = `${id}.png`; a.click();
         } else if (format === 'svg') {
-            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${chart.width}" height="${chart.height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><img src="${chart.toDataURL()}" /></div></foreignObject></svg>`;
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([svgStr], { type: 'image/svg+xml' })); a.download = `${id}.svg`; a.click();
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${canvas.width}" height="${canvas.height}"><image href="${canvas.toDataURL()}" width="${canvas.width}" height="${canvas.height}"/></svg>`;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([svgData], { type: 'image/svg+xml' })); a.download = `${id}.svg`; a.click();
         }
     };
 </script>
