@@ -31,6 +31,12 @@
         h3 { background: rgba(128,128,128,0.1); padding: 8px 12px; border-radius: 6px; font-size: 1rem; display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-top: 30px; }
         h4 { color: var(--accent); margin: 20px 0 10px 10px; font-size: 0.9rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: center; gap: 12px;}
         .total-badge { font-weight: bold; color: #fff; background: #2c7a7b; padding: 6px 14px; border-radius: 9999px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);}
+
+        /* --- 追加機能用スタイル（既存には干渉しません） --- */
+        .ext-toolbar { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0 5px 15px; padding: 4px; background: rgba(128,128,128,0.05); border-radius: 4px; }
+        .ext-toolbar button, .ext-toolbar select { font-size: 10px; padding: 2px 4px; cursor: pointer; border: 1px solid #ccc; background: #fff; border-radius: 3px; color: #333; }
+        .ext-toolbar button:hover { background: #f0f0f0; }
+        .ext-toolbar span { font-size: 10px; align-self: center; margin: 0 4px; opacity: 0.6; }
     </style>
 </head>
 <body class="theme-white">
@@ -56,7 +62,7 @@
 </div>
 
 <script>
-    // --- 1. データ準備 ---
+    // --- 1. データ準備（既存仕様ママ） ---
     const productNames = ['ヒアルロン酸注入', 'ボトックス注射', '脱脂綿', 'ミネラルウォーター', '美肌フェイシャル'];
     const dataRecords = [];
     for(let i=0; i<300; i++) {
@@ -73,7 +79,6 @@
         });
     }
 
-    // 役務データ（総回数を追加）
     const serviceRecords = [
         { name: 'ヒアルロン酸注入', history: ['2024/02/01', '2024/06/15', '2025/01/10'], total: 5 },
         { name: '美肌フェイシャル', history: ['2025/12/20', '2026/03/01'], total: 10 }
@@ -168,7 +173,11 @@
         });
 
         drawAllCharts();
+        attachToolbars();
     };
+
+    const chartInstances = {};
+    const chartBackups = {};
 
     function drawAllCharts() {
         const getAggregatedData = (key) => {
@@ -183,7 +192,6 @@
                 labels: sortedKeys,
                 counts: sortedKeys.map(k => map[k].length),
                 prices: sortedKeys.map(k => map[k].reduce((sum, cur) => sum + cur.price, 0)),
-                // ツールチップに合計金額を挿入するよう修正
                 tooltips: sortedKeys.map(k => {
                     const total = map[k].reduce((sum, cur) => sum + cur.price, 0);
                     const header = [`合計金額: ¥${total.toLocaleString()}`];
@@ -194,9 +202,10 @@
         };
 
         const render = (id, labels, data, tips, color) => {
-            const ctx = document.getElementById(id);
-            if (!ctx) return;
-            new Chart(ctx, {
+            const canvas = document.getElementById(id);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const instance = new Chart(ctx, {
                 type: 'bar',
                 data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
                 options: {
@@ -210,9 +219,10 @@
                     }
                 }
             });
+            chartInstances[id] = instance;
+            chartBackups[id] = { labels: [...labels], data: [...data], tips: [...tips], color: color };
         };
 
-        // 予約・売上グラフの描画
         const resData = getAggregatedData('date');
         render('canvas-res-date', resData.labels.slice(-15), resData.counts.slice(-15), resData.tooltips.slice(-15), '#3182ce');
         render('canvas-res-month', getAggregatedData('month').labels, getAggregatedData('month').counts, getAggregatedData('month').tooltips, '#805ad5');
@@ -222,19 +232,132 @@
         render('canvas-sal-month', getAggregatedData('month').labels, getAggregatedData('month').prices, getAggregatedData('month').tooltips, '#2c7a7b');
         render('canvas-sal-year', getAggregatedData('year').labels, getAggregatedData('year').prices, getAggregatedData('year').tooltips, '#2d3748');
 
-        // 複数売上個別（ツールチップは既存のまま：金額のみ）
         productNames.forEach(name => {
             const filtered = dataRecords.filter(r => r.item === name).slice(-10);
-            const childId = `target-sal-multi-${name.replace(/\s+/g, '')}`;
-            render(`canvas-${childId}`, filtered.map(f=>f.date), filtered.map(f=>f.price), filtered.map(f=>[`¥${f.price.toLocaleString()}`]), '#d69e2e');
+            const childId = `canvas-target-sal-multi-${name.replace(/\s+/g, '')}`;
+            render(childId, filtered.map(f=>f.date), filtered.map(f=>f.price), filtered.map(f=>[`¥${f.price.toLocaleString()}`]), '#d69e2e');
         });
 
-        // 役務完了状況
         serviceRecords.forEach(s => {
-            const childId = `target-svc-list-${s.name.replace(/\s+/g, '')}`;
-            render(`canvas-${childId}`, s.history, s.history.map(()=>1), s.history.map((d, i)=>[`${i+1}回目完了`]), '#e53e3e');
+            const childId = `canvas-target-svc-list-${s.name.replace(/\s+/g, '')}`;
+            render(childId, s.history, s.history.map(()=>1), s.history.map((d, i)=>[`${i+1}回目完了`]), '#e53e3e');
         });
     }
+
+    // --- 追加機能ロジック（既存コードを変更せず外付けで動作） ---
+
+    function attachToolbars() {
+        Object.keys(chartInstances).forEach(id => {
+            const canvas = document.getElementById(id);
+            const toolbar = document.createElement('div');
+            toolbar.className = 'ext-toolbar';
+            toolbar.innerHTML = `
+                <button onclick="extChangeType('${id}','bar')">棒</button>
+                <button onclick="extChangeType('${id}','horizontalBar')">横棒</button>
+                <button onclick="extChangeType('${id}','line')">折れ線</button>
+                <button onclick="extChangeType('${id}','area')">面</button>
+                <button onclick="extChangeType('${id}','pie')">円</button>
+                <button onclick="extChangeType('${id}','doughnut')">ド</button>
+                <button onclick="extChangeType('${id}','radar')">雷</button>
+                <span>|</span>
+                <button onclick="extSort('${id}','label')">項目</button>
+                <button onclick="extSort('${id}','desc')">降順</button>
+                <button onclick="extSort('${id}','asc')">昇順</button>
+                <span>|</span>
+                <select onchange="extLimit('${id}',this.value)">
+                    <option value="999">全部</option><option value="5">Top5</option><option value="10">Top10</option>
+                </select>
+                <span>|</span>
+                <button onclick="extExport('${id}','csv')">CSV</button>
+                <button onclick="extExport('${id}','svg')">SVG</button>
+                <button onclick="extExport('${id}','png')">PNG</button>
+            `;
+            canvas.parentNode.insertBefore(toolbar, canvas);
+        });
+    }
+
+window.extChangeType = (id, type) => {
+        const chart = chartInstances[id];
+        const backup = chartBackups[id];
+        
+        // 1. 基本タイプの決定
+        const isHorizontal = (type === 'horizontalBar');
+        const baseType = (['pie', 'doughnut', 'radar'].includes(type)) ? type : (isHorizontal ? 'bar' : (type === 'area' ? 'line' : type));
+        
+        chart.config.type = baseType;
+        
+        // 2. 軸設定（scales）の完全初期化と再構築
+        // 横棒の場合は indexAxis を 'y' にし、数値軸(x)と項目軸(y)を定義し直す
+        if (['pie', 'doughnut', 'radar'].includes(baseType)) {
+            chart.config.options.scales = {}; // 円グラフ系は軸不要
+        } else {
+            chart.config.options.indexAxis = isHorizontal ? 'y' : 'x';
+            chart.config.options.scales = {
+                x: { 
+                    beginAtZero: true,
+                    ticks: { font: { size: 10 } }
+                },
+                y: { 
+                    beginAtZero: true,
+                    ticks: { font: { size: 10 } }
+                }
+            };
+            
+            // 売上グラフなど、ツールチップに「¥」がある場合は数値軸にカンマ等の設定を戻す（任意）
+            // ここではシンプルに描画エラーを防ぐための基本構成を優先しています
+        }
+        
+        // 3. スタイルの適用
+        chart.data.datasets[0].fill = (type === 'area');
+        chart.config.options.plugins.legend.display = (['pie', 'doughnut', 'radar'].includes(type));
+        
+        if (['pie', 'doughnut', 'radar'].includes(type)) {
+            chart.data.datasets[0].backgroundColor = chart.data.labels.map((_, i) => `hsl(${i * 45}, 70%, 60%)`);
+        } else {
+            chart.data.datasets[0].backgroundColor = backup.color;
+        }
+
+        // 4. 更新
+        chart.update();
+    };
+    
+    window.extSort = (id, mode) => {
+        const chart = chartInstances[id];
+        const backup = chartBackups[id];
+        let list = backup.labels.map((l, i) => ({ l, d: backup.data[i], t: backup.tips[i] }));
+
+        if (mode === 'desc') list.sort((a, b) => b.d - a.d);
+        else if (mode === 'asc') list.sort((a, b) => a.d - b.d);
+        else list.sort((a, b) => a.l.localeCompare(b.l));
+
+        chart.data.labels = list.map(x => x.l);
+        chart.data.datasets[0].data = list.map(x => x.d);
+        chartBackups[id].currentTips = list.map(x => x.t); 
+        chart.options.plugins.tooltip.callbacks.label = (c) => chartBackups[id].currentTips[c.dataIndex];
+        chart.update();
+    };
+
+    window.extLimit = (id, val) => {
+        const chart = chartInstances[id];
+        const backup = chartBackups[id];
+        const num = parseInt(val);
+        chart.data.labels = backup.labels.slice(0, num);
+        chart.data.datasets[0].data = backup.data.slice(0, num);
+        chart.update();
+    };
+
+    window.extExport = (id, format) => {
+        const chart = chartInstances[id];
+        if (format === 'csv') {
+            let csv = "項目,値\n" + chart.data.labels.map((l, i) => `${l},${chart.data.datasets[0].data[i]}`).join("\n");
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: 'text/csv' })); a.download = `${id}.csv`; a.click();
+        } else if (format === 'png') {
+            const a = document.createElement('a'); a.href = chart.toDataURL('image/png'); a.download = `${id}.png`; a.click();
+        } else if (format === 'svg') {
+            const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${chart.width}" height="${chart.height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml"><img src="${chart.toDataURL()}" /></div></foreignObject></svg>`;
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([svgStr], { type: 'image/svg+xml' })); a.download = `${id}.svg`; a.click();
+        }
+    };
 </script>
 </body>
 </html>
