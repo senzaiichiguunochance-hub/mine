@@ -30,7 +30,12 @@
 <body>
 <div class="container">
     <div class="panel">
-        <h2>Physical Parameters <span>入力欄</span></h2>
+    <h2>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            値を入力してください。
+            <button onclick="clearInputs()" style="background: var(--accent); border: none; color: white; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 1.0rem; font-weight: bold;">値の初期化</button>
+        </div>
+    </h2>
         <div class="input-container">
             <div class="category-title">Mechanics / 力学</div>
             <div class="input-grid">
@@ -107,36 +112,42 @@ const formulas = [
     { target: "f", name: "周波数", formula: "f = E/h", needs: ["E"], calc: d => d.E / h_planck, proc: d => `${d.E} / h`, unit: "Hz" }
 ];
 
+function clearInputs() {
+    // すべてのインプット要素を取得して値を空にする
+    document.querySelectorAll('input').forEach(el => {
+        el.value = "";
+    });
+    // 値が空になった状態で計算処理を走らせ、結果テーブルをクリアする
+    solve();
+}
+
 function solve() {
     let dataPool = {}; 
-    document.querySelectorAll('input').forEach(el => { if(el.value !== "") dataPool[el.dataset.key] = parseFloat(el.value); });
+    // 現在入力されている値をすべて取得
+    document.querySelectorAll('input').forEach(el => { 
+        if(el.value !== "") dataPool[el.dataset.key] = parseFloat(el.value); 
+    });
     
     let results = []; 
-    let solvedIds = new Set(); 
-    let foundNew = true;
 
-    // 推論ループ: 新しい値が求まる限り繰り返す
-    while(foundNew) {
-        foundNew = false;
-        formulas.forEach(f => {
-            // まだ解いていない公式で、必要な材料が揃っているか？
-            if (!solvedIds.has(f.formula + f.target) && f.needs.every(n => dataPool[n] !== undefined)) {
-                const val = f.calc(dataPool);
-                
-                // すでに入力されている値と矛盾しないかチェック（上書き防止）
-                if (dataPool[f.target] === undefined || Math.abs(dataPool[f.target] - val) > val * 0.001) {
-                    results.push({ name: f.name, formula: f.formula, proc: f.proc(dataPool), val: val, unit: f.unit });
-                    
-                    if (dataPool[f.target] === undefined) {
-                        dataPool[f.target] = val; // 新しい知見をプールに追加
-                        foundNew = true;
-                    }
-                }
-                solvedIds.add(f.formula + f.target);
-            }
-        });
-    }
+    // 全公式を1回ずつスキャンし、必要な値が揃っているものだけを抽出
+    formulas.forEach(f => {
+        // 公式に必要な全てのキー(needs)が dataPool に存在するかチェック
+        const canCalculate = f.needs.every(n => dataPool[n] !== undefined);
 
+        if (canCalculate) {
+            const val = f.calc(dataPool);
+            results.push({ 
+                name: f.name, 
+                formula: f.formula, 
+                proc: f.proc(dataPool), 
+                val: val, 
+                unit: f.unit 
+            });
+        }
+    });
+
+    // 結果の描画処理
     const body = document.getElementById('res-body');
     body.innerHTML = results.map(r => `
         <tr>
@@ -148,7 +159,6 @@ function solve() {
                 <span class="unit">${r.unit}</span>
             </td>
         </tr>`).join('');
-}
-</script>
+}</script>
 </body>
 </html>
