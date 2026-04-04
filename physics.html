@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate Physics Engine - Final Ver.</title>
+    <style>
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #38bdf8; --secondary: #94a3b8; --accent: #f472b6; --success: #4ade80; --border: #334155; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #e2e8f0; margin: 0; padding: 20px; font-size: 14px; }
+        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 450px 1fr; gap: 20px; }
+        .panel { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid var(--border); }
+        h2 { font-size: 1.1rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 15px; }
+        .input-container { height: calc(100vh - 120px); overflow-y: auto; padding-right: 10px; }
+        .category-title { font-size: 0.75rem; color: var(--accent); font-weight: bold; margin: 20px 0 8px; text-transform: uppercase; border-left: 3px solid var(--accent); padding-left: 8px; }
+        .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .field { background: #0f172a; padding: 8px 12px; border-radius: 8px; border: 1px solid #475569; }
+        label { display: block; font-size: 0.7rem; color: var(--secondary); margin-bottom: 4px; }
+        input { background: transparent; border: none; color: white; width: 100%; font-size: 1rem; outline: none; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; color: var(--secondary); padding: 12px; border-bottom: 2px solid var(--border); }
+        td { padding: 14px 12px; border-bottom: 1px solid var(--border); }
+        .formula-badge { background: rgba(14, 165, 233, 0.1); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-family: monospace; }
+        .math-process { color: var(--success); font-family: monospace; font-size: 0.9rem; }
+        .final-val { font-size: 1.2rem; font-weight: bold; color: #fff; }
+        .unit { font-size: 0.8rem; color: var(--secondary); margin-left: 4px; }
+        .is-validation { opacity: 0.7; border-left: 3px solid var(--secondary); } /* 入力値がある場合の検算表示用 */
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="panel">
+        <h2>Advanced Parameters</h2>
+        <div class="input-container">
+            <div class="category-title">Mechanics / 力学</div>
+            <div class="input-grid">
+                <div class="field"><label>質量 m (kg)</label><input type="number" step="any" data-key="m" oninput="solve()"></div>
+                <div class="field"><label>加速度 a (m/s²)</label><input type="number" step="any" data-key="a" oninput="solve()"></div>
+                <div class="field"><label>力 F (N)</label><input type="number" step="any" data-key="F" oninput="solve()"></div>
+                <div class="field"><label>速度 v (m/s)</label><input type="number" step="any" data-key="v" oninput="solve()"></div>
+                <div class="field"><label>時間 t (s)</label><input type="number" step="any" data-key="t" oninput="solve()"></div>
+                <div class="field"><label>距離・半径 r (m)</label><input type="number" step="any" data-key="r" oninput="solve()"></div>
+            </div>
+            <div class="category-title">Electromagnetism / 電磁気</div>
+            <div class="input-grid">
+                <div class="field"><label>電圧 V (V)</label><input type="number" step="any" data-key="V" oninput="solve()"></div>
+                <div class="field"><label>電流 I (A)</label><input type="number" step="any" data-key="I" oninput="solve()"></div>
+                <div class="field"><label>抵抗 R (Ω)</label><input type="number" step="any" data-key="R" oninput="solve()"></div>
+                <div class="field"><label>電力 P (W)</label><input type="number" step="any" data-key="P" oninput="solve()"></div>
+            </div>
+            <div class="category-title">Thermodynamics / 熱力学</div>
+            <div class="input-grid">
+                <div class="field"><label>圧力 P (Pa)</label><input type="number" step="any" data-key="pres" oninput="solve()"></div>
+                <div class="field"><label>体積 V (m³)</label><input type="number" step="any" data-key="vol" oninput="solve()"></div>
+                <div class="field"><label>物質量 n (mol)</label><input type="number" step="any" data-key="n" oninput="solve()"></div>
+                <div class="field"><label>温度 T (K)</label><input type="number" step="any" data-key="T" oninput="solve()"></div>
+            </div>
+            <div class="category-title">Modern Physics / 現代物理</div>
+            <div class="input-grid">
+                <div class="field"><label>エネルギー E (J)</label><input type="number" step="any" data-key="E" oninput="solve()"></div>
+                <div class="field"><label>周波数 f (Hz)</label><input type="number" step="any" data-key="f" oninput="solve()"></div>
+            </div>
+        </div>
+    </div>
+    <div class="panel">
+        <h2>Inferred Physics Laws & Results</h2>
+        <table id="result-table">
+            <thead>
+                <tr><th>Target</th><th>Formula</th><th>Process</th><th style="text-align: right;">Result</th></tr>
+            </thead>
+            <tbody id="res-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const G = 6.6743e-11; const R_gas = 8.314; const h_planck = 6.626e-34; const c_light = 299792458;
+const formulas = [
+    { target: "F", name: "力", formula: "F = ma", needs: ["m", "a"], calc: d => d.m * d.a, proc: d => `${d.m} × ${d.a}`, unit: "N" },
+    { target: "m", name: "質量", formula: "m = F/a", needs: ["F", "a"], calc: d => d.F / d.a, proc: d => `${d.F} / ${d.a}`, unit: "kg" },
+    { target: "a", name: "加速度", formula: "a = F/m", needs: ["F", "m"], calc: d => d.F / d.m, proc: d => `${d.F} / ${d.m}`, unit: "m/s²" },
+    { target: "v", name: "速度", formula: "v = r/t", needs: ["r", "t"], calc: d => d.r / d.t, proc: d => `${d.r} / ${d.t}`, unit: "m/s" },
+    { target: "r", name: "距離", formula: "r = vt", needs: ["v", "t"], calc: d => d.v * d.t, proc: d => `${d.v} × ${d.t}`, unit: "m" },
+    { target: "t", name: "時間", formula: "t = r/v", needs: ["r", "v"], calc: d => d.r / d.v, proc: d => `${d.r} / ${d.v}`, unit: "s" },
+    { target: "V", name: "電圧", formula: "V = IR", needs: ["I", "R"], calc: d => d.I * d.R, proc: d => `${d.I} × ${d.R}`, unit: "V" },
+    { target: "I", name: "電流", formula: "I = V/R", needs: ["V", "R"], calc: d => d.V / d.R, proc: d => `${d.V} / ${d.R}`, unit: "A" },
+    { target: "R", name: "抵抗", formula: "R = V/I", needs: ["V", "I"], calc: d => d.V / d.I, proc: d => `${d.V} / ${d.I}`, unit: "Ω" },
+    { target: "P", name: "電力", formula: "P = VI", needs: ["V", "I"], calc: d => d.V * d.I, proc: d => `${d.V} × ${d.I}`, unit: "W" },
+    { target: "pres", name: "圧力", formula: "P = nRT/V", needs: ["n", "T", "vol"], calc: d => (d.n * R_gas * d.T) / d.vol, proc: d => `(${d.n} × R × ${d.T}) / ${d.vol}`, unit: "Pa" },
+    { target: "E", name: "等価エネルギー", formula: "E = mc²", needs: ["m"], calc: d => d.m * c_light**2, proc: d => `${d.m} × c²`, unit: "J" }
+];
+
+function solve() {
+    let dataPool = {}; 
+    document.querySelectorAll('input').forEach(el => { if(el.value !== "") dataPool[el.dataset.key] = parseFloat(el.value); });
+    let results = []; let solvedIds = new Set(); let foundNew = true;
+    while(foundNew) {
+        foundNew = false;
+        formulas.forEach(f => {
+            if (!solvedIds.has(f.formula) && f.needs.every(n => dataPool[n] !== undefined)) {
+                const val = f.calc(dataPool);
+                results.push({ name: f.name, formula: f.formula, proc: f.proc(dataPool), val: val, unit: f.unit });
+                if (dataPool[f.target] === undefined) { dataPool[f.target] = val; foundNew = true; }
+                solvedIds.add(f.formula);
+            }
+        });
+    }
+    const body = document.getElementById('res-body');
+    body.innerHTML = results.map(r => `<tr><td style="color:var(--accent); font-weight:bold;">${r.name}</td><td><span class="formula-badge">${r.formula}</span></td><td><span class="math-process">${r.proc}</span></td><td style="text-align: right;"><span class="final-val">${(r.val > 10000 || r.val < 0.001) ? r.val.toExponential(3) : parseFloat(r.val.toFixed(4))}</span><span class="unit">${r.unit}</span></td></tr>`).join('');
+}
+</script>
+</body>
+</html>
