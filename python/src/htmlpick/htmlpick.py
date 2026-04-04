@@ -92,20 +92,9 @@ def Difference(vBases, vChecks):
 
 #ブラウザ起動
 def BrowserOpen(vLists):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-    }
-    for sUrl in vLists:
-        # 改行を除去
-        target_url = sUrl.strip()
-        if target_url:
-            try:
-                # 実際にページを開かず、リクエストだけ送る（背後で読み込む）
-                requests.get(target_url, headers=headers, timeout=10)
-                print(f"アクセス完了: {target_url}")
-            except Exception as e:
-                print(f"アクセス失敗: {target_url} - {e}")
-    return
+	for sUrl in vLists:
+		webbrowser.open(sUrl)
+	return
 
 #除外対象でないURLを追加する(True:除外する、False:除外しない)
 def CheckExclude(vUrl, vLists):
@@ -298,10 +287,3 @@ del listExclude
 del listThisURL
 del listLogURL
 del listOpenURL
-
-
-
-
-
-
-
