@@ -4,6 +4,8 @@ import os
 import threading
 from moviepy import ImageClip, AudioFileClip
 
+#mp3ファイルに1つの画像を付けてmp4にするアプリケーション
+
 class VideoCreatorApp:
     def __init__(self):
         self.root = tk.Tk()

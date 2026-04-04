@@ -4,6 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
+#特定のサイトからまとめてmp3をダウンロードするアプリケーション
+
 # ダウンロード対象のURLと保存先ディレクトリ
 TARGET_URL = "https://soundeffect-lab.info/sound/animal/"
 SAVE_DIR = "animal"
