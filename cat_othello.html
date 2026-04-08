@@ -248,37 +248,43 @@
                 console.log("Audio play failed:", e);
                 gameWrapper.classList.remove('active-shake');
             });
+            return soundPath;
         }
 
-        async function triggerCatMischief() {
-            let movableStones = [];
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    if (board[r][c] !== EMPTY) {
-                        let emptyNeighbors = [];
-                        for (const [dr, dc] of DIRS) {
-                            let nr = r + dr, nc = c + dc;
-                            if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === EMPTY) {
-                                emptyNeighbors.push({ r: nr, c: nc });
+        async function triggerCatMischief(isDouble = false) {
+            const count = isDouble ? 2 : 1;
+            for (let i = 0; i < count; i++) {
+                let movableStones = [];
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        if (board[r][c] !== EMPTY) {
+                            let emptyNeighbors = [];
+                            for (const [dr, dc] of DIRS) {
+                                let nr = r + dr, nc = c + dc;
+                                if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === EMPTY) {
+                                    emptyNeighbors.push({ r: nr, c: nc });
+                                }
                             }
-                        }
-                        if (emptyNeighbors.length > 0) {
-                            movableStones.push({ from: { r, c }, toOptions: emptyNeighbors });
+                            if (emptyNeighbors.length > 0) {
+                                movableStones.push({ from: { r, c }, toOptions: emptyNeighbors });
+                            }
                         }
                     }
                 }
-            }
 
-            if (movableStones.length > 0) {
-                const choice = movableStones[Math.floor(Math.random() * movableStones.length)];
-                const target = choice.toOptions[Math.floor(Math.random() * choice.toOptions.length)];
-                
-                const stoneType = board[choice.from.r][choice.from.c];
-                board[choice.from.r][choice.from.c] = EMPTY;
-                board[target.r][target.c] = stoneType;
-                
-                messageDisplay.textContent = "猫がいたずらした！";
-                await sleep(500);
+                if (movableStones.length > 0) {
+                    const choice = movableStones[Math.floor(Math.random() * movableStones.length)];
+                    const target = choice.toOptions[Math.floor(Math.random() * choice.toOptions.length)];
+                    
+                    const stoneType = board[choice.from.r][choice.from.c];
+                    if (stoneType === EMPTY) continue;
+
+                    board[choice.from.r][choice.from.c] = EMPTY;
+                    board[target.r][target.c] = stoneType;
+                    
+                    messageDisplay.textContent = isDouble ? `猫が威嚇して石が${i + 1}個移動した！` : "猫がいたずらして石が1個移動した！";
+                    await sleep(500);
+                }
             }
         }
 
@@ -392,8 +398,8 @@
 
             // 30% chance for cat mischief
             if (Math.random() < 0.3) {
-                playRandomCatSound();
-                await triggerCatMischief();
+                const soundPath = playRandomCatSound();
+                await triggerCatMischief(soundPath.includes("猫の威嚇.mp3"));
             }
 
             // Always render board after potential mischief and flips
