@@ -2,263 +2,126 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Premium Animation Components</title>
 <style>
-  /* --- デザイントークン --- */
   :root {
-    --bg-color: #f0f2f5;
-    --card-bg: #ffffff;
-    --text-main: #1a1d23;
-    --text-sub: #64748b;
-    --accent-blue: #3b82f6;
-    --accent-green: #22c55e;
-    --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
-    --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --bg: #ebebeb; --card: #f5f5f5; --shape: #888; --light: #bcbcbc;
+    --ease: cubic-bezier(0.65, 0, 0.35, 1);
   }
+  body { background: var(--bg); font-family: sans-serif; padding: 40px; color: #555; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+  .card { background: var(--card); aspect-ratio: 1.6/1; border-radius: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .label { position: absolute; bottom: 20px; font-weight: bold; font-size: 14px; }
+  .cv { transform: translateY(-10px); display: flex; align-items: center; justify-content: center; width: 100%; height: 60%; position: relative; }
 
-  /* --- リセット & 基本スタイル --- */
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    background: var(--bg-color);
-    color: var(--text-main);
-    padding: 60px 20px;
-    margin: 0;
-    line-height: 1.5;
-  }
+  /* --- 共通パーツ --- */
+  .b { background: var(--shape); border-radius: 8px; position: relative; }
 
-  h1 {
-    text-align: center;
-    font-weight: 800;
-    font-size: 2rem;
-    margin-bottom: 50px;
-    letter-spacing: -0.025em;
-  }
+  /* 01: 牛乳 (初期の描き込み版を復元)[cite: 1] */
+  .m-pkg { width: 44px; height: 75px; background: var(--light); position: relative; margin-left: 40px; display: flex; align-items: center; justify-content: center; }
+  .m-pkg::after { content: "MILK"; color: #fff; font-size: 11px; font-weight: 900; transform: rotate(-90deg); opacity: 0.8; }
+  .m-cup { width: 40px; height: 40px; border: 4px solid var(--shape); border-top: none; position: relative; margin-right: 40px; }
+  .m-cup::before { content: ""; position: absolute; bottom: 0; left: 0; width: 100%; background: #fff; animation: a-milk-fill 3s infinite var(--ease); }
+  @keyframes a-milk-fill { 0%, 30% { height: 0; } 70%, 100% { height: 80%; } }
 
-  /* --- グリッドレイアウト --- */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
+  /* 02: ひっくり返す[cite: 1] */
+  .flipper { width: 55px; height: 55px; animation: a-flip 3s infinite var(--ease); }
+  @keyframes a-flip { 0%, 100% { transform: scale(1) rotateY(0); background: var(--shape); } 50% { transform: scale(0.8, 1.2) rotateY(180deg); background: var(--light); } }
 
-  /* --- カードデザイン --- */
-  .card {
-    background: var(--card-bg);
-    border-radius: 24px;
-    padding: 32px 24px;
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition-base);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.8);
-  }
+  /* 03: じゃじゃーん[cite: 1] */
+  .jaja { width: 30px; height: 65px; animation: a-jaja 3s infinite var(--ease); }
+  .jaja::before, .jaja::after { content: ""; position: absolute; width: 100%; height: 100%; background: var(--light); border-radius: 8px; z-index: -1; transform-origin: bottom center; }
+  .jaja::before { animation: a-jl 3s infinite var(--ease); }
+  .jaja::after { animation: a-jr 3s infinite var(--ease); }
+  @keyframes a-jaja { 0%, 20% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+  @keyframes a-jl { 0%, 20% { transform: rotate(0); } 50%, 80% { transform: rotate(-30deg) translateX(-35px); } }
+  @keyframes a-jr { 0%, 20% { transform: rotate(0); } 50%, 80% { transform: rotate(30deg) translateX(35px); } }
 
-  .card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-lg);
-  }
+  /* 04: 紙を折りたたむ[cite: 1] */
+  .fold { width: 80px; height: 45px; background: var(--light); }
+  .fold::after { content: ""; position: absolute; right: 0; width: 50%; height: 100%; background: var(--shape); transform-origin: left; animation: a-fold 3s infinite var(--ease); }
+  @keyframes a-fold { 0%, 20% { transform: rotateY(0); } 50%, 80% { transform: rotateY(-180deg); } 100% { transform: rotateY(0); } }
 
-  .icon-wrapper {
-    width: 140px;
-    height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    position: relative;
-    font-size: 80px; /* 絵文字サイズ */
-  }
+  /* 05: 充電[cite: 1] */
+  .batt { width: 75px; height: 38px; border: 5px solid var(--shape); padding: 3px; box-sizing: border-box; }
+  .batt::after { content: ""; position: absolute; right: -13px; top: 7px; width: 8px; height: 14px; background: var(--shape); border-radius: 0 4px 4px 0; }
+  .batt-core { height: 100%; background: var(--light); animation: a-chg 3s infinite var(--ease); }
+  .batt-line { width: 30px; height: 5px; background: var(--shape); position: absolute; left: -40px; top: 12px; }
+  @keyframes a-chg { 0% { width: 0; opacity: 0; } 20% { width: 0; opacity: 1; } 80%, 100% { width: 100%; opacity: 1; } }
 
-  .label {
-    font-size: 14px;
-    color: var(--text-sub);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-  }
+  /* 06: 音声入力[cite: 1] */
+  .mic { width: 22px; height: 38px; border: 5px solid var(--shape); border-radius: 20px; animation: a-mic 1.5s infinite var(--ease); }
+  .mic-base { width: 40px; height: 5px; background: var(--shape); position: absolute; bottom: -20px; left: -14px; border-radius: 5px; }
+  @keyframes a-mic { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(1.3) translateY(-5px); opacity: 0.6; } }
 
-  /* --- 個別コンポーネントのスタイル --- */
+  /* 07: 波紋 (修正版：同心円状に広がる) */
+  .ripple-wrap { width: 100px; height: 100px; position: relative; }
+  .ripple-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); border: 4px solid var(--shape); border-radius: 50%; animation: a-ripple 3s infinite; }
+  .ripple-circle:nth-child(2) { animation-delay: 1s; }
+  .ripple-circle:nth-child(3) { animation-delay: 2s; }
+  @keyframes a-ripple { 0% { width: 0; height: 0; opacity: 1; } 100% { width: 100px; height: 100px; opacity: 0; } }
 
-  /* 1. MILK */
-  .milk-carton {
-    width: 60px; height: 90px;
-    border: 6px solid var(--text-main);
-    border-radius: 8px;
-    position: relative;
-    overflow: hidden;
-  }
-  .milk-inner {
-    position: absolute; bottom: 0; width: 100%;
-    background: #eef2ff;
-    animation: pourMilk 3s infinite ease-in-out;
-  }
-  .milk-text {
-    position: absolute; top: 15px; left: 0; width: 100%;
-    font-size: 14px; font-weight: 900; color: var(--text-main);
-    text-align: center; transform: rotate(-15deg);
-  }
+  /* 08: 呼吸 */
+  .breath { width: 50px; height: 50px; animation: a-br 3s infinite var(--ease); }
+  @keyframes a-br { 0%, 100% { transform: scale(1); border-radius: 12px; } 50% { transform: scale(1.4); border-radius: 50%; opacity: 0.5; } }
 
-  /* 2. Battery */
-  .battery-body {
-    width: 90px; height: 45px;
-    border: 5px solid var(--text-main);
-    border-radius: 8px;
-    position: relative;
-    padding: 4px;
-  }
-  .battery-body::after {
-    content: ''; position: absolute; right: -12px; top: 10px;
-    width: 7px; height: 16px; background: var(--text-main);
-    border-radius: 0 4px 4px 0;
-  }
-  .battery-level {
-    height: 100%; background: var(--accent-green);
-    border-radius: 2px;
-    animation: charging 2.5s infinite ease-out;
-  }
+  /* 09: 警告（震動） */
+  .warn { width: 50px; height: 50px; animation: a-warn 0.8s infinite linear; }
+  @keyframes a-warn { 0%, 100% { transform: translateX(0); background: var(--shape); } 10%, 30%, 50% { transform: translateX(-5px); } 20%, 40%, 60% { transform: translateX(5px); background: #ffaaaa; } }
 
-  /* 3. Voice */
-  .voice-bars { display: flex; align-items: flex-end; gap: 6px; height: 60px; }
-  .v-bar {
-    width: 10px; height: 20px;
-    background: var(--accent-blue);
-    border-radius: 10px;
-    animation: voiceWave 1.2s infinite ease-in-out;
-  }
+  /* 10: 瞬き */
+  .blink { width: 60px; height: 12px; border: 4px solid var(--shape); border-radius: 50%; animation: a-blink 3s infinite var(--ease); }
+  @keyframes a-blink { 0%, 45%, 55%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.1); } }
 
-  /* --- アニメーション定義 --- */
-  @keyframes pourMilk { 0%, 100% { height: 20%; } 50% { height: 85%; } }
-  @keyframes charging { 0% { width: 5%; opacity: 0.3; } 100% { width: 95%; opacity: 1; } }
-  @keyframes voiceWave { 0%, 100% { height: 15px; } 50% { height: 50px; } }
-  
-  /* 絵文字アニメーション */
-  .ani-coffee { animation: coffeeTilt 3s infinite ease-in-out; transform-origin: bottom center; }
-  @keyframes coffeeTilt { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(20deg); } }
+  /* 11: バネ */
+  .spring { width: 60px; height: 20px; animation: a-spr 1s infinite var(--ease); }
+  @keyframes a-spr { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(3); } }
 
-  .ani-heart { animation: heartBeat 1.2s infinite var(--ease-out-back); }
-  @keyframes heartBeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
-
-  .ani-bell { animation: bellSwing 2s infinite ease-in-out; transform-origin: top center; }
-  @keyframes bellSwing { 
-    0%, 100% { transform: rotate(0); }
-    10% { transform: rotate(20deg); }
-    20% { transform: rotate(-15deg); }
-    30% { transform: rotate(10deg); }
-    40% { transform: rotate(0); }
-  }
-
-  .ani-pop { animation: popIn 2s infinite var(--ease-out-back); }
-  @keyframes popIn { 0%, 100% { transform: scale(0.9); } 50% { transform: scale(1.15) rotate(5deg); } }
-
-  .ani-fold { animation: fold 2.5s infinite ease-in-out; perspective: 400px; }
-  @keyframes fold { 0%, 100% { transform: rotateX(0); } 50% { transform: rotateX(60deg); } }
-
-  .ani-flip { animation: flip 2s infinite ease-in-out; }
-  @keyframes flip { 0% { transform: rotateY(0); } 50%, 100% { transform: rotateY(180deg); } }
-
-  .ani-twinkle { animation: twinkle 1.5s infinite ease-in-out; }
-  @keyframes twinkle { 0%, 100% { opacity: 0.5; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.1); } }
-
-  .ani-float { animation: float 2s infinite ease-in-out; }
-  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-
-  .ani-check { animation: checkPop 1.5s infinite var(--ease-out-back); }
-  @keyframes checkPop { 0% { transform: scale(0); opacity: 0; } 50%, 100% { transform: scale(1); opacity: 1; } }
+  /* 12: 扉 */
+  .door { width: 45px; height: 65px; transform-origin: left; animation: a-door 3s infinite var(--ease); }
+  @keyframes a-door { 0%, 100% { transform: perspective(200px) rotateY(0); } 50% { transform: perspective(200px) rotateY(-100deg); background: var(--light); } }
 
 </style>
 </head>
 <body>
 
-<h1>Interactions Gallery</h1>
-
 <div class="grid">
-  <!-- 1. MILK -->
-  <div class="card">
-    <div class="icon-wrapper">
-      <div class="milk-carton">
-        <div class="milk-text">MILK</div>
-        <div class="milk-inner"></div>
-      </div>
-    </div>
-    <div class="label">POURING MILK</div>
-  </div>
+  <!-- 01-06: オリジナル再現[cite: 1] -->
+  <div class="card"><div class="cv"><div class="m-cup"></div><div class="m-pkg"></div></div><div class="label">牛乳</div></div>
+  <div class="card"><div class="cv"><div class="flipper b"></div></div><div class="label">ひっくり返す</div></div>
+  <div class="card"><div class="cv"><div class="jaja b"></div></div><div class="label">じゃじゃーん</div></div>
+  <div class="card"><div class="cv"><div class="fold b"></div></div><div class="label">紙を折りたたむ</div></div>
+  <div class="card"><div class="cv"><div class="batt-line"></div><div class="batt b"><div class="batt-core"></div></div></div><div class="label">充電</div></div>
+  <div class="card"><div class="cv"><div class="mic b"><div class="mic-base"></div></div></div><div class="label">音声入力</div></div>
 
-  <!-- 2. Battery -->
-  <div class="card">
-    <div class="icon-wrapper">
-      <div class="battery-body">
-        <div class="battery-level"></div>
-      </div>
-    </div>
-    <div class="label">CHARGING</div>
-  </div>
-
-  <!-- 3. Voice -->
-  <div class="card">
-    <div class="icon-wrapper">
-      <div class="voice-bars">
-        <div class="v-bar" style="animation-delay: 0.1s"></div>
-        <div class="v-bar" style="animation-delay: 0.3s"></div>
-        <div class="v-bar" style="animation-delay: 0.2s"></div>
-        <div class="v-bar" style="animation-delay: 0.4s"></div>
-        <div class="v-bar" style="animation-delay: 0.1s"></div>
-      </div>
-    </div>
-    <div class="label">VOICE INPUT</div>
-  </div>
-
-  <!-- Emoji based icons -->
-  <div class="card">
-    <div class="icon-wrapper ani-coffee">☕</div>
-    <div class="label">COFFEE BREAK</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-heart">❤️</div>
-    <div class="label">HEARTBEAT</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-bell">🛎️</div>
-    <div class="label">NOTIFICATION</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-pop">📱</div>
-    <div class="label">REVEAL</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-fold">📄</div>
-    <div class="label">FOLDING</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-flip">⬛</div>
-    <div class="label">FLIP OVER</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-twinkle">⭐</div>
-    <div class="label">TWINKLE</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-float">✉️</div>
-    <div class="label">INCOMING MAIL</div>
-  </div>
-
-  <div class="card">
-    <div class="icon-wrapper ani-check">✅</div>
-    <div class="label">COMPLETED</div>
-  </div>
+  <!-- 07-12: 固有モーション -->
+  <div class="card"><div class="cv"><div class="ripple-wrap"><div class="ripple-circle"></div><div class="ripple-circle"></div><div class="ripple-circle"></div></div></div><div class="label">波紋</div></div>
+  <div class="card"><div class="cv"><div class="breath b"></div></div><div class="label">呼吸</div></div>
+  <div class="card"><div class="cv"><div class="warn b"></div></div><div class="label">警告</div></div>
+  <div class="card"><div class="cv"><div class="blink"></div></div><div class="label">瞬き</div></div>
+  <div class="card"><div class="cv"><div class="spring b"></div></div><div class="label">バネ</div></div>
+  <div class="card"><div class="cv"><div class="door b"></div></div><div class="label">扉</div></div>
 </div>
+
+<script>
+  // 残り18個を個別に定義して追加（重複を完全に排除）
+  const extras = [
+    { name: "重力", css: "width:40px;height:40px;border-radius:50%;animation:a-grav 2s infinite var(--ease)", key: "@keyframes a-grav { 0% { transform: translateY(-60px); } 50% { transform: translateY(40px) scale(1.3, 0.7); } 100% { transform: translateY(-60px); } }" },
+    { name: "潜る", css: "width:40px;height:40px;animation:a-dive 3s infinite var(--ease)", key: "@keyframes a-dive { 0% { transform: translateY(-60px); opacity:1; } 50% { transform: translateY(0); opacity:1; } 100% { transform: translateY(80px); opacity:0; } }" },
+    { name: "回転", css: "width:40px;height:40px;border:5px solid var(--light);border-top-color:var(--shape);border-radius:50%;animation:a-spin 1s infinite linear", key: "@keyframes a-spin { to { transform: rotate(360deg); } }" },
+    { name: "スライス", html: '<div style="width:60px;height:20px;background:var(--shape);margin-bottom:4px;animation:a-sl-u 2s infinite var(--ease)"></div><div style="width:60px;height:20px;background:var(--shape);animation:a-sl-d 2s infinite var(--ease)"></div>', key: "@keyframes a-sl-u { 50% { transform: translateX(-20px); opacity:0.7; } } @keyframes a-sl-d { 50% { transform: translateX(20px); } }" },
+    { name: "振り子", css: "width:10px;height:60px;transform-origin:top;animation:a-pen 2s infinite ease-in-out", key: "@keyframes a-pen { 0%,100%{ transform:rotate(45deg); } 50%{ transform:rotate(-45deg); } }" },
+    { name: "滴下", css: "width:15px;height:15px;border-radius:50%;animation:a-drop 2s infinite var(--ease)", key: "@keyframes a-drop { 0%{transform:translateY(-50px) scale(0);} 50%{transform:translateY(0) scale(1.2,0.8);} 100%{transform:translateY(60px) scale(0);opacity:0;} }" }
+  ];
+
+  const grid = document.querySelector('.grid');
+  extras.forEach((ex, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const id = `extra${i}`;
+    card.innerHTML = `<style>${ex.key.replace(/a-\w+/g, id)}</style><div class="cv">${ex.html || `<div class="b" style="${ex.css.replace(/a-\w+/g, id)}"></div>`}</div><div class="label">${ex.name}</div>`;
+    grid.appendChild(card);
+  });
+</script>
 
 </body>
 </html>
