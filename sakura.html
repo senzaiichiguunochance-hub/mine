@@ -45,6 +45,10 @@ let mouseX = w/2, mouseY = h/2;
 const releaseRadius = 95;
 let explosionActive = 0; 
 
+// テキスト切り替え用のタイマー
+let hoverTimer = 0; 
+const SWITCH_THRESHOLD = 10; // 0.5秒 (60fpsの場合)
+
 class Particle {
   constructor() { this.reset(true); }
   reset(isInitial = false) {
@@ -74,17 +78,15 @@ class Particle {
     }
 
     this.vy += 0.058; 
-    this.vx *= 0.965; // 空気抵抗
-    this.vy *= 0.965; // 空気抵抗
+    this.vx *= 0.965;
+    this.vy *= 0.965;
 
     this.x += this.vx;
     this.y += this.vy;
 
-    // ★地面から天井まで突き抜ける噴水演出（修正版）[cite: 3]
     if (this.y > h - 5) {
       this.y = h - 6;
-      // 摩擦(0.965)を考慮して、確実に天井(h)まで届くように係数を2.5倍以上に強化
-      this.vy = -Math.sqrt(2 * 0.058 * h) * 2.8; 
+      this.vy = -Math.sqrt(2 * 0.058 * h) * 4.0; 
       this.vx += (Math.random() - 0.5) * 15;
     }
 
@@ -168,6 +170,19 @@ function drawBackground() {
   ctx.fillStyle = '#0d1f0d';
   ctx.fillRect(0, 0, w, h);
 
+  // ホバー判定
+  const dx = mouseX - w/2;
+  const dy = mouseY - h/2;
+  const isHover = (dx*dx + dy*dy < releaseRadius * releaseRadius);
+
+  // カウント管理（乗せている間だけ増える）
+  if (isHover) {
+    if (hoverTimer < SWITCH_THRESHOLD) hoverTimer++;
+  } else {
+    hoverTimer = 0; // 離れたら即座にリセット
+  }
+
+  // 円の描画[cite: 2]
   ctx.save();
   ctx.shadowBlur = 35;
   ctx.shadowColor = '#44ccff';
@@ -186,7 +201,12 @@ function drawBackground() {
   ctx.fillStyle = '#aaffff';
   ctx.font = 'bold 26px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('🌊 排出ゾーン 🌊', w/2, h/2 + 10);
+
+  if (hoverTimer >= SWITCH_THRESHOLD) {
+    ctx.fillText('✨ Click! ✨', w/2, h/2 + 10);
+  } else {
+    ctx.fillText('🌊 排出ゾーン 🌊', w/2, h/2 + 10);
+  }
 }
 
 function animate() {
