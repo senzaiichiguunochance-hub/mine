@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>🌸 桜の花びら掃除</title>
+<style>
+  body { margin:0; background:#0a2a0a; overflow:hidden; font-family:sans-serif; touch-action:none; }
+  canvas { display:block; }
+  #ui {
+    position: absolute; top: 10px; left: 10px; color: #ff99cc; 
+    font-family: sans-serif; text-shadow: 0 0 8px #ff99cc;
+    z-index: 10; pointer-events: none;
+  }
+  #info { font-size: 19px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+<div id="ui">
+  <h1>🌸 桜の花びら掃除</h1>
+  <div id="info">総数: <span id="total">1000</span>　回収: <span id="collected">0</span></div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let w, h;
+
+function resize() {
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const particles = [];
+let collectedCount = 0;
+const totalPetals = 1000;
+
+let mouseX = w/2, mouseY = h/2;
+const releaseRadius = 95;
+let explosionActive = 0; 
+
+class Particle {
+  constructor() { this.reset(true); }
+  reset(isInitial = false) {
+    this.x = Math.random() * w;
+    this.y = isInitial ? Math.random() * h : -20;
+    this.vx = (Math.random()-0.5) * 2.5;
+    this.vy = (Math.random()-0.5) * 2 + 0.6;
+    this.size = Math.random() * 7 + 5;
+    this.hue = [320, 330, 340, 355][Math.floor(Math.random()*4)];
+    this.alpha = Math.random() * 0.4 + 0.78;
+    this.collected = false;
+  }
+
+  update(mx, my) {
+    if (this.collected) return;
+
+    if (explosionActive <= 0) {
+      const dx = mx - this.x;
+      const dy = my - this.y;
+      const distSq = dx*dx + dy*dy;
+      if (distSq < 200*200) {
+        const dist = Math.sqrt(distSq) || 1;
+        const force = (1 - dist/200) * 1.15;
+        this.vx += (dx/dist) * force * 0.9;
+        this.vy += (dy/dist) * force * 0.9;
+      }
+    }
+
+    this.vy += 0.058; 
+    this.vx *= 0.965; // 空気抵抗
+    this.vy *= 0.965; // 空気抵抗
+
+    this.x += this.vx;
+    this.y += this.vy;
+
+    // ★地面から天井まで突き抜ける噴水演出（修正版）[cite: 3]
+    if (this.y > h - 5) {
+      this.y = h - 6;
+      // 摩擦(0.965)を考慮して、確実に天井(h)まで届くように係数を2.5倍以上に強化
+      this.vy = -Math.sqrt(2 * 0.058 * h) * 2.8; 
+      this.vx += (Math.random() - 0.5) * 15;
+    }
+
+    if (this.x < 10 || this.x > w - 10) this.vx *= -0.8;
+    // 天井での跳ね返り
+    if (this.y < 5) { 
+      this.y = 6; 
+      this.vy *= -0.3; 
+    }
+  }
+
+  draw() {
+    if (this.collected) return;
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = `hsl(${this.hue}, 95%, 88%)`;
+    ctx.beginPath();
+    ctx.ellipse(this.x, this.y, this.size, this.size*0.55, this.vx*2.2, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function updatePointer(e) {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  mouseY = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+}
+canvas.addEventListener('mousemove', updatePointer);
+canvas.addEventListener('touchmove', e => { e.preventDefault(); updatePointer(e); }, {passive:false});
+
+canvas.addEventListener('mousedown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const tx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+  const ty = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+  const dx = tx - w/2;
+  const dy = ty - h/2;
+  if (dx*dx + dy*dy < releaseRadius * releaseRadius) {
+    explodeFromRoomba();
+  }
+});
+
+function explodeFromRoomba() {
+  if (collectedCount === 0) return;
+  explosionActive = 35; 
+  particles.forEach(p => {
+    if (p.collected) {
+      p.collected = false;
+      p.x = mouseX;
+      p.y = mouseY;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 35 + 10; 
+      p.vx = Math.cos(angle) * speed;
+      p.vy = Math.sin(angle) * speed;
+    }
+  });
+  collectedCount = 0;
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById('collected').textContent = collectedCount;
+}
+
+function trySuck(mx, my) {
+  if (explosionActive > 0) return; 
+  for (let p of particles) {
+    if (!p.collected) {
+      const dx = mx - p.x;
+      const dy = my - p.y;
+      if (dx*dx + dy*dy < 72*72) {
+        p.collected = true;
+        collectedCount++;
+        updateUI();
+      }
+    }
+  }
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#0d1f0d';
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.save();
+  ctx.shadowBlur = 35;
+  ctx.shadowColor = '#44ccff';
+  ctx.strokeStyle = '#44ccff';
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.arc(w/2, h/2, releaseRadius, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(68, 204, 255, 0.15)';
+  ctx.beginPath();
+  ctx.arc(w/2, h/2, releaseRadius - 12, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = '#aaffff';
+  ctx.font = 'bold 26px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🌊 排出ゾーン 🌊', w/2, h/2 + 10);
+}
+
+function animate() {
+  drawBackground();
+  if (explosionActive > 0) explosionActive--;
+
+  ctx.fillStyle = 'rgba(180, 240, 255, 0.22)';
+  ctx.beginPath();
+  ctx.arc(mouseX, mouseY, 78, 0, Math.PI*2);
+  ctx.fill();
+
+  for (let p of particles) {
+    p.update(mouseX, mouseY);
+    p.draw();
+  }
+
+  trySuck(mouseX, mouseY);
+
+  ctx.strokeStyle = '#44ddff';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(mouseX, mouseY, 24, 0, Math.PI*2);
+  ctx.stroke();
+
+  ctx.fillStyle = '#aaffff';
+  ctx.beginPath();
+  ctx.arc(mouseX, mouseY, 10, 0, Math.PI*2);
+  ctx.fill();
+
+  requestAnimationFrame(animate);
+}
+
+for (let i = 0; i < totalPetals; i++) {
+  particles.push(new Particle());
+}
+updateUI();
+animate();
+</script>
+</body>
+</html>
