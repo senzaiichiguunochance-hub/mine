@@ -191,13 +191,13 @@
                 <div class="info-box">
                     <h2>スコア</h2>
                     <div id="score-container">
-                        <div>● <span id="black-score">2</span></div>
-                        <div>○ <span id="white-score">2</span></div>
+                        <div>黒 <span id="black-score">2</span></div>
+                        <div>白 <span id="white-score">2</span></div>
                     </div>
                 </div>
                 <div class="info-box">
                     <h2>現在のターン</h2>
-                    <div id="turn-display">●</div>
+                    <div id="turn-display"></div>
                 </div>
                 <div class="info-box">
                     <h2>メッセージ</h2>
@@ -340,7 +340,7 @@
             whiteScoreDisplay.textContent = whiteCount;
 
             const isBlack = currentPlayer === BLACK;
-            turnDisplay.textContent = isBlack ? '● 黒の番' : '○ 白の番';
+            turnDisplay.textContent = isBlack ? '黒の番' : '白の番';
             const turnBox = turnDisplay.parentElement;
             if (isBlack) {
                 turnBox.style.backgroundColor = '#111';
