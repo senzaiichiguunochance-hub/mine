@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Core Dice Protocol - Ultimate Edition</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; user-select: none;}
+        
+        /* 全体UIレイヤー */
+        #ui { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 20px; box-sizing: border-box; color: #00ffff; pointer-events: none; z-index: 10;
+        }
+        .header { border-left: 5px solid #00ffff; padding-left: 15px; }
+        .status-main { font-size: 22px; letter-spacing: 3px; color: #fff; text-shadow: 0 0 10px #00ffff; }
+        .hud-left { position: absolute; left: 20px; top: 180px; font-size: 10px; color: rgba(0,255,255,0.4); transform: rotate(-90deg); transform-origin: left; }
+        
+        /* 操作コントロールパネル */
+        .interactive-panel {
+            pointer-events: auto;
+            background: rgba(0, 15, 15, 0.85);
+            border: 1px solid #00ffff;
+            padding: 12px 15px;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+            margin-top: 10px;
+            max-width: 420px;
+        }
+        .dice-select {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .dice-select label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 15px;
+            color: #fff;
+        }
+        .dice-select input[type="radio"] {
+            cursor: pointer;
+            accent-color: #00ffff;
+        }
+        .btn-roll {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 0 0 10px #00ffff;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        .btn-roll:hover {
+            background: #fff;
+            box-shadow: 0 0 20px #fff;
+        }
+        .btn-roll:disabled {
+            background: #222;
+            color: #555;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* 統計パネル用のコンテナ（PCでは右に2つ並ぶ、スマホでは下に並ぶ） */
+        .sidebar-container {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        /* 共通パネルデザイン */
+        .cyber-panel {
+            background: rgba(15, 0, 8, 0.85); 
+            padding: 15px;
+            border-radius: 6px;
+            width: 200px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        /* 今回の結果パネル（ネオンピンク） */
+        .panel-current {
+            border: 2px solid #ff0055;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.3), inset 0 0 8px rgba(255, 0, 85, 0.1);
+            color: #ff3377;
+        }
+        .panel-current h3 {
+            color: #fff; text-shadow: 0 0 8px #ff0055; border-bottom: 1px solid #ff0055;
+        }
+        .panel-current .total-val-box {
+            background: #ff0055; color: #000; box-shadow: 0 0 10px #ff0055;
+        }
+
+        /* ★新設：累計統計パネル（ネオンイエロー/ゴールド系で差別化） */
+        .panel-total {
+            border: 2px solid #ffaa00;
+            box-shadow: 0 0 15px rgba(255, 170, 0, 0.3), inset 0 0 8px rgba(255, 170, 0, 0.1);
+            color: #ffcc66;
+        }
+        .panel-total h3 {
+            color: #fff; text-shadow: 0 0 8px #ffaa00; border-bottom: 1px solid #ffaa00;
+        }
+        .panel-total .total-val-box {
+            background: #ffaa00; color: #000; box-shadow: 0 0 10px #ffaa00;
+        }
+
+        .cyber-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 15px;
+            letter-spacing: 1px;
+            padding-bottom: 4px;
+            text-align: center;
+        }
+        .total-container {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-val-box {
+            padding: 1px 8px;
+            border-radius: 3px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .counts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .count-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            padding-bottom: 2px;
+        }
+        .count-num {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* 📱 スマートフォン・タブレット向けレスポンシブ設定 */
+        @media (max-width: 768px) {
+            #ui {
+                padding: 10px;
+                justify-content: flex-start;
+                overflow-y: auto; /* コンテンツが多い場合スクロール可能に */
+            }
+            .hud-left { display: none; } /* スマホではデコレーション文字を非表示 */
+            .interactive-panel {
+                max-width: 100%;
+            }
+            .sidebar-container {
+                position: relative;
+                right: auto;
+                top: auto;
+                margin-top: 15px;
+                flex-direction: row; /* 横並び */
+                width: 100%;
+                gap: 10px;
+            }
+            .cyber-panel {
+                flex: 1; /* 横幅いっぱいに均等に広げる */
+                width: auto;
+                padding: 10px;
+            }
+            .total-container { font-size: 15px; margin-bottom: 8px;}
+            .total-val-box { font-size: 16px; }
+            .count-row { font-size: 12px; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+    <div id="ui">
+        <div class="header">
+            <div class="status-main" style="margin-top:20px;">PROTOCOL: <span id="status-text">READY</span></div>
+            <div style="font-size: 10px; margin-bottom: 5px;">SYSTEM_INTEGRITY: <span id="stability">100.0</span>%</div>
+            
+            <div class="interactive-panel">
+                <div style="font-size: 11px; margin-bottom: 5px; color: #00ffff;">QUANTITY SELECT:</div>
+                <div class="dice-select" id="radio-container">
+                    </div>
+                <button class="btn-roll" id="roll-button" onclick="rollDice()">ROLL CORE</button>
+            </div>
+        </div>
+
+        <div class="sidebar-container">
+            <div class="cyber-panel panel-current" id="results-panel" style="display: none;">
+                <h3>CURRENT ROLL</h3>
+                <div class="total-container">
+                    <span>TOTAL:</span>
+                    <span class="total-val-box" id="res-total">0</span>
+                </div>
+                <div class="counts-list">
+                    <div class="count-row"><span>[⚀ 1]</span><span class="count-num" id="count-1">0</span></div>
+                    <div class="count-row"><span>[⚁ 2]</span><span class="count-num" id="count-2">0</span></div>
+                    <div class="count-row"><span>[⚂ 3]</span><span class="count-num" id="count-3">0</span></div>
+                    <div class="count-row"><span>[⚃ 4]</span><span class="count-num" id="count-4">0</span></div>
+                    <div class="count-row"><span>[⚄ 5]</span><span class="count-num" id="count-5">0</span></div>
+                    <div class="count-row"><span>[⚅ 6]</span><span class="count-num" id="count-6">0</span></div>
+                </div>
+            </div>
+
+            <div class="cyber-panel panel-total" id="total-panel" style="display: none;">
+                <h3>TOTAL STATS</h3>
+                <div class="total-container">
+                    <span>ROLLS:</span>
+                    <span class="total-val-box" id="total-rolls" style="font-size:16px;">0</span>
+                </div>
+                <div class="total-container" style="margin-top:-5px; margin-bottom:10px;">
+                    <span>SUM:</span>
+                    <span id="total-sum" style="font-weight:bold; color:#fff;">0</span>
+                </div>
+                <div class="counts-list">
+                    <div class="count-row"><span>[⚀ 1] ALL</span><span class="count-num" id="all-count-1">0</span></div>
+                    <div class="count-row"><span>[⚁ 2] ALL</span><span class="count-num" id="all-count-2">0</span></div>
+                    <div class="count-row"><span>[⚂ 3] ALL</span><span class="count-num" id="all-count-3">0</span></div>
+                    <div class="count-row"><span>[⚃ 4] ALL</span><span class="count-num" id="all-count-4">0</span></div>
+                    <div class="count-row"><span>[⚄ 5] ALL</span><span class="count-num" id="all-count-5">0</span></div>
+                    <div class="count-row"><span>[⚅ 6] ALL</span><span class="count-num" id="all-count-6">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-left">DICE_LINK_ESTABLISHED // 0xFA42-DICE</div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        let scene, renderer, composer, grid, pulse, mainCamera;
+        let diceArray = []; 
+        let isRolling = false;
+
+        // 累計データを保持するオブジェクト
+        const globalStats = {
+            rolls: 0,
+            sum: 0,
+            counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
+        };
+
+        const DICE_ROTATIONS = {
+            1: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)),        
+            2: new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),       
+            3: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -Math.PI / 2)),       
+            4: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),        
+            5: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)),                  
+            6: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI, 0, 0))             
+        };
+
+        const views = [
+            { l: 0, b: 0, w: 1, h: 1, eye: [0, 8, 11], wire: false }, 
+            { l: 0.02, b: 0.78, w: 0.18, h: 0.18, eye: [0, 15, 0], wire: true },
+            { l: 0.02, b: 0.58, w: 0.18, h: 0.18, eye: [12, 2, 0], wire: false } // スマホで見やすいよう左側にサブビューを寄せています
+        ];
+
+        // ★記憶機能: localStorageから前回の個数を取得、無ければデフォルト3
+        const savedCount = localStorage.getItem('cyber-dice-count');
+        const initialDiceCount = savedCount ? parseInt(savedCount) : 3;
+
+        // ラジオボタン生成
+        const container = document.getElementById('radio-container');
+        for (let i = 1; i <= 10; i++) {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="radio" name="dice-count" value="${i}" ${i === initialDiceCount ? 'checked' : ''}>${i}`;
+            container.appendChild(label);
+        }
+
+        init();
+        animate();
+        setupDice(getSelectedIndex()); 
+
+        function init() {
+            scene = new THREE.Scene();
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.autoClear = false;
+            document.body.appendChild(renderer.domElement);
+
+            views.forEach((v, index) => {
+                v.camera = new THREE.PerspectiveCamera(35, (window.innerWidth*v.w)/(window.innerHeight*v.h), 0.1, 100);
+                v.camera.position.set(...v.eye);
+                v.camera.lookAt(0,0,0);
+                if(index === 0) mainCamera = v.camera;
+            });
+
+            composer = new EffectComposer(renderer);
+            const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.4, 0.85);
+            composer.addPass(new RenderPass(scene, views[0].camera));
+            composer.addPass(bloom);
+
+            grid = new THREE.GridHelper(30, 60, 0x00ffff, 0x002222);
+            grid.position.y = -2;
+            scene.add(grid);
+
+            const pulseGeo = new THREE.SphereGeometry(1, 32, 32);
+            const pulseMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0 });
+            pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            scene.add(pulse);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const p = new THREE.PointLight(0xffffff, 60); p.position.set(5, 15, 5); scene.add(p);
+            
+            adjustCameraForMobile(); // スマホ用の初期カメラ画角調整
+        }
+
+        // ★色合いの強化: 完全にクリアで高コントラストなテクスチャを生成
+        function createDiceTexture(dots, isRed) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // 混じり気のない純白
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 256, 256);
+
+            // 1の目は鮮烈な赤、それ以外は濃い漆黒
+            ctx.fillStyle = isRed ? '#ff0022' : '#000000';
+
+            const center = 128;
+            const r = 26; // 目を目立たせるために少し大きく
+            const offset = 60;
+
+            const dotPositions = {
+                1: [[center, center]],
+                2: [[center - offset, center - offset], [center + offset, center + offset]],
+                3: [[center - offset, center - offset], [center, center], [center + offset, center + offset]],
+                4: [[center - offset, center - offset], [center + offset, center - offset], [center - offset, center + offset], [center + offset, center + offset]],
+                5: [[center - offset, center - offset], [center + offset, center - offset], [center, center], [center - offset, center + offset], [center + offset, center + offset]],
+                6: [[center - offset, center - offset], [center + offset, center - offset], [center - offset, center], [center + offset, center], [center - offset, center + offset], [center + offset, center + offset]]
+            };
+
+            dotPositions[dots].forEach(pos => {
+                ctx.beginPath();
+                ctx.arc(pos[0], pos[1], r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
+        function getSelectedIndex() {
+            const radios = document.getElementsByName('dice-count');
+            for (let r of radios) {
+                if (r.checked) return parseInt(r.value);
+            }
+            return 3;
+        }
+
+        function clearExistingDice() {
+            diceArray.forEach(dice => {
+                scene.remove(dice);
+                if (dice.geometry) dice.geometry.dispose();
+                if (dice.material) {
+                    dice.material.forEach(mat => {
+                        if (mat.map) mat.map.dispose();
+                        mat.dispose();
+                    });
+                }
+            });
+            diceArray = [];
+        }
+
+        function setupDice(count) {
+            clearExistingDice();
+
+            const geom = new RoundedBoxGeometry(1.2, 1.2, 1.2, 4, 0.15);
+
+            const textures = [
+                createDiceTexture(3, false), 
+                createDiceTexture(4, false), 
+                createDiceTexture(5, false), 
+                createDiceTexture(6, false), 
+                createDiceTexture(1, true),  
+                createDiceTexture(2, false)  
+            ];
+
+            // ★マテリアルの光沢・色をクッキリさせる調整
+            const materials = textures.map(tex => new THREE.MeshStandardMaterial({
+                map: tex,
+                roughness: 0.15, // 少しツヤを出して高級感を出す
+                metalness: 0.0,  // 金属感をゼロにして白をより白く
+                emissive: 0xffffff,
+                emissiveIntensity: 0.05 // 白さを損なわない極微量の発光
+            }));
+
+            // スマホ画面幅に合わせてサイコロ同士の間隔を動的に調整
+            const isMobile = window.innerWidth <= 768;
+            const spacing = isMobile ? (count > 6 ? 1.1 : 1.3) : 1.6;
+            const scaleFactor = isMobile && count > 5 ? 0.8 : 1.0; // スマホで個数が多い時は少し縮小
+
+            const startX = -((count - 1) * spacing) / 2;
+
+            for (let i = 0; i < count; i++) {
+                const mesh = new THREE.Mesh(geom, materials);
+                mesh.position.set(startX + i * spacing, 0, 0);
+                mesh.scale.setScalar(scaleFactor);
+                scene.add(mesh);
+                diceArray.push(mesh);
+            }
+        }
+
+        // ラジオボタン変更イベント
+        document.getElementById('radio-container').addEventListener('change', () => {
+            if(!isRolling) {
+                const count = getSelectedIndex();
+                // ★記憶機能: 選択された数をローカルストレージに保存
+                localStorage.setItem('cyber-dice-count', count);
+                setupDice(count);
+            }
+        });
+
+        async function triggerPulse() {
+            pulse.scale.setScalar(0.5);
+            pulse.material.opacity = 1.0;
+            const duration = 30;
+            for(let i=0; i<duration; i++) {
+                pulse.scale.addScalar(0.4);
+                pulse.material.opacity -= 1.0/duration;
+                await new Promise(r => requestAnimationFrame(r));
+            }
+            pulse.material.opacity = 0;
+        }
+
+        async function rollDice() {
+            if (isRolling) return;
+            isRolling = true;
+
+            const txt = document.getElementById('status-text');
+            const stab = document.getElementById('stability');
+            const rollBtn = document.getElementById('roll-button');
+            
+            txt.innerText = "CALCULATING CORE";
+            rollBtn.disabled = true;
+
+            // 回転開始時に「今回の結果」だけ一旦非表示（累計は残す）
+            document.getElementById('results-panel').style.display = 'none';
+
+            const count = getSelectedIndex();
+            setupDice(count); 
+
+            const results = [];
+            for (let i = 0; i < count; i++) {
+                results.push(Math.floor(Math.random() * 6) + 1);
+            }
+
+            const duration = 1400; 
+            const startTime = Date.now();
+
+            const randomAxes = diceArray.map(() => new THREE.Vector3(
+                Math.random() - 0.5,
+                Math.random() - 0.5,
+                Math.random() - 0.5
+            ).normalize());
+
+            while (Date.now() - startTime < duration) {
+                const progress = (Date.now() - startTime) / duration;
+                stab.innerText = (80 + Math.random() * 15).toFixed(1);
+
+                diceArray.forEach((dice, idx) => {
+                    dice.position.y = Math.sin(progress * Math.PI) * 2;
+                    dice.rotateOnAxis(randomAxes[idx], 0.35);
+                });
+
+                await new Promise(r => requestAnimationFrame(r));
+            }
+
+            txt.innerText = "SYNCHRONIZING";
+            const settleDuration = 500;
+            const settleStartTime = Date.now();
+            
+            const startQuaternions = diceArray.map(d => d.quaternion.clone());
+            const startPositions = diceArray.map(d => d.position.clone());
+
+            while (Date.now() - settleStartTime < settleDuration) {
+                const t = (Date.now() - settleStartTime) / settleDuration;
+                const ease = 1 - Math.pow(1 - t, 3); 
+
+                diceArray.forEach((dice, idx) => {
+                    dice.position.y = THREE.MathUtils.lerp(startPositions[idx].y, 0, ease);
+                    const targetQ = DICE_ROTATIONS[results[idx]];
+                    dice.quaternion.slerpQuaternions(startQuaternions[idx], targetQ, ease);
+                });
+
+                await new Promise(r => requestAnimationFrame(r));
+            }
+
+            diceArray.forEach((dice, idx) => {
+                dice.position.y = 0;
+                dice.quaternion.copy(DICE_ROTATIONS[results[idx]]);
+            });
+
+            txt.innerText = "PROTOCOL_COMPLETED";
+            stab.innerText = "100.0";
+            await triggerPulse();
+
+            // ★統計データ更新 & 画面表示
+            updateAndDisplayResults(results);
+
+            rollBtn.disabled = false;
+            isRolling = false;
+        }
+
+        // ★結果の集計と累積統計の処理
+        function updateAndDisplayResults(results) {
+            // 1. 今回の集計
+            const currentTotal = results.reduce((a, b) => a + b, 0);
+            const currentCounts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0};
+            results.forEach(val => currentCounts[val]++);
+
+            // 2. 累計（トータル）の更新
+            globalStats.rolls += 1;
+            globalStats.sum += currentTotal;
+            for(let i = 1; i <= 6; i++) {
+                globalStats.counts[i] += currentCounts[i];
+            }
+
+            // --- UIの書き換え ---
+            // 今回の結果表示
+            document.getElementById('res-total').innerText = currentTotal;
+            for(let i = 1; i <= 6; i++) {
+                document.getElementById(`count-${i}`).innerText = currentCounts[i];
+            }
+            document.getElementById('results-panel').style.display = 'block';
+
+            // 累計結果表示
+            document.getElementById('total-rolls').innerText = globalStats.rolls;
+            document.getElementById('total-sum').innerText = globalStats.sum;
+            for(let i = 1; i <= 6; i++) {
+                document.getElementById(`all-count-${i}`).innerText = globalStats.counts[i];
+            }
+            document.getElementById('total-panel').style.display = 'block';
+        }
+
+        // スマホの画面比率に応じてカメラの距離を引き、ダイスが画面外にはみ出るのを防ぐ関数
+        function adjustCameraForMobile() {
+            if(!mainCamera) return;
+            if (window.innerWidth <= 768) {
+                // スマホ時はカメラを少し後ろ（Y上、Z後ろ）に下げて、全体が映るように調整
+                mainCamera.position.set(0, 11, 15);
+            } else {
+                mainCamera.position.set(0, 8, 11);
+            }
+            mainCamera.lookAt(0,0,0);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.clear();
+            const w = window.innerWidth, h = window.innerHeight;
+            
+            grid.position.z = Math.sin(Date.now() * 0.001) * 0.2;
+            
+            views.forEach(v => {
+                renderer.setViewport(v.l*w, v.b*h, v.w*w, v.h*h);
+                renderer.setScissor(v.l*w, v.b*h, v.w*w, v.h*h);
+                renderer.setScissorTest(true);
+                
+                diceArray.forEach(d => {
+                    if(d && Array.isArray(d.material)) {
+                        d.material.forEach(m => m.wireframe = v.wire);
+                    }
+                });
+                
+                v.camera.lookAt(0,0,0);
+                composer.passes[0].camera = v.camera;
+                composer.render();
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth, h = window.innerHeight;
+            renderer.setSize(w, h);
+            composer.setSize(w, h);
+            
+            adjustCameraForMobile();
+
+            views.forEach(v => {
+                v.camera.aspect = (w*v.w)/(h*v.h);
+                v.camera.updateProjectionMatrix();
+            });
+            
+            // 画面サイズ変更時にサイコロの配置間隔も再計算
+            if(!isRolling) setupDice(getSelectedIndex());
+        });
+
+        window.rollDice = rollDice;
+    </script>
+</body>
+</html>
