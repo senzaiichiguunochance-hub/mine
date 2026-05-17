@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Energy Core Dice Protocol - Ultimate Edition</title>
+    <title>サイコロシミュレーター</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Share Tech Mono', monospace; user-select: none;}
         
@@ -160,31 +160,40 @@
         /* 📱 スマートフォン・タブレット向けレスポンシブ設定 */
         @media (max-width: 768px) {
             #ui {
-                padding: 10px;
-                justify-content: flex-start;
-                overflow-y: auto; /* コンテンツが多い場合スクロール可能に */
+                padding: 12px;
+                justify-content: space-between; /* 上段と下段にきれいに分散配置 */
+                overflow-y: hidden; /* 全体スクロールを防止してサイコロを見やすく */
             }
+            .header {
+                border-left: 3px solid #00ffff;
+                padding-left: 10px;
+            }
+            .status-main { font-size: 18px; }
             .hud-left { display: none; } /* スマホではデコレーション文字を非表示 */
             .interactive-panel {
                 max-width: 100%;
+                padding: 8px 12px;
             }
+            
+            /* 結果・トータルパネルを下段に配置 */
             .sidebar-container {
                 position: relative;
                 right: auto;
                 top: auto;
-                margin-top: 15px;
+                margin-top: auto; /* 上部にマージンを自動で取り、最下段へ押し下げる */
                 flex-direction: row; /* 横並び */
                 width: 100%;
-                gap: 10px;
+                gap: 8px;
             }
             .cyber-panel {
                 flex: 1; /* 横幅いっぱいに均等に広げる */
                 width: auto;
-                padding: 10px;
+                padding: 8px;
             }
-            .total-container { font-size: 15px; margin-bottom: 8px;}
-            .total-val-box { font-size: 16px; }
-            .count-row { font-size: 12px; }
+            .cyber-panel h3 { font-size: 12px; margin-bottom: 6px; }
+            .total-container { font-size: 13px; margin-bottom: 4px;}
+            .total-val-box { font-size: 14px; padding: 1px 6px; }
+            .count-row { font-size: 11px; padding-bottom: 1px; }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -226,7 +235,7 @@
                 <h3>TOTAL STATS</h3>
                 <div class="total-container">
                     <span>ROLLS:</span>
-                    <span class="total-val-box" id="total-rolls" style="font-size:16px;">0</span>
+                    <span class="total-val-box" id="total-rolls" style="font-size:14px;">0</span>
                 </div>
                 <div class="total-container" style="margin-top:-5px; margin-bottom:10px;">
                     <span>SUM:</span>
@@ -573,8 +582,8 @@
         function adjustCameraForMobile() {
             if(!mainCamera) return;
             if (window.innerWidth <= 768) {
-                // スマホ時はカメラを少し後ろ（Y上、Z後ろ）に下げて、全体が映るように調整
-                mainCamera.position.set(0, 11, 15);
+                // スマホ時はカメラを少し後ろ（Y上、Z後ろ）に下げて、中央（中段）でサイコロが映るように調整
+                mainCamera.position.set(0, 10, 14);
             } else {
                 mainCamera.position.set(0, 8, 11);
             }
