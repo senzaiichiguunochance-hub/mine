@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麺処 一楽 - RAMEN ICHIRAKU</title>
+    <style>
+        /* 全体のリセットと共通設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* ヘッダー */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(18, 18, 18, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #d4af37; /* ゴールド */
+            letter-spacing: 0.2em;
+        }
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        nav ul li {
+            margin-left: 30px;
+            font-size: 14px;
+        }
+        nav ul li a:hover {
+            color: #d4af37;
+            transition: color 0.3s;
+        }
+
+        /* メインビジュアル */
+        .hero {
+            height: 80vh;
+            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(12,12,12,1)), url('watermarked_img_6723514089573749482.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            margin-top: 60px;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+            letter-spacing: 0.3em;
+        }
+        .hero p {
+            font-size: 18px;
+            color: #cccccc;
+            text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
+        }
+
+        /* セクション共通 */
+        section {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 80px 20px;
+        }
+        .section-title {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 50px;
+            position: relative;
+            padding-bottom: 15px;
+            letter-spacing: 0.2em;
+            color: #fff;
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background-color: #d4af37;
+        }
+
+        /* 推しメニュー（画像付き） */
+        .featured-menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .menu-card {
+            background-color: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            transition: transform 0.3s;
+        }
+        .menu-card:hover {
+            transform: translateY(-5px);
+        }
+        .menu-img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            filter: brightness(0.9);
+        }
+        /* 架空画像プレースホルダー用のスタイル */
+        .img-placeholder {
+            width: 100%;
+            height: 220px;
+            background-color: #262626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 14px;
+        }
+        .menu-info {
+            padding: 20px;
+        }
+        .menu-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+        .menu-price {
+            color: #d4af37;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* 文字だけメニュー一覧 */
+        .menu-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+        }
+        @media (max-width: 600px) {
+            .menu-list-container { grid-template-columns: 1fr; }
+        }
+        .menu-category h3 {
+            font-size: 18px;
+            color: #d4af37;
+            margin-bottom: 20px;
+            border-left: 3px solid #d4af37;
+            padding-left: 10px;
+        }
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #2a2a2a;
+            font-size: 15px;
+        }
+
+        /* 口コミ */
+        .reviews-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .review-card {
+            background-color: #161616;
+            padding: 25px;
+            border-radius: 4px;
+            border-left: 3px solid #d4af37;
+        }
+        .review-stars {
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+        .review-text {
+            font-size: 14px;
+            color: #cccccc;
+            margin-bottom: 15px;
+        }
+        .review-user {
+            font-size: 12px;
+            color: #777;
+            text-align: right;
+        }
+
+        /* アクセス・所在地 */
+        .access-info {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .access-info p {
+            margin-bottom: 8px;
+        }
+        .map-placeholder {
+            width: 100%;
+            height: 350px;
+            background-color: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+
+        /* フッター */
+        footer {
+            background-color: #0a0a0a;
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 12px;
+            color: #555;
+            border-top: 1px solid #1a1a1a;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ヘッダー -->
+    <header>
+        <div class="header-container">
+            <div class="logo">ラーメン 一楽</div>
+            <nav>
+                <ul>
+                    <li><a href="#featured">お品書き</a></li>
+                    <li><a href="#reviews">お客様の声</a></li>
+                    <li><a href="#access">店舗情報</a></li>
+                </ul>
+            </</nav>
+        </div>
+    </header>
+
+    <!-- メインビジュアル（いただいた画像を背景に設定） -->
+    <div class="hero">
+        <h1>渾身の一杯を、極上の空間で。</h1>
+        <p>厳選された素材と、職人の技が織りなす濃厚な至高のスープ</p>
+    </div>
+
+    <!-- 推しメニュー（画像付き3選） -->
+    <section id="featured">
+        <h2 class="section-title">当店自慢の三撰</h2>
+        <div class="featured-menu">
+            <!-- メニュー1 -->
+            <div class="menu-card">
+                <!-- 本番時はここにラーメンの画像を入れます -->
+                <div class="img-placeholder">[ 特製醤油ラーメン 画像 ]</div>
+                <div class="menu-info">
+                    <div class="menu-name">特製極み醤油ラーメン</div>
+                    <div class="menu-price">￥1,200</div>
+                </div>
+            </div>
+            <!-- メニュー2 -->
+            <div class="menu-card">
+                <div class="img-placeholder">[ 濃厚豚骨ラーメン 画像 ]</div>
+                <div class="menu-info">
+                    <div class="menu-name">濃厚燻製チャーシュー豚骨</div>
+                    <div class="menu-price">￥1,100</div>
+                </div>
+            </div>
+            <!-- メニュー3 -->
+            <div class="menu-card">
+                <div class="img-placeholder">[ 芳醇塩ラーメン 画像 ]</div>
+                <div class="menu-info">
+                    <div class="menu-name">芳醇 特製琥珀塩ラーメン</div>
+                    <div class="menu-price">￥1,200</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- お品書き一覧（文字と値段） -->
+    <section style="background-color: #161616; max-width: 100%;">
+        <div style="max-width: 1000px; margin: 0 auto; padding: 20px 0;">
+            <h2 class="section-title">お品書き</h2>
+            <div class="menu-list-container">
+                <!-- ラーメン -->
+                <div class="menu-category">
+                    <h3>麺類</h3>
+                    <div class="menu-item"><span>醤油ラーメン</span><span>￥900</span></div>
+                    <div class="menu-item"><span>豚骨ラーメン</span><span>￥900</span></div>
+                    <div class="menu-item"><span>塩ラーメン</span><span>￥900</span></div>
+                    <div class="menu-item"><span>特製トッピング（チャーシュー3枚・味玉・海苔）</span><span>￥350</span></div>
+                    <div class="menu-item"><span>麺大盛り</span><span>￥150</span></div>
+                </div>
+                <!-- サイドメニュー・お飲み物 -->
+                <div class="menu-category">
+                    <h3>飯・副菜・麦酒</h3>
+                    <div class="menu-item"><span>直火仕立て炙りチャーハン</span><span>￥650</span></div>
+                    <div class="menu-item"><span>自家製手包み黒豚餃子（6個）</span><span>￥450</span></div>
+                    <div class="menu-item"><span>秘伝タレの炙りチャーシュー丼</span><span>￥450</span></div>
+                    <div class="menu-item"><span>瓶ビール（サッポロ赤星）</span><span>￥600</span></div>
+                    <div class="menu-item"><span>ウーロン茶</span><span>￥250</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 口コミ -->
+    <section id="reviews">
+        <h2 class="section-title">お客様の声</h2>
+        <div class="reviews-container">
+            <div class="review-card">
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">「暖簾をくぐった瞬間から出汁の良い香りが。特製醤油をいただきましたが、スープの一口目から感動。チャーシューがとろけます。」</div>
+                <div class="review-user">30代 男性 / 会社員</div>
+            </div>
+            <div class="review-card">
+                <div class="review-stars">★★★★☆</div>
+                <div class="review-text">「お店の雰囲気がとにかく渋くてクール。ラーメンはもちろん、サイドのチャーハンがパラパラで絶品でした。ビールと餃子だけでも通いたいレベル。」</div>
+                <div class="review-user">20代 女性 / フリーランス</div>
+            </div>
+            <div class="review-card">
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">「濃厚豚骨のスープが細麺によく絡んで最高。並ぶ価値ありの名店です。店員さんの威勢がよく、職人技を目の前で見られるカウンター席がおすすめ。」</div>
+                <div class="review-user">40代 男性 / 自営業</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 所在地・店舗情報 -->
+    <section id="access">
+        <h2 class="section-title">店舗情報</h2>
+        <div class="access-info">
+            <p><strong>麺処 一楽（らーめん いちらく）</strong></p>
+            <p>〒150-0043 東京都渋谷区神南1丁目2-3 粋風ビル1F</p>
+            <p>営業時間：11:00 〜 15:00 / 17:00 〜 23:00（L.O. 22:30）</p>
+            <p>定休日：水曜日</p>
+        </div>
+        <!-- 本番時はGoogleマップの埋め込みタグを入れる場所 -->
+        <div class="map-placeholder">
+            【 Google Map 埋め込みエリア 】
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <footer>
+        <p>&copy; 2026 麺処 一楽 All Rights Reserved.</p>
+    </footer>
+
+</body>
+</html>
