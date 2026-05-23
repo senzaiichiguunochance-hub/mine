@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salon ISN - あなたらしさを引き出す、至福のプライベートサロン</title>
+    <style>
+        /* 全体のリセットと共通設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #fcfaf7; /* 柔らかいオフホワイト */
+            color: #333;
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+        }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* ヘッダー */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(252, 250, 247, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            border-bottom: 1px solid #eee;
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: 300;
+            color: #8a7b6a; /* グレージュ */
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+        }
+        nav ul {
+            display: flex;
+            list-style: none;
+        }
+        nav ul li {
+            margin-left: 30px;
+            font-size: 14px;
+            color: #666;
+        }
+        nav ul li a:hover {
+            color: #8a7b6a;
+            transition: color 0.3s;
+        }
+
+        /* メインビジュアル */
+        .hero {
+            height: 90vh;
+            background-image: linear-gradient(rgba(0,0,0,0.1), rgba(0,0,0,0.2)), url('background.jpg');
+            background-color: #e8e2db;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            color: #fff;
+        }
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 200;
+            margin-bottom: 20px;
+            letter-spacing: 0.4em;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .hero p {
+            font-size: clamp(14px, 2vw, 18px);
+            letter-spacing: 0.2em;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        }
+
+        /* セクション共通 */
+        section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 100px 20px;
+        }
+        .section-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 60px;
+            position: relative;
+            padding-bottom: 20px;
+            letter-spacing: 0.3em;
+            color: #8a7b6a;
+            text-transform: uppercase;
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 1px;
+            background-color: #8a7b6a;
+        }
+
+        /* スタイルギャラリー（画像付き） */
+        .style-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+        .style-card {
+            background-color: #fff;
+            overflow: hidden;
+            transition: opacity 0.3s;
+        }
+        .style-card:hover {
+            opacity: 0.8;
+        }
+        .style-img {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+        }
+        .style-info {
+            padding: 20px 0;
+            text-align: center;
+        }
+        .style-name {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .style-desc {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* メニュー一覧 */
+        .menu-section {
+            background-color: #f7f3ef;
+            max-width: 100%;
+        }
+        .menu-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .menu-list-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 60px;
+        }
+        .menu-category h3 {
+            font-size: 16px;
+            color: #8a7b6a;
+            margin-bottom: 30px;
+            letter-spacing: 0.2em;
+            border-bottom: 1px solid #dcd1c5;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .menu-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .menu-item-price {
+            color: #8a7b6a;
+        }
+        .menu-item-desc {
+            font-size: 12px;
+            color: #888;
+            line-height: 1.5;
+        }
+
+        /* 口コミ */
+        .reviews-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .review-card {
+            background-color: #fff;
+            padding: 40px;
+            border: 1px solid #f0f0f0;
+            text-align: center;
+        }
+        .review-stars {
+            color: #d4c5b3;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .review-text {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+        .review-user {
+            font-size: 11px;
+            color: #aaa;
+            letter-spacing: 0.1em;
+        }
+
+        /* アクセス・所在地 */
+        .access-info {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .access-info p {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .map-container {
+            width: 100%;
+            height: 450px;
+            border: 1px solid #eee;
+            overflow: hidden;
+        }
+        .map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            filter: sepia(0.2) contrast(0.9);
+        }
+
+        /* フッター */
+        footer {
+            background-color: #fff;
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 11px;
+            color: #aaa;
+            border-top: 1px solid #eee;
+            letter-spacing: 0.2em;
+        }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 28px; }
+            .menu-list-container { grid-template-columns: 1fr; }
+            section { padding: 60px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ヘッダー -->
+    <header>
+        <div class="header-container">
+            <div class="logo">Salon ISN</div>
+            <nav>
+                <ul>
+                    <li><a href="#style">Style</a></li>
+                    <li><a href="#menu">Menu</a></li>
+                    <li><a href="#reviews">Review</a></li>
+                    <li><a href="#access">Access</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- メインビジュアル -->
+    <div class="hero">
+        <h1>BEYOND THE STYLE.</h1>
+        <p>日常を彩る、あなただけの特別なデザインを。</p>
+    </div>
+
+    <!-- スタイルギャラリー -->
+    <section id="style">
+        <h2 class="section-title">Selected Styles</h2>
+        <div class="style-gallery">
+            <div class="style-card">
+                <img src="Nuance Wave.png" alt="Nuance Wave" class="style-img">
+                <div class="style-info">
+                    <div class="style-name">Nuance Wave</div>
+                    <div class="style-desc">柔らかな質感のニュアンスウェーブ</div>
+                </div>
+            </div>
+            <div class="style-card">
+                <img src="Transparent Color.png" alt="Transparent Color" class="style-img">
+                <div class="style-info">
+                    <div class="style-name">Transparent Color</div>
+                    <div class="style-desc">透明感溢れるシアーグレージュ</div>
+                </div>
+            </div>
+            <div class="style-card">
+                <img src="Modern Bob.png" alt="Modern Bob" class="style-img">
+                <div class="style-info">
+                    <div class="style-name">Modern Bob</div>
+                    <div class="style-desc">洗練されたラインの切りっぱなしボブ</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- メニュー一覧 -->
+    <section id="menu" class="menu-section">
+        <div class="menu-container">
+            <h2 class="section-title">Menu</h2>
+            <div class="menu-list-container">
+                <!-- Cut & Color -->
+                <div class="menu-category">
+                    <h3>Cut & Color</h3>
+                    <div class="menu-item">
+                        <div class="menu-item-header"><span>Design Cut</span><span class="menu-item-price">¥6,600</span></div>
+                        <div class="menu-item-desc">シャンプー・ブロー込。骨格に合わせた似合わせカット。</div>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-header"><span>Full Color</span><span class="menu-item-price">¥8,800〜</span></div>
+                        <div class="menu-item-desc">ダメージを最小限に抑えた、透明感のある艶カラー。</div>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-header"><span>Care Bleach</span><span class="menu-item-price">¥11,000〜</span></div>
+                        <div class="menu-item-desc">髪を保護しながら理想のハイトーンを実現します。</div>
+                    </div>
+                </div>
+                <!-- Other -->
+                <div class="menu-category">
+                    <h3>Care & Other</h3>
+                    <div class="menu-item">
+                        <div class="menu-item-header"><span>Organic Treatment</span><span class="menu-item-price">¥4,400〜</span></div>
+                        <div class="menu-item-desc">内部から補修し、芯から潤うシルクのような手触りに。</div>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-header"><span>Head Spa (30min)</span><span class="menu-item-price">¥5,500</span></div>
+                        <div class="menu-item-desc">頭皮の汚れを落とし、極上のリラックスタイムを。</div>
+                    </div>
+                    <div class="menu-item">
+                        <div class="menu-item-header"><span>Bang Cut</span><span class="menu-item-price">¥1,650</span></div>
+                        <div class="menu-item-desc">前髪のみのメンテナンス。印象を左右する大切なラインを整えます。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 口コミ -->
+    <section id="reviews">
+        <h2 class="section-title">Customer Reviews</h2>
+        <div class="reviews-container">
+            <div class="review-card">
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">「丁寧にカウンセリングしていただき、自分でも気づかなかった似合うスタイルを提案してもらえました。周りからも大好評です！」</div>
+                <div class="review-user">20代女性 / オフィスワーク</div>
+            </div>
+            <div class="review-card">
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">「落ち着いた空間で、スタッフさんの距離感も心地よいです。シャンプーが驚くほど気持ちよくて、毎回寝てしまいます。」</div>
+                <div class="review-user">30代女性 / クリエイター</div>
+            </div>
+            <div class="review-card">
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">「カラーの持ちが以前よりずっと良くなりました。ダメージの相談にも親身に乗ってくれる、信頼できるサロンです。」</div>
+                <div class="review-user">40代女性 / 主婦</div>
+            </div>
+            <div class="review-card">
+                <div class="review-stars">★★★★☆</div>
+                <div class="review-text">「初めてのハイブリーチでしたが、ケアをしっかりしてくれたおかげで艶のある仕上がりに。自宅でのケア方法も詳しく教えてくれました。」</div>
+                <div class="review-user">20代女性 / 学生</div>
+            </div>
+            <div class="review-card">
+                <div class="review-stars">★★★★★</div>
+                <div class="review-text">「メンズのカットも非常に上手いです。セットのしやすさが他の店とは全然違います。ヘッドスパも最高のご褒美になりました。」</div>
+                <div class="review-user">30代男性 / 自営業</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 所在地・店舗案内 -->
+    <section id="access">
+        <h2 class="section-title">Access</h2>
+        <div class="access-info">
+            <p><strong>Salon ISN（サロン アイエスエヌ）</strong></p>
+            <p>〒107-0062 東京都港区南青山5丁目1-2 青山テマル 5F</p>
+            <p>（表参道駅 B3出口 徒歩2分）</p>
+            <p>Open: 11:00 〜 21:00（Sat/Sun/Hol 10:00 〜 19:00）</p>
+            <p>Closed: Tuesday</p>
+        </div>
+        <div class="map-container">
+            <!-- 表参道駅付近をターゲットにしたマップ -->
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3241.3411082599!2d139.71131751153896!3d35.6621341!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188b60f1c3f2d5%3A0xc348500693a123f!2z6KGo5Y-C6YGT6aeF!5e0!3m2!1sja!2sjp!4v1716535000000!5m2!1sja!2sjp" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <footer>
+        <p>&copy; 2026 Salon ISN All Rights Reserved.</p>
+    </footer>
+
+</body>
+</html>
