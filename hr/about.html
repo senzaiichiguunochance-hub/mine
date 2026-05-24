@@ -8,12 +8,12 @@
     <link href="css/style.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
             <a class="navbar-brand" href="index.html">
                 <img src="images/logo.png" alt="HR Logo" style="height: 50px;">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -27,40 +27,46 @@
         </div>
     </nav>
 
-        <section id="company-info">
+    <main class="container my-5">
+        <div class="text-center mb-5">
+            <h1 class="display-4">会社概要</h1>
+            <p class="lead">浜松・磐田エリアに密着し、確かな技術で住まいを守ります。</p>
+        </div>
+
+        <section id="company-info" class="mb-5">
             <div class="row">
                 <div class="col-lg-8 mx-auto">
-                    <h3 class="mb-3">基本情報</h3>
-                    <div class="card">
-                        <div class="card-body">
-                            <table class="table table-hover">
+                    <div class="card shadow-sm">
+                        <div class="card-body p-4 p-md-5">
+                            <h3 class="mb-4 text-center border-bottom pb-3">基本情報</h3>
+                            <table class="table table-borderless">
                                 <tbody>
                                     <tr>
-                                        <th scope="row" style="width: 30%;">会社名</th>
-                                        <td>HR（エイチアール）</td>
+                                        <th scope="row" style="width: 35%;" class="text-dim">会社名</th>
+                                        <td class="fw-bold">HR（エイチアール）</td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">代表者名</th>
+                                        <th scope="row" class="text-dim">代表者名</th>
                                         <td>石野 勝洋</td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">所在地</th>
+                                        <th scope="row" class="text-dim">所在地</th>
                                         <td>静岡県浜松市中央区有玉南町</td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">営業時間</th>
-                                        <td>9:00から19:00<br><small class="text-muted">※時間外の対応も可能ですが、施工内容によっては別途追加料金を頂戴します。</small></td>
+                                        <th scope="row" class="text-dim">営業時間</th>
+                                        <td>9:00 〜 19:00<br><small class="text-muted">※時間外の対応も可能ですが、施工内容によっては別途追加料金を頂戴します。</small></td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">定休日</th>
+                                        <th scope="row" class="text-dim">定休日</th>
                                         <td>毎週水曜日</td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">事業内容</th>
+                                        <th scope="row" class="text-dim">事業内容</th>
                                         <td>コーティング業（水廻り、自動車、医療機器向け、太陽光パネル、内装全般、外壁・屋根断熱材塗装）</td>
                                     </tr>
                                     <tr>
-                                        <th scope="row">所持資格</th>
+                                        <th scope="row" class="text-dim">所持資格</th>
                                         <td>PRECO社（提携先）コーティング技術<br>PRECO社（提携先）営業研修</td>
                                     </tr>
                                 </tbody>
@@ -73,24 +79,24 @@
     </main>
 
     <footer class="bg-dark text-white pt-5 pb-4">
-        <div class="container text-center text-md-start">
-            <div class="row">
-                <div class="col-md-6 col-lg-6 mx-auto mt-3">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6 mb-4 mb-md-0">
                     <h5 class="text-uppercase mb-4 fw-bold">HR（エイチアール）</h5>
                     <p>ガラスコーティングをはじめとしたコーティング施工で、お客様の住まいを美しい状態でいつまでも。浜松市・磐田市のご依頼ならお任せください！</p>
                 </div>
-            </div>
-            <div class="col-md-6 col-lg-6 mx-auto mt-3">
-                <a href = "line://ti/p/%40ytt9171a"><img src="images/line.jpg" class="img-fluid" alt="LINEでお問い合わせ"></a>
-                <br>
-                各QRコードをタップしてください。
-                <br>
-                <a href = "https://www.instagram.com/hr.glasscoating.hamamatsu?igsh=MTB3emZnOG1xbW8yOQ%3D%3D&utm_source=qr"><img src="images/QR_insta.png" class="img-fluid" alt="Instagram"></a>
-                <a href = "index.html"><img src="images/QR_web.png" class="img-fluid" alt="HR WebSite"></a>
+                <div class="col-md-6 text-center">
+                    <a href="line://ti/p/%40ytt9171a"><img src="images/line.jpg" class="img-fluid mb-3" alt="LINEでお問い合わせ" style="max-height: 60px;"></a>
+                    <p class="small text-dim">各QRコードをタップしてください。</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="https://www.instagram.com/hr.glasscoating.hamamatsu?igsh=MTB3emZnOG1xbW8yOQ%3D%3D&utm_source=qr"><img src="images/QR_insta.png" class="img-fluid" alt="Instagram" style="max-height: 80px;"></a>
+                        <a href="index.html"><img src="images/QR_web.png" class="img-fluid" alt="HR WebSite" style="max-height: 80px;"></a>
+                    </div>
+                </div>
             </div>
             <hr class="my-4">
             <div class="text-center">
-                <p>&copy; HR. All Rights Reserved.</p>
+                <p class="mb-0 text-dim">&copy; HR. All Rights Reserved.</p>
             </div>
         </div>
     </footer>
