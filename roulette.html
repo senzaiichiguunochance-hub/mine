@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人生ゲーム風 ルーレットシミュレーター (12分割・完全同期版)</title>
+    <title> ルーレットシミュレーター</title>
     <style>
         body { 
             margin: 0; 
@@ -16,178 +16,101 @@
         
         #ui { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: space-between;
-            padding: 20px; box-sizing: border-box; color: var(--theme-primary, #00ffff); pointer-events: none; z-index: 10;
+            display: flex; flex-direction: column; 
+            padding: 10px; box-sizing: border-box; color: var(--theme-primary, #00ffff); pointer-events: none; z-index: 10;
         }
-        .header { border-left: 5px solid var(--theme-primary, #00ffff); padding-left: 15px; }
-        .status-main { font-size: 22px; letter-spacing: 3px; color: #ffffff; text-shadow: none; font-weight: bold; }
-        .hud-left { position: absolute; left: 20px; top: 180px; font-size: 10px; color: var(--theme-primary, #00ffff); opacity: 0.5; transform: rotate(-90deg); transform-origin: left; }
+
+        /* --- 1. 上部エリア (ステータスのみ) --- */
+        .header { 
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 10px; pointer-events: auto;
+        }
+        .status-container { border-left: 4px solid var(--theme-primary, #00ffff); padding-left: 12px; }
+        .status-main { font-size: 16px; color: #ffffff; font-weight: bold; letter-spacing: 1px; }
         
-        .interactive-panel {
+        .btn-menu {
+            font-size: 11px; color: #ffffff; text-decoration: none; 
+            background: rgba(34, 34, 34, 0.8); border: 1px solid #555555; 
+            padding: 6px 12px; font-weight: bold; pointer-events: auto;
+        }
+
+        /* --- 2. 下部エリア (全てのUIを集約) --- */
+        .bottom-ui-wrapper {
+            margin-top: auto; /* 画面最下部に固定 */
             pointer-events: auto;
+            display: flex; flex-direction: column; gap: 8px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 70%, transparent);
+            padding: 15px 15px 25px 15px; /* 下部に少し余白 */
+        }
+
+        /* 統計パネルと結果パネルを横並びに */
+        .info-panels-row { display: flex; gap: 8px; }
+        .cyber-panel { background: var(--theme-panel-bg, #111111); padding: 8px; flex: 1; border-radius: 0; border: 1px solid rgba(255,255,255,0.2); }
+        
+        .panel-current { border: 2px solid var(--theme-current-border, #ff0055); text-align: center; }
+        .panel-current h3 { margin: 0; font-size: 10px; color: var(--theme-current-border); border-bottom: 1px solid currentColor; padding-bottom: 2px; }
+        .res-val { font-size: 28px; font-weight: bold; color: #ffffff; line-height: 1.2; }
+
+        .panel-total { border: 2px solid var(--theme-total-border, #00ffff); }
+        .panel-total h3 { margin: 0 0 4px 0; font-size: 10px; text-align: center; border-bottom: 1px solid currentColor; }
+        .stats-row { display: flex; justify-content: space-around; font-size: 11px; }
+
+        /* 操作パネル */
+        .interactive-panel {
             background: var(--theme-panel-bg, #111111);
             border: 2px solid var(--theme-primary, #00ffff);
-            padding: 15px;
-            border-radius: 0px; 
-            margin-top: 10px;
-            max-width: 420px;
+            padding: 10px;
+            display: flex; flex-direction: column; gap: 8px;
         }
-
-        .theme-select-container {
-            margin-bottom: 15px;
-            font-size: 12px;
-            font-weight: bold;
-            color: var(--theme-primary, #00ffff);
-        }
-        .theme-dropdown {
-            background: #000000;
-            color: #ffffff;
-            border: 2px solid var(--theme-primary, #00ffff);
-            padding: 6px 12px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 14px;
-            cursor: pointer;
-            outline: none;
-            margin-left: 5px;
-        }
+        .theme-select-container { font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: space-between; }
+        .theme-dropdown { background: #000000; color: #ffffff; border: 1px solid var(--theme-primary); padding: 2px; font-family: inherit; font-size: 12px; }
 
         .btn-roll {
-            background: var(--theme-primary, #00ffff);
-            color: var(--theme-btn-text, #000000);
-            border: none;
-            padding: 14px 24px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            letter-spacing: 2px;
-            transition: all 0.2s;
-            width: 100%;
+            background: var(--theme-primary, #00ffff); color: var(--theme-btn-text, #000000);
+            border: none; padding: 14px; font-family: inherit; font-size: 18px; font-weight: bold; cursor: pointer;
+            transition: transform 0.1s;
         }
-        .btn-roll:hover {
-            background: #ffffff;
-            color: #000000;
-            opacity: 0.9;
-        }
-        .btn-roll:disabled {
-            background: #333333;
-            color: #777777;
-            cursor: not-allowed;
-        }
+        .btn-roll:active { transform: scale(0.98); }
+        .btn-roll:disabled { background: #333333; color: #777777; }
 
-        .sidebar-container {
-            position: absolute;
-            right: 20px;
-            top: 80px;
-            display: flex;
-            gap: 15px;
-            pointer-events: auto;
-        }
-
-        .cyber-panel {
-            background: var(--theme-panel-bg, #111111); 
-            padding: 15px;
-            width: 200px;
-            box-sizing: border-box;
-        }
-        
-        .panel-current {
-            border: 2px solid var(--theme-current-border, #ff0055);
-            color: #ffffff;
-        }
-        .panel-current h3 {
-            color: var(--theme-current-border, #ff0055); 
-            border-bottom: 2px solid var(--theme-current-border, #ff0055);
-            font-weight: bold;
-        }
-        .panel-current .total-val-box {
-            background: var(--theme-current-border, #ff0055); 
-            color: #ffffff; 
-            font-weight: bold;
-        }
-
-        .panel-total {
-            border: 2px solid var(--theme-total-border, #00ffff);
-            color: #ffffff;
-        }
-        .panel-total h3 {
-            color: var(--theme-total-border, #00ffff); 
-            border-bottom: 2px solid var(--theme-total-border, #00ffff);
-            font-weight: bold;
-        }
-        .panel-total .total-val-box {
-            background: var(--theme-total-border, #00ffff); 
-            color: #000000; 
-            font-weight: bold;
-        }
-
-        .cyber-panel h3 {
-            margin: 0 0 10px 0;
-            font-size: 16px;
-            letter-spacing: 1px;
-            padding-bottom: 6px;
-            text-align: center;
-        }
-        .total-container {
-            font-size: 18px;
-            font-weight: bold;
-            color: #ffffff;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .total-val-box {
-            padding: 2px 10px;
-            font-size: 22px;
-        }
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            max-height: 150px;
-            overflow-y: auto;
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            padding-top: 6px;
-        }
-        .history-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            color: #aaaaaa;
-        }
-        .history-num {
-            color: #ffffff;
-            font-weight: bold;
-        }
-
-        @media (max-width: 768px) {
-            #ui { padding: 12px; justify-content: space-between; overflow-y: hidden; }
-            .header { border-left: 3px solid var(--theme-primary, #00ffff); padding-left: 10px; }
-            .status-main { font-size: 18px; }
-            .hud-left { display: none; } 
-            .interactive-panel { max-width: 100%; padding: 10px; }
-            .sidebar-container { position: relative; right: auto; top: auto; margin-top: auto; flex-direction: row; width: 100%; gap: 8px; }
-            .cyber-panel { flex: 1; width: auto; padding: 10px; }
-            .cyber-panel h3 { font-size: 13px; margin-bottom: 6px; padding-bottom: 3px; }
-            .total-container { font-size: 14px; margin-bottom: 4px;}
-            .total-val-box { font-size: 16px; padding: 1px 6px; }
-            .history-row { font-size: 11px; }
+        /* PC用レイアウト調整 */
+        @media (min-width: 769px) {
+            .bottom-ui-wrapper { width: 350px; background: none; margin-left: 20px; margin-bottom: 20px; }
+            .status-main { font-size: 20px; }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
-
     <div id="ui">
         <div class="header">
-            <div class="status-main" style="margin-top:20px;">PROTOCOL: <span id="status-text">READY</span></div>
-            <div style="font-size: 11px; margin-bottom: 5px; color: #aaaaaa;">SYSTEM_INTEGRITY: <span id="stability">100.0</span>%</div>
-            
+            <div class="status-container">
+                <div class="status-main">PROTOCOL: <span id="status-text">READY</span></div>
+                <div style="font-size: 9px; color: #aaaaaa;">STABILITY: <span id="stability">100.0</span>%</div>
+            </div>
+            <a href="menu.html" class="btn-menu">MENU</a>
+        </div>
+
+        <div class="bottom-ui-wrapper">
+            <!-- 情報パネル (結果・統計) -->
+            <div class="info-panels-row">
+                <div class="cyber-panel panel-current" id="results-panel" style="visibility: hidden;">
+                    <h3>RESULT</h3>
+                    <div class="res-val" id="res-total">0</div>
+                </div>
+                <div class="cyber-panel panel-total" id="total-panel" style="display: none;">
+                    <h3>STATISTICS</h3>
+                    <div class="stats-row">
+                        <span>ROLLS: <b id="total-rolls">0</b></span>
+                        <span>AVG: <b id="total-avg">0</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作パネル -->
             <div class="interactive-panel">
                 <div class="theme-select-container">
-                    THEME SELECT:
+                    <span>THEME:</span>
                     <select id="theme-dropdown" class="theme-dropdown">
                         <option value="cool">クール</option>
                         <option value="cute">かわいい</option>
@@ -195,36 +118,9 @@
                         <option value="hot">かっこいい</option>
                     </select>
                 </div>
-                <div style="font-size: 12px; color: var(--theme-primary, #00ffff); font-weight: bold; margin-bottom: 15px;">WHEEL_MODE: FIXED WHEEL / ACTIVE POINTER</div>
                 <button class="btn-roll" id="roll-button" onclick="spinRoulette()">SPIN WHEEL</button>
             </div>
         </div>
-
-        <div class="sidebar-container">
-            <div class="cyber-panel panel-current" id="results-panel" style="display: none;">
-                <h3>CURRENT RESULT</h3>
-                <div class="total-container" style="justify-content: center; margin-top: 15px;">
-                    <span class="total-val-box" id="res-total" style="font-size: 42px; padding: 5px 25px;">0</span>
-                </div>
-            </div>
-
-            <div class="cyber-panel panel-total" id="total-panel" style="display: none;">
-                <h3>TOTAL STATS</h3>
-                <div class="total-container">
-                    <span>SPINS:</span>
-                    <span class="total-val-box" id="total-rolls" style="font-size:16px;">0</span>
-                </div>
-                <div class="total-container" style="margin-top:-5px; margin-bottom:10px;">
-                    <span>AVERAGE:</span>
-                    <span id="total-avg" style="font-weight:bold; color:#ffffff;">0</span>
-                </div>
-                <div style="font-size: 11px; color: var(--theme-total-border, #00ffff); margin-bottom: 4px;">RECENT LOG:</div>
-                <div class="history-list" id="history-log">
-                </div>
-            </div>
-        </div>
-
-        <div class="hud-left" id="hud-text">ROULETTE_LINK_ESTABLISHED // 0xFA42-WHEEL</div>
     </div>
 
     <script type="importmap">
@@ -246,9 +142,8 @@
         let wheelMesh, pointerPivot; 
         let isRolling = false;
         let currentThemeKey = 'cool';
-        const totalSegments = 12; // 12分割（時計と同じ構成）
+        const totalSegments = 12;
 
-        // --- テーマ定義 ---
         const THEMES = {
             cool: {
                 primary: '#00ffff', panelBg: '#090f1a', btnText: '#000000',
@@ -282,13 +177,9 @@
         animate();
         setupRouletteObject(); 
 
-        /**
-         * テーマの適用
-         */
         function applyTheme(themeKey) {
             currentThemeKey = themeKey;
             const theme = THEMES[themeKey] || THEMES.cool;
-            
             const root = document.documentElement;
             root.style.setProperty('--theme-body-bg', theme.bodyBg);
             root.style.setProperty('--theme-primary', theme.primary);
@@ -298,33 +189,28 @@
             root.style.setProperty('--theme-total-border', theme.totalBorder);
             
             if (renderer) renderer.setClearColor(new THREE.Color(theme.bodyBg), 1);
-
-            if (grid && scene) {
+            if (grid) {
                 scene.remove(grid);
-                grid.geometry.dispose();
-                if (grid.material) grid.material.dispose();
                 grid = new THREE.GridHelper(30, 60, theme.gridLine, theme.gridHex);
                 grid.position.y = -2;
                 scene.add(grid);
             }
             if (pulse) pulse.material.color.setHex(theme.gridLine);
             
+            // 💡 テーマを保存
             localStorage.setItem('cyber-roulette-theme', themeKey);
+            
             if (!isRolling) setupRouletteObject();
         }
 
-        /**
-         * 初期化処理
-         */
         function init() {
             scene = new THREE.Scene();
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.body.appendChild(renderer.domElement);
 
             mainCamera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
-            
             composer = new EffectComposer(renderer);
             composer.addPass(new RenderPass(scene, mainCamera));
 
@@ -345,84 +231,47 @@
             adjustCameraAndObjectPosition();
 
             const dropdown = document.getElementById('theme-dropdown');
+            
+            // 💡 保存されたテーマを読み込み
             const savedTheme = localStorage.getItem('cyber-roulette-theme') || 'cool';
             dropdown.value = savedTheme;
             applyTheme(savedTheme);
-
+            
             dropdown.addEventListener('change', (e) => applyTheme(e.target.value));
         }
 
-        /**
-         * ルーレット盤面のテクスチャ作成
-         * 12時（真上）の位置に「1」がピッタリ配置されるように描画
-         */
         function createRouletteTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 1024;
+            canvas.width = 1024; canvas.height = 1024;
             const ctx = canvas.getContext('2d');
             const theme = THEMES[currentThemeKey] || THEMES.cool;
-
             const cx = 512, cy = 512, r = 480;
             const angleStep = (Math.PI * 2) / totalSegments;
-
-            // 💡 UVマッピング上の補正：3D空間の-Z(12時)はCanvasの「左(Math.PI)」に対応
-            // セグメント「1」の中心が左に来るよう、半マス分引いた位置を描画開始角にする
             const startOffset = Math.PI - (angleStep / 2);
 
             for (let i = 0; i < totalSegments; i++) {
                 const startAngle = startOffset + i * angleStep;
                 const endAngle = startAngle + angleStep;
-
-                // セグメントの背景
                 ctx.fillStyle = (i % 2 === 0) ? theme.wheelBgEven : theme.wheelBgOdd;
-                ctx.beginPath();
-                ctx.moveTo(cx, cy);
-                ctx.arc(cx, cy, r, startAngle, endAngle);
-                ctx.closePath();
-                ctx.fill();
-
-                // 境界線
-                ctx.strokeStyle = theme.bodyBg;
-                ctx.lineWidth = 6;
-                ctx.stroke();
-
-                // 数字の描画
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, startAngle, endAngle); ctx.fill();
+                ctx.strokeStyle = theme.bodyBg; ctx.lineWidth = 6; ctx.stroke();
                 ctx.save();
                 ctx.translate(cx, cy);
-                const midAngle = startAngle + angleStep / 2;
-                ctx.rotate(midAngle + Math.PI / 2); 
-
+                ctx.rotate(startAngle + angleStep / 2 + Math.PI / 2); 
                 ctx.fillStyle = (i % 2 === 0) ? theme.textEven : theme.textOdd;
                 ctx.font = `bold 64px 'Share Tech Mono', sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                
-                // 1, 2, ..., 12 を時計回りに書き込む
-                const num = i + 1;
-                ctx.fillText(num, 0, -r + 80);
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(i + 1, 0, -r + 80);
                 ctx.restore();
             }
-
-            // 中心円
-            ctx.fillStyle = theme.panelBg;
-            ctx.beginPath();
-            ctx.arc(cx, cy, 80, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = theme.primary;
-            ctx.lineWidth = 6;
-            ctx.stroke();
-
+            ctx.fillStyle = theme.panelBg; ctx.beginPath(); ctx.arc(cx, cy, 80, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = theme.primary; ctx.lineWidth = 6; ctx.stroke();
             const tex = new THREE.CanvasTexture(canvas);
             tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
 
-        /**
-         * ルーレットオブジェクト（ホイールと針）の構築
-         */
         function setupRouletteObject() {
-            // 既存オブジェクトのクリーンアップ
             if (wheelMesh) {
                 scene.remove(wheelMesh);
                 wheelMesh.geometry.dispose();
@@ -432,199 +281,115 @@
             if (pointerPivot) scene.remove(pointerPivot);
 
             const theme = THEMES[currentThemeKey] || THEMES.cool;
-
-            // 1. 盤面（ホイール）：固定
             const wheelGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.2, 64);
             const texture = createRouletteTexture();
-            const matSide = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
-            const matTop = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
-            const matBottom = new THREE.MeshStandardMaterial({ color: 0x111111 });
-
-            wheelMesh = new THREE.Mesh(wheelGeo, [matSide, matTop, matBottom]);
-            wheelMesh.rotation.set(0, 0, 0); 
+            wheelMesh = new THREE.Mesh(wheelGeo, [
+                new THREE.MeshStandardMaterial({ color: 0x222222 }),
+                new THREE.MeshStandardMaterial({ map: texture }),
+                new THREE.MeshStandardMaterial({ color: 0x111111 })
+            ]);
             scene.add(wheelMesh);
 
-            // 2. 針（ポインターピボット）：回転する
             pointerPivot = new THREE.Group();
-            scene.add(pointerPivot);
-
             const pointerGeo = new THREE.ConeGeometry(0.18, 0.5, 4);
-            const pointerMat = new THREE.MeshStandardMaterial({ 
-                color: theme.pointerColor, emissive: theme.pointerColor, emissiveIntensity: 0.4 
-            });
+            const pointerMat = new THREE.MeshStandardMaterial({ color: theme.pointerColor, emissive: theme.pointerColor, emissiveIntensity: 0.4 });
             const pointerMesh = new THREE.Mesh(pointerGeo, pointerMat);
-            
-            // 針の初期位置を12時（-Z方向）に設定。先端を中心に向ける。
             pointerMesh.position.set(0, 0.15, -2.3);
             pointerMesh.rotation.set(Math.PI / 2, 0, 0); 
             pointerPivot.add(pointerMesh);
-
-            pointerPivot.rotation.set(0, 0, 0); // 初期状態で「1」を指す
-
+            scene.add(pointerPivot);
             adjustCameraAndObjectPosition();
         }
 
-        /**
-         * 画面サイズ（短辺）に基づくレスポンシブな配置調整
-         */
         function adjustCameraAndObjectPosition() {
             if(!mainCamera) return;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-
+            const w = window.innerWidth, h = window.innerHeight;
             mainCamera.aspect = w / h;
             mainCamera.updateProjectionMatrix();
 
             const isMobile = w <= 768;
+            const cameraDist = isMobile ? (h > w ? 12 : 8) : 8;
+            mainCamera.position.set(0, cameraDist, cameraDist * 0.5);
+            mainCamera.lookAt(0, 0, 0);
 
-            // 💡 短辺基準でカメラ距離を決定し、見切れを防ぐ
-            const cameraDistance = isMobile ? (h > w ? 10.0 : 7.0) : 7.5;
-            mainCamera.position.set(0, cameraDistance, cameraDistance * 0.7);
-            mainCamera.lookAt(0, -0.5, 0);
-
-            // レイアウト調整
-            const offsetX = (isMobile) ? 0 : -0.8;
-            const offsetY = (isMobile && h > w) ? 0.5 : -0.3; // 縦長スマホでは少し上に
+            // ルーレットを画面上部の空きスペースへ移動
+            const offsetY = (isMobile && h > w) ? 1.5 : 0;
+            const offsetX = isMobile ? 0 : -0.8;
             
-            const scale = isMobile ? (w / h > 1 ? 0.8 : 1.0) : 1.0;
-
-            if (wheelMesh) {
-                wheelMesh.position.set(offsetX, offsetY, 0);
-                wheelMesh.scale.setScalar(scale);
-            }
-            if (pointerPivot) {
-                pointerPivot.position.set(offsetX, offsetY, 0);
-                pointerPivot.scale.setScalar(scale);
-            }
+            if (wheelMesh) wheelMesh.position.set(offsetX, offsetY, 0);
+            if (pointerPivot) pointerPivot.position.set(offsetX, offsetY, 0);
         }
 
-        /**
-         * 演出用パルスアニメーション
-         */
         async function triggerPulse() {
-            pulse.scale.setScalar(0.2);
-            pulse.material.opacity = 0.9;
-            const duration = 25;
-            for(let i=0; i<duration; i++) {
-                pulse.scale.addScalar(0.2);
-                pulse.material.opacity -= 0.9/duration;
+            pulse.scale.setScalar(0.2); pulse.material.opacity = 0.9;
+            for(let i=0; i<25; i++) {
+                pulse.scale.addScalar(0.2); pulse.material.opacity -= 0.9/25;
                 await new Promise(r => requestAnimationFrame(r));
             }
             pulse.material.opacity = 0;
         }
 
-        /**
-         * ルーレットのスピン実行
-         */
         async function spinRoulette() {
             if (isRolling) return;
             isRolling = true;
-
             const txt = document.getElementById('status-text');
             const stab = document.getElementById('stability');
             const rollBtn = document.getElementById('roll-button');
+            const resPanel = document.getElementById('results-panel');
             
-            txt.innerText = "ACCELERATING CORE";
-            rollBtn.disabled = true;
-            document.getElementById('results-panel').style.display = 'none';
+            txt.innerText = "SPINNING"; rollBtn.disabled = true;
+            resPanel.style.visibility = 'hidden';
 
-            // 1. 結果の事前決定 (1〜12)
             const resultNumber = Math.floor(Math.random() * totalSegments) + 1;
-            
-            // 2. ターゲット角度の計算
             const angleStep = (Math.PI * 2) / totalSegments;
-
-            // 💡 マス境界を避けるオフセット（中央±40%、つまり全体の10%-90%の範囲内）
             const randomOffset = (Math.random() * 0.8 - 0.4) * angleStep;
-            
-            // 12時(1)から時計回り(マイナス方向)に進んだ角度を計算
             const targetAngle = -((resultNumber - 1) * angleStep + randomOffset);
-
-            // 演出用の追加回転（5〜7周分）
-            const extraRotation = - (Math.PI * 2 * (5 + Math.floor(Math.random() * 3)));
+            const extraRotation = -(Math.PI * 2 * (5 + Math.floor(Math.random() * 2)));
             
             const startRotation = pointerPivot.rotation.y;
-            // 前回の回転状態を引き継ぎつつ、さらに時計回り(マイナス方向)へ
             const finalRotationY = (Math.floor(startRotation / (Math.PI * 2)) * (Math.PI * 2)) + extraRotation + targetAngle;
 
-            const duration = 3500;
+            const duration = 3000;
             const startTime = Date.now();
 
-            // アニメーションループ
             while (Date.now() - startTime < duration) {
                 const elapsed = Date.now() - startTime;
                 const progress = elapsed / duration;
-                
-                const easeOut = 1 - Math.pow(1 - progress, 4); // 四次加速減速
+                const easeOut = 1 - Math.pow(1 - progress, 4);
                 pointerPivot.rotation.y = startRotation + (finalRotationY - startRotation) * easeOut;
-
-                stab.innerText = (75 + Math.random() * 20 * (1 - progress)).toFixed(1);
+                stab.innerText = (80 + Math.random() * 20 * (1 - progress)).toFixed(1);
                 await new Promise(r => requestAnimationFrame(r));
             }
 
-            // 🎯 数学的理論値にスナップ
             pointerPivot.rotation.y = finalRotationY;
-
-            txt.innerText = "INDEX_LOCKED";
-            stab.innerText = "100.0";
+            txt.innerText = "LOCKED"; stab.innerText = "100.0";
             await triggerPulse();
-
-            updateAndDisplayResults(resultNumber);
-
-            rollBtn.disabled = false;
-            isRolling = false;
+            updateStats(resultNumber);
+            rollBtn.disabled = false; isRolling = false;
         }
 
-        /**
-         * 結果の表示と統計の更新
-         */
-        function updateAndDisplayResults(result) {
-            globalStats.rolls += 1;
+        function updateStats(result) {
+            globalStats.rolls++;
             globalStats.sum += result;
-            globalStats.history.unshift(result);
-
             document.getElementById('res-total').innerText = result;
-            document.getElementById('results-panel').style.display = 'block';
-
+            document.getElementById('results-panel').style.visibility = 'visible';
             document.getElementById('total-rolls').innerText = globalStats.rolls;
             document.getElementById('total-avg').innerText = (globalStats.sum / globalStats.rolls).toFixed(1);
-            
-            const logContainer = document.getElementById('history-log');
-            logContainer.innerHTML = '';
-            globalStats.history.slice(0, 10).forEach((num, index) => {
-                const row = document.createElement('div');
-                row.className = 'history-row';
-                row.innerHTML = `<span>LOG #${globalStats.rolls - index}</span><span class="history-num">[ ${num} ]</span>`;
-                logContainer.appendChild(row);
-            });
-            
             document.getElementById('total-panel').style.display = 'block';
         }
 
-        /**
-         * 描画アニメーションループ
-         */
         function animate() {
             requestAnimationFrame(animate);
-            renderer.clear();
             if (grid) grid.position.z = Math.sin(Date.now() * 0.001) * 0.2;
-            
-            renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
-            renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
-            renderer.setScissorTest(false);
-            
             composer.render();
         }
 
-        // リサイズイベントの監視
         window.addEventListener('resize', () => {
-            const w = window.innerWidth, h = window.innerHeight;
-            renderer.setSize(w, h);
-            composer.setSize(w, h);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
             adjustCameraAndObjectPosition();
         });
 
-        // ボタンから呼べるようにグローバル公開
         window.spinRoulette = spinRoulette;
     </script>
 </body>
