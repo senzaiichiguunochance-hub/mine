@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>人生ゲーム風 ルーレットシミュレーター (盤面固定・同期修正版)</title>
+    <title>人生ゲーム風 ルーレットシミュレーター (12分割・完全同期版)</title>
     <style>
         body { 
             margin: 0; 
@@ -241,12 +241,14 @@
         import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 
+        // --- グローバル変数 ---
         let scene, renderer, composer, grid, pulse, mainCamera;
         let wheelMesh, pointerPivot; 
         let isRolling = false;
         let currentThemeKey = 'cool';
-        const totalSegments = 12; // 12分割
+        const totalSegments = 12; // 12分割（時計と同じ構成）
 
+        // --- テーマ定義 ---
         const THEMES = {
             cool: {
                 primary: '#00ffff', panelBg: '#090f1a', btnText: '#000000',
@@ -280,6 +282,9 @@
         animate();
         setupRouletteObject(); 
 
+        /**
+         * テーマの適用
+         */
         function applyTheme(themeKey) {
             currentThemeKey = themeKey;
             const theme = THEMES[themeKey] || THEMES.cool;
@@ -308,6 +313,9 @@
             if (!isRolling) setupRouletteObject();
         }
 
+        /**
+         * 初期化処理
+         */
         function init() {
             scene = new THREE.Scene();
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -344,7 +352,10 @@
             dropdown.addEventListener('change', (e) => applyTheme(e.target.value));
         }
 
-        // 🎯 12時の位置に「1」がピッタリ配置される固定テクスチャ
+        /**
+         * ルーレット盤面のテクスチャ作成
+         * 12時（真上）の位置に「1」がピッタリ配置されるように描画
+         */
         function createRouletteTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 1024;
@@ -355,14 +366,15 @@
             const cx = 512, cy = 512, r = 480;
             const angleStep = (Math.PI * 2) / totalSegments;
 
-            // 💡 12時（3D空間の-Z）をセグメント「1」の中心にするための補正。
-            // 試行錯誤の結果、Math.PI - (angleStep / 2) が正確な位置合わせ。
+            // 💡 UVマッピング上の補正：3D空間の-Z(12時)はCanvasの「左(Math.PI)」に対応
+            // セグメント「1」の中心が左に来るよう、半マス分引いた位置を描画開始角にする
             const startOffset = Math.PI - (angleStep / 2);
 
             for (let i = 0; i < totalSegments; i++) {
                 const startAngle = startOffset + i * angleStep;
                 const endAngle = startAngle + angleStep;
 
+                // セグメントの背景
                 ctx.fillStyle = (i % 2 === 0) ? theme.wheelBgEven : theme.wheelBgOdd;
                 ctx.beginPath();
                 ctx.moveTo(cx, cy);
@@ -370,10 +382,12 @@
                 ctx.closePath();
                 ctx.fill();
 
+                // 境界線
                 ctx.strokeStyle = theme.bodyBg;
                 ctx.lineWidth = 6;
                 ctx.stroke();
 
+                // 数字の描画
                 ctx.save();
                 ctx.translate(cx, cy);
                 const midAngle = startAngle + angleStep / 2;
@@ -384,12 +398,13 @@
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
-                // 数字は 1, 2, ... 12
+                // 1, 2, ..., 12 を時計回りに書き込む
                 const num = i + 1;
                 ctx.fillText(num, 0, -r + 80);
                 ctx.restore();
             }
 
+            // 中心円
             ctx.fillStyle = theme.panelBg;
             ctx.beginPath();
             ctx.arc(cx, cy, 80, 0, Math.PI * 2);
@@ -403,29 +418,24 @@
             return tex;
         }
 
-        function clearExistingRoulette() {
+        /**
+         * ルーレットオブジェクト（ホイールと針）の構築
+         */
+        function setupRouletteObject() {
+            // 既存オブジェクトのクリーンアップ
             if (wheelMesh) {
                 scene.remove(wheelMesh);
-                if (wheelMesh.geometry) wheelMesh.geometry.dispose();
-                if (wheelMesh.material) {
-                    if(Array.isArray(wheelMesh.material)) {
-                        wheelMesh.material.forEach(m => m.dispose());
-                    } else {
-                        wheelMesh.material.dispose();
-                    }
-                }
+                wheelMesh.geometry.dispose();
+                if (Array.isArray(wheelMesh.material)) wheelMesh.material.forEach(m => m.dispose());
+                else wheelMesh.material.dispose();
             }
             if (pointerPivot) scene.remove(pointerPivot);
-        }
-        
-        function setupRouletteObject() {
-            clearExistingRoulette();
+
             const theme = THEMES[currentThemeKey] || THEMES.cool;
 
-            // 1. 盤面（ホイール）
+            // 1. 盤面（ホイール）：固定
             const wheelGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.2, 64);
             const texture = createRouletteTexture();
-            
             const matSide = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
             const matTop = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
             const matBottom = new THREE.MeshStandardMaterial({ color: 0x111111 });
@@ -434,7 +444,7 @@
             wheelMesh.rotation.set(0, 0, 0); 
             scene.add(wheelMesh);
 
-            // 2. 針（ポインターピボット）
+            // 2. 針（ポインターピボット）：回転する
             pointerPivot = new THREE.Group();
             scene.add(pointerPivot);
 
@@ -444,17 +454,19 @@
             });
             const pointerMesh = new THREE.Mesh(pointerGeo, pointerMat);
             
-            // 💡 針の初期位置：真上（12時方向）
+            // 針の初期位置を12時（-Z方向）に設定。先端を中心に向ける。
             pointerMesh.position.set(0, 0.15, -2.3);
             pointerMesh.rotation.set(Math.PI / 2, 0, 0); 
             pointerPivot.add(pointerMesh);
 
-            // 初期角度
-            pointerPivot.rotation.set(0, 0, 0);
+            pointerPivot.rotation.set(0, 0, 0); // 初期状態で「1」を指す
 
             adjustCameraAndObjectPosition();
         }
 
+        /**
+         * 画面サイズ（短辺）に基づくレスポンシブな配置調整
+         */
         function adjustCameraAndObjectPosition() {
             if(!mainCamera) return;
             const w = window.innerWidth;
@@ -463,14 +475,32 @@
             mainCamera.aspect = w / h;
             mainCamera.updateProjectionMatrix();
 
-            mainCamera.position.set(0, 6.5, 5.0);
-            mainCamera.lookAt(0, -0.5, -0.5);
+            const isMobile = w <= 768;
 
-            const offsetX = (w <= 768) ? 0 : -0.6;
-            if (wheelMesh) wheelMesh.position.set(offsetX, -0.3, -0.2);
-            if (pointerPivot) pointerPivot.position.set(offsetX, -0.3, -0.2);
+            // 💡 短辺基準でカメラ距離を決定し、見切れを防ぐ
+            const cameraDistance = isMobile ? (h > w ? 10.0 : 7.0) : 7.5;
+            mainCamera.position.set(0, cameraDistance, cameraDistance * 0.7);
+            mainCamera.lookAt(0, -0.5, 0);
+
+            // レイアウト調整
+            const offsetX = (isMobile) ? 0 : -0.8;
+            const offsetY = (isMobile && h > w) ? 0.5 : -0.3; // 縦長スマホでは少し上に
+            
+            const scale = isMobile ? (w / h > 1 ? 0.8 : 1.0) : 1.0;
+
+            if (wheelMesh) {
+                wheelMesh.position.set(offsetX, offsetY, 0);
+                wheelMesh.scale.setScalar(scale);
+            }
+            if (pointerPivot) {
+                pointerPivot.position.set(offsetX, offsetY, 0);
+                pointerPivot.scale.setScalar(scale);
+            }
         }
 
+        /**
+         * 演出用パルスアニメーション
+         */
         async function triggerPulse() {
             pulse.scale.setScalar(0.2);
             pulse.material.opacity = 0.9;
@@ -483,6 +513,9 @@
             pulse.material.opacity = 0;
         }
 
+        /**
+         * ルーレットのスピン実行
+         */
         async function spinRoulette() {
             if (isRolling) return;
             isRolling = true;
@@ -495,41 +528,41 @@
             rollBtn.disabled = true;
             document.getElementById('results-panel').style.display = 'none';
 
-            // 1. 出目をランダム決定 (1〜12)
+            // 1. 結果の事前決定 (1〜12)
             const resultNumber = Math.floor(Math.random() * totalSegments) + 1;
             
-            // 🎯 【12分割物理同期】
-            // 1(12時)を起点に時計回りに配置。
+            // 2. ターゲット角度の計算
             const angleStep = (Math.PI * 2) / totalSegments;
 
-            // 各数字の領域の 10% 〜 90% の間に収めるオフセット（±40%）
+            // 💡 マス境界を避けるオフセット（中央±40%、つまり全体の10%-90%の範囲内）
             const randomOffset = (Math.random() * 0.8 - 0.4) * angleStep;
             
-            // 💡 12時(1)から時計回りに (resultNumber-1) 個分進んだ位置がターゲット
-            // 時計回りなのでマイナス方向
+            // 12時(1)から時計回り(マイナス方向)に進んだ角度を計算
             const targetAngle = -((resultNumber - 1) * angleStep + randomOffset);
 
-            // 演出用の追加回転
+            // 演出用の追加回転（5〜7周分）
             const extraRotation = - (Math.PI * 2 * (5 + Math.floor(Math.random() * 3)));
             
             const startRotation = pointerPivot.rotation.y;
+            // 前回の回転状態を引き継ぎつつ、さらに時計回り(マイナス方向)へ
             const finalRotationY = (Math.floor(startRotation / (Math.PI * 2)) * (Math.PI * 2)) + extraRotation + targetAngle;
 
             const duration = 3500;
             const startTime = Date.now();
 
+            // アニメーションループ
             while (Date.now() - startTime < duration) {
                 const elapsed = Date.now() - startTime;
                 const progress = elapsed / duration;
                 
-                const easeOut = 1 - Math.pow(1 - progress, 4);
+                const easeOut = 1 - Math.pow(1 - progress, 4); // 四次加速減速
                 pointerPivot.rotation.y = startRotation + (finalRotationY - startRotation) * easeOut;
 
                 stab.innerText = (75 + Math.random() * 20 * (1 - progress)).toFixed(1);
                 await new Promise(r => requestAnimationFrame(r));
             }
 
-            // 🎯 理論値に固定
+            // 🎯 数学的理論値にスナップ
             pointerPivot.rotation.y = finalRotationY;
 
             txt.innerText = "INDEX_LOCKED";
@@ -542,6 +575,9 @@
             isRolling = false;
         }
 
+        /**
+         * 結果の表示と統計の更新
+         */
         function updateAndDisplayResults(result) {
             globalStats.rolls += 1;
             globalStats.sum += result;
@@ -565,6 +601,9 @@
             document.getElementById('total-panel').style.display = 'block';
         }
 
+        /**
+         * 描画アニメーションループ
+         */
         function animate() {
             requestAnimationFrame(animate);
             renderer.clear();
@@ -577,6 +616,7 @@
             composer.render();
         }
 
+        // リサイズイベントの監視
         window.addEventListener('resize', () => {
             const w = window.innerWidth, h = window.innerHeight;
             renderer.setSize(w, h);
@@ -584,6 +624,7 @@
             adjustCameraAndObjectPosition();
         });
 
+        // ボタンから呼べるようにグローバル公開
         window.spinRoulette = spinRoulette;
     </script>
 </body>
