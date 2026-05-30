@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人生ゲーム風 ルーレットシミュレーター (盤面固定・同期修正版)</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: var(--theme-body-bg, #000000); 
+            font-family: 'Share Tech Mono', monospace; 
+            user-select: none;
+            transition: background 0.3s ease;
+        }
+        
+        #ui { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 20px; box-sizing: border-box; color: var(--theme-primary, #00ffff); pointer-events: none; z-index: 10;
+        }
+        .header { border-left: 5px solid var(--theme-primary, #00ffff); padding-left: 15px; }
+        .status-main { font-size: 22px; letter-spacing: 3px; color: #ffffff; text-shadow: none; font-weight: bold; }
+        .hud-left { position: absolute; left: 20px; top: 180px; font-size: 10px; color: var(--theme-primary, #00ffff); opacity: 0.5; transform: rotate(-90deg); transform-origin: left; }
+        
+        .interactive-panel {
+            pointer-events: auto;
+            background: var(--theme-panel-bg, #111111);
+            border: 2px solid var(--theme-primary, #00ffff);
+            padding: 15px;
+            border-radius: 0px; 
+            margin-top: 10px;
+            max-width: 420px;
+        }
+
+        .theme-select-container {
+            margin-bottom: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--theme-primary, #00ffff);
+        }
+        .theme-dropdown {
+            background: #000000;
+            color: #ffffff;
+            border: 2px solid var(--theme-primary, #00ffff);
+            padding: 6px 12px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            margin-left: 5px;
+        }
+
+        .btn-roll {
+            background: var(--theme-primary, #00ffff);
+            color: var(--theme-btn-text, #000000);
+            border: none;
+            padding: 14px 24px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .btn-roll:hover {
+            background: #ffffff;
+            color: #000000;
+            opacity: 0.9;
+        }
+        .btn-roll:disabled {
+            background: #333333;
+            color: #777777;
+            cursor: not-allowed;
+        }
+
+        .sidebar-container {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .cyber-panel {
+            background: var(--theme-panel-bg, #111111); 
+            padding: 15px;
+            width: 200px;
+            box-sizing: border-box;
+        }
+        
+        .panel-current {
+            border: 2px solid var(--theme-current-border, #ff0055);
+            color: #ffffff;
+        }
+        .panel-current h3 {
+            color: var(--theme-current-border, #ff0055); 
+            border-bottom: 2px solid var(--theme-current-border, #ff0055);
+            font-weight: bold;
+        }
+        .panel-current .total-val-box {
+            background: var(--theme-current-border, #ff0055); 
+            color: #ffffff; 
+            font-weight: bold;
+        }
+
+        .panel-total {
+            border: 2px solid var(--theme-total-border, #00ffff);
+            color: #ffffff;
+        }
+        .panel-total h3 {
+            color: var(--theme-total-border, #00ffff); 
+            border-bottom: 2px solid var(--theme-total-border, #00ffff);
+            font-weight: bold;
+        }
+        .panel-total .total-val-box {
+            background: var(--theme-total-border, #00ffff); 
+            color: #000000; 
+            font-weight: bold;
+        }
+
+        .cyber-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            letter-spacing: 1px;
+            padding-bottom: 6px;
+            text-align: center;
+        }
+        .total-container {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-val-box {
+            padding: 2px 10px;
+            font-size: 22px;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            padding-top: 6px;
+        }
+        .history-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+        .history-num {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        @media (max-width: 768px) {
+            #ui { padding: 12px; justify-content: space-between; overflow-y: hidden; }
+            .header { border-left: 3px solid var(--theme-primary, #00ffff); padding-left: 10px; }
+            .status-main { font-size: 18px; }
+            .hud-left { display: none; } 
+            .interactive-panel { max-width: 100%; padding: 10px; }
+            .sidebar-container { position: relative; right: auto; top: auto; margin-top: auto; flex-direction: row; width: 100%; gap: 8px; }
+            .cyber-panel { flex: 1; width: auto; padding: 10px; }
+            .cyber-panel h3 { font-size: 13px; margin-bottom: 6px; padding-bottom: 3px; }
+            .total-container { font-size: 14px; margin-bottom: 4px;}
+            .total-val-box { font-size: 16px; padding: 1px 6px; }
+            .history-row { font-size: 11px; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
+
+    <div id="ui">
+        <div class="header">
+            <div class="status-main" style="margin-top:20px;">PROTOCOL: <span id="status-text">READY</span></div>
+            <div style="font-size: 11px; margin-bottom: 5px; color: #aaaaaa;">SYSTEM_INTEGRITY: <span id="stability">100.0</span>%</div>
+            
+            <div class="interactive-panel">
+                <div class="theme-select-container">
+                    THEME SELECT:
+                    <select id="theme-dropdown" class="theme-dropdown">
+                        <option value="cool">クール</option>
+                        <option value="cute">かわいい</option>
+                        <option value="beautiful">キレイ</option>
+                        <option value="hot">かっこいい</option>
+                    </select>
+                </div>
+                <div style="font-size: 12px; color: var(--theme-primary, #00ffff); font-weight: bold; margin-bottom: 15px;">WHEEL_MODE: FIXED WHEEL / ACTIVE POINTER</div>
+                <button class="btn-roll" id="roll-button" onclick="spinRoulette()">SPIN WHEEL</button>
+            </div>
+        </div>
+
+        <div class="sidebar-container">
+            <div class="cyber-panel panel-current" id="results-panel" style="display: none;">
+                <h3>CURRENT RESULT</h3>
+                <div class="total-container" style="justify-content: center; margin-top: 15px;">
+                    <span class="total-val-box" id="res-total" style="font-size: 42px; padding: 5px 25px;">0</span>
+                </div>
+            </div>
+
+            <div class="cyber-panel panel-total" id="total-panel" style="display: none;">
+                <h3>TOTAL STATS</h3>
+                <div class="total-container">
+                    <span>SPINS:</span>
+                    <span class="total-val-box" id="total-rolls" style="font-size:16px;">0</span>
+                </div>
+                <div class="total-container" style="margin-top:-5px; margin-bottom:10px;">
+                    <span>AVERAGE:</span>
+                    <span id="total-avg" style="font-weight:bold; color:#ffffff;">0</span>
+                </div>
+                <div style="font-size: 11px; color: var(--theme-total-border, #00ffff); margin-bottom: 4px;">RECENT LOG:</div>
+                <div class="history-list" id="history-log">
+                </div>
+            </div>
+        </div>
+
+        <div class="hud-left" id="hud-text">ROULETTE_LINK_ESTABLISHED // 0xFA42-WHEEL</div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+
+        let scene, renderer, composer, grid, pulse, mainCamera;
+        let wheelMesh, pointerPivot; 
+        let isRolling = false;
+        let currentThemeKey = 'cool';
+        const totalSegments = 12; // 12分割
+
+        const THEMES = {
+            cool: {
+                primary: '#00ffff', panelBg: '#090f1a', btnText: '#000000',
+                gridLine: 0x0088cc, gridHex: 0x001122, bodyBg: '#020408',                      
+                wheelBgEven: '#112233', wheelBgOdd: '#00ffff', textEven: '#ffffff', textOdd: '#000000',
+                pointerColor: '#ff0055', currentBorder: '#ff0055', totalBorder: '#00ffff'
+            },
+            cute: {
+                primary: '#ff5599', panelBg: '#1a0a12', btnText: '#ffffff',
+                gridLine: 0xaa4466, gridHex: 0x220510, bodyBg: '#0a0206',
+                wheelBgEven: '#331122', wheelBgOdd: '#ff5599', textEven: '#ffffff', textOdd: '#ffffff',
+                pointerColor: '#ff0000', currentBorder: '#ff0066', totalBorder: '#ff5599'
+            },
+            beautiful: {
+                primary: '#bd93f9', panelBg: '#0f0c1b', btnText: '#000000',
+                gridLine: 0x5b4488, gridHex: 0x110522, bodyBg: '#04020a',
+                wheelBgEven: '#221133', wheelBgOdd: '#bd93f9', textEven: '#ffffff', textOdd: '#000000',
+                pointerColor: '#ff0000', currentBorder: '#e0aaff', totalBorder: '#bd93f9'
+            },
+            hot: {
+                primary: '#ff4500', panelBg: '#1a0800', btnText: '#ffffff',
+                gridLine: 0x992200, gridHex: 0x220500, bodyBg: '#080200',
+                wheelBgEven: '#220000', wheelBgOdd: '#ff4500', textEven: '#ffffff', textOdd: '#ffffff',
+                pointerColor: '#ffcc00', currentBorder: '#ff0000', totalBorder: '#ffaa00'
+            }
+        };
+
+        const globalStats = { rolls: 0, sum: 0, history: [] };
+
+        init();
+        animate();
+        setupRouletteObject(); 
+
+        function applyTheme(themeKey) {
+            currentThemeKey = themeKey;
+            const theme = THEMES[themeKey] || THEMES.cool;
+            
+            const root = document.documentElement;
+            root.style.setProperty('--theme-body-bg', theme.bodyBg);
+            root.style.setProperty('--theme-primary', theme.primary);
+            root.style.setProperty('--theme-panel-bg', theme.panelBg);
+            root.style.setProperty('--theme-btn-text', theme.btnText);
+            root.style.setProperty('--theme-current-border', theme.currentBorder);
+            root.style.setProperty('--theme-total-border', theme.totalBorder);
+            
+            if (renderer) renderer.setClearColor(new THREE.Color(theme.bodyBg), 1);
+
+            if (grid && scene) {
+                scene.remove(grid);
+                grid.geometry.dispose();
+                if (grid.material) grid.material.dispose();
+                grid = new THREE.GridHelper(30, 60, theme.gridLine, theme.gridHex);
+                grid.position.y = -2;
+                scene.add(grid);
+            }
+            if (pulse) pulse.material.color.setHex(theme.gridLine);
+            
+            localStorage.setItem('cyber-roulette-theme', themeKey);
+            if (!isRolling) setupRouletteObject();
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            mainCamera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+            
+            composer = new EffectComposer(renderer);
+            composer.addPass(new RenderPass(scene, mainCamera));
+
+            grid = new THREE.GridHelper(30, 60, 0x00f3ff, 0x002244);
+            grid.position.y = -2;
+            scene.add(grid);
+
+            const pulseGeo = new THREE.SphereGeometry(3, 32, 32);
+            const pulseMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0 });
+            pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            scene.add(pulse);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+            const p = new THREE.DirectionalLight(0xffffff, 1.2); 
+            p.position.set(5, 15, 5); 
+            scene.add(p);
+            
+            adjustCameraAndObjectPosition();
+
+            const dropdown = document.getElementById('theme-dropdown');
+            const savedTheme = localStorage.getItem('cyber-roulette-theme') || 'cool';
+            dropdown.value = savedTheme;
+            applyTheme(savedTheme);
+
+            dropdown.addEventListener('change', (e) => applyTheme(e.target.value));
+        }
+
+        // 🎯 12時の位置に「1」がピッタリ配置される固定テクスチャ
+        function createRouletteTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            const theme = THEMES[currentThemeKey] || THEMES.cool;
+
+            const cx = 512, cy = 512, r = 480;
+            const angleStep = (Math.PI * 2) / totalSegments;
+
+            // 💡 12時（3D空間の-Z）をセグメント「1」の中心にするための補正。
+            // 試行錯誤の結果、Math.PI - (angleStep / 2) が正確な位置合わせ。
+            const startOffset = Math.PI - (angleStep / 2);
+
+            for (let i = 0; i < totalSegments; i++) {
+                const startAngle = startOffset + i * angleStep;
+                const endAngle = startAngle + angleStep;
+
+                ctx.fillStyle = (i % 2 === 0) ? theme.wheelBgEven : theme.wheelBgOdd;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, r, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = theme.bodyBg;
+                ctx.lineWidth = 6;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                const midAngle = startAngle + angleStep / 2;
+                ctx.rotate(midAngle + Math.PI / 2); 
+
+                ctx.fillStyle = (i % 2 === 0) ? theme.textEven : theme.textOdd;
+                ctx.font = `bold 64px 'Share Tech Mono', sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // 数字は 1, 2, ... 12
+                const num = i + 1;
+                ctx.fillText(num, 0, -r + 80);
+                ctx.restore();
+            }
+
+            ctx.fillStyle = theme.panelBg;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = theme.primary;
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        function clearExistingRoulette() {
+            if (wheelMesh) {
+                scene.remove(wheelMesh);
+                if (wheelMesh.geometry) wheelMesh.geometry.dispose();
+                if (wheelMesh.material) {
+                    if(Array.isArray(wheelMesh.material)) {
+                        wheelMesh.material.forEach(m => m.dispose());
+                    } else {
+                        wheelMesh.material.dispose();
+                    }
+                }
+            }
+            if (pointerPivot) scene.remove(pointerPivot);
+        }
+        
+        function setupRouletteObject() {
+            clearExistingRoulette();
+            const theme = THEMES[currentThemeKey] || THEMES.cool;
+
+            // 1. 盤面（ホイール）
+            const wheelGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.2, 64);
+            const texture = createRouletteTexture();
+            
+            const matSide = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
+            const matTop = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.3, metalness: 0.1 });
+            const matBottom = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+            wheelMesh = new THREE.Mesh(wheelGeo, [matSide, matTop, matBottom]);
+            wheelMesh.rotation.set(0, 0, 0); 
+            scene.add(wheelMesh);
+
+            // 2. 針（ポインターピボット）
+            pointerPivot = new THREE.Group();
+            scene.add(pointerPivot);
+
+            const pointerGeo = new THREE.ConeGeometry(0.18, 0.5, 4);
+            const pointerMat = new THREE.MeshStandardMaterial({ 
+                color: theme.pointerColor, emissive: theme.pointerColor, emissiveIntensity: 0.4 
+            });
+            const pointerMesh = new THREE.Mesh(pointerGeo, pointerMat);
+            
+            // 💡 針の初期位置：真上（12時方向）
+            pointerMesh.position.set(0, 0.15, -2.3);
+            pointerMesh.rotation.set(Math.PI / 2, 0, 0); 
+            pointerPivot.add(pointerMesh);
+
+            // 初期角度
+            pointerPivot.rotation.set(0, 0, 0);
+
+            adjustCameraAndObjectPosition();
+        }
+
+        function adjustCameraAndObjectPosition() {
+            if(!mainCamera) return;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            mainCamera.aspect = w / h;
+            mainCamera.updateProjectionMatrix();
+
+            mainCamera.position.set(0, 6.5, 5.0);
+            mainCamera.lookAt(0, -0.5, -0.5);
+
+            const offsetX = (w <= 768) ? 0 : -0.6;
+            if (wheelMesh) wheelMesh.position.set(offsetX, -0.3, -0.2);
+            if (pointerPivot) pointerPivot.position.set(offsetX, -0.3, -0.2);
+        }
+
+        async function triggerPulse() {
+            pulse.scale.setScalar(0.2);
+            pulse.material.opacity = 0.9;
+            const duration = 25;
+            for(let i=0; i<duration; i++) {
+                pulse.scale.addScalar(0.2);
+                pulse.material.opacity -= 0.9/duration;
+                await new Promise(r => requestAnimationFrame(r));
+            }
+            pulse.material.opacity = 0;
+        }
+
+        async function spinRoulette() {
+            if (isRolling) return;
+            isRolling = true;
+
+            const txt = document.getElementById('status-text');
+            const stab = document.getElementById('stability');
+            const rollBtn = document.getElementById('roll-button');
+            
+            txt.innerText = "ACCELERATING CORE";
+            rollBtn.disabled = true;
+            document.getElementById('results-panel').style.display = 'none';
+
+            // 1. 出目をランダム決定 (1〜12)
+            const resultNumber = Math.floor(Math.random() * totalSegments) + 1;
+            
+            // 🎯 【12分割物理同期】
+            // 1(12時)を起点に時計回りに配置。
+            const angleStep = (Math.PI * 2) / totalSegments;
+
+            // 各数字の領域の 10% 〜 90% の間に収めるオフセット（±40%）
+            const randomOffset = (Math.random() * 0.8 - 0.4) * angleStep;
+            
+            // 💡 12時(1)から時計回りに (resultNumber-1) 個分進んだ位置がターゲット
+            // 時計回りなのでマイナス方向
+            const targetAngle = -((resultNumber - 1) * angleStep + randomOffset);
+
+            // 演出用の追加回転
+            const extraRotation = - (Math.PI * 2 * (5 + Math.floor(Math.random() * 3)));
+            
+            const startRotation = pointerPivot.rotation.y;
+            const finalRotationY = (Math.floor(startRotation / (Math.PI * 2)) * (Math.PI * 2)) + extraRotation + targetAngle;
+
+            const duration = 3500;
+            const startTime = Date.now();
+
+            while (Date.now() - startTime < duration) {
+                const elapsed = Date.now() - startTime;
+                const progress = elapsed / duration;
+                
+                const easeOut = 1 - Math.pow(1 - progress, 4);
+                pointerPivot.rotation.y = startRotation + (finalRotationY - startRotation) * easeOut;
+
+                stab.innerText = (75 + Math.random() * 20 * (1 - progress)).toFixed(1);
+                await new Promise(r => requestAnimationFrame(r));
+            }
+
+            // 🎯 理論値に固定
+            pointerPivot.rotation.y = finalRotationY;
+
+            txt.innerText = "INDEX_LOCKED";
+            stab.innerText = "100.0";
+            await triggerPulse();
+
+            updateAndDisplayResults(resultNumber);
+
+            rollBtn.disabled = false;
+            isRolling = false;
+        }
+
+        function updateAndDisplayResults(result) {
+            globalStats.rolls += 1;
+            globalStats.sum += result;
+            globalStats.history.unshift(result);
+
+            document.getElementById('res-total').innerText = result;
+            document.getElementById('results-panel').style.display = 'block';
+
+            document.getElementById('total-rolls').innerText = globalStats.rolls;
+            document.getElementById('total-avg').innerText = (globalStats.sum / globalStats.rolls).toFixed(1);
+            
+            const logContainer = document.getElementById('history-log');
+            logContainer.innerHTML = '';
+            globalStats.history.slice(0, 10).forEach((num, index) => {
+                const row = document.createElement('div');
+                row.className = 'history-row';
+                row.innerHTML = `<span>LOG #${globalStats.rolls - index}</span><span class="history-num">[ ${num} ]</span>`;
+                logContainer.appendChild(row);
+            });
+            
+            document.getElementById('total-panel').style.display = 'block';
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.clear();
+            if (grid) grid.position.z = Math.sin(Date.now() * 0.001) * 0.2;
+            
+            renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+            renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
+            renderer.setScissorTest(false);
+            
+            composer.render();
+        }
+
+        window.addEventListener('resize', () => {
+            const w = window.innerWidth, h = window.innerHeight;
+            renderer.setSize(w, h);
+            composer.setSize(w, h);
+            adjustCameraAndObjectPosition();
+        });
+
+        window.spinRoulette = spinRoulette;
+    </script>
+</body>
+</html>
