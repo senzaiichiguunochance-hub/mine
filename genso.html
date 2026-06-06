@@ -16,11 +16,14 @@
             --neon-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
 
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(circle at 50% 50%, #1a2332 0%, #0a0e14 100%);
+            background-image: radial-gradient(circle at 50% 50%, #1a2332 0%, #0a0e14 100%);
             color: var(--text-color);
             margin: 0;
             display: flex;
@@ -28,6 +31,26 @@
             align-items: center;
             min-height: 100vh;
             overflow-x: hidden;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.9rem;
+            color: #fff;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            padding: 6px 12px;
+            border-radius: 4px;
+            z-index: 1000;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         header {
@@ -39,14 +62,14 @@
             box-shadow: 0 2px 20px rgba(0,0,0,0.5);
             border-bottom: 2px solid var(--primary-color);
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             text-shadow: 0 0 10px var(--primary-color);
         }
 
         main {
             width: 95%;
             max-width: 1000px;
-            margin: 2rem auto;
+            margin: 1.5rem auto;
             background: var(--card-bg);
             padding: 2rem;
             border-radius: 16px;
@@ -68,15 +91,16 @@
         h2 {
             color: var(--primary-color);
             text-shadow: 0 0 5px var(--primary-color);
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
         }
 
         .btn {
             background: linear-gradient(135deg, var(--secondary-color), #001a33);
             color: white;
             border: 1px solid var(--primary-color);
-            padding: 1rem 2rem;
-            margin: 0.8rem;
+            padding: 1rem 1.5rem;
+            margin: 0.5rem;
             border-radius: 50px;
             cursor: pointer;
             font-size: 1.1rem;
@@ -87,22 +111,9 @@
             overflow: hidden;
         }
 
-        .btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255,255,255,0.2);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
         .btn:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 0 20px var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--primary-color);
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: #000;
         }
@@ -113,11 +124,12 @@
 
         #question-text {
             font-size: 3rem;
-            margin: 1.5rem 0;
+            margin: 1rem 0;
             font-weight: 900;
             color: #fff;
             text-shadow: 0 0 20px var(--primary-color), 0 0 30px var(--primary-color);
             animation: pulse 2s infinite;
+            text-align: center;
         }
 
         @keyframes pulse {
@@ -129,27 +141,27 @@
         .choices-container {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
+            gap: 12px;
             width: 100%;
-            margin-top: 2rem;
+            margin-top: 1.5rem;
         }
 
-        @media (max-width: 800px) {
-            .choices-container { grid-template-columns: repeat(2, 1fr); }
-            #question-text { font-size: 2rem; }
+        .periodic-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 212, 255, 0.05);
         }
 
         .periodic-table {
             display: grid;
             grid-template-columns: repeat(18, 1fr);
-            gap: 3px;
-            margin: 20px 0;
-            background: rgba(0, 212, 255, 0.1);
-            padding: 5px;
-            border-radius: 8px;
-            overflow-x: auto;
-            width: 100%;
-            border: 1px solid rgba(0, 212, 255, 0.3);
+            gap: 2px;
+            padding: 8px;
+            min-width: 700px; /* 周期表の形を維持するための最小幅 */
         }
 
         .element-cell {
@@ -162,22 +174,21 @@
             background: #1c252e;
             border: 1px solid #2d3b48;
             color: #8b9eb0;
-            transition: all 0.2s;
         }
 
         .element-cell.target {
             background: var(--primary-color);
             border: 2px solid #fff;
             font-weight: bold;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             color: #000;
-            box-shadow: 0 0 15px var(--primary-color);
+            box-shadow: 0 0 10px var(--primary-color);
             animation: flash 1s infinite alternate;
         }
 
         @keyframes flash {
-            from { opacity: 1; transform: scale(1); }
-            to { opacity: 0.6; transform: scale(1.1); }
+            from { opacity: 1; }
+            to { opacity: 0.7; }
         }
 
         .element-cell.empty {
@@ -186,64 +197,72 @@
         }
 
         .feedback {
-            margin-top: 2rem;
+            margin-top: 1.5rem;
             font-weight: 900;
-            font-size: 2rem;
-            height: 3rem;
-            letter-spacing: 2px;
+            font-size: 1.8rem;
+            height: 2.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
+            text-align: center;
         }
 
         .correct-anim {
             color: var(--correct-color);
-            text-shadow: 0 0 20px var(--correct-color);
+            text-shadow: 0 0 15px var(--correct-color);
             animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .wrong-anim {
             color: var(--wrong-color);
-            text-shadow: 0 0 20px var(--wrong-color);
+            text-shadow: 0 0 15px var(--wrong-color);
             animation: shake 0.5s ease-in-out;
         }
 
         @keyframes bounceIn {
             0% { transform: scale(0); opacity: 0; }
-            70% { transform: scale(1.2); }
+            70% { transform: scale(1.1); }
             100% { transform: scale(1); opacity: 1; }
         }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-10px); }
-            40%, 80% { transform: translateX(10px); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
         }
 
         .stat-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
             font-weight: bold;
             color: var(--primary-color);
             border-bottom: 1px solid rgba(0, 212, 255, 0.3);
             padding-bottom: 0.5rem;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-table-container {
+            width: 100%;
+            overflow-x: auto;
+            margin: 1.5rem 0;
         }
 
         .result-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 1.5rem 0;
             color: var(--text-color);
             font-size: 0.9rem;
+            min-width: 400px;
         }
 
         .result-table th, .result-table td {
             border: 1px solid rgba(0, 212, 255, 0.3);
-            padding: 8px;
+            padding: 10px;
             text-align: center;
         }
 
@@ -254,11 +273,22 @@
 
         .row-correct { color: var(--correct-color); }
         .row-wrong { color: var(--wrong-color); }
+
+        /* スマートフォン向け調整 */
+        @media (max-width: 600px) {
+            header h1 { font-size: 1.4rem; }
+            main { padding: 1.2rem; margin: 1rem auto; width: 98%; }
+            #question-text { font-size: 2.2rem; }
+            .choices-container { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .btn { padding: 0.8rem 1rem; font-size: 1rem; margin: 0.3rem; }
+            .stat-bar { font-size: 0.9rem; justify-content: center; }
+            .back-link { top: 10px; right: 10px; padding: 4px 8px; font-size: 0.8rem; }
+            h2 { font-size: 1.2rem; }
+        }
     </style>
 </head>
 <body>
-    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
-
+    <a href="menu.html" class="back-link">メニューに戻る</a>
 
 <header>
     <h1>元素記号学習マスター</h1>
@@ -267,11 +297,11 @@
 <main>
     <!-- メニュー画面 -->
     <div id="menu-screen" class="menu-screen active">
-        <h2>学習モードを選んでください</h2>
+        <h2>学習モードを選択</h2>
         
-        <div style="margin-bottom: 2rem; display: flex; flex-direction: column; align-items: center;">
+        <div style="margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: center; width: 100%;">
             <label for="range-select" style="margin-bottom: 0.5rem; color: var(--primary-color); font-weight: bold;">学習範囲:</label>
-            <select id="range-select" class="btn" style="border-radius: 8px; padding: 0.5rem 1rem; width: 250px; background: #161b22; text-align-last: center;">
+            <select id="range-select" class="btn" style="border-radius: 8px; padding: 0.6rem; width: 100%; max-width: 280px; background: #161b22; text-align-last: center;">
                 <option value="20">中学生向け (Caまで)</option>
                 <option value="36">高校生向け (Krまで)</option>
                 <option value="118">全部 (最後まで)</option>
@@ -286,15 +316,17 @@
     <!-- ゲーム画面 -->
     <div id="game-screen" class="game-screen">
         <div class="stat-bar">
-            <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin: 0;" onclick="showMenu()">中止して戻る</button>
+            <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin: 0;" onclick="showMenu()">学習モード選択に戻る</button>
             <div id="progress">問題 1 / 10</div>
-            <div id="score-display">正解数: 0</div>
+            <div id="score-display">正解: 0</div>
         </div>
-        <div id="question-area">
-            <div id="question-label">これの元素記号は何？</div>
-            <div id="question-text">水素</div>
+        <div id="question-area" style="width: 100%; text-align: center;">
+            <div id="question-label" style="color: var(--primary-color); font-weight: bold;"></div>
+            <div id="question-text"></div>
             <div id="periodic-display" style="display: none;">
-                <div class="periodic-table" id="table-grid"></div>
+                <div class="periodic-table-wrapper">
+                    <div class="periodic-table" id="table-grid"></div>
+                </div>
             </div>
         </div>
         <div class="choices-container" id="choices"></div>
@@ -304,13 +336,14 @@
     <!-- リザルト画面 -->
     <div id="result-screen" class="result-screen">
         <h2>結果発表</h2>
-        <div id="final-score" style="font-size: 1.5rem; margin: 1rem 0;"></div>
-        <div id="result-detail" style="width: 100%; overflow-x: auto;"></div>
+        <div id="final-score" style="font-size: 1.5rem; margin: 1rem 0; color: var(--primary-color); font-weight: bold;"></div>
+        <div id="result-detail" class="result-table-container"></div>
         <button class="btn" onclick="showMenu()">トップに戻る</button>
     </div>
 </main>
 
 <script>
+    // 元素データ定義
     const elements = [
         {n: 1, s: "H", name: "水素", r: 1, c: 1}, {n: 2, s: "He", name: "ヘリウム", r: 1, c: 18},
         {n: 3, s: "Li", name: "リチウム", r: 2, c: 1}, {n: 4, s: "Be", name: "ベリリウム", r: 2, c: 2},
@@ -366,7 +399,7 @@
     let quizHistory = [];
     let usedElementIndices = [];
 
-    // 設定の読み込み
+    // 初期化
     window.onload = () => {
         const savedRange = localStorage.getItem('genso-range');
         if (savedRange) {
@@ -374,12 +407,14 @@
         }
     };
 
+    // メニュー表示
     function showMenu() {
         document.getElementById('menu-screen').classList.add('active');
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('result-screen').classList.remove('active');
     }
 
+    // ゲーム開始
     function startGame(mode) {
         currentMode = mode;
         currentQuestionIndex = 0;
@@ -387,7 +422,6 @@
         quizHistory = [];
         usedElementIndices = [];
         
-        // 範囲の設定保存
         const rangeLimit = parseInt(document.getElementById('range-select').value);
         localStorage.setItem('genso-range', rangeLimit);
 
@@ -396,6 +430,7 @@
         nextQuestion();
     }
 
+    // 次の問題へ
     function nextQuestion() {
         if (currentQuestionIndex >= 10) {
             showResult();
@@ -406,15 +441,15 @@
         document.getElementById('feedback').innerText = "";
         document.getElementById('feedback').className = "feedback";
         document.getElementById('progress').innerText = `問題 ${currentQuestionIndex + 1} / 10`;
-        document.getElementById('score-display').innerText = `正解数: ${score}`;
+        document.getElementById('score-display').innerText = `正解: ${score}`;
 
         const rangeLimit = parseInt(document.getElementById('range-select').value);
         const filteredElements = elements.filter(e => e.n <= rangeLimit);
 
-        // 重複しないように元素を選択
+        // 未使用の元素を選択
         let availableElements = filteredElements.filter((_, index) => !usedElementIndices.includes(index));
         if (availableElements.length === 0) {
-            availableElements = filteredElements; // 範囲内の全元素を使い切った場合はリセット
+            availableElements = filteredElements;
             usedElementIndices = [];
         }
         
@@ -426,20 +461,15 @@
         let choices = [correctElement];
         while (choices.length < 10 && choices.length < filteredElements.length) {
             let rand = filteredElements[Math.floor(Math.random() * filteredElements.length)];
-            if (!choices.includes(rand)) {
-                choices.push(rand);
-            }
+            if (!choices.includes(rand)) choices.push(rand);
         }
-        // 選択肢が足りない場合は全元素から補充
         while (choices.length < 10) {
             let rand = elements[Math.floor(Math.random() * elements.length)];
-            if (!choices.includes(rand)) {
-                choices.push(rand);
-            }
+            if (!choices.includes(rand)) choices.push(rand);
         }
         choices.sort(() => Math.random() - 0.5);
 
-        // UI表示の切り替え
+        // UI更新
         const qText = document.getElementById('question-text');
         const qLabel = document.getElementById('question-label');
         const periodicDisplay = document.getElementById('periodic-display');
@@ -450,15 +480,15 @@
         choicesContainer.innerHTML = "";
 
         if (currentMode === 1) { // 日本語 -> 記号
-            qLabel.innerText = "この元素の記号は何？";
+            qLabel.innerText = "この元素の記号は？";
             qText.innerText = correctElement.name;
             choices.forEach(el => createChoiceButton(el.s, el === correctElement));
         } else if (currentMode === 2) { // 記号 -> 日本語
-            qLabel.innerText = "この元素の名前は何？";
+            qLabel.innerText = "この元素の名前は？";
             qText.innerText = correctElement.s;
             choices.forEach(el => createChoiceButton(el.name, el === correctElement));
         } else if (currentMode === 3) { // 周期表
-            qLabel.innerText = "「？」に入る元素は何？";
+            qLabel.innerText = "「？」に入る元素は？";
             qText.style.display = "none";
             periodicDisplay.style.display = "block";
             renderPeriodicTable(correctElement, rangeLimit);
@@ -466,6 +496,7 @@
         }
     }
 
+    // 選択肢ボタン作成
     function createChoiceButton(text, isCorrect) {
         const btn = document.createElement('button');
         btn.className = 'btn';
@@ -474,6 +505,7 @@
         document.getElementById('choices').appendChild(btn);
     }
 
+    // 回答処理
     function handleAnswer(isCorrect, btn, userText) {
         if (!isAnswering) return;
         isAnswering = false;
@@ -483,7 +515,7 @@
                                 (currentMode === 2 ? correctElement.name : `${correctElement.s} (${correctElement.name})`);
         
         quizHistory.push({
-            question: currentMode === 1 ? correctElement.name : (currentMode === 2 ? correctElement.s : "周期表「？」"),
+            question: currentMode === 1 ? correctElement.name : (currentMode === 2 ? correctElement.s : "周期表穴埋め"),
             answer: userText,
             correct: correctAnswerText,
             isCorrect: isCorrect
@@ -491,28 +523,26 @@
 
         if (isCorrect) {
             score++;
-            feedback.innerText = "MISSION CLEAR!";
+            feedback.innerText = "正解！";
             feedback.className = "feedback correct-anim";
-            btn.style.boxShadow = "0 0 30px var(--correct-color)";
-            btn.style.borderColor = "var(--correct-color)";
+            btn.style.boxShadow = "0 0 20px var(--correct-color)";
         } else {
-            feedback.innerText = `FAILED! 正解は「${correctAnswerText}」`;
+            feedback.innerText = `不正解... 正解は「${correctAnswerText}」`;
             feedback.className = "feedback wrong-anim";
-            btn.style.boxShadow = "0 0 30px var(--wrong-color)";
-            btn.style.borderColor = "var(--wrong-color)";
+            btn.style.boxShadow = "0 0 20px var(--wrong-color)";
         }
 
         setTimeout(() => {
             currentQuestionIndex++;
             nextQuestion();
-        }, 2000);
+        }, 1800);
     }
 
+    // 周期表の描画
     function renderPeriodicTable(target, rangeLimit) {
         const grid = document.getElementById('table-grid');
         grid.innerHTML = "";
         
-        // 簡易的な周期表描画（7周期18族）
         for (let r = 1; r <= 7; r++) {
             for (let c = 1; c <= 18; c++) {
                 const el = elements.find(e => e.r === r && e.c === c);
@@ -525,9 +555,7 @@
                         cell.className += ' target';
                     } else {
                         cell.innerText = el.s;
-                        if (el.n > rangeLimit) {
-                            cell.style.opacity = "0.2";
-                        }
+                        if (el.n > rangeLimit) cell.style.opacity = "0.2";
                     }
                 } else {
                     cell.className = 'element-cell empty';
@@ -537,41 +565,38 @@
         }
     }
 
+    // 結果表示
     function showResult() {
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('result-screen').classList.add('active');
-        document.getElementById('final-score').innerText = `TOTAL SCORE: ${score} / 10`;
+        document.getElementById('final-score').innerText = `正解数: ${score} / 10`;
 
         const detailArea = document.getElementById('result-detail');
         detailArea.innerHTML = "";
 
-        // モード1と2の場合のみ詳細一覧を表示
-        if (currentMode === 1 || currentMode === 2) {
-            let tableHtml = `<table class="result-table">
-                <thead>
-                    <tr>
-                        <th>問題</th>
-                        <th>あなたの回答</th>
-                        <th>正解</th>
-                        <th>判定</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-            
-            quizHistory.forEach(item => {
-                tableHtml += `
-                    <tr class="${item.isCorrect ? 'row-correct' : 'row-wrong'}">
-                        <td>${item.question}</td>
-                        <td>${item.answer}</td>
-                        <td>${item.correct}</td>
-                        <td>${item.isCorrect ? '〇' : '×'}</td>
-                    </tr>`;
-            });
-            tableHtml += `</tbody></table>`;
-            detailArea.innerHTML = tableHtml;
-        }
+        let tableHtml = `<table class="result-table">
+            <thead>
+                <tr>
+                    <th>問題</th>
+                    <th>回答</th>
+                    <th>正解</th>
+                    <th>判定</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        
+        quizHistory.forEach(item => {
+            tableHtml += `
+                <tr class="${item.isCorrect ? 'row-correct' : 'row-wrong'}">
+                    <td>${item.question}</td>
+                    <td>${item.answer}</td>
+                    <td>${item.correct}</td>
+                    <td>${item.isCorrect ? '〇' : '×'}</td>
+                </tr>`;
+        });
+        tableHtml += `</tbody></table>`;
+        detailArea.innerHTML = tableHtml;
     }
-
 </script>
 
 </body>
