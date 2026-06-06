@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おおきなかぶ</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;700&family=Sawarabi+Mincho&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-pink: #ffafbd;
+            --primary-orange: #ffc3a0;
+            --soft-white: #fffafa;
+            --text-dark: #5d5d5d;
+            --accent-gold: #d4af37;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, var(--primary-pink) 0%, var(--primary-orange) 100%);
+            background-attachment: fixed;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
+        h1 {
+            font-family: 'Sawarabi Mincho', serif;
+            font-size: 3rem;
+            color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.1), 0 0 20px rgba(255,255,255,0.5);
+            margin: 0;
+            letter-spacing: 0.1em;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.9);
+            margin-top: 10px;
+            font-weight: 300;
+        }
+
+        .gallery-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .story-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 8px solid white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .story-card::before {
+            content: '✿';
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: var(--primary-pink);
+            font-size: 1.5rem;
+            opacity: 0.5;
+            z-index: 2;
+        }
+
+        .story-card:hover {
+            transform: scale(1.03) rotate(0.5deg);
+            box-shadow: 0 20px 45px rgba(255, 175, 189, 0.4);
+            border-color: var(--soft-white);
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            line-height: 0;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.6s ease;
+        }
+
+        .story-card:hover .image-wrapper img {
+            transform: scale(1.1);
+        }
+
+        .card-content {
+            padding: 25px;
+            text-align: center;
+        }
+
+        .scene-number {
+            display: inline-block;
+            background: var(--primary-pink);
+            color: white;
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(255, 175, 189, 0.3);
+        }
+
+        .scene-title {
+            font-size: 1.4rem;
+            margin: 0 0 10px 0;
+            color: #7d5a5a;
+            font-family: 'Sawarabi Mincho', serif;
+            font-weight: bold;
+        }
+
+        .scene-description {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #666;
+            text-align: left;
+            margin: 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+        }
+
+        footer {
+            margin-top: 60px;
+            color: white;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Sparkle animation elements */
+        .sparkle {
+            position: fixed;
+            pointer-events: none;
+            background: white;
+            border-radius: 50%;
+            animation: move-up 10s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes move-up {
+            0% { transform: translateY(100vh) scale(0); }
+            100% { transform: translateY(-10vh) scale(1); }
+        }
+
+        @media (max-width: 480px) {
+            .gallery-container {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+<a href="..\menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+    <!-- Background sparkles -->
+    <div class="sparkle" style="width: 10px; height: 10px; left: 10%; animation-delay: 0s;"></div>
+    <div class="sparkle" style="width: 15px; height: 15px; left: 30%; animation-delay: 2s;"></div>
+    <div class="sparkle" style="width: 8px; height: 8px; left: 50%; animation-delay: 4s;"></div>
+    <div class="sparkle" style="width: 12px; height: 12px; left: 70%; animation-delay: 1s;"></div>
+    <div class="sparkle" style="width: 10px; height: 10px; left: 90%; animation-delay: 3s;"></div>
+
+    <header>
+        <h1>大きなかぶ</h1>
+    </header>
+
+    <div class="gallery-container">
+        <!-- Scene 1 -->
+        <div class="story-card">
+            <div class="image-wrapper">
+                <img src="1.jpg" alt="Scene 1">
+            </div>
+            <div class="card-content">
+                <div class="scene-number">Scene 01</div>
+                <h2 class="scene-title">巨大なかぶと、おじいさんの挑戦</h2>
+                <p class="scene-description">おじいさんが大切に育てたかぶは、家よりも大きく育ちました。おじいさんは抜こうとしますが、びくともしません。</p>
+            </div>
+        </div>
+
+        <!-- Scene 2 -->
+        <div class="story-card">
+            <div class="image-wrapper">
+                <img src="2.jpg" alt="Scene 2">
+            </div>
+            <div class="card-content">
+                <div class="scene-number">Scene 02</div>
+                <h2 class="scene-title">おばあさんの登場</h2>
+                <p class="scene-description">おじいさんはおばあさんを呼びました。おばあさんがおじいさんの腰を引っ張り、おじいさんがかぶを引っ張ります。</p>
+            </div>
+        </div>
+
+        <!-- Scene 3 -->
+        <div class="story-card">
+            <div class="image-wrapper">
+                <img src="3.jpg" alt="Scene 3">
+            </div>
+            <div class="card-content">
+                <div class="scene-number">Scene 03</div>
+                <h2 class="scene-title">孫娘の参加</h2>
+                <p class="scene-description">二人でも抜けません。おばあさんは孫娘を呼びました。孫娘はおばあさんを、おばあさんはおじいさんを、おじいさんはかぶを引っ張ります。</p>
+            </div>
+        </div>
+
+        <!-- Scene 4 -->
+        <div class="story-card">
+            <div class="image-wrapper">
+                <img src="4.jpg" alt="Scene 4">
+            </div>
+            <div class="card-content">
+                <div class="scene-number">Scene 04</div>
+                <h2 class="scene-title">犬が手伝いに来る</h2>
+                <p class="scene-description">それでも抜けません。孫娘は犬を呼びました。犬が孫娘を、孫娘がおばあさんを、おばあさんがおじいさんを、おじいさんがかぶを引っ張ります。</p>
+            </div>
+        </div>
+
+        <!-- Scene 5 -->
+        <div class="story-card">
+            <div class="image-wrapper">
+                <img src="5.jpg" alt="Scene 5">
+            </div>
+            <div class="card-content">
+                <div class="scene-number">Scene 05</div>
+                <h2 class="scene-title">猫も加わる</h2>
+                <p class="scene-description">それでもまだ抜けません。犬は猫を呼びました。猫が犬を、犬が孫娘を、孫娘がおばあさんを、おばあさんがおじいさんを、おじいさんがかぶを引っ張ります。</p>
+            </div>
+        </div>
+
+        <!-- Scene 6 -->
+        <div class="story-card">
+            <div class="image-wrapper">
+                <img src="6.jpg" alt="Scene 6">
+            </div>
+            <div class="card-content">
+                <div class="scene-number">Scene 06</div>
+                <h2 class="scene-title">ネズミの力と、ついに抜ける！</h2>
+                <p class="scene-description">猫はネズミを呼びました。ネズミが猫を、猫が犬を……みんなで一緒に引っ張りました。「うんとこしょ、どっこいしょ！」――ついに、かぶは抜けました！</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
