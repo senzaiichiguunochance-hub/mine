@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元素記号学習マスター</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --correct-color: #4caf50;
+            --wrong-color: #f44336;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        main {
+            width: 95%;
+            max-width: 1000px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .menu-screen, .game-screen, .result-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .active {
+            display: flex;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            margin: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        #question-text {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            font-weight: bold;
+        }
+
+        .choices-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 600px) {
+            .choices-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .periodic-table {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            gap: 2px;
+            margin: 20px 0;
+            background: #ccc;
+            padding: 2px;
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .element-cell {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.6rem;
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        .element-cell.target {
+            background: #fff59d;
+            border: 2px solid #fbc02d;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #d32f2f;
+        }
+
+        .element-cell.empty {
+            background: transparent;
+            border: none;
+        }
+
+        .feedback {
+            margin-top: 1rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+            height: 1.5rem;
+        }
+
+        .correct { color: var(--correct-color); }
+        .wrong { color: var(--wrong-color); }
+
+        .stat-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>元素記号学習マスター</h1>
+</header>
+
+<main>
+    <!-- メニュー画面 -->
+    <div id="menu-screen" class="menu-screen active">
+        <h2>学習モードを選んでください</h2>
+        <button class="btn" onclick="startGame(1)">日本語 → 元素記号</button>
+        <button class="btn" onclick="startGame(2)">元素記号 → 日本語</button>
+        <button class="btn" onclick="startGame(3)">周期表 穴埋め</button>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="game-screen" class="game-screen">
+        <div class="stat-bar">
+            <div id="progress">問題 1 / 10</div>
+            <div id="score-display">正解数: 0</div>
+        </div>
+        <div id="question-area">
+            <div id="question-label">これの元素記号は何？</div>
+            <div id="question-text">水素</div>
+            <div id="periodic-display" style="display: none;">
+                <div class="periodic-table" id="table-grid"></div>
+            </div>
+        </div>
+        <div class="choices-container" id="choices"></div>
+        <div id="feedback" class="feedback"></div>
+    </div>
+
+    <!-- リザルト画面 -->
+    <div id="result-screen" class="result-screen">
+        <h2>結果発表</h2>
+        <div id="final-score" style="font-size: 1.5rem; margin: 1rem 0;"></div>
+        <button class="btn" onclick="showMenu()">トップに戻る</button>
+    </div>
+</main>
+
+<script>
+    const elements = [
+        {n: 1, s: "H", name: "水素", r: 1, c: 1}, {n: 2, s: "He", name: "ヘリウム", r: 1, c: 18},
+        {n: 3, s: "Li", name: "リチウム", r: 2, c: 1}, {n: 4, s: "Be", name: "ベリリウム", r: 2, c: 2},
+        {n: 5, s: "B", name: "ホウ素", r: 2, c: 13}, {n: 6, s: "C", name: "炭素", r: 2, c: 14},
+        {n: 7, s: "N", name: "窒素", r: 2, c: 15}, {n: 8, s: "O", name: "酸素", r: 2, c: 16},
+        {n: 9, s: "F", name: "フッ素", r: 2, c: 17}, {n: 10, s: "Ne", name: "ネオン", r: 2, c: 18},
+        {n: 11, s: "Na", name: "ナトリウム", r: 3, c: 1}, {n: 12, s: "Mg", name: "マグネシウム", r: 3, c: 2},
+        {n: 13, s: "Al", name: "アルミニウム", r: 3, c: 13}, {n: 14, s: "Si", name: "ケイ素", r: 3, c: 14},
+        {n: 15, s: "P", name: "リン", r: 3, c: 15}, {n: 16, s: "S", name: "硫黄", r: 3, c: 16},
+        {n: 17, s: "Cl", name: "塩素", r: 3, c: 17}, {n: 18, s: "Ar", name: "アルゴン", r: 3, c: 18},
+        {n: 19, s: "K", name: "カリウム", r: 4, c: 1}, {n: 20, s: "Ca", name: "カルシウム", r: 4, c: 2},
+        {n: 21, s: "Sc", name: "スカンジウム", r: 4, c: 3}, {n: 22, s: "Ti", name: "チタン", r: 4, c: 4},
+        {n: 23, s: "V", name: "バナジウム", r: 4, c: 5}, {n: 24, s: "Cr", name: "クロム", r: 4, c: 6},
+        {n: 25, s: "Mn", name: "マンガン", r: 4, c: 7}, {n: 26, s: "Fe", name: "鉄", r: 4, c: 8},
+        {n: 27, s: "Co", name: "コバルト", r: 4, c: 9}, {n: 28, s: "Ni", name: "ニッケル", r: 4, c: 10},
+        {n: 29, s: "Cu", name: "銅", r: 4, c: 11}, {n: 30, s: "Zn", name: "亜鉛", r: 4, c: 12},
+        {n: 31, s: "Ga", name: "ガリウム", r: 4, c: 13}, {n: 32, s: "Ge", name: "ゲルマニウム", r: 4, c: 14},
+        {n: 33, s: "As", name: "ヒ素", r: 4, c: 15}, {n: 34, s: "Se", name: "セレン", r: 4, c: 16},
+        {n: 35, s: "Br", name: "臭素", r: 4, c: 17}, {n: 36, s: "Kr", name: "クリプトン", r: 4, c: 18},
+        {n: 37, s: "Rb", name: "ルビジウム", r: 5, c: 1}, {n: 38, s: "Sr", name: "ストロンチウム", r: 5, c: 2},
+        {n: 39, s: "Y", name: "イットリウム", r: 5, c: 3}, {n: 40, s: "Zr", name: "ジルコニウム", r: 5, c: 4},
+        {n: 41, s: "Nb", name: "ニオブ", r: 5, c: 5}, {n: 42, s: "Mo", name: "モリブデン", r: 5, c: 6},
+        {n: 43, s: "Tc", name: "テクネチウム", r: 5, c: 7}, {n: 44, s: "Ru", name: "ルテニウム", r: 5, c: 8},
+        {n: 45, s: "Rh", name: "ロジウム", r: 5, c: 9}, {n: 46, s: "Pd", name: "パラジウム", r: 5, c: 10},
+        {n: 47, s: "Ag", name: "銀", r: 5, c: 11}, {n: 48, s: "Cd", name: "カドミウム", r: 5, c: 12},
+        {n: 49, s: "In", name: "インジウム", r: 5, c: 13}, {n: 50, s: "Sn", name: "スズ", r: 5, c: 14},
+        {n: 51, s: "Sb", name: "アンチモン", r: 5, c: 15}, {n: 52, s: "Te", name: "テルル", r: 5, c: 16},
+        {n: 53, s: "I", name: "ヨウ素", r: 5, c: 17}, {n: 54, s: "Xe", name: "キセノン", r: 5, c: 18},
+        {n: 55, s: "Cs", name: "セシウム", r: 6, c: 1}, {n: 56, s: "Ba", name: "バリウム", r: 6, c: 2},
+        {n: 72, s: "Hf", name: "ハフニウム", r: 6, c: 4}, {n: 73, s: "Ta", name: "タンタル", r: 6, c: 5},
+        {n: 74, s: "W", name: "タングステン", r: 6, c: 6}, {n: 75, s: "Re", name: "レニウム", r: 6, c: 7},
+        {n: 76, s: "Os", name: "オスミウム", r: 6, c: 8}, {n: 77, s: "Ir", name: "イリジウム", r: 6, c: 9},
+        {n: 78, s: "Pt", name: "白金", r: 6, c: 10}, {n: 79, s: "Au", name: "金", r: 6, c: 11},
+        {n: 80, s: "Hg", name: "水銀", r: 6, c: 12}, {n: 81, s: "Tl", name: "タリウム", r: 6, c: 13},
+        {n: 82, s: "Pb", name: "鉛", r: 6, c: 14}, {n: 83, s: "Bi", name: "ビスマス", r: 6, c: 15},
+        {n: 84, s: "Po", name: "ポロニウム", r: 6, c: 16}, {n: 85, s: "At", name: "アスタチン", r: 6, c: 17},
+        {n: 86, s: "Rn", name: "ラドン", r: 6, c: 18}, {n: 87, s: "Fr", name: "フランシウム", r: 6, c: 1},
+        {n: 88, s: "Ra", name: "ラジウム", r: 7, c: 2}, {n: 104, s: "Rf", name: "ラザホージウム", r: 7, c: 4},
+        {n: 105, s: "Db", name: "ドブニウム", r: 7, c: 5}, {n: 106, s: "Sg", name: "シーボーギウム", r: 7, c: 6},
+        {n: 107, s: "Bh", name: "ボーリウム", r: 7, c: 7}, {n: 108, s: "Hs", name: "ハッシウム", r: 7, c: 8},
+        {n: 109, s: "Mt", name: "マイトネリウム", r: 7, c: 9}, {n: 110, s: "Ds", name: "ダームスタチウム", r: 7, c: 10},
+        {n: 111, s: "Rg", name: "レントゲニウム", r: 7, c: 11}, {n: 112, s: "Cn", name: "コペルニシウム", r: 7, c: 12},
+        {n: 113, s: "Nh", name: "ニホニウム", r: 7, c: 13}, {n: 114, s: "Fl", name: "フレロビウム", r: 7, c: 14},
+        {n: 115, s: "Mc", name: "モスコビウム", r: 7, c: 15}, {n: 116, s: "Lv", name: "リバモリウム", r: 7, c: 16},
+        {n: 117, s: "Ts", name: "テネシン", r: 7, c: 17}, {n: 118, s: "Og", name: "オガネソン", r: 7, c: 18}
+    ];
+
+    let currentMode = 0;
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let correctElement = null;
+    let isAnswering = false;
+
+    function showMenu() {
+        document.getElementById('menu-screen').classList.add('active');
+        document.getElementById('game-screen').classList.remove('active');
+        document.getElementById('result-screen').classList.remove('active');
+    }
+
+    function startGame(mode) {
+        currentMode = mode;
+        currentQuestionIndex = 0;
+        score = 0;
+        document.getElementById('menu-screen').classList.remove('active');
+        document.getElementById('game-screen').classList.add('active');
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (currentQuestionIndex >= 10) {
+            showResult();
+            return;
+        }
+
+        isAnswering = true;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('feedback').className = "feedback";
+        document.getElementById('progress').innerText = `問題 ${currentQuestionIndex + 1} / 10`;
+        document.getElementById('score-display').innerText = `正解数: ${score}`;
+
+        // ランダムな元素を選択
+        correctElement = elements[Math.floor(Math.random() * elements.length)];
+        
+        // 選択肢の生成
+        let choices = [correctElement];
+        while (choices.length < 10) {
+            let rand = elements[Math.floor(Math.random() * elements.length)];
+            if (!choices.includes(rand)) {
+                choices.push(rand);
+            }
+        }
+        choices.sort(() => Math.random() - 0.5);
+
+        // UI表示の切り替え
+        const qText = document.getElementById('question-text');
+        const qLabel = document.getElementById('question-label');
+        const periodicDisplay = document.getElementById('periodic-display');
+        const choicesContainer = document.getElementById('choices');
+
+        periodicDisplay.style.display = "none";
+        qText.style.display = "block";
+        choicesContainer.innerHTML = "";
+
+        if (currentMode === 1) { // 日本語 -> 記号
+            qLabel.innerText = "この元素の記号は何？";
+            qText.innerText = correctElement.name;
+            choices.forEach(el => createChoiceButton(el.s, el === correctElement));
+        } else if (currentMode === 2) { // 記号 -> 日本語
+            qLabel.innerText = "この元素の名前は何？";
+            qText.innerText = correctElement.s;
+            choices.forEach(el => createChoiceButton(el.name, el === correctElement));
+        } else if (currentMode === 3) { // 周期表
+            qLabel.innerText = "「？」に入る元素は何？";
+            qText.style.display = "none";
+            periodicDisplay.style.display = "block";
+            renderPeriodicTable(correctElement);
+            choices.forEach(el => createChoiceButton(`${el.s} (${el.name})`, el === correctElement));
+        }
+    }
+
+    function createChoiceButton(text, isCorrect) {
+        const btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.innerText = text;
+        btn.onclick = () => handleAnswer(isCorrect, btn);
+        document.getElementById('choices').appendChild(btn);
+    }
+
+    function handleAnswer(isCorrect, btn) {
+        if (!isAnswering) return;
+        isAnswering = false;
+
+        const feedback = document.getElementById('feedback');
+        if (isCorrect) {
+            score++;
+            feedback.innerText = "正解！";
+            feedback.className = "feedback correct";
+        } else {
+            feedback.innerText = `不正解... 正解は ${currentMode === 1 ? correctElement.s : (currentMode === 2 ? correctElement.name : correctElement.s + ' ' + correctElement.name)} でした。`;
+            feedback.className = "feedback wrong";
+        }
+
+        setTimeout(() => {
+            currentQuestionIndex++;
+            nextQuestion();
+        }, 1500);
+    }
+
+    function renderPeriodicTable(target) {
+        const grid = document.getElementById('table-grid');
+        grid.innerHTML = "";
+        
+        // 簡易的な周期表描画（7周期18族）
+        for (let r = 1; r <= 7; r++) {
+            for (let c = 1; c <= 18; c++) {
+                const el = elements.find(e => e.r === r && e.c === c);
+                const cell = document.createElement('div');
+                
+                if (el) {
+                    cell.className = 'element-cell';
+                    if (el === target) {
+                        cell.innerText = "?";
+                        cell.className += ' target';
+                    } else {
+                        cell.innerText = el.s;
+                    }
+                } else {
+                    cell.className = 'element-cell empty';
+                }
+                grid.appendChild(cell);
+            }
+        }
+    }
+
+    function showResult() {
+        document.getElementById('game-screen').classList.remove('active');
+        document.getElementById('result-screen').classList.add('active');
+        document.getElementById('final-score').innerText = `あなたのスコア: ${score} / 10`;
+    }
+
+</script>
+
+</body>
+</html>
