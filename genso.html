@@ -6,41 +6,53 @@
     <title>元素記号学習マスター</title>
     <style>
         :root {
-            --primary-color: #4a90e2;
-            --bg-color: #f4f7f6;
-            --text-color: #333;
-            --correct-color: #4caf50;
-            --wrong-color: #f44336;
+            --primary-color: #00d4ff;
+            --secondary-color: #0056b3;
+            --bg-color: #0a0e14;
+            --card-bg: #161b22;
+            --text-color: #e6edf3;
+            --correct-color: #00ff88;
+            --wrong-color: #ff4d4d;
+            --neon-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         }
 
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 50% 50%, #1a2332 0%, #0a0e14 100%);
             color: var(--text-color);
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         header {
-            background-color: var(--primary-color);
-            color: white;
+            background: linear-gradient(90deg, #001529, #003366);
+            color: var(--primary-color);
             width: 100%;
-            padding: 1rem 0;
+            padding: 1.5rem 0;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            border-bottom: 2px solid var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px var(--primary-color);
         }
 
         main {
             width: 95%;
             max-width: 1000px;
             margin: 2rem auto;
-            background: white;
+            background: var(--card-bg);
             padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            position: relative;
         }
 
         .menu-screen, .game-screen, .result-screen {
@@ -53,55 +65,91 @@
             display: flex;
         }
 
+        h2 {
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+            margin-bottom: 2rem;
+        }
+
         .btn {
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, var(--secondary-color), #001a33);
             color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            margin: 0.5rem;
-            border-radius: 8px;
+            border: 1px solid var(--primary-color);
+            padding: 1rem 2rem;
+            margin: 0.8rem;
+            border-radius: 50px;
             cursor: pointer;
-            font-size: 1rem;
-            transition: opacity 0.2s, transform 0.1s;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
         }
 
         .btn:hover {
-            opacity: 0.9;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 20px var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: #000;
         }
 
         .btn:active {
-            transform: scale(0.98);
+            transform: scale(0.95);
         }
 
         #question-text {
-            font-size: 2rem;
-            margin-bottom: 1.5rem;
-            font-weight: bold;
+            font-size: 3rem;
+            margin: 1.5rem 0;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px var(--primary-color), 0 0 30px var(--primary-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
         }
 
         .choices-container {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
+            gap: 15px;
             width: 100%;
-            margin-top: 1.5rem;
+            margin-top: 2rem;
         }
 
-        @media (max-width: 600px) {
-            .choices-container {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        @media (max-width: 800px) {
+            .choices-container { grid-template-columns: repeat(2, 1fr); }
+            #question-text { font-size: 2rem; }
         }
 
         .periodic-table {
             display: grid;
             grid-template-columns: repeat(18, 1fr);
-            gap: 2px;
+            gap: 3px;
             margin: 20px 0;
-            background: #ccc;
-            padding: 2px;
+            background: rgba(0, 212, 255, 0.1);
+            padding: 5px;
+            border-radius: 8px;
             overflow-x: auto;
             width: 100%;
+            border: 1px solid rgba(0, 212, 255, 0.3);
         }
 
         .element-cell {
@@ -110,17 +158,26 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 0.6rem;
-            background: white;
-            border: 1px solid #ddd;
+            font-size: 0.7rem;
+            background: #1c252e;
+            border: 1px solid #2d3b48;
+            color: #8b9eb0;
+            transition: all 0.2s;
         }
 
         .element-cell.target {
-            background: #fff59d;
-            border: 2px solid #fbc02d;
+            background: var(--primary-color);
+            border: 2px solid #fff;
             font-weight: bold;
-            font-size: 1.2rem;
-            color: #d32f2f;
+            font-size: 1.5rem;
+            color: #000;
+            box-shadow: 0 0 15px var(--primary-color);
+            animation: flash 1s infinite alternate;
+        }
+
+        @keyframes flash {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0.6; transform: scale(1.1); }
         }
 
         .element-cell.empty {
@@ -129,25 +186,57 @@
         }
 
         .feedback {
-            margin-top: 1rem;
-            font-weight: bold;
-            font-size: 1.2rem;
-            height: 1.5rem;
+            margin-top: 2rem;
+            font-weight: 900;
+            font-size: 2rem;
+            height: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .correct { color: var(--correct-color); }
-        .wrong { color: var(--wrong-color); }
+        .correct-anim {
+            color: var(--correct-color);
+            text-shadow: 0 0 20px var(--correct-color);
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .wrong-anim {
+            color: var(--wrong-color);
+            text-shadow: 0 0 20px var(--wrong-color);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
 
         .stat-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+            padding-bottom: 0.5rem;
         }
     </style>
 </head>
 <body>
+    <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
+
 
 <header>
     <h1>元素記号学習マスター</h1>
@@ -323,11 +412,15 @@
         const feedback = document.getElementById('feedback');
         if (isCorrect) {
             score++;
-            feedback.innerText = "正解！";
-            feedback.className = "feedback correct";
+            feedback.innerText = "MISSION CLEAR!";
+            feedback.className = "feedback correct-anim";
+            btn.style.boxShadow = "0 0 30px var(--correct-color)";
+            btn.style.borderColor = "var(--correct-color)";
         } else {
-            feedback.innerText = `不正解... 正解は ${currentMode === 1 ? correctElement.s : (currentMode === 2 ? correctElement.name : correctElement.s + ' ' + correctElement.name)} でした。`;
-            feedback.className = "feedback wrong";
+            feedback.innerText = "MISSION FAILED...";
+            feedback.className = "feedback wrong-anim";
+            btn.style.boxShadow = "0 0 30px var(--wrong-color)";
+            btn.style.borderColor = "var(--wrong-color)";
         }
 
         setTimeout(() => {
