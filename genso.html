@@ -190,7 +190,6 @@
             font-weight: 900;
             font-size: 2rem;
             height: 3rem;
-            text-transform: uppercase;
             letter-spacing: 2px;
             display: flex;
             align-items: center;
@@ -231,7 +230,30 @@
             color: var(--primary-color);
             border-bottom: 1px solid rgba(0, 212, 255, 0.3);
             padding-bottom: 0.5rem;
+            align-items: center;
         }
+
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        .result-table th, .result-table td {
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            padding: 8px;
+            text-align: center;
+        }
+
+        .result-table th {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--primary-color);
+        }
+
+        .row-correct { color: var(--correct-color); }
+        .row-wrong { color: var(--wrong-color); }
     </style>
 </head>
 <body>
@@ -246,6 +268,16 @@
     <!-- メニュー画面 -->
     <div id="menu-screen" class="menu-screen active">
         <h2>学習モードを選んでください</h2>
+        
+        <div style="margin-bottom: 2rem; display: flex; flex-direction: column; align-items: center;">
+            <label for="range-select" style="margin-bottom: 0.5rem; color: var(--primary-color); font-weight: bold;">学習範囲:</label>
+            <select id="range-select" class="btn" style="border-radius: 8px; padding: 0.5rem 1rem; width: 250px; background: #161b22; text-align-last: center;">
+                <option value="20">中学生向け (Caまで)</option>
+                <option value="36">高校生向け (Krまで)</option>
+                <option value="118">全部 (最後まで)</option>
+            </select>
+        </div>
+
         <button class="btn" onclick="startGame(1)">日本語 → 元素記号</button>
         <button class="btn" onclick="startGame(2)">元素記号 → 日本語</button>
         <button class="btn" onclick="startGame(3)">周期表 穴埋め</button>
@@ -254,6 +286,7 @@
     <!-- ゲーム画面 -->
     <div id="game-screen" class="game-screen">
         <div class="stat-bar">
+            <button class="btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; margin: 0;" onclick="showMenu()">中止して戻る</button>
             <div id="progress">問題 1 / 10</div>
             <div id="score-display">正解数: 0</div>
         </div>
@@ -272,6 +305,7 @@
     <div id="result-screen" class="result-screen">
         <h2>結果発表</h2>
         <div id="final-score" style="font-size: 1.5rem; margin: 1rem 0;"></div>
+        <div id="result-detail" style="width: 100%; overflow-x: auto;"></div>
         <button class="btn" onclick="showMenu()">トップに戻る</button>
     </div>
 </main>
@@ -329,6 +363,16 @@
     let score = 0;
     let correctElement = null;
     let isAnswering = false;
+    let quizHistory = [];
+    let usedElementIndices = [];
+
+    // 設定の読み込み
+    window.onload = () => {
+        const savedRange = localStorage.getItem('genso-range');
+        if (savedRange) {
+            document.getElementById('range-select').value = savedRange;
+        }
+    };
 
     function showMenu() {
         document.getElementById('menu-screen').classList.add('active');
@@ -340,6 +384,13 @@
         currentMode = mode;
         currentQuestionIndex = 0;
         score = 0;
+        quizHistory = [];
+        usedElementIndices = [];
+        
+        // 範囲の設定保存
+        const rangeLimit = parseInt(document.getElementById('range-select').value);
+        localStorage.setItem('genso-range', rangeLimit);
+
         document.getElementById('menu-screen').classList.remove('active');
         document.getElementById('game-screen').classList.add('active');
         nextQuestion();
@@ -357,11 +408,29 @@
         document.getElementById('progress').innerText = `問題 ${currentQuestionIndex + 1} / 10`;
         document.getElementById('score-display').innerText = `正解数: ${score}`;
 
-        // ランダムな元素を選択
-        correctElement = elements[Math.floor(Math.random() * elements.length)];
+        const rangeLimit = parseInt(document.getElementById('range-select').value);
+        const filteredElements = elements.filter(e => e.n <= rangeLimit);
+
+        // 重複しないように元素を選択
+        let availableElements = filteredElements.filter((_, index) => !usedElementIndices.includes(index));
+        if (availableElements.length === 0) {
+            availableElements = filteredElements; // 範囲内の全元素を使い切った場合はリセット
+            usedElementIndices = [];
+        }
+        
+        const targetElement = availableElements[Math.floor(Math.random() * availableElements.length)];
+        correctElement = targetElement;
+        usedElementIndices.push(filteredElements.indexOf(targetElement));
         
         // 選択肢の生成
         let choices = [correctElement];
+        while (choices.length < 10 && choices.length < filteredElements.length) {
+            let rand = filteredElements[Math.floor(Math.random() * filteredElements.length)];
+            if (!choices.includes(rand)) {
+                choices.push(rand);
+            }
+        }
+        // 選択肢が足りない場合は全元素から補充
         while (choices.length < 10) {
             let rand = elements[Math.floor(Math.random() * elements.length)];
             if (!choices.includes(rand)) {
@@ -392,7 +461,7 @@
             qLabel.innerText = "「？」に入る元素は何？";
             qText.style.display = "none";
             periodicDisplay.style.display = "block";
-            renderPeriodicTable(correctElement);
+            renderPeriodicTable(correctElement, rangeLimit);
             choices.forEach(el => createChoiceButton(`${el.s} (${el.name})`, el === correctElement));
         }
     }
@@ -401,15 +470,25 @@
         const btn = document.createElement('button');
         btn.className = 'btn';
         btn.innerText = text;
-        btn.onclick = () => handleAnswer(isCorrect, btn);
+        btn.onclick = () => handleAnswer(isCorrect, btn, text);
         document.getElementById('choices').appendChild(btn);
     }
 
-    function handleAnswer(isCorrect, btn) {
+    function handleAnswer(isCorrect, btn, userText) {
         if (!isAnswering) return;
         isAnswering = false;
 
         const feedback = document.getElementById('feedback');
+        const correctAnswerText = currentMode === 1 ? correctElement.s : 
+                                (currentMode === 2 ? correctElement.name : `${correctElement.s} (${correctElement.name})`);
+        
+        quizHistory.push({
+            question: currentMode === 1 ? correctElement.name : (currentMode === 2 ? correctElement.s : "周期表「？」"),
+            answer: userText,
+            correct: correctAnswerText,
+            isCorrect: isCorrect
+        });
+
         if (isCorrect) {
             score++;
             feedback.innerText = "MISSION CLEAR!";
@@ -417,7 +496,7 @@
             btn.style.boxShadow = "0 0 30px var(--correct-color)";
             btn.style.borderColor = "var(--correct-color)";
         } else {
-            feedback.innerText = "MISSION FAILED...";
+            feedback.innerText = `FAILED! 正解は「${correctAnswerText}」`;
             feedback.className = "feedback wrong-anim";
             btn.style.boxShadow = "0 0 30px var(--wrong-color)";
             btn.style.borderColor = "var(--wrong-color)";
@@ -426,10 +505,10 @@
         setTimeout(() => {
             currentQuestionIndex++;
             nextQuestion();
-        }, 1500);
+        }, 2000);
     }
 
-    function renderPeriodicTable(target) {
+    function renderPeriodicTable(target, rangeLimit) {
         const grid = document.getElementById('table-grid');
         grid.innerHTML = "";
         
@@ -446,6 +525,9 @@
                         cell.className += ' target';
                     } else {
                         cell.innerText = el.s;
+                        if (el.n > rangeLimit) {
+                            cell.style.opacity = "0.2";
+                        }
                     }
                 } else {
                     cell.className = 'element-cell empty';
@@ -458,7 +540,36 @@
     function showResult() {
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('result-screen').classList.add('active');
-        document.getElementById('final-score').innerText = `あなたのスコア: ${score} / 10`;
+        document.getElementById('final-score').innerText = `TOTAL SCORE: ${score} / 10`;
+
+        const detailArea = document.getElementById('result-detail');
+        detailArea.innerHTML = "";
+
+        // モード1と2の場合のみ詳細一覧を表示
+        if (currentMode === 1 || currentMode === 2) {
+            let tableHtml = `<table class="result-table">
+                <thead>
+                    <tr>
+                        <th>問題</th>
+                        <th>あなたの回答</th>
+                        <th>正解</th>
+                        <th>判定</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            
+            quizHistory.forEach(item => {
+                tableHtml += `
+                    <tr class="${item.isCorrect ? 'row-correct' : 'row-wrong'}">
+                        <td>${item.question}</td>
+                        <td>${item.answer}</td>
+                        <td>${item.correct}</td>
+                        <td>${item.isCorrect ? '〇' : '×'}</td>
+                    </tr>`;
+            });
+            tableHtml += `</tbody></table>`;
+            detailArea.innerHTML = tableHtml;
+        }
     }
 
 </script>
