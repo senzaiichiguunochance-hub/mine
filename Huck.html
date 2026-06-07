@@ -2,57 +2,423 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>REAL-TIME SYSTEM REPORT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高度システム解析ダッシュボード - v2.6.0</title>
     <style>
-        body { 
-            background-color: #c1c19d; 
-            color: #00ff00; 
-            font-family: 'Consolas', monospace; 
-            font-size: 11px; 
-            padding: 20px; 
-            line-height: 1.2; 
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #fff0f5; /* ラベンダーピンク */
+            --panel-bg: #ffffff;
+            --accent-pink: #ff69b4; /* ホットピンク */
+            --accent-blue: #87cefa; /* スカイブルー */
+            --accent-yellow: #fff44f; /* レモンイエロー */
+            --accent-purple: #da70d6; /* オーキッド */
+            --text-main: #4a4a4a;
+            --text-pink: #ff1493;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-ui: 'Noto Sans JP', sans-serif;
         }
-        .cat { 
-            color: #fff; 
-            background: #333; 
-            padding: 0 5px; 
-            margin-top: 10px; 
-            display: inline-block; 
-            font-weight: bold; 
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(#ffe4e1 2px, transparent 2px),
+                radial-gradient(#ffe4e1 2px, transparent 2px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            color: var(--text-main);
+            font-family: var(--font-ui);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
         }
-        .val { color: #ff0000; } /* 値は赤 */
-        .label { color: #000000; } /* ラベルは黒 */
-        #log { white-space: pre-wrap; }
-        .status { 
-            color: red; 
-            font-weight: bold; 
-            border: 1px solid red; 
-            padding: 10px; 
-            margin-bottom: 20px; 
-            display: inline-block; 
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            height: calc(100vh - 40px);
         }
-        .blink { animation: blink 0.8s infinite alternate; }
-        @keyframes blink { from { opacity: 1; } to { opacity: 0; } }
+
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: var(--panel-bg);
+            border: 4px solid var(--accent-pink);
+            border-radius: 20px;
+            box-shadow: 0 6px 0 var(--accent-pink);
+        }
+
+        .title-group h1 {
+            margin: 0;
+            font-size: 1.6rem;
+            color: var(--text-pink);
+            font-weight: 700;
+        }
+
+        .title-group p {
+            margin: 5px 0 0;
+            font-size: 0.8rem;
+            color: var(--accent-purple);
+            font-family: var(--font-mono);
+            font-weight: 700;
+        }
+
+        .status-display {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .status-item {
+            text-align: right;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 5px 15px;
+            border-radius: 12px;
+            border: 2px solid var(--accent-blue);
+        }
+
+        .status-label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+
+        .status-value {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            color: var(--text-pink);
+            font-weight: 700;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 3px solid var(--accent-blue);
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 0 var(--accent-blue);
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+            background: var(--accent-blue);
+            margin: -20px -20px 20px -20px;
+            padding: 10px 20px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .main-console {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        #terminal {
+            flex-grow: 1;
+            background: #ffffff;
+            border: 3px solid var(--accent-purple);
+            border-radius: 15px;
+            padding: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            overflow-y: auto;
+            color: var(--text-main);
+            box-shadow: 0 4px 0 var(--accent-purple);
+        }
+
+        .terminal-line {
+            margin-bottom: 6px;
+            padding: 4px 10px;
+            background: #fdf0ff;
+            border-radius: 8px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .line-cat { color: var(--text-pink); font-weight: 700; width: 100px; flex-shrink: 0; }
+        .line-label { color: #888; }
+        .line-val { color: var(--text-main); font-weight: 700; }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .data-card {
+            background: #ffffff;
+            border: 2px dashed var(--accent-pink);
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .data-card h4 {
+            margin: 0 0 12px;
+            font-size: 0.8rem;
+            color: var(--text-pink);
+            border-bottom: 2px solid #ffe4e1;
+            padding-bottom: 8px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .data-label { color: #aaa; }
+        .data-val { color: var(--text-pink); font-family: var(--font-mono); font-weight: 700; text-align: right; }
+
+        .widget {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .widget-label { font-size: 0.8rem; color: #777; }
+        .widget-val { font-family: var(--font-mono); font-size: 1.2rem; color: var(--text-pink); font-weight: 700; }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: #eee;
+            border-radius: 6px;
+            margin-top: 10px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-pink));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .menu-btn {
+            position: fixed;
+            top: 30px;
+            right: 40px;
+            background: var(--accent-pink);
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            z-index: 3000;
+            box-shadow: 0 4px 0 #d14081;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #d14081;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #fff0f5; }
+        ::-webkit-scrollbar-thumb { background: #ffb6c1; border-radius: 4px; }
+
+        @media (max-width: 1300px) {
+            .dashboard { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; height: auto; }
+            .sidebar { flex-direction: row; flex-wrap: wrap; }
+            .panel { flex: 1; min-width: 300px; }
+        }
+
+        .blink { animation: blink 1s infinite alternate; }
+        @keyframes blink { from { opacity: 1; } to { opacity: 0.4; } }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
 
-    <div class="status blink">LIVE DATA EXTRACTION IN PROGRESS...</div>
-    <div id="log"></div>
+    <div class="dashboard">
+        <header>
+            <div class="title-group">
+                <h1>高度システム解析ダッシュボード</h1>
+                <p>SYSTEM CODE: HUCK-JS // セキュリティ・オーバーライド有効</p>
+            </div>
+            <div class="status-display">
+                <div class="status-item">
+                    <span class="status-label">稼働ステータス</span>
+                    <span class="status-value blink" id="op-status">データ収集中...</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">システム稼働時間</span>
+                    <span class="status-value" id="uptime">00:00:00</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">現在時刻</span>
+                    <span class="status-value" id="clock">00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <aside class="sidebar">
+            <div class="panel">
+                <div class="panel-title">リソース・モニタ</div>
+                <div class="widget">
+                    <span class="widget-label">CPUコア数</span>
+                    <span class="widget-val" id="cpu-cores">--</span>
+                </div>
+                <div class="widget">
+                    <span class="widget-label">メモリ推定値</span>
+                    <span class="widget-val" id="mem-est">--</span>
+                </div>
+                <div class="widget">
+                    <span class="widget-label">バッテリー残量</span>
+                    <span class="widget-val" id="batt-level">--</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="extract-progress"></div></div>
+                <div style="font-size: 0.75rem; color: var(--accent-pink); margin-top: 8px; text-align: right; font-weight: 700;" id="progress-text">解析進捗: 0%</div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">接続ステータス</div>
+                <div class="data-row"><span class="data-label">IPアドレス:</span> <span class="data-val" id="ip-addr">スキャン中...</span></div>
+                <div class="data-row"><span class="data-label">接続タイプ:</span> <span class="data-val" id="conn-type">--</span></div>
+                <div class="data-row"><span class="data-label">通信速度:</span> <span class="data-val" id="conn-speed">--</span></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">セキュリティ・フラグ</div>
+                <div class="data-row"><span class="data-label">VPN/Proxy:</span> <span class="data-val">検知中...</span></div>
+                <div class="data-row"><span class="data-label">ボット疑い:</span> <span class="data-val" id="bot-sign">--</span></div>
+            </div>
+        </aside>
+
+        <main class="main-console">
+            <div id="terminal"></div>
+            <div class="data-grid" id="data-grid">
+                <div class="data-card" id="card-NETWORK"><h4>ネットワーク構成</h4><div class="card-content"></div></div>
+                <div class="data-card" id="card-OS/ENV"><h4>OS・環境情報</h4><div class="card-content"></div></div>
+                <div class="data-card" id="card-HARDWARE"><h4>ハードウェア構成</h4><div class="card-content"></div></div>
+                <div class="data-card" id="card-DISPLAY"><h4>ディスプレイ仕様</h4><div class="card-content"></div></div>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <div class="panel">
+                <div class="panel-title">メディア・入出力</div>
+                <div class="data-row"><span class="data-label">ビデオ入力:</span> <span class="data-val" id="cam-count">--</span></div>
+                <div class="data-row"><span class="data-label">オーディオ入力:</span> <span class="data-val" id="mic-count">--</span></div>
+            </div>
+            <div class="panel" style="flex-grow: 1;">
+                <div class="panel-title">パフォーマンス・トレース</div>
+                <div id="perf-list" style="font-size: 0.75rem; color: #999; line-height: 1.4; font-family: var(--font-mono);"></div>
+            </div>
+        </aside>
+    </div>
 
     <script>
+        // Update clock and uptime
+        const startTime = Date.now();
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toTimeString().split(' ')[0];
+            
+            const diff = Math.floor((Date.now() - startTime) / 1000);
+            const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+            const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+            const s = String(diff % 60).padStart(2, '0');
+            document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+        }, 1000);
+
         async function startExtraction() {
-            const log = document.getElementById('log');
+            const terminal = document.getElementById('terminal');
+            const grid = document.getElementById('data-grid');
+            const progressFill = document.getElementById('extract-progress');
+            const progressText = document.getElementById('progress-text');
+
+            const catMap = {
+                "NETWORK": "ネットワーク構成",
+                "OS/ENV": "OS・環境情報",
+                "HARDWARE": "ハードウェア構成",
+                "DISPLAY": "ディスプレイ仕様",
+                "LOCALE": "ローカル設定",
+                "STORAGE": "ストレージ情報",
+                "MEDIA": "メディア・デバイス",
+                "FINGERPRINT": "フィンガープリント",
+                "MEDIA-QUERY": "メディアクエリ結果",
+                "PERF-TRACE": "パフォーマンス・トレース"
+            };
+
             const print = (cat, label, value) => {
-                const div = document.createElement('div');
-                div.innerHTML = `<span class="cat">${cat}</span> <span class="label">${label}:</span> <span class="val">${value}</span>`;
-                log.appendChild(div);
-                window.scrollTo(0, document.body.scrollHeight);
+                const jpCat = catMap[cat] || cat;
+                
+                const line = document.createElement('div');
+                line.className = 'terminal-line';
+                line.innerHTML = `<span class="line-cat">[${jpCat}]</span> <span class="line-label">${label}:</span> <span class="line-val">${value}</span>`;
+                terminal.appendChild(line);
+                terminal.scrollTop = terminal.scrollHeight;
+
+                if (label === "Public IP") document.getElementById('ip-addr').textContent = value;
+                if (label === "CPU Logical Cores") document.getElementById('cpu-cores').textContent = value;
+                if (label === "Estimated RAM") document.getElementById('mem-est').textContent = value;
+                if (label === "Battery Level") document.getElementById('batt-level').textContent = value;
+                if (label === "Effective Connection") document.getElementById('conn-type').textContent = value;
+                if (label === "Downlink Speed") document.getElementById('conn-speed').textContent = value;
+                if (label === "WebDriver (Bot)") document.getElementById('bot-sign').textContent = value === "true" ? "検知" : "無し";
+                if (label === "Video Inputs") document.getElementById('cam-count').textContent = value;
+                if (label === "Audio Inputs") document.getElementById('mic-count').textContent = value;
+
+                let card = document.getElementById(`card-${cat}`);
+                if (!card) {
+                    card = document.createElement('div');
+                    card.className = 'data-card';
+                    card.id = `card-${cat}`;
+                    card.innerHTML = `<h4>${jpCat}</h4><div class="card-content"></div>`;
+                    grid.appendChild(card);
+                }
+                const content = card.querySelector('.card-content');
+                const row = document.createElement('div');
+                row.className = 'data-row';
+                row.innerHTML = `<span class="data-label">${label}</span><span class="data-val">${value}</span>`;
+                content.appendChild(row);
+
+                if (cat === "PERF-TRACE") {
+                    const perfList = document.getElementById('perf-list');
+                    const perfItem = document.createElement('div');
+                    perfItem.textContent = `> ${value}`;
+                    perfList.prepend(perfItem);
+                    if (perfList.children.length > 20) perfList.lastChild.remove();
+                }
             };
 
             // --- 1. 準備：非同期データの取得 ---
-            const ipData = await fetch('https://api64.ipify.org?format=json').then(r => r.json()).catch(() => ({ip: "Unknown"}));
+            const ipData = await fetch('https://api64.ipify.org?format=json').then(r => r.json()).catch(() => ({ip: "ひみつ"}));
             const battery = navigator.getBattery ? await navigator.getBattery() : { level: 0, charging: false };
             const gl = document.createElement('canvas').getContext('webgl');
             const debug = gl ? gl.getExtension('WEBGL_debug_renderer_info') : null;
@@ -135,7 +501,6 @@
                 ["FINGERPRINT", "USB API", !!navigator.usb]
             ];
 
-            // 100個以上にするために、さらにMedia Queriesなどの詳細データを展開して追加
             const additionalQueries = [
                 "prefers-reduced-motion", "prefers-contrast", "any-pointer", "any-hover",
                 "forced-colors", "grid", "update", "video-color-gamut"
@@ -144,7 +509,6 @@
                 data.push(["MEDIA-QUERY", q, window.matchMedia(`(${q})`).matches]);
             });
 
-            // 水増しではなく実測のperformanceエントリを追加
             performance.getEntries().slice(0, 20).forEach((entry, idx) => {
                 data.push(["PERF-TRACE", `Resource ${idx}`, entry.name.split('/').pop() || "System"]);
             });
@@ -155,16 +519,24 @@
                 if (i < data.length) {
                     print(data[i][0], data[i][1], data[i][2]);
                     i++;
-                    // 徐々に加速する演出
-                    let delay = Math.max(20, 150 - (i * 1.5));
+                    
+                    const pct = Math.round((i / data.length) * 100);
+                    progressFill.style.width = pct + "%";
+                    progressText.textContent = `しらべたよ: ${pct}%`;
+
+                    let delay = Math.max(10, 100 - (i * 1.2));
                     setTimeout(show, delay);
                 } else {
-                    document.querySelector('.status').textContent = "DATA EXTRACTION COMPLETE.";
-                    document.querySelector('.status').style.borderColor = "blue";
-                    document.querySelector('.status').style.color = "blue";
+                    document.getElementById('op-status').textContent = "おわったよぉ☆";
+                    document.getElementById('op-status').style.color = "var(--accent-pink)";
+                    document.getElementById('op-status').classList.remove('blink');
+                    
                     const footer = document.createElement("div");
-                    footer.innerHTML = "<br><br><span class='blink'>[ALERT] ALL SYSTEM DATA HAS BEEN LOGGED.</span>";
-                    log.appendChild(footer);
+                    footer.style.marginTop = "20px";
+                    footer.style.color = "var(--accent-pink)";
+                    footer.className = "blink";
+                    footer.textContent = "🍬 ぜんぶのデータをしらべおわったよ！すごぉ〜い！ 🍬";
+                    terminal.appendChild(footer);
                 }
             }
             show();
