@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to CSV 変換器</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 30px; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input, button { margin-top: 15px; display: block; width: 100%; padding: 10px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background-color: #218838; }
+        #status { margin-top: 15px; font-weight: bold; color: #555; }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+
+<div class="container">
+    <h2>PDF ➔ CSV 変換ツール</h2>
+    <p>PDFを選択して「CSVに変換」ボタンを押してください。<br>※ブラウザ内だけで処理されるため、サーバーにデータは送信されません。</p>
+    
+    <input type="file" id="pdf-file" accept=".pdf">
+    <button id="convert-btn">CSVに変換してダウンロード</button>
+    <div id="status"></div>
+</div>
+
+<script>
+    // pdf.js のワーカーを設定
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    document.getElementById('convert-btn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('pdf-file');
+        const statusDiv = document.getElementById('status');
+        
+        if (fileInput.files.length === 0) {
+            alert('PDFファイルを選択してください。');
+            return;
+        }
+
+        const file = fileInput.files[0];
+        statusDiv.innerText = 'PDFを解析中...';
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            let csvContent = "";
+
+            // 全ページをループ処理
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                
+                // 簡易的な行判定処理（Y座標が同じテキストを同じ行とする）
+                let lastY = null;
+                let rowText = [];
+                
+                for (const item of textContent.items) {
+                    // item.transform[5] はテキストのY座標（高さ）
+                    const currentY = item.transform[5];
+                    
+                    if (lastY !== null && Math.abs(currentY - lastY) > 5) {
+                        // Y座標が大きく変わったら次の行へ
+                        csvContent += rowText.join(",") + "\n";
+                        rowText = [];
+                    }
+                    
+                    // カンマが含まれている場合はダブルクォーテーションで囲む
+                    let text = item.str.replace(/"/g, '""');
+                    if (text.includes(",")) {
+                        text = `"${text}"`;
+                    }
+                    
+                    if (text.trim() !== "") {
+                        rowText.push(text);
+                    }
+                    lastY = currentY;
+                }
+                // 最後の行を追加
+                if (rowText.length > 0) {
+                    csvContent += rowText.join(",") + "\n";
+                }
+            }
+
+            // CSVとしてダウンロード
+            const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM付きUTF-8
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = file.name.replace(".pdf", ".csv");
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            statusDiv.innerText = '変換が完了しました！';
+        } catch (error) {
+            console.error(error);
+            statusDiv.innerText = 'エラーが発生しました。PDFの形式を確認してください。';
+        }
+    });
+</script>
+
+</body>
+</html>
