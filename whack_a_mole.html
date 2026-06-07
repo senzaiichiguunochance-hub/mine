@@ -58,6 +58,11 @@
     bottom: -120px;
     transition: all 0.3s ease;
     box-shadow: 0 0 20px #00aaff, 0 0 30px #00aaff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 60px;
+    user-select: none;
   }
   .mole.up {
     bottom: 10px;
@@ -176,6 +181,7 @@
         width: 85%;
         height: 85%;
         left: 7.5%;
+        font-size: 15vw;
     }
     .mole.up {
         bottom: 7.5%;
@@ -221,6 +227,8 @@
     let moleInterval = null;
     let holes = [];
     let gameRunning = false;
+
+    const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🕸', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔'];
 
     function createBoard() {
       gameContainer.innerHTML = '';
@@ -285,6 +293,7 @@
     function popMole() {
       holes.forEach(h => h.mole.classList.remove('up'));
       const randomHole = holes[Math.floor(Math.random() * holes.length)];
+      randomHole.mole.textContent = icons[Math.floor(Math.random() * icons.length)];
       randomHole.mole.classList.add('up');
     }
 
