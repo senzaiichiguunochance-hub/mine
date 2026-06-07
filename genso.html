@@ -216,7 +216,7 @@
             grid-template-columns: repeat(18, 1fr);
             gap: 1px;
             padding: 2px;
-            min-width: 480px;
+            min-width: 500px;
         }
 
         .element-cell {
@@ -225,18 +225,19 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
             background: rgba(128, 128, 128, 0.1);
             border: 1px solid rgba(128, 128, 128, 0.1);
             color: var(--text-color);
             padding: 1px;
+            font-weight: bold;
         }
 
         .element-cell.target {
             background: var(--primary-color);
             border: 1px solid #fff;
             font-weight: bold;
-            font-size: 1rem;
+            font-size: 1.2rem;
             color: #fff;
             box-shadow: 0 0 8px var(--primary-color);
             animation: flash 1s infinite alternate;
@@ -303,11 +304,30 @@
         }
 
         .timer-display {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 1.2rem;
-            padding: 2px 8px;
-            border: 1px solid var(--primary-color);
-            border-radius: 4px;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            font-size: 1.5rem;
+            padding: 6px 16px;
+            border: 3px solid var(--primary-color);
+            border-radius: 50px;
+            color: #fff;
+            background: var(--primary-color);
+            font-weight: 900;
+            box-shadow: 0 4px 15px var(--neon-shadow);
+            min-width: 120px;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .timer-warning {
+            background: var(--wrong-color) !important;
+            border-color: #fff !important;
+            box-shadow: 0 0 20px var(--wrong-color) !important;
+            animation: timer-pulse 0.5s infinite alternate !important;
+        }
+
+        @keyframes timer-pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
         }
 
         .settings-grid {
@@ -726,7 +746,14 @@
     }
 
     function updateTimerDisplay() {
-        document.getElementById('timer-display').innerText = `残り: ${timeLeft}秒`;
+        const timerDisplay = document.getElementById('timer-display');
+        timerDisplay.innerText = `残り: ${timeLeft}秒`;
+        
+        if (timeLeft <= 5) {
+            timerDisplay.classList.add('timer-warning');
+        } else {
+            timerDisplay.classList.remove('timer-warning');
+        }
     }
 
     // 選択肢ボタン作成
