@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ラングトンの蟻（反射移動）</title>
+    <title>ラングトンの蟻（反射移動）🐜💎</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&family=Noto+Sans+JP:wght@700&display=swap');
 
         :root {
-            --bg-color: #000000;
-            --primary-color: #FFFFFF;
-            --font-color: #FFFFFF;
-            --canvas-bg: #000000;
-            --canvas-border: #FFFFFF;
+            --bg-color: #f8f0ff; /* 淡いラベンダー */
+            --primary-color: #9370db; /* ミディアムパープル */
+            --secondary-color: #ffb6c1; /* パステルピンク */
+            --font-color: #4a4a4a;
+            --canvas-bg: #ffffff;
+            --canvas-border: #da70d6; /* オーキッド */
         }
 
         body {
-            font-family: 'Orbitron', sans-serif;
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-color);
+            background-image: radial-gradient(#e6e6fa 2px, transparent 2px);
+            background-size: 30px 30px;
             color: var(--font-color);
             display: flex;
             flex-direction: column;
@@ -30,51 +33,84 @@
         }
 
         h1 {
-            font-size: 3em;
+            font-size: 2.2em;
             font-weight: 700;
             color: var(--primary-color);
-            text-shadow: 0 0 15px var(--primary-color);
-            margin-bottom: 20px;
-            letter-spacing: 2px;
+            text-shadow: 2px 2px 0px #ffffff;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            text-align: center;
         }
 
         #controls {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 800px;
         }
 
-        #stepButton {
-            background: transparent;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-            border-radius: 8px;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            font-family: 'Orbitron', sans-serif;
+        .step-btn {
+            background: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 20px;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            font-family: inherit;
             font-weight: 700;
             cursor: pointer;
-            transition: background-color 0.3s, color 0.3s;
+            box-shadow: 0 3px 0 #6a4fa3;
+            transition: transform 0.1s, box-shadow 0.1s;
         }
 
-        #stepButton:hover {
-            background-color: var(--primary-color);
-            color: var(--bg-color);
+        .step-btn:hover {
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 #6a4fa3;
+        }
+
+        .step-btn:active {
+            transform: translateY(3px);
+            box-shadow: none;
         }
 
         canvas {
-            border: 2px solid var(--canvas-border);
+            border: 5px solid var(--canvas-border);
             background-color: var(--canvas-bg);
-            border-radius: 10px;
-            box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(147, 112, 219, 0.3);
+            max-width: 100%;
+        }
+
+        .menu-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #ffffff;
+            text-decoration: none;
+            background: var(--secondary-color);
+            padding: 8px 18px;
+            border-radius: 20px;
+            z-index: 1000;
+            font-weight: 700;
+            box-shadow: 0 3px 0 #d698a1;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 #d698a1;
         }
 
         @media (max-width: 850px) {
             body {
                 padding: 10px;
-                padding-top: 70px; /* メニューボタンのためのスペース */
+                padding-top: 70px;
                 justify-content: flex-start;
             }
             h1 {
-                font-size: 1.8em;
+                font-size: 1.6em;
                 text-align: center;
             }
             #controls {
@@ -82,18 +118,29 @@
             }
             canvas {
                 width: 95vw;
-                height: 95vw; /* アスペクト比を維持 */
+                height: 95vw;
+            }
+            .menu-btn {
+                position: fixed;
+                top: 15px;
+                right: 15px;
+                width: auto;
             }
         }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
 
 
-    <h1>ラングトンの蟻（反射移動）</h1>
+    <h1>ラングトンの蟻（反射移動）🐜💎</h1>
     <div id="controls">
-        <button id="stepButton">1000ステップ進む</button>
+        <button class="step-btn" data-steps="1">1ステップ進む</button>
+        <button class="step-btn" data-steps="10">10ステップ進む</button>
+        <button class="step-btn" data-steps="100">100ステップ進む</button>
+        <button class="step-btn" data-steps="1000">1000ステップ進む</button>
+        <button class="step-btn" data-steps="10000">10000ステップ進む</button>
+        <button class="step-btn" data-steps="100000">100000ステップ進む</button>
     </div>
     <canvas id="antCanvas"></canvas>
 
@@ -153,7 +200,7 @@
             for (let y = 0; y < GRID_HEIGHT; y++) {
                 for (let x = 0; x < GRID_WIDTH; x++) {
                     if (grid[y][x] === BLACK) {
-                        ctx.fillStyle = 'white';
+                        ctx.fillStyle = '#da70d6'; // オーキッド
                         ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     }
                 }
@@ -163,7 +210,7 @@
             ants.forEach(ant => {
                 // 蟻がグリッドの範囲内にいる場合のみ描画
                 if (ant.x >= 0 && ant.x < GRID_WIDTH && ant.y >= 0 && ant.y < GRID_HEIGHT) {
-                    ctx.fillStyle = ant.color;
+                    ctx.fillStyle = '#9370db'; // パープル
                     ctx.fillRect(ant.x * CELL_SIZE, ant.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                 }
             });
@@ -171,6 +218,10 @@
 
         // 蟻を1ステップ動かす関数
         function step(ant) {
+            // 現在の座標を範囲内に収める
+            ant.x = Math.max(0, Math.min(GRID_WIDTH - 1, ant.x));
+            ant.y = Math.max(0, Math.min(GRID_HEIGHT - 1, ant.y));
+
             const currentCellColor = grid[ant.y][ant.x];
 
             if (currentCellColor === WHITE) {
@@ -195,35 +246,38 @@
                 case LEFT:  nextX--; break;
             }
 
-            // 次のステップで範囲外に出るかチェックし、反射させる
+            // 画面端の処理：反射させる
             if (nextX < 0) {
                 ant.x = 0;
-                ant.dir = RIGHT; // 左の壁に当たったら右に反射
+                ant.dir = RIGHT; // 右へ反射
             } else if (nextX >= GRID_WIDTH) {
                 ant.x = GRID_WIDTH - 1;
-                ant.dir = LEFT; // 右の壁に当たったら左に反射
+                ant.dir = LEFT; // 左へ反射
             } else if (nextY < 0) {
                 ant.y = 0;
-                ant.dir = DOWN; // 上の壁に当たったら下に反射
+                ant.dir = DOWN; // 下へ反射
             } else if (nextY >= GRID_HEIGHT) {
                 ant.y = GRID_HEIGHT - 1;
-                ant.dir = UP; // 下の壁に当たったら上に反射
+                ant.dir = UP; // 上へ反射
             } else {
-                // 範囲内の場合、通常通り移動
+                // 範囲内の場合、移動
                 ant.x = nextX;
                 ant.y = nextY;
             }
         }
 
         // ボタンのクリックイベント
-        document.getElementById('stepButton').addEventListener('click', () => {
-            for (let i = 0; i < STEPS_PER_CLICK; i++) {
-                ants.forEach(ant => {
-                    step(ant);
-                });
-            }
-            totalSteps += STEPS_PER_CLICK; // 総ステップ数を更新
-            draw();
+        document.querySelectorAll('.step-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const steps = parseInt(button.getAttribute('data-steps'));
+                for (let i = 0; i < steps; i++) {
+                    ants.forEach(ant => {
+                        step(ant);
+                    });
+                }
+                totalSteps += steps;
+                draw();
+            });
         });
 
         // 実行開始
