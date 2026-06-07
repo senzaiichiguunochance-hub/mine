@@ -6,23 +6,244 @@
     <title>PDF to CSV 変換器</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
-        body { font-family: sans-serif; margin: 30px; line-height: 1.6; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-        input, button { margin-top: 15px; display: block; width: 100%; padding: 10px; box-sizing: border-box; }
-        button { background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #218838; }
-        #status { margin-top: 15px; font-weight: bold; color: #555; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', 'Helvetica Neue', 'Noto Sans JP', sans-serif; 
+            background: linear-gradient(135deg, #f5e6d3 0%, #e8d4c0 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+        
+        .back-btn {
+            position: absolute; 
+            top: 20px; 
+            right: 20px; 
+            font-size: 14px; 
+            color: #6b4423; 
+            text-decoration: none; 
+            background: rgba(255,255,255,0.9); 
+            padding: 10px 18px; 
+            border-radius: 25px; 
+            z-index: 1000; 
+            border: 2px solid #d4a574;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .back-btn:hover {
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .container { 
+            max-width: 650px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 3px solid #d4a574;
+        }
+        
+        h2 {
+            color: #6b4423;
+            font-size: 32px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #8b6f47;
+            font-size: 14px;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        
+        .drop-zone {
+            border: 3px dashed #d4a574;
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            background: #fef9f3;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 25px 0;
+            position: relative;
+        }
+        
+        .drop-zone:hover {
+            background: #fff5eb;
+            border-color: #c49460;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(212, 165, 116, 0.2);
+        }
+        
+        .drop-zone.drag-over {
+            background: #ffe8cc;
+            border-color: #a0795f;
+            box-shadow: 0 8px 20px rgba(160, 121, 95, 0.3);
+        }
+        
+        .drop-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .drop-text {
+            color: #6b4423;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .drop-hint {
+            color: #a0795f;
+            font-size: 13px;
+        }
+        
+        #pdf-file {
+            display: none;
+        }
+        
+        .file-info {
+            background: #f0e5d8;
+            border-left: 4px solid #d4a574;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            color: #6b4423;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .file-info.show {
+            display: block;
+        }
+        
+        button { 
+            margin-top: 20px; 
+            display: block; 
+            width: 100%; 
+            padding: 14px 20px; 
+            box-sizing: border-box;
+            background: linear-gradient(135deg, #c49460 0%, #a0795f 100%);
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(196, 148, 96, 0.3);
+        }
+        
+        button:hover:not(:disabled) { 
+            background: linear-gradient(135deg, #b5845f 0%, #915e4d 100%);
+            box-shadow: 0 6px 20px rgba(196, 148, 96, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(196, 148, 96, 0.2);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        #status { 
+            margin-top: 20px; 
+            text-align: center;
+            font-weight: 600; 
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+            font-size: 14px;
+        }
+        
+        #status.show {
+            display: block;
+        }
+        
+        #status.success {
+            color: #2d5016;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        
+        #status.error {
+            color: #5a1a1a;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info-text {
+            background: #fef9f3;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 13px;
+            color: #6b4423;
+            margin-bottom: 20px;
+            border-left: 4px solid #d4a574;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+<a href="menu.html" class="back-btn">← メニューに戻る</a>
 
 <div class="container">
-    <h2>PDF ➔ CSV 変換ツール</h2>
-    <p>PDFを選択して「CSVに変換」ボタンを押してください。<br>※ブラウザ内だけで処理されるため、サーバーにデータは送信されません。</p>
+    <h2>PDF ➔ CSV 変換</h2>
+    <div class="subtitle">PDFからデータを抽出</div>
+    
+    <div class="info-text">
+        📋 PDFファイルをドラッグアンドドロップするか、下のエリアをクリックして選択してください。<br>
+        🔒 ブラウザ内だけで処理されるため、サーバーにデータは送信されません。
+    </div>
+    
+    <details style="margin-bottom: 20px; cursor: pointer;">
+        <summary style="color: #8b6f47; font-weight: 600; padding: 10px 0; user-select: none;">
+            ⚠️ 正常に動作しないPDFについて
+        </summary>
+        <div style="background: #fff5e6; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 4px solid #d4a574; font-size: 13px; color: #6b4423; line-height: 1.6;">
+            <strong>❌ このツールでは以下のPDFは正常に変換できません：</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li><strong>スキャン画像PDF</strong>：カメラやスキャナで撮影・スキャンされた PDF（テキスト情報がなく、画像です）</li>
+                <li><strong>OCRなしのPDF</strong>：テキスト認識処理が行われていない画像ベースの PDF</li>
+                <li><strong>暗号化PDF</strong>：パスワード保護やセキュリティ設定されている PDF</li>
+                <li><strong>複雑なレイアウト</strong>：複数列、テーブル内テーブル、折り返しテキストなど複雑なレイアウトの場合は精度が低下</li>
+                <li><strong>図表や画像のみ</strong>：テキスト情報を含まない図表やチャートのみの PDF</li>
+            </ul>
+            <strong style="margin-top: 10px; display: block;">✓ 以下の条件で正常に動作します：</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>デジタルテキストが埋め込まれた PDF（Word や Excel から出力したPDFなど）</li>
+                <li>構造化されたテーブルやリストを含む PDF</li>
+                <li>OCR処理済みで、テキストレイヤーを持つ PDF</li>
+            </ul>
+        </div>
+    </details>
+    
+    <div class="drop-zone" id="drop-zone">
+        <span class="drop-icon">📄</span>
+        <div class="drop-text">PDFをここにドラッグ＆ドロップ</div>
+        <div class="drop-hint">または、クリックして選択</div>
+    </div>
     
     <input type="file" id="pdf-file" accept=".pdf">
-    <button id="convert-btn">CSVに変換してダウンロード</button>
+    
+    <div class="file-info" id="file-info"></div>
+    
+    <button id="convert-btn" disabled>CSVに変換してダウンロード</button>
     <div id="status"></div>
 </div>
 
@@ -30,22 +251,87 @@
     // pdf.js のワーカーを設定
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
-    document.getElementById('convert-btn').addEventListener('click', async () => {
-        const fileInput = document.getElementById('pdf-file');
-        const statusDiv = document.getElementById('status');
+    const fileInput = document.getElementById('pdf-file');
+    const dropZone = document.getElementById('drop-zone');
+    const fileInfo = document.getElementById('file-info');
+    const statusDiv = document.getElementById('status');
+    const convertBtn = document.getElementById('convert-btn');
+    
+    // ドロップゾーンのクリックで入力を開く
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    // ファイルが選択されたときの処理
+    fileInput.addEventListener('change', (e) => {
+        handleFileSelect(e.target.files[0]);
+    });
+    
+    // ドラッグアンドドロップイベント
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.add('drag-over');
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('drag-over');
         
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const file = files[0];
+            if (file.type === 'application/pdf') {
+                fileInput.files = files;
+                handleFileSelect(file);
+            } else {
+                showStatus('PDFファイルを選択してください。', 'error');
+            }
+        }
+    });
+    
+    function handleFileSelect(file) {
+        if (!file) return;
+        
+        if (file.type !== 'application/pdf') {
+            showStatus('PDFファイルを選択してください。', 'error');
+            fileInfo.classList.remove('show');
+            convertBtn.disabled = true;
+            return;
+        }
+        
+        // ファイル情報を表示
+        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+        const sizeText = sizeMB > 1 ? `${sizeMB} MB` : `${(file.size / 1024).toFixed(1)} KB`;
+        fileInfo.innerHTML = `✓ ファイル: <strong>${file.name}</strong> (${sizeText})`;
+        fileInfo.classList.add('show');
+        
+        statusDiv.classList.remove('show');
+        convertBtn.disabled = false;
+    }
+    
+    convertBtn.addEventListener('click', async () => {
         if (fileInput.files.length === 0) {
-            alert('PDFファイルを選択してください。');
+            showStatus('PDFファイルを選択してください。', 'error');
             return;
         }
 
         const file = fileInput.files[0];
-        statusDiv.innerText = 'PDFを解析中...';
+        showStatus('PDFを解析中...', '');
+        convertBtn.disabled = true;
 
         try {
             const arrayBuffer = await file.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
             let csvContent = "";
+            let totalTextFound = 0;
 
             // 全ページをループ処理
             for (let i = 1; i <= pdf.numPages; i++) {
@@ -74,6 +360,7 @@
                     
                     if (text.trim() !== "") {
                         rowText.push(text);
+                        totalTextFound++;
                     }
                     lastY = currentY;
                 }
@@ -81,6 +368,13 @@
                 if (rowText.length > 0) {
                     csvContent += rowText.join(",") + "\n";
                 }
+            }
+
+            // テキストが見つからない場合の判定
+            if (totalTextFound === 0) {
+                showStatus('✗ このPDFからテキスト情報を抽出できませんでした。スキャン画像PDFまたはOCR処理されていないPDFの可能性があります。詳細は上の「正常に動作しないPDFについて」を確認してください。', 'error');
+                convertBtn.disabled = false;
+                return;
             }
 
             // CSVとしてダウンロード
@@ -93,12 +387,27 @@
             link.click();
             document.body.removeChild(link);
 
-            statusDiv.innerText = '変換が完了しました！';
+            showStatus('✓ 変換が完了しました！', 'success');
+            convertBtn.disabled = false;
         } catch (error) {
             console.error(error);
-            statusDiv.innerText = 'エラーが発生しました。PDFの形式を確認してください。';
+            const errorMsg = error.toString();
+            if (errorMsg.includes('encrypted')) {
+                showStatus('✗ このPDFはパスワード保護またはセキュリティ設定されています。暗号化を解除してください。', 'error');
+            } else {
+                showStatus('✗ エラーが発生しました。PDFの形式を確認するか、別のPDFで試してください。', 'error');
+            }
+            convertBtn.disabled = false;
         }
     });
+    
+    function showStatus(message, type) {
+        statusDiv.innerText = message;
+        statusDiv.classList.add('show');
+        if (type) {
+            statusDiv.className = 'show ' + type;
+        }
+    }
 </script>
 
 </body>
