@@ -522,12 +522,12 @@
                     
                     const pct = Math.round((i / data.length) * 100);
                     progressFill.style.width = pct + "%";
-                    progressText.textContent = `しらべたよ: ${pct}%`;
+                    progressText.textContent = `進捗: ${pct}%`;
 
                     let delay = Math.max(10, 100 - (i * 1.2));
                     setTimeout(show, delay);
                 } else {
-                    document.getElementById('op-status').textContent = "おわったよぉ☆";
+                    document.getElementById('op-status').textContent = "Finish";
                     document.getElementById('op-status').style.color = "var(--accent-pink)";
                     document.getElementById('op-status').classList.remove('blink');
                     
@@ -535,7 +535,7 @@
                     footer.style.marginTop = "20px";
                     footer.style.color = "var(--accent-pink)";
                     footer.className = "blink";
-                    footer.textContent = "🍬 ぜんぶのデータをしらべおわったよ！すごぉ〜い！ 🍬";
+                    footer.textContent = "🍬 Finish 🍬";
                     terminal.appendChild(footer);
                 }
             }
