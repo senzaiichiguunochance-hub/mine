@@ -497,7 +497,6 @@
 	<header>
 		<div class="eyebrow">MOSQUITO SOUND GENERATOR</div>
 		<h1>モスキート音ジェネレーター</h1>
-		<p class="subtitle">年齢を入力して、その年齢帯で聞こえやすい目安の高周波を再生します。<br>← / → キーでも年齢を増減できます。</p>
 	</header>
 
 	<div class="theme-controls">
@@ -518,7 +517,6 @@
 				<h2>年齢設定</h2>
 				<div class="field-row">
 					<div class="label-wrap">
-						<div class="label">年齢</div>
 						<div class="stepper-buttons" aria-label="年齢の増減ボタン">
 							<button id="ageDownBtn" class="stepper-btn" type="button" aria-label="年齢を1歳下げる">👈</button>
 							<button id="ageUpBtn" class="stepper-btn" type="button" aria-label="年齢を1歳上げる">👉</button>
@@ -526,7 +524,7 @@
 					</div>
 					<input id="ageInput" class="age-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="3" value="30" aria-label="年齢入力欄">
 				</div>
-				<p class="hint">数字のみ入力できます。数字以外が入った場合は自動で 30 に戻します。次回起動時は前回の年齢を復元します。</p>
+				<p class="hint">← / → キーでも年齢を増減できます。</p>
 
 				<div class="buttons">
 					<button id="playBtn" class="btn btn-primary" type="button">音を出す</button>
@@ -547,12 +545,6 @@
 				<div class="status-card">
 					<div class="status-label">指定周波数</div>
 					<div id="frequencyText" class="status-value">16,100 Hz</div>
-					<div class="status-note">年齢が1つ上がるたびに、次の年代の目安周波数へ少しずつ近づくようにしています。</div>
-				</div>
-
-				<div class="status-card">
-					<div class="status-label">操作メモ</div>
-					<div class="status-note">・← キーで 1 歳下げる<br>・→ キーで 1 歳上げる<br>・入力欄を編集した内容は自動保存されます</div>
 				</div>
 			</section>
 		</div>
