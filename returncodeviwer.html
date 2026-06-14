@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>改行コード可視化ツール</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 10px; text-align: center; }
+        .info-box { background: #e9ecef; padding: 15px; border-radius: 4px; margin-bottom: 30px; font-weight: bold; color: #495057; }
+        #result-wrapper { text-align: left; margin-top: 30px; }
+        #result { background: #f5f5f5; border: 1px solid #ccc; padding: 15px; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; min-height: 50px; border-radius: 4px; }
+        
+        /* 改行コードごとの色分け */
+        .crlf { color: #d9534f; background: #fdf7f7; border: 1px solid #eed3d7; }
+        .lf { color: #0275d8; background: #f0f7ff; border: 1px solid #bce8f1; }
+        .cr { color: #f0ad4e; background: #fcf8e3; border: 1px solid #faebcc; }
+        .code-tag { font-weight: bold; border-radius: 3px; padding: 0 4px; margin: 0 2px; font-size: 0.9em; display: inline-block; }
+    </style>
+</head>
+<body>
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+    <h2>改行コード可視化ツール</h2>
+    
+    <div class="info-box">
+        この画面を開いた状態で、キーボードの「Ctrl + V」を押してください。
+    </div>
+
+    <div id="result-wrapper">
+        <h3>解析結果：</h3>
+        <div id="result"><span style="color: #999;">ここに結果が表示されます</span></div>
+    </div>
+
+    <script>
+        const resultDiv = document.getElementById('result');
+
+        function visualizeLineBreaks(text) {
+            if (!text) {
+                resultDiv.innerHTML = '<span style="color: #999;">データが空か、テキストではありません。</span>';
+                return;
+            }
+            
+            let escaped = text
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+
+            escaped = escaped.replace(/\r\n/g, '<span class="code-tag crlf">[crlf]</span><br>');
+            escaped = escaped.replace(/\r/g, '<span class="code-tag cr">[cr]</span><br>');
+            escaped = escaped.replace(/\n/g, '<span class="code-tag lf">[lf]</span><br>');
+
+            resultDiv.innerHTML = escaped;
+        }
+
+        // 画面全体でのペーストイベントを監視（これならローカルファイルでも生データを奪えます）
+        document.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const text = clipboardData.getData('text');
+            visualizeLineBreaks(text);
+        });
+    </script>
+
+</body>
+</html>
