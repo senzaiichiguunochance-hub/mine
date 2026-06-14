@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多機能PDF編集</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg2: #0f172a;
+            --card: rgba(15, 23, 42, 0.74);
+            --line: rgba(148, 163, 184, 0.18);
+            --text: #ecf4ff;
+            --muted: #a8b7cc;
+            --accent: #7dd3fc;
+            --accent2: #fbbf24;
+            --good: #34d399;
+            --bad: #f87171;
+            --shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 30%),
+                radial-gradient(circle at right top, rgba(251, 191, 36, 0.12), transparent 24%),
+                linear-gradient(160deg, #020617 0%, #07111f 45%, #0f172a 100%);
+            font-family: "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+        }
+
+        .app {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            color: var(--text);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--line);
+            backdrop-filter: blur(14px);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.12);
+            border: 1px solid rgba(125, 211, 252, 0.18);
+            color: #d8f5ff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .hero-main {
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-main::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -60px auto;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.25), transparent 68%);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin: 14px 0 12px;
+            font-size: clamp(28px, 4vw, 54px);
+            line-height: 1.04;
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            margin: 0;
+            max-width: 70ch;
+            color: var(--muted);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+        }
+
+        .mini strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .mini span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .source {
+            padding: 20px;
+        }
+
+        .source h2,
+        .section-title {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .source p,
+        .section-desc {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 14px;
+        }
+
+        .source-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .source-row input,
+        .source-row button,
+        .field input,
+        .field textarea,
+        .field select,
+        .action button,
+        .nav button {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .source-row input,
+        .field input,
+        .field textarea,
+        .field select {
+            padding: 12px 14px;
+            width: 100%;
+            outline: none;
+        }
+
+        .source-row input[type="file"] {
+            padding: 11px 14px;
+        }
+
+        .source-row button,
+        .action button,
+        .nav button {
+            padding: 12px 14px;
+            cursor: pointer;
+            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+        }
+
+        .source-row button:hover,
+        .action button:hover,
+        .nav button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(125, 211, 252, 0.55);
+        }
+
+        .source-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .file-chip {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.12);
+            border: 1px solid rgba(125, 211, 252, 0.18);
+            color: #d8f5ff;
+            font-size: 13px;
+        }
+
+        .nav {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .nav button.active {
+            background: linear-gradient(135deg, rgba(125, 211, 252, 0.18), rgba(251, 191, 36, 0.14));
+            border-color: rgba(125, 211, 252, 0.5);
+            box-shadow: 0 8px 22px rgba(2, 6, 23, 0.26);
+        }
+
+        .nav small {
+            display: block;
+            margin-top: 4px;
+            color: #c5d5ea;
+            opacity: 0.72;
+        }
+
+        .category {
+            display: none;
+            padding: 18px;
+        }
+
+        .category.active {
+            display: block;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .card p {
+            margin: 0 0 14px;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 13px;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            margin: 0 0 6px;
+            font-size: 12px;
+            color: #d4e3f4;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .action {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .action button {
+            flex: 1 1 auto;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            display: none;
+            line-height: 1.65;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .status.show { display: block; }
+        .status.success { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); }
+        .status.error { background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.3); }
+        .status.info { background: rgba(125, 211, 252, 0.12); border: 1px solid rgba(125, 211, 252, 0.3); }
+
+        .viewer {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+            gap: 14px;
+        }
+
+        .canvas-wrap {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: #0b1220;
+            overflow: auto;
+            min-height: 520px;
+            padding: 12px;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .viewer-side {
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .text-preview {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 14px;
+            min-height: 220px;
+            overflow: auto;
+            line-height: 1.8;
+            color: #d9e5f4;
+            white-space: pre-wrap;
+        }
+
+        mark {
+            background: rgba(251, 191, 36, 0.45);
+            color: #fff;
+            padding: 0 2px;
+            border-radius: 4px;
+        }
+
+        .list {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 12px;
+            min-height: 110px;
+            color: #dfeaff;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .signature-pad {
+            width: 100%;
+            height: 180px;
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            touch-action: none;
+        }
+
+        .preview-box {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: #111827;
+            padding: 16px;
+            min-height: 220px;
+            overflow: auto;
+        }
+
+        .footer-note {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 1180px) {
+            .hero, .viewer, .cards, .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 820px) {
+            .app { padding: 14px; }
+            .hero, .viewer, .cards, .nav, .hero-grid, .row-2, .row-3 { grid-template-columns: 1fr; }
+            .section-head, .topbar { flex-direction: column; align-items: start; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <a href="menu.html" class="back-btn">← メニューへ戻る</a>
+        <div class="eyebrow">PDF Studio Hub</div>
+    </div>
+
+    <div class="hero">
+        <section class="panel hero-main">
+            <div class="eyebrow">PDF WORKBENCH</div>
+            <h1>PDFの抽出・閲覧・編集・生成を一つにまとめたワークベンチ</h1>
+            <p class="lead">
+                PDFの読み取り、CSV / Excel 書き出し、全文抽出、ページ画像化、結合、分割、回転、削除、注釈、署名、透かし、HTML→PDF、画像→PDF、圧縮までを
+                ひとつの画面に整理しました。共有ソースを使えば、各機能を切り替えながら同じPDFをすぐ扱えます。
+            </p>
+            <div class="hero-grid">
+                <div class="mini"><strong>共有ソース</strong><span>1つのPDFを読み込むと、抽出・閲覧・編集で共通利用できます。</span></div>
+                <div class="mini"><strong>カテゴリ切替</strong><span>用途ごとにカードを整理し、必要な機能へすぐ移動できます。</span></div>
+                <div class="mini"><strong>ブラウザ完結</strong><span>外部アプリなしで、ローカルのPDFをそのまま操作できます。</span></div>
+                <div class="mini"><strong>説明付きUI</strong><span>各カードに用途の説明を添えて、迷いにくい構成にしています。</span></div>
+            </div>
+        </section>
+
+        <aside class="panel source">
+            <h2>共有PDFソース</h2>
+            <p>抽出・閲覧・編集の基準になるPDFをここで選択します。必要ならパスワードも指定してください。</p>
+            <div class="source-row" style="margin-top:16px;">
+                <input type="file" id="shared-pdf" accept="application/pdf">
+                <input type="password" id="shared-password" placeholder="パスワードがあるPDFの場合は入力" style="min-width:240px; flex:1 1 240px;">
+            </div>
+            <div class="source-note">このPDFは共有ソースとして保持され、各カテゴリの機能から再利用できます。</div>
+            <div id="shared-file-chip" class="file-chip" style="display:none;"></div>
+        </aside>
+    </div>
+
+    <nav class="nav" id="category-nav">
+        <button class="active" data-category="extract">1. 抽出・変換<small>CSV / Excel / TXT / 画像ZIP</small></button>
+        <button data-category="viewer">2. 閲覧・検索<small>PDFビューア / テキスト検索</small></button>
+        <button data-category="edit">3. 編集・整理<small>結合 / 分割 / 回転 / 削除</small></button>
+        <button data-category="annotate">4. 注釈・署名<small>注釈 / 署名 / 透かし</small></button>
+        <button data-category="create">5. 生成<small>HTML→PDF / 画像→PDF</small></button>
+        <button data-category="secure">6. セキュリティ・圧縮<small>ソース反映 / 軽量化</small></button>
+    </nav>
+
+    <section class="panel category active" data-panel="extract">
+        <div class="section-head">
+            <div>
+                <h2>抽出・変換</h2>
+                <p class="section-desc">PDFからテキストや画像を取り出し、CSV / Excel / TXT へ書き出します。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>PDF → CSV / Excel</h3>
+                <p>ページごとにテキストを抽出し、CSV または Excel に保存します。表形式の整理に向いています。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="convert-pdf" accept="application/pdf"></div>
+                <div class="field"><label>出力形式</label><select id="convert-format"><option value="csv">CSV</option><option value="xlsx">Excel（.xlsx）</option></select></div>
+                <div class="action"><button id="convert-run">変換して保存</button></div>
+                <div class="status" id="convert-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>テキスト抽出</h3>
+                <p>PDF内の文字だけを抽出して、TXTとして保存します。内容確認や検索用の下処理に便利です。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="text-pdf" accept="application/pdf"></div>
+                <div class="action"><button id="text-run">TXTを書き出す</button><button id="text-copy" type="button">抽出結果をコピー</button></div>
+                <div class="status" id="text-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>ページ画像の書き出し</h3>
+                <p>PDFの各ページをPNG画像に変換してZIPでまとめます。見た目の保存や共有に使えます。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="image-pdf" accept="application/pdf"></div>
+                <div class="field"><label>画像倍率</label><select id="image-scale"><option value="1.5">標準</option><option value="2">高精細</option><option value="3">最大</option></select></div>
+                <div class="action"><button id="image-run">画像ZIPを作成</button></div>
+                <div class="status" id="image-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="viewer">
+        <div class="section-head">
+            <div>
+                <h2>閲覧・検索</h2>
+                <p class="section-desc">PDFをその場で表示し、テキストも確認できます。キーワード検索で該当箇所を探せます。</p>
+            </div>
+        </div>
+        <div class="viewer">
+            <div class="card">
+                <h3>PDFビューア</h3>
+                <p>選択したPDFをキャンバスに描画し、ページ移動や拡大率の変更ができます。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="viewer-pdf" accept="application/pdf"></div>
+                <div class="row-3">
+                    <div class="field"><label>ページ</label><input type="number" id="viewer-page" min="1" value="1"></div>
+                    <div class="field"><label>倍率</label><input type="number" id="viewer-scale" min="0.5" max="4" step="0.25" value="1.2"></div>
+                    <div class="field"><label>検索語</label><input type="text" id="viewer-search" placeholder="キーワードを入力"></div>
+                </div>
+                <div class="action"><button id="viewer-prev">前へ</button><button id="viewer-next">次へ</button><button id="viewer-render">再描画</button><button id="viewer-search-run">検索</button></div>
+                <div class="status" id="viewer-status"></div>
+            </div>
+            <div class="viewer-side">
+                <div class="canvas-wrap"><canvas id="viewer-canvas"></canvas></div>
+                <div class="text-preview" id="viewer-text">PDFを開くと、ここにページのテキストが表示されます。</div>
+                <div class="list" id="viewer-search-results">検索結果はここに表示されます。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="edit">
+        <div class="section-head">
+            <div>
+                <h2>編集・整理</h2>
+                <p class="section-desc">結合、分割、回転、削除の基本編集をまとめています。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>PDFの結合</h3>
+                <p>複数のPDFを順番にまとめて1つのファイルにします。共有ソースも利用できます。</p>
+                <div class="field"><label>結合するPDF</label><input type="file" id="merge-files" accept="application/pdf" multiple></div>
+                <div class="action"><button id="merge-run">結合して保存</button></div>
+                <div class="status" id="merge-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>PDFの分割</h3>
+                <p>全ページを1枚ずつ分けるか、指定範囲ごとにZIPへまとめて出力します。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="split-pdf" accept="application/pdf"></div>
+                <div class="field"><label>分割方法</label><select id="split-mode"><option value="each">各ページを個別PDF</option><option value="range">範囲ごとに分割</option></select></div>
+                <div class="field"><label>範囲（range時のみ）</label><input type="text" id="split-ranges" placeholder="例: 1-3,5,8-10"></div>
+                <div class="action"><button id="split-run">分割して保存</button></div>
+                <div class="status" id="split-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>回転・削除</h3>
+                <p>ページ番号を指定して、回転や削除を行います。作業前に共有ソースを確認しておくと便利です。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="edit-pdf" accept="application/pdf"></div>
+                <div class="row-2">
+                    <div class="field"><label>ページ番号</label><input type="text" id="edit-pages" placeholder="例: 2,4-6"></div>
+                    <div class="field"><label>回転角</label><select id="edit-rotate"><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>
+                </div>
+                <div class="action"><button id="rotate-run">回転して保存</button><button id="delete-run">指定ページを削除</button></div>
+                <div class="status" id="edit-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="annotate">
+        <div class="section-head">
+            <div>
+                <h2>注釈・署名</h2>
+                <p class="section-desc">コメントを載せる、手書き署名を貼る、透かしを重ねるといった補助編集です。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>注釈を追加</h3>
+                <p>任意のページに短いメモを載せます。色付きの枠で視認しやすくしています。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="annotate-pdf" accept="application/pdf"></div>
+                <div class="row-3">
+                    <div class="field"><label>ページ</label><input type="number" id="annotate-page" min="1" value="1"></div>
+                    <div class="field"><label>X</label><input type="number" id="annotate-x" value="40"></div>
+                    <div class="field"><label>Y</label><input type="number" id="annotate-y" value="720"></div>
+                </div>
+                <div class="field"><label>幅</label><input type="number" id="annotate-w" value="280"></div>
+                <div class="field"><label>注釈テキスト</label><input type="text" id="annotate-text" placeholder="例: 要確認"></div>
+                <div class="action"><button id="annotate-run">注釈を保存</button></div>
+                <div class="status" id="annotate-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>署名を貼り込む</h3>
+                <p>キャンバスに手書きで署名し、指定ページへ画像として重ねます。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="signature-pdf" accept="application/pdf"></div>
+                <div class="row-3">
+                    <div class="field"><label>ページ</label><input type="number" id="signature-page" min="1" value="1"></div>
+                    <div class="field"><label>X</label><input type="number" id="signature-x" value="50"></div>
+                    <div class="field"><label>Y</label><input type="number" id="signature-y" value="60"></div>
+                </div>
+                <canvas id="signature-canvas" class="signature-pad" width="900" height="240"></canvas>
+                <div class="action"><button id="signature-clear" type="button">署名をクリア</button><button id="signature-run">署名を保存</button></div>
+                <div class="status" id="signature-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>透かしを追加</h3>
+                <p>PDF全ページに半透明の文字を重ねます。配布用の下書き管理にも使えます。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="watermark-pdf" accept="application/pdf"></div>
+                <div class="field"><label>透かし文字</label><input type="text" id="watermark-text" placeholder="CONFIDENTIAL"></div>
+                <div class="row-3">
+                    <div class="field"><label>サイズ</label><input type="number" id="watermark-size" value="56"></div>
+                    <div class="field"><label>角度</label><input type="number" id="watermark-angle" value="-35"></div>
+                    <div class="field"><label>不透明度</label><input type="number" id="watermark-opacity" value="0.16" step="0.01" min="0.05" max="1"></div>
+                </div>
+                <div class="action"><button id="watermark-run">透かしを保存</button></div>
+                <div class="status" id="watermark-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="create">
+        <div class="section-head">
+            <div>
+                <h2>生成</h2>
+                <p class="section-desc">HTMLや画像からPDFを作成します。簡単な配布物や記録用の出力に向いています。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>HTML → PDF</h3>
+                <p>入力したHTMLをそのままプレビューし、画像化してPDFにします。</p>
+                <div class="field"><label>HTML</label><textarea id="html-input" rows="8" placeholder="<h1>見出し</h1><p>本文</p>"></textarea></div>
+                <div class="action"><button id="html-preview-run">プレビュー更新</button><button id="html-pdf-run">PDFを保存</button></div>
+                <div class="status" id="html-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>HTMLプレビュー</h3>
+                <p>出力前の見た目確認用です。ここに入力したHTMLが反映されます。</p>
+                <div id="html-preview" class="preview-box"><div style="color:#475569;">HTMLを入力するとここに表示されます。</div></div>
+            </article>
+
+            <article class="card">
+                <h3>画像 → PDF</h3>
+                <p>複数画像を1つのPDFへまとめます。ページ中央へ配置し、余白も指定できます。</p>
+                <div class="field"><label>画像ファイル</label><input type="file" id="image-files" accept="image/png,image/jpeg,image/jpg" multiple></div>
+                <div class="field"><label>余白</label><input type="number" id="image-margin" value="24"></div>
+                <div class="action"><button id="image-pdf-run">PDFを作成</button></div>
+                <div class="status" id="image-pdf-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="secure">
+        <div class="section-head">
+            <div>
+                <h2>セキュリティ・圧縮</h2>
+                <p class="section-desc">共有ソースへの反映と、画像再構成による軽量化をまとめています。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>共有ソースへ反映</h3>
+                <p>ここで選んだPDFを、上部の共有ソースとして登録します。以降の機能から再利用できます。</p>
+                <div class="field"><label>PDF</label><input type="file" id="secure-pdf" accept="application/pdf"></div>
+                <div class="field"><label>パスワード</label><input type="password" id="secure-password" placeholder="必要な場合のみ入力"></div>
+                <div class="action"><button id="secure-load">共有ソースに反映</button></div>
+                <div class="status" id="secure-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>PDFの軽量化</h3>
+                <p>各ページを再レンダリングして、サイズを抑えたPDFを作成します。印刷前の最適化にも使えます。</p>
+                <div class="field"><label>対象PDF</label><input type="file" id="compress-pdf" accept="application/pdf"></div>
+                <div class="row-2">
+                    <div class="field"><label>縮小倍率</label><input type="number" id="compress-scale" value="1.2" step="0.1"></div>
+                    <div class="field"><label>JPEG品質</label><input type="number" id="compress-quality" value="0.72" step="0.01" min="0.1" max="1"></div>
+                </div>
+                <div class="action"><button id="compress-run">軽量版を保存</button></div>
+                <div class="status" id="compress-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>使い方の目安</h3>
+                <p>1. 上の共有ソースにPDFを読み込む。 2. 必要なカテゴリへ切り替える。 3. 各カードのボタンを押して実行する。</p>
+                <div class="footer-note">注釈や編集系の処理は、PDFの内容や保護状態によって動作が制限されることがあります。</div>
+            </article>
+        </div>
+    </section>
+</div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+    const { PDFDocument, rgb, degrees, StandardFonts } = PDFLib;
+    const { jsPDF } = window.jspdf;
+
+    const sharedPdfInput = document.getElementById('shared-pdf');
+    const sharedPasswordInput = document.getElementById('shared-password');
+    const sharedFileChip = document.getElementById('shared-file-chip');
+    const navButtons = Array.from(document.querySelectorAll('#category-nav button'));
+    const panels = Array.from(document.querySelectorAll('.category'));
+
+    const state = {
+        sharedFile: null,
+        sharedPassword: '',
+        viewerPdf: null,
+        viewerDoc: null,
+        viewerPage: 1,
+        viewerScale: 1.2,
+        viewerSearchTerm: '',
+        signatureHasInk: false,
+    };
+
+    const statusMap = new Map();
+    const fileMap = new Map();
+
+    function setupStatus(id) {
+        const el = document.getElementById(id);
+        statusMap.set(id, el);
+        return el;
+    }
+
+    function showStatus(id, message, type = 'info') {
+        const el = statusMap.get(id) || setupStatus(id);
+        el.textContent = message;
+        el.className = `status show ${type}`;
+    }
+
+    function updateSharedChip() {
+        if (!state.sharedFile) {
+            sharedFileChip.style.display = 'none';
+            sharedFileChip.textContent = '';
+            return;
+        }
+        const size = state.sharedFile.size / 1024 / 1024;
+        sharedFileChip.style.display = 'inline-flex';
+        sharedFileChip.textContent = `${state.sharedFile.name} ・ ${size >= 1 ? `${size.toFixed(2)} MB` : `${(state.sharedFile.size / 1024).toFixed(1)} KB`}`;
+    }
+
+    function setSharedSource(file, password = '') {
+        state.sharedFile = file || null;
+        state.sharedPassword = password || '';
+        updateSharedChip();
+    }
+
+    function bindFileState(inputId) {
+        const input = document.getElementById(inputId);
+        fileMap.set(inputId, input);
+        return input;
+    }
+
+    function getSelectedFile(inputId, fallbackShared = true) {
+        const localInput = fileMap.get(inputId) || document.getElementById(inputId);
+        if (localInput && localInput.files && localInput.files[0]) return localInput.files[0];
+        return fallbackShared ? state.sharedFile : null;
+    }
+
+    function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function sanitizeName(name, fallback) {
+        return (name || fallback).replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]+/g, '_');
+    }
+
+    function escapeXml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+
+    function escapeCsvCell(text) {
+        const value = String(text ?? '').replace(/"/g, '""');
+        return /[",\n\r]/.test(value) ? `"${value}"` : value;
+    }
+
+    function parsePageNumbers(text, maxPages) {
+        const result = new Set();
+        String(text || '').split(',').map(token => token.trim()).filter(Boolean).forEach(token => {
+            if (token.includes('-')) {
+                const [startRaw, endRaw] = token.split('-').map(value => value.trim());
+                const start = Number(startRaw);
+                const end = Number(endRaw);
+                if (!Number.isFinite(start) || !Number.isFinite(end)) return;
+                const begin = Math.max(1, Math.min(start, end));
+                const finish = Math.min(maxPages, Math.max(start, end));
+                for (let page = begin; page <= finish; page += 1) result.add(page);
+            } else {
+                const page = Number(token);
+                if (Number.isFinite(page) && page >= 1 && page <= maxPages) result.add(page);
+            }
+        });
+        return Array.from(result).sort((a, b) => a - b);
+    }
+
+    function groupTextRows(items) {
+        const rows = [];
+        const sorted = items
+            .filter(item => item.str && item.str.trim())
+            .map(item => ({ text: item.str.trim(), x: item.transform[4], y: Math.round(item.transform[5] / 6) * 6 }))
+            .sort((a, b) => b.y - a.y || a.x - b.x);
+
+        let currentY = null;
+        for (const item of sorted) {
+            if (currentY === null || Math.abs(item.y - currentY) > 5) {
+                rows.push([]);
+                currentY = item.y;
+            }
+            rows[rows.length - 1].push(item);
+        }
+
+        return rows.map(row => row.sort((a, b) => a.x - b.x).map(entry => escapeCsvCell(entry.text)).join(',')).filter(Boolean);
+    }
+
+    async function loadPdfJsDocument(file, password = '') {
+        const buffer = await file.arrayBuffer();
+        return await pdfjsLib.getDocument({ data: buffer, password: password || undefined }).promise;
+    }
+
+    async function loadPdfLibDocument(file) {
+        const buffer = await file.arrayBuffer();
+        return await PDFDocument.load(buffer);
+    }
+
+    async function extractPdfText(file, password = '') {
+        const pdf = await loadPdfJsDocument(file, password);
+        const pages = [];
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+            const page = await pdf.getPage(pageNumber);
+            const text = await page.getTextContent();
+            const lines = groupTextRows(text.items);
+            pages.push({ pageNumber, lines, raw: text.items.map(item => item.str).join(' ') });
+        }
+        return pages;
+    }
+
+    async function exportCsvOrExcel(file, format, password = '') {
+        const pages = await extractPdfText(file, password);
+        if (format === 'csv') {
+            const lines = [];
+            pages.forEach(page => {
+                lines.push(escapeCsvCell(`Page ${page.pageNumber}`));
+                if (page.lines.length) {
+                    page.lines.forEach(line => lines.push(line));
+                } else {
+                    lines.push('');
+                }
+                lines.push('');
+            });
+            const csv = lines.join('\n');
+            triggerDownload(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }), `${sanitizeName(file.name, 'pdf')}.csv`);
+            return pages.reduce((sum, page) => sum + page.lines.length, 0);
+        }
+
+        const workbook = XLSX.utils.book_new();
+        pages.forEach(page => {
+            const rows = page.lines.length
+                ? page.lines.map(line => line.split(',').map(cell => cell.replace(/^"|"$/g, '').replace(/""/g, '"')))
+                : [['']];
+            const sheet = XLSX.utils.aoa_to_sheet(rows);
+            XLSX.utils.book_append_sheet(workbook, sheet, `P${page.pageNumber}`.slice(0, 31));
+        });
+
+        const data = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        triggerDownload(new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${sanitizeName(file.name, 'pdf')}.xlsx`);
+        return pages.reduce((sum, page) => sum + page.lines.length, 0);
+    }
+
+    async function exportTextFile(file, password = '') {
+        const pages = await extractPdfText(file, password);
+        const text = pages.map(page => [`--- Page ${page.pageNumber} ---`, ...page.lines].join('\n')).join('\n\n');
+        triggerDownload(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8;' }), `${sanitizeName(file.name, 'pdf')}.txt`);
+        return text;
+    }
+
+    async function exportPageImages(file, scale = 2, password = '') {
+        const pdf = await loadPdfJsDocument(file, password);
+        const zip = new JSZip();
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+            const page = await pdf.getPage(pageNumber);
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { alpha: false });
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            zip.file(`page_${String(pageNumber).padStart(3, '0')}.png`, pngBlob);
+        }
+        triggerDownload(await zip.generateAsync({ type: 'blob' }), `${sanitizeName(file.name, 'pdf')}_images.zip`);
+    }
+
+    async function renderViewer() {
+        const canvas = document.getElementById('viewer-canvas');
+        const ctx = canvas.getContext('2d');
+        const pageInput = document.getElementById('viewer-page');
+        const scaleInput = document.getElementById('viewer-scale');
+        const textBox = document.getElementById('viewer-text');
+        const resultBox = document.getElementById('viewer-search-results');
+        const sourceFile = getSelectedFile('viewer-pdf', true);
+
+        if (!sourceFile) {
+            showStatus('viewer-status', '閲覧するPDFを選択してください。', 'error');
+            return;
+        }
+
+        state.viewerPdf = sourceFile;
+        state.viewerScale = Number(scaleInput.value) || 1.2;
+
+        try {
+            const pdf = await loadPdfJsDocument(sourceFile, state.sharedPassword || '');
+            state.viewerDoc = pdf;
+            state.viewerPage = Math.max(1, Math.min(Number(pageInput.value) || 1, pdf.numPages));
+            pageInput.value = state.viewerPage;
+            pageInput.max = pdf.numPages;
+
+            const page = await pdf.getPage(state.viewerPage);
+            const viewport = page.getViewport({ scale: state.viewerScale });
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const text = await page.getTextContent();
+            const plain = text.items.map(item => item.str).join(' ').replace(/\s+/g, ' ').trim();
+            const highlighted = state.viewerSearchTerm
+                ? plain.replace(new RegExp(escapeRegExp(state.viewerSearchTerm), 'gi'), match => `<mark>${escapeXml(match)}</mark>`)
+                : escapeXml(plain);
+
+            textBox.innerHTML = highlighted || 'このページには抽出できるテキストが見つかりませんでした。';
+
+            if (state.viewerSearchTerm) {
+                const matches = [];
+                for (let i = 1; i <= pdf.numPages; i += 1) {
+                    const pageText = await (await pdf.getPage(i)).getTextContent();
+                    const raw = pageText.items.map(item => item.str).join(' ');
+                    if (raw.toLowerCase().includes(state.viewerSearchTerm.toLowerCase())) {
+                        matches.push(`Page ${i} に一致`);
+                    }
+                }
+                resultBox.innerHTML = matches.length ? matches.join('<br>') : '一致するページは見つかりませんでした。';
+            } else {
+                resultBox.textContent = '検索語を入力して「検索」を押すと、ページごとの一致を表示します。';
+            }
+
+            showStatus('viewer-status', `ページ ${state.viewerPage} / ${pdf.numPages} を表示しました。`, 'success');
+        } catch (error) {
+            showStatus('viewer-status', 'PDFの表示に失敗しました。パスワードやファイル内容を確認してください。', 'error');
+            throw error;
+        }
+    }
+
+    function escapeRegExp(text) {
+        return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    async function searchViewer() {
+        const term = document.getElementById('viewer-search').value.trim();
+        state.viewerSearchTerm = term;
+        if (!term) {
+            showStatus('viewer-status', '検索語を入力してください。', 'error');
+            return;
+        }
+        await renderViewer();
+        showStatus('viewer-status', `「${term}」を検索しました。`, 'success');
+    }
+
+    async function mergePdfFiles(files) {
+        const merged = await PDFDocument.create();
+        for (const file of files) {
+            const buffer = await file.arrayBuffer();
+            const doc = await PDFDocument.load(buffer);
+            const copied = await merged.copyPages(doc, doc.getPageIndices());
+            copied.forEach(page => merged.addPage(page));
+        }
+        return merged.save();
+    }
+
+    async function splitPdfFile(file, mode, rangesText) {
+        const buffer = await file.arrayBuffer();
+        const doc = await PDFDocument.load(buffer);
+        const pages = doc.getPageIndices().map(index => index + 1);
+        const zip = new JSZip();
+
+        if (mode === 'each') {
+            for (const pageNumber of pages) {
+                const splitDoc = await PDFDocument.create();
+                const [copied] = await splitDoc.copyPages(doc, [pageNumber - 1]);
+                splitDoc.addPage(copied);
+                zip.file(`page_${String(pageNumber).padStart(3, '0')}.pdf`, await splitDoc.save());
+            }
+        } else {
+            const groups = String(rangesText || '').split(',').map(v => v.trim()).filter(Boolean);
+            for (const group of groups) {
+                const selected = parsePageNumbers(group, doc.getPageCount());
+                if (!selected.length) continue;
+                const splitDoc = await PDFDocument.create();
+                const copied = await splitDoc.copyPages(doc, selected.map(page => page - 1));
+                copied.forEach(page => splitDoc.addPage(page));
+                zip.file(`range_${group.replace(/[^0-9\-]+/g, '_')}.pdf`, await splitDoc.save());
+            }
+        }
+
+        return await zip.generateAsync({ type: 'blob' });
+    }
+
+    async function rotatePdfPages(file, pageText, angle) {
+        const doc = await loadPdfLibDocument(file);
+        const targets = parsePageNumbers(pageText, doc.getPageCount());
+        targets.forEach(pageNumber => doc.getPage(pageNumber - 1).setRotation(degrees(Number(angle))));
+        return await doc.save();
+    }
+
+    async function deletePdfPages(file, pageText) {
+        const doc = await loadPdfLibDocument(file);
+        const targets = parsePageNumbers(pageText, doc.getPageCount()).sort((a, b) => b - a);
+        targets.forEach(pageNumber => doc.removePage(pageNumber - 1));
+        return await doc.save();
+    }
+
+    async function addAnnotation(file, pageNumber, text, x, y, width) {
+        const doc = await loadPdfLibDocument(file);
+        const page = doc.getPage(Math.max(0, Math.min(pageNumber - 1, doc.getPageCount() - 1)));
+        const font = await doc.embedFont(StandardFonts.HelveticaBold);
+        page.drawRectangle({ x, y: y - 8, width, height: 38, borderWidth: 1, color: rgb(1, 1, 0.8), borderColor: rgb(0.3, 0.4, 0.1), opacity: 0.65 });
+        page.drawText(text, { x: x + 10, y, size: 14, font, color: rgb(0.12, 0.18, 0.3) });
+        return await doc.save();
+    }
+
+    async function stampSignature(file, pageNumber, x, y, signatureDataUrl) {
+        const doc = await loadPdfLibDocument(file);
+        const page = doc.getPage(Math.max(0, Math.min(pageNumber - 1, doc.getPageCount() - 1)));
+        const pngBytes = await fetch(signatureDataUrl).then(response => response.arrayBuffer());
+        const image = await doc.embedPng(pngBytes);
+        const ratio = image.width / image.height;
+        const width = 220;
+        const height = width / ratio;
+        page.drawImage(image, { x, y, width, height });
+        return await doc.save();
+    }
+
+    async function addWatermark(file, text, size, angle, opacity) {
+        const doc = await loadPdfLibDocument(file);
+        const font = await doc.embedFont(StandardFonts.HelveticaBold);
+        doc.getPages().forEach(page => {
+            const { width, height } = page.getSize();
+            page.drawText(text, { x: width * 0.15, y: height * 0.45, size, font, color: rgb(0.5, 0.5, 0.5), opacity, rotate: degrees(angle) });
+        });
+        return await doc.save();
+    }
+
+    async function htmlToPdf() {
+        const html = document.getElementById('html-input').value.trim();
+        if (!html) throw new Error('HTMLを入力してください。');
+        const preview = document.getElementById('html-preview');
+        preview.innerHTML = html;
+        const canvas = await html2canvas(preview, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+        const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: canvas.width > canvas.height ? 'landscape' : 'portrait' });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = pageWidth;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        const imgData = canvas.toDataURL('image/png');
+        let y = 0;
+        pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
+        while (imgHeight + y > pageHeight) {
+            y -= pageHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
+        }
+        pdf.save('html_to_pdf.pdf');
+    }
+
+    async function imagesToPdf(files, margin) {
+        const pdf = await PDFDocument.create();
+        for (const file of files) {
+            const bytes = await file.arrayBuffer();
+            const image = file.type === 'image/png' ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
+            const pageWidth = 595.28;
+            const pageHeight = 841.89;
+            const maxWidth = pageWidth - margin * 2;
+            const maxHeight = pageHeight - margin * 2;
+            const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+            const width = image.width * scale;
+            const height = image.height * scale;
+            const page = pdf.addPage([pageWidth, pageHeight]);
+            page.drawImage(image, { x: (pageWidth - width) / 2, y: (pageHeight - height) / 2, width, height });
+        }
+        return await pdf.save();
+    }
+
+    async function compressPdf(file, scale, quality) {
+        const pdf = await loadPdfJsDocument(file, state.sharedPassword || '');
+        const out = await PDFDocument.create();
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+            const page = await pdf.getPage(pageNumber);
+            const viewport = page.getViewport({ scale });
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d', { alpha: false });
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            const jpeg = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+            if (!jpeg) throw new Error('JPEGの生成に失敗しました。');
+            const image = await out.embedJpg(await jpeg.arrayBuffer());
+            const pageSize = [viewport.width, viewport.height];
+            const pageOut = out.addPage(pageSize);
+            pageOut.drawImage(image, { x: 0, y: 0, width: pageSize[0], height: pageSize[1] });
+        }
+        return await out.save();
+    }
+
+    function updateViewerPage(delta) {
+        const pageInput = document.getElementById('viewer-page');
+        pageInput.value = Math.max(1, Number(pageInput.value || 1) + delta);
+        renderViewer().catch(() => {});
+    }
+
+    function bindSignaturePad() {
+        const canvas = document.getElementById('signature-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#111827';
+        ctx.lineWidth = 4;
+        let drawing = false;
+        let lastPoint = null;
+
+        const pointFromEvent = event => {
+            const rect = canvas.getBoundingClientRect();
+            const pointer = event.touches ? event.touches[0] : event;
+            return {
+                x: (pointer.clientX - rect.left) * (canvas.width / rect.width),
+                y: (pointer.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        };
+
+        const start = event => {
+            drawing = true;
+            state.signatureHasInk = true;
+            lastPoint = pointFromEvent(event);
+            event.preventDefault();
+        };
+
+        const move = event => {
+            if (!drawing) return;
+            const point = pointFromEvent(event);
+            ctx.beginPath();
+            ctx.moveTo(lastPoint.x, lastPoint.y);
+            ctx.lineTo(point.x, point.y);
+            ctx.stroke();
+            lastPoint = point;
+            event.preventDefault();
+        };
+
+        const end = event => {
+            drawing = false;
+            lastPoint = null;
+            event.preventDefault();
+        };
+
+        canvas.addEventListener('mousedown', start);
+        canvas.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+        canvas.addEventListener('touchstart', start, { passive: false });
+        canvas.addEventListener('touchmove', move, { passive: false });
+        canvas.addEventListener('touchend', end, { passive: false });
+
+        document.getElementById('signature-clear').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            state.signatureHasInk = false;
+        });
+    }
+
+    navButtons.forEach(button => button.addEventListener('click', () => {
+        navButtons.forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        panels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === button.dataset.category));
+    }));
+
+    ['convert-pdf', 'text-pdf', 'image-pdf', 'viewer-pdf', 'merge-files', 'split-pdf', 'edit-pdf', 'annotate-pdf', 'signature-pdf', 'watermark-pdf', 'secure-pdf', 'compress-pdf', 'image-files'].forEach(bindFileState);
+    ['convert-status', 'text-status', 'image-status', 'viewer-status', 'merge-status', 'split-status', 'edit-status', 'annotate-status', 'signature-status', 'watermark-status', 'html-status', 'image-pdf-status', 'secure-status', 'compress-status'].forEach(setupStatus);
+
+    sharedPdfInput.addEventListener('change', () => {
+        const file = sharedPdfInput.files[0] || null;
+        setSharedSource(file, sharedPasswordInput.value.trim());
+        if (file) showStatus('secure-status', `共有ソースに ${file.name} を設定しました。`, 'success');
+    });
+
+    sharedPasswordInput.addEventListener('change', () => {
+        state.sharedPassword = sharedPasswordInput.value.trim();
+        if (state.sharedFile) setSharedSource(state.sharedFile, state.sharedPassword);
+    });
+
+    document.getElementById('convert-run').addEventListener('click', async () => {
+        const file = getSelectedFile('convert-pdf');
+        const format = document.getElementById('convert-format').value;
+        if (!file) return showStatus('convert-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('convert-status', '抽出を実行中です。', 'info');
+        try {
+            const count = await exportCsvOrExcel(file, format, state.sharedPassword || '');
+            showStatus('convert-status', `変換が完了しました。${count} 行を出力しました。`, 'success');
+        } catch (error) {
+            showStatus('convert-status', 'CSV / Excel 変換に失敗しました。PDFの構造やパスワードを確認してください。', 'error');
+        }
+    });
+
+    document.getElementById('text-run').addEventListener('click', async () => {
+        const file = getSelectedFile('text-pdf');
+        if (!file) return showStatus('text-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('text-status', 'テキストを抽出中です。', 'info');
+        try {
+            const text = await exportTextFile(file, state.sharedPassword || '');
+            document.getElementById('viewer-text').textContent = text.slice(0, 1200) || '抽出テキストは空でした。';
+            showStatus('text-status', 'テキストファイルを保存しました。', 'success');
+        } catch (error) {
+            showStatus('text-status', 'テキスト抽出に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('text-copy').addEventListener('click', async () => {
+        const file = getSelectedFile('text-pdf');
+        if (!file) return showStatus('text-status', 'PDFファイルを選択してください。', 'error');
+        try {
+            const pages = await extractPdfText(file, state.sharedPassword || '');
+            await navigator.clipboard.writeText(pages.map(page => page.lines.join('\n')).join('\n\n'));
+            showStatus('text-status', '抽出結果をクリップボードへコピーしました。', 'success');
+        } catch (error) {
+            showStatus('text-status', '抽出結果のコピーに失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('image-run').addEventListener('click', async () => {
+        const file = getSelectedFile('image-pdf');
+        if (!file) return showStatus('image-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('image-status', 'ページ画像を作成中です。', 'info');
+        try {
+            await exportPageImages(file, Number(document.getElementById('image-scale').value || 2), state.sharedPassword || '');
+            showStatus('image-status', 'ZIPファイルを書き出しました。', 'success');
+        } catch (error) {
+            showStatus('image-status', 'ページ画像の抽出に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('viewer-pdf').addEventListener('change', () => renderViewer().catch(() => {}));
+    document.getElementById('viewer-render').addEventListener('click', () => renderViewer().catch(() => {}));
+    document.getElementById('viewer-prev').addEventListener('click', () => updateViewerPage(-1));
+    document.getElementById('viewer-next').addEventListener('click', () => updateViewerPage(1));
+    document.getElementById('viewer-search-run').addEventListener('click', () => searchViewer().catch(() => {}));
+    document.getElementById('viewer-scale').addEventListener('change', () => renderViewer().catch(() => {}));
+
+    document.getElementById('merge-run').addEventListener('click', async () => {
+        const input = document.getElementById('merge-files');
+        const files = input.files.length ? Array.from(input.files) : (state.sharedFile ? [state.sharedFile] : []);
+        if (!files.length) return showStatus('merge-status', '結合するPDFを選択してください。', 'error');
+        showStatus('merge-status', 'PDFを結合中です。', 'info');
+        try {
+            const bytes = await mergePdfFiles(files);
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), 'merged.pdf');
+            showStatus('merge-status', '結合PDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('merge-status', 'PDFの結合に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('split-run').addEventListener('click', async () => {
+        const file = getSelectedFile('split-pdf');
+        if (!file) return showStatus('split-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('split-status', '分割中です。', 'info');
+        try {
+            const blob = await splitPdfFile(file, document.getElementById('split-mode').value, document.getElementById('split-ranges').value);
+            triggerDownload(blob, `${sanitizeName(file.name, 'pdf')}_split.zip`);
+            showStatus('split-status', '分割ファイルをZIPで保存しました。', 'success');
+        } catch (error) {
+            showStatus('split-status', 'PDFの分割に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('rotate-run').addEventListener('click', async () => {
+        const file = getSelectedFile('edit-pdf');
+        if (!file) return showStatus('edit-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('edit-status', 'ページを回転中です。', 'info');
+        try {
+            const bytes = await rotatePdfPages(file, document.getElementById('edit-pages').value, document.getElementById('edit-rotate').value);
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${sanitizeName(file.name, 'pdf')}_rotated.pdf`);
+            showStatus('edit-status', '回転PDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('edit-status', 'ページ回転に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('delete-run').addEventListener('click', async () => {
+        const file = getSelectedFile('edit-pdf');
+        if (!file) return showStatus('edit-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('edit-status', 'ページを削除中です。', 'info');
+        try {
+            const bytes = await deletePdfPages(file, document.getElementById('edit-pages').value);
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${sanitizeName(file.name, 'pdf')}_deleted.pdf`);
+            showStatus('edit-status', '削除後のPDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('edit-status', 'ページ削除に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('annotate-run').addEventListener('click', async () => {
+        const file = getSelectedFile('annotate-pdf');
+        if (!file) return showStatus('annotate-status', 'PDFファイルを選択してください。', 'error');
+        const text = document.getElementById('annotate-text').value.trim();
+        if (!text) return showStatus('annotate-status', '注釈テキストを入力してください。', 'error');
+        showStatus('annotate-status', '注釈を追加しています。', 'info');
+        try {
+            const bytes = await addAnnotation(file, Number(document.getElementById('annotate-page').value || 1), text, Number(document.getElementById('annotate-x').value || 40), Number(document.getElementById('annotate-y').value || 720), Number(document.getElementById('annotate-w').value || 280));
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${sanitizeName(file.name, 'pdf')}_annotated.pdf`);
+            showStatus('annotate-status', '注釈付きPDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('annotate-status', '注釈の追加に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('signature-run').addEventListener('click', async () => {
+        const file = getSelectedFile('signature-pdf');
+        if (!file) return showStatus('signature-status', 'PDFファイルを選択してください。', 'error');
+        if (!state.signatureHasInk) return showStatus('signature-status', '署名を描いてから実行してください。', 'error');
+        const canvas = document.getElementById('signature-canvas');
+        showStatus('signature-status', 'サインを貼り込んでいます。', 'info');
+        try {
+            const bytes = await stampSignature(file, Number(document.getElementById('signature-page').value || 1), Number(document.getElementById('signature-x').value || 50), Number(document.getElementById('signature-y').value || 60), canvas.toDataURL('image/png'));
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${sanitizeName(file.name, 'pdf')}_signed.pdf`);
+            showStatus('signature-status', '署名入りPDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('signature-status', '署名の貼り込みに失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('watermark-run').addEventListener('click', async () => {
+        const file = getSelectedFile('watermark-pdf');
+        if (!file) return showStatus('watermark-status', 'PDFファイルを選択してください。', 'error');
+        const text = document.getElementById('watermark-text').value.trim();
+        if (!text) return showStatus('watermark-status', '透かし文字を入力してください。', 'error');
+        showStatus('watermark-status', '透かしを追加しています。', 'info');
+        try {
+            const bytes = await addWatermark(file, text, Number(document.getElementById('watermark-size').value || 56), Number(document.getElementById('watermark-angle').value || -35), Number(document.getElementById('watermark-opacity').value || 0.16));
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${sanitizeName(file.name, 'pdf')}_watermarked.pdf`);
+            showStatus('watermark-status', '透かし入りPDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('watermark-status', '透かしの追加に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('html-preview-run').addEventListener('click', () => {
+        const html = document.getElementById('html-input').value.trim();
+        const preview = document.getElementById('html-preview');
+        if (!html) {
+            preview.innerHTML = '<div style="color:#475569;">HTMLを入力してください。</div>';
+            showStatus('html-status', 'HTMLを入力してください。', 'error');
+            return;
+        }
+        preview.innerHTML = html;
+        showStatus('html-status', 'プレビューを更新しました。', 'success');
+    });
+
+    document.getElementById('html-pdf-run').addEventListener('click', async () => {
+        try {
+            showStatus('html-status', 'HTMLからPDFを生成中です。', 'info');
+            await htmlToPdf();
+            showStatus('html-status', 'HTMLからPDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('html-status', 'HTML ➔ PDF の変換に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('image-pdf-run').addEventListener('click', async () => {
+        const files = Array.from(document.getElementById('image-files').files);
+        if (!files.length) return showStatus('image-pdf-status', '画像ファイルを選択してください。', 'error');
+        showStatus('image-pdf-status', '画像をPDFに変換中です。', 'info');
+        try {
+            const bytes = await imagesToPdf(files, Number(document.getElementById('image-margin').value || 24));
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), 'images_to_pdf.pdf');
+            showStatus('image-pdf-status', '画像PDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('image-pdf-status', '画像 ➔ PDF の変換に失敗しました。', 'error');
+        }
+    });
+
+    document.getElementById('secure-load').addEventListener('click', () => {
+        const file = document.getElementById('secure-pdf').files[0] || null;
+        const password = document.getElementById('secure-password').value.trim();
+        if (!file) return showStatus('secure-status', 'PDFファイルを選択してください。', 'error');
+        setSharedSource(file, password);
+        sharedPdfInput.value = '';
+        sharedPasswordInput.value = password;
+        showStatus('secure-status', '共有ソースへ反映しました。以降の抽出・閲覧でこのPDFを使えます。', 'success');
+    });
+
+    document.getElementById('compress-run').addEventListener('click', async () => {
+        const file = getSelectedFile('compress-pdf');
+        if (!file) return showStatus('compress-status', 'PDFファイルを選択してください。', 'error');
+        showStatus('compress-status', '軽量化を実行中です。', 'info');
+        try {
+            const bytes = await compressPdf(file, Number(document.getElementById('compress-scale').value || 1.2), Number(document.getElementById('compress-quality').value || 0.72));
+            triggerDownload(new Blob([bytes], { type: 'application/pdf' }), `${sanitizeName(file.name, 'pdf')}_compressed.pdf`);
+            showStatus('compress-status', '軽量版PDFを保存しました。', 'success');
+        } catch (error) {
+            showStatus('compress-status', 'PDFの軽量化に失敗しました。', 'error');
+        }
+    });
+
+    bindSignaturePad();
+    updateSharedChip();
+</script>
+</body>
+</html>
