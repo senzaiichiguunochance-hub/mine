@@ -2,24 +2,142 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>改行コード可視化ツール</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>改行コード可視化ツール 🔍✨</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 10px; text-align: center; }
-        .info-box { background: #e9ecef; padding: 15px; border-radius: 4px; margin-bottom: 30px; font-weight: bold; color: #495057; }
-        #result-wrapper { text-align: left; margin-top: 30px; }
-        #result { background: #f5f5f5; border: 1px solid #ccc; padding: 15px; white-space: pre-wrap; word-wrap: break-word; font-family: monospace; min-height: 50px; border-radius: 4px; }
-        
+        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&family=Noto+Sans+JP:wght@700&display=swap');
+
+        :root {
+            --bg-color: #f8f0ff; /* 淡いラベンダー */
+            --primary-color: #9370db; /* ミディアムパープル */
+            --secondary-color: #ffb6c1; /* パステルピンク */
+            --font-color: #4a4a4a;
+            --canvas-bg: #ffffff;
+            --canvas-border: #da70d6; /* オーキッド */
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#e6e6fa 2px, transparent 2px);
+            background-size: 30px 30px;
+            color: var(--font-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 0px #ffffff;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .info-box {
+            background: #ffffff;
+            padding: 15px 25px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            font-weight: 700;
+            color: var(--primary-color);
+            border: 3px dashed var(--secondary-color);
+            box-shadow: 0 5px 15px rgba(147, 112, 219, 0.1);
+            max-width: 600px;
+            text-align: center;
+        }
+
+        #result-wrapper {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h3 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            align-self: flex-start;
+        }
+
+        #result {
+            width: 100%;
+            border: 5px solid var(--canvas-border);
+            background-color: var(--canvas-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(147, 112, 219, 0.3);
+            padding: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            min-height: 150px;
+            box-sizing: border-box;
+            text-align: left;
+        }
+
         /* 改行コードごとの色分け */
         .crlf { color: #d9534f; background: #fdf7f7; border: 1px solid #eed3d7; }
         .lf { color: #0275d8; background: #f0f7ff; border: 1px solid #bce8f1; }
         .cr { color: #f0ad4e; background: #fcf8e3; border: 1px solid #faebcc; }
-        .code-tag { font-weight: bold; border-radius: 3px; padding: 0 4px; margin: 0 2px; font-size: 0.9em; display: inline-block; }
+        .code-tag { font-weight: bold; border-radius: 3px; padding: 0 4px; margin: 0 2px; font-size: 0.9em; display: inline-block; font-family: 'M PLUS Rounded 1c', sans-serif; }
+
+        .menu-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 14px;
+            color: #ffffff;
+            text-decoration: none;
+            background: var(--secondary-color);
+            padding: 8px 18px;
+            border-radius: 20px;
+            z-index: 1000;
+            font-weight: 700;
+            box-shadow: 0 3px 0 #d698a1;
+        }
+
+        .menu-btn:hover {
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 #d698a1;
+        }
+
+        @media (max-width: 850px) {
+            body {
+                padding: 10px;
+                padding-top: 70px;
+                justify-content: flex-start;
+            }
+            h1 {
+                font-size: 1.6em;
+            }
+            .info-box {
+                font-size: 0.9em;
+                padding: 10px 15px;
+            }
+            #result {
+                min-height: 100px;
+            }
+            .menu-btn {
+                position: fixed;
+                top: 15px;
+                right: 15px;
+            }
+        }
     </style>
 </head>
 <body>
     <a href="menu.html" class="menu-btn">メニューに戻る</a>
 
-    <h2>改行コード可視化ツール</h2>
+    <h1>改行コード可視化ツール 🔍✨</h1>
     
     <div class="info-box">
         この画面を開いた状態で、キーボードの「Ctrl + V」を押してください。
@@ -50,7 +168,7 @@
             resultDiv.innerHTML = escaped;
         }
 
-        // 画面全体でのペーストイベントを監視（これならローカルファイルでも生データを奪えます）
+        // 画面全体でのペーストイベントを監視
         document.addEventListener('paste', (e) => {
             e.preventDefault();
             const clipboardData = e.clipboardData || window.clipboardData;
