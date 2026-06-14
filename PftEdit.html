@@ -206,17 +206,31 @@
 
         .source-row button,
         .action button,
+        /* 1-6のボタンの基本スタイル（通常時） */
         .nav button {
-            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 24px;
+            border-radius: 999px; /* 完全なカプセル型にする */
+            color: #ffffff; /* 文字色を白に */
+            font-weight: bold; /* 太文字 */
+            /* 画像のような鮮やかな青色のグラデーション */
+            background: linear-gradient(to right, #0076dc, #00a3e0); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
             cursor: pointer;
-            transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
         }
 
         .source-row button:hover,
         .action button:hover,
+        /* ホバー時（マウスを載せたとき）の調整 */
         .nav button:hover {
-            transform: translateY(-1px);
-            border-color: rgba(125, 211, 252, 0.55);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 118, 220, 0.4);
+            opacity: 0.9;
         }
 
         .source-note {
@@ -246,17 +260,21 @@
             margin-bottom: 18px;
         }
 
+        /* アクティブ（現在選択されている）ボタンのスタイル */
         .nav button.active {
-            background: linear-gradient(135deg, rgba(125, 211, 252, 0.18), rgba(251, 191, 36, 0.14));
-            border-color: rgba(125, 211, 252, 0.5);
-            box-shadow: 0 8px 22px rgba(2, 6, 23, 0.26);
+            /* 選択中であることが分かるように、少し明るくするか枠線を目立たせる */
+            background: linear-gradient(to right, #008eff, #26beff);
+            border: 2px solid #ffffff; 
+            box-shadow: 0 8px 24px rgba(0, 118, 220, 0.6);
         }
 
-        .nav small {
+        /* ボタン内の小さな説明テキスト（<small>タグ）の調整 */
+        .nav button small {
             display: block;
             margin-top: 4px;
-            color: #c5d5ea;
-            opacity: 0.72;
+            color: rgba(255, 255, 255, 0.8); /* 白背景に馴染む薄い白 */
+            font-size: 11px;
+            font-weight: normal;
         }
 
         .category {
