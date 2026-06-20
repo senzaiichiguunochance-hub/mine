@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+<meta charset="UTF-8">
+
+<title>Stock Watcher</title>
+
+<style>
+
+body{
+    font-family: Meiryo;
+    margin:20px;
+}
+
+table{
+    border-collapse: collapse;
+    width:100%;
+}
+
+th,td{
+    border:1px solid #ccc;
+    padding:8px;
+    text-align:center;
+}
+
+th{
+    background:#f0f0f0;
+}
+
+.plus{
+    color:green;
+    font-weight:bold;
+}
+
+.minus{
+    color:red;
+    font-weight:bold;
+}
+
+input,
+textarea{
+    width:300px;
+    padding:5px;
+}
+
+button{
+    padding:8px 20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Stock Watcher</h1>
+
+<h2>保有銘柄</h2>
+
+<table>
+
+<tr>
+    <th>銘柄</th>
+    <th>コード</th>
+    <th>購入日</th>
+    <th>保有日数</th>
+    <th>平均取得価格</th>
+    <th>現在価格</th>
+    <th>損益率</th>
+    <th>メモ</th>
+    <th>削除</th>
+</tr>
+
+{% for s in stocks %}
+
+<tr>
+
+<td>{{ s.name }}</td>
+
+<td>{{ s.code }}</td>
+
+<td>{{ s.buy_date }}</td>
+
+<td>{{ s.holding_days }}日</td>
+
+<td>{{ s.avg_buy_price }}</td>
+
+<td>
+{% if s.current_price %}
+{{ s.current_price }}
+{% else %}
+取得失敗
+{% endif %}
+</td>
+
+<td>
+
+{% if s.profit_rate is not none %}
+
+{% if s.profit_rate >= 0 %}
+<span class="plus">
+{{ s.profit_rate }}%
+</span>
+{% else %}
+<span class="minus">
+{{ s.profit_rate }}%
+</span>
+{% endif %}
+
+{% endif %}
+
+</td>
+
+<td>{{ s.memo }}</td>
+
+<td>
+<a href="/delete/{{ s.code }}">
+削除
+</a>
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<hr>
+
+<h2>銘柄追加</h2>
+
+<form action="/add" method="post">
+
+<p>
+銘柄コード<br>
+<input
+type="text"
+name="code"
+placeholder="1605"
+required>
+</p>
+
+<p>
+銘柄名<br>
+<input
+type="text"
+name="name"
+placeholder="INPEX"
+required>
+</p>
+
+<p>
+購入日<br>
+<input
+type="date"
+name="buy_date"
+required>
+</p>
+
+<p>
+平均取得価格<br>
+<input
+type="number"
+step="0.01"
+name="avg_buy_price"
+placeholder="3565.63"
+required>
+</p>
+
+<p>
+上昇通知(%)<br>
+<input
+type="number"
+name="notify_plus"
+value="10"
+required>
+</p>
+
+<p>
+下落通知(%)<br>
+<input
+type="number"
+name="notify_minus"
+value="10"
+required>
+</p>
+
+<p>
+メモ<br>
+<textarea
+name="memo"
+rows="3"></textarea>
+</p>
+
+<button type="submit">
+登録
+</button>
+
+</form>
+
+</body>
+</html>
