@@ -260,10 +260,57 @@ def create_ai_prompt_file():
     lines = []
 
     lines.append(
-        "以下の保有銘柄について分析してください。"
+        "あなたは個人投資家向けのアドバイザーです。"
     )
 
     lines.append("")
+
+    lines.append("【投資家プロフィール】")
+    lines.append("")
+    lines.append("・株式投資初心者")
+    lines.append("・楽天証券のかぶピタを利用")
+    lines.append("・NISA成長投資枠を利用")
+    lines.append("・投資額は1銘柄あたり1,000円～10,000円程度")
+    lines.append("・投資収益で生活する予定はない")
+    lines.append("・目的はお小遣い程度の利益を得ること")
+    lines.append("・投資期間は1～3年程度")
+    lines.append("・配当より株価上昇を重視")
+    lines.append("・利益が出たら売却したい")
+    lines.append("・損切りは基本的に行わない")
+    lines.append("・最大損失が1万円程度なら許容")
+    lines.append("・専門用語はできるだけ避けること")
+    lines.append("・株の知識は初心者レベル")
+    lines.append("・短期売買より数か月～数年保有")
+    lines.append("・大きな利益より堅実なお小遣い稼ぎを重視")
+    lines.append("・売却タイミングを知りたい")
+    lines.append("・1銘柄あたりの投資額は少額")
+    lines.append("・大きなリターンより小さな利益を積み重ねたい")
+    lines.append("・投資判断の勉強も兼ねている")
+    lines.append("・初心者なので売却タイミングの提案を重視する")
+    lines.append("")
+
+    lines.append("【分析時に重視する項目】")
+    lines.append("")
+    lines.append("・アナリスト予想")
+    lines.append("・今後1～3年の成長見込み")
+    lines.append("・現在の株価水準")
+    lines.append("・初心者にも分かる説明")
+    lines.append("")
+
+    lines.append("【評価基準】")
+    lines.append("")
+    lines.append("以下を5段階評価してください。")
+    lines.append("")
+    lines.append("・売却推奨度")
+    lines.append("・保有継続推奨度")
+    lines.append("・買い増し推奨度")
+    lines.append("")
+    
+    lines.append("【重要】")
+    lines.append("利益最大化だけを目的にせず、")
+    lines.append("初心者がお小遣いを増やすという観点で提案してください。")
+    lines.append("")
+    
     for stock in stocks:
 
         current_price = get_current_price(
@@ -300,12 +347,43 @@ def create_ai_prompt_file():
         )
 
         lines.append(
-            f"現在価格:{current_price}"
+            f"現在価格:{current_price if current_price is not None else '取得失敗'}"
         )
-
+        
         lines.append(
-            f"損益率:{profit_rate}%"
+            f"損益率:{profit_rate if profit_rate is not None else '計算不可'}"
         )
+        
+        if current_price is not None:
+
+            buy_price = stock["avg_buy_price"]
+
+            target_10 = round(
+                buy_price * 1.10,
+                2
+            )
+
+            target_20 = round(
+                buy_price * 1.20,
+                2
+            )
+
+            target_30 = round(
+                buy_price * 1.30,
+                2
+            )
+
+            lines.append(
+                f"参考価格(+10%):{target_10}"
+            )
+
+            lines.append(
+                f"参考価格(+20%):{target_20}"
+            )
+
+            lines.append(
+                f"参考価格(+30%):{target_30}"
+            )
 
         lines.append(
             f"メモ:{stock.get('memo','')}"
@@ -313,28 +391,43 @@ def create_ai_prompt_file():
 
         lines.append("")
 
+    lines.append("")
+    lines.append("【依頼内容】")
+    lines.append("")
+
     lines.append(
-        "【依頼内容】"
+        "各銘柄について以下の形式で回答してください。"
+    )
+
+    lines.append("")
+
+    lines.append("売却推奨度：★★★★★")
+    lines.append("保有継続推奨度：★★★★★")
+    lines.append("買い増し推奨度：★★★★★")
+    lines.append("")
+
+    lines.append("理由：")
+    lines.append("初心者向けに分かりやすく説明してください。")
+    lines.append("")
+
+    lines.append("注意点：")
+    lines.append("初心者が気を付けるべきことを説明してください。")
+    lines.append("")
+
+    lines.append("期待度：")
+    lines.append("低・中・高")
+    lines.append("")
+
+    lines.append(
+       "また、現在価格から見て"
     )
 
     lines.append(
-        "各銘柄について以下を分析してください。"
+        "+10%、+20%、+30% のどこで利益確定を検討すると良いか提案してください。"
     )
 
     lines.append(
-        "1. 売却"
-    )
-
-    lines.append(
-        "2. 保有継続"
-    )
-
-    lines.append(
-        "3. 買い増し"
-    )
-
-    lines.append(
-        "上記を5段階評価し、理由を説明してください。"
+        "その理由も説明してください。"
     )
 
     text = "\n".join(lines)
