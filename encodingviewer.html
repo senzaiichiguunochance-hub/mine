@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文字コード判定ツール 🔍</title>
+
+<style>
+:root {
+    --bg-color: #f8f0ff;
+    --primary-color: #9370db;
+    --secondary-color: #ffb6c1;
+    --font-color: #4a4a4a;
+    --canvas-bg: #ffffff;
+    --canvas-border: #da70d6;
+}
+
+body {
+    font-family: "Meiryo", sans-serif;
+    background-color: var(--bg-color);
+    background-image: radial-gradient(#e6e6fa 2px, transparent 2px);
+    background-size: 30px 30px;
+    color: var(--font-color);
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary-color);
+}
+
+.info-box {
+    background: white;
+    border: 3px dashed var(--secondary-color);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+#dropArea {
+    background: white;
+    border: 4px dashed var(--primary-color);
+    border-radius: 20px;
+    min-height: 180px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 1.2em;
+    transition: 0.2s;
+}
+
+#dropArea.dragover {
+    background: #efe7ff;
+}
+
+.toolbar {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+select {
+    padding: 5px;
+    font-size: 14px;
+}
+
+#summary {
+    margin-top: 15px;
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+table {
+    width: 100%;
+    margin-top: 15px;
+    border-collapse: collapse;
+    background: white;
+}
+
+th {
+    background: var(--primary-color);
+    color: white;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.filename {
+    word-break: break-all;
+}
+
+.encoding {
+    font-weight: bold;
+}
+
+.menu-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: var(--secondary-color);
+    color: white;
+    padding: 8px 15px;
+    border-radius: 15px;
+    text-decoration: none;
+}
+
+@media(max-width:768px){
+    table{
+        font-size:12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+<h1>文字コード判定ツール 🔍✨</h1>
+
+<div class="info-box">
+    複数ファイルをドラッグ＆ドロップしてください。<br>
+    ファイル名と推定文字コードを一覧表示します。
+</div>
+
+<div id="dropArea">
+    ここへファイルをドロップ
+</div>
+
+<div class="toolbar">
+    <label>並び順：</label>
+    <select id="sortMode">
+        <option value="encoding" selected>文字コード順</option>
+        <option value="filename">ファイル名順</option>
+    </select>
+</div>
+
+<div id="summary">
+    ファイルを読み込んでください
+</div>
+
+<table id="resultTable">
+    <thead>
+        <tr>
+            <th>ファイル名</th>
+            <th>文字コード</th>
+            <th>サイズ</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.2.0/encoding.min.js"></script>
+
+<script>
+
+const dropArea = document.getElementById("dropArea");
+const tbody = document.querySelector("#resultTable tbody");
+const summary = document.getElementById("summary");
+const sortMode = document.getElementById("sortMode");
+
+let fileResults = [];
+
+const encodingOrder = {
+    "空ファイル": 0,
+    "Shift-JIS": 1,
+    "EUC-JP": 2,
+    "ISO-2022-JP": 3,
+    "UTF-8(BOM無)(ASCIIのみ)": 4,
+    "UTF-8(BOM無)": 5,
+    "UTF-8(BOM有)": 6,
+    "UTF-16LE": 7,
+    "UTF-16BE": 8,
+    "Unicode": 9,
+    "不明": 99
+};
+
+dropArea.addEventListener("dragover", e => {
+    e.preventDefault();
+    dropArea.classList.add("dragover");
+});
+
+dropArea.addEventListener("dragleave", () => {
+    dropArea.classList.remove("dragover");
+});
+
+dropArea.addEventListener("drop", async e => {
+    e.preventDefault();
+    dropArea.classList.remove("dragover");
+
+    const files = [...e.dataTransfer.files];
+
+    fileResults = [];
+
+    for (const file of files) {
+        const encoding = await detectEncoding(file);
+
+        fileResults.push({
+            filename: file.name,
+            encoding: encoding,
+            size: file.size
+        });
+    }
+
+    render();
+});
+
+sortMode.addEventListener("change", render);
+
+function render() {
+
+    let rows = [...fileResults];
+
+    if (sortMode.value === "encoding") {
+
+        rows.sort((a,b)=>{
+
+            const ea = encodingOrder[a.encoding] || 999;
+            const eb = encodingOrder[b.encoding] || 999;
+
+            if(ea !== eb){
+                return ea - eb;
+            }
+
+            return a.filename.localeCompare(
+                b.filename,
+                'ja'
+            );
+
+        });
+
+    } else {
+
+        rows.sort((a,b)=>
+            a.filename.localeCompare(
+                b.filename,
+                'ja'
+            )
+        );
+
+    }
+
+    tbody.innerHTML = "";
+
+    const counts = {};
+
+    rows.forEach(r => {
+
+        counts[r.encoding] =
+            (counts[r.encoding] || 0) + 1;
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td class="filename">${escapeHtml(r.filename)}</td>
+            <td class="encoding">${r.encoding}</td>
+            <td>${r.size.toLocaleString()} byte</td>
+        `;
+
+        tbody.appendChild(tr);
+
+    });
+
+    let html = `<b>総数：</b>${rows.length}<br><br>`;
+
+    Object.keys(counts)
+        .sort((a,b)=>
+            (encodingOrder[a]||999)
+            -
+            (encodingOrder[b]||999)
+        )
+        .forEach(enc=>{
+            html += `${enc} : ${counts[enc]}<br>`;
+        });
+
+    summary.innerHTML = html;
+}
+
+async function detectEncoding(file) {
+
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+
+    if(bytes.length === 0){
+        return "空ファイル";
+    }
+
+    // BOM判定
+
+    if (
+        bytes.length >= 3 &&
+        bytes[0] === 0xEF &&
+        bytes[1] === 0xBB &&
+        bytes[2] === 0xBF
+    ) {
+        return "UTF-8(BOM有)";
+    }
+
+    if (
+        bytes.length >= 2 &&
+        bytes[0] === 0xFF &&
+        bytes[1] === 0xFE
+    ) {
+        return "UTF-16LE";
+    }
+
+    if (
+        bytes.length >= 2 &&
+        bytes[0] === 0xFE &&
+        bytes[1] === 0xFF
+    ) {
+        return "UTF-16BE";
+    }
+
+    const detected = Encoding.detect(bytes);
+
+    switch(detected){
+
+        case "UTF8":
+            return "UTF-8(BOM無)";
+
+        case "SJIS":
+            return "Shift-JIS";
+
+        case "EUCJP":
+            return "EUC-JP";
+
+        case "JIS":
+            return "ISO-2022-JP";
+
+        case "UNICODE":
+            return "Unicode";
+
+        case "ASCII":
+            return "UTF-8(BOM無)(ASCIIのみ)";
+
+        default:
+            return detected || "不明";
+    }
+}
+
+
+function escapeHtml(str) {
+    return str
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;");
+}
+
+</script>
+
+</body>
+</html>
