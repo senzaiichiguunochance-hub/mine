@@ -1,17 +1,337 @@
-body{
-    font-family: Meiryo;
-    margin:20px;
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700&family=Quicksand:wght@500;700&display=swap');
+
+:root {
+    --bg-primary: linear-gradient(135deg, #fff0f2 0%, #ebf3fc 100%);
+    --bg-card: #ffffff;
+    --text-main: #333a42;
+    --text-muted: #7f8c8d;
+    --color-primary: #ff7b93;
+    --color-primary-hover: #ff5c77;
+    --color-secondary: #54d2d2;
+    --color-secondary-hover: #3fb8b8;
+    --color-accent: #ffcb52;
+    --color-accent-hover: #e6b33a;
+    --color-plus: #20bf6b;
+    --color-minus: #eb3b5a;
+    --border-color: #ffe4e6;
+    --border-radius-lg: 24px;
+    --border-radius-md: 16px;
+    --border-radius-sm: 10px;
 }
 
-table{
-    border-collapse: collapse;
+/* 全体設定 */
+body {
+    font-family: 'Quicksand', 'M PLUS Rounded 1c', "Meiryo", sans-serif;
+    color: var(--text-main);
+    background: var(--bg-primary);
+    background-attachment: fixed;
+    margin: 0;
+    padding: 30px 20px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
 }
 
-th,td{
-    border:1px solid #ccc;
-    padding:8px;
+/* メインコンテナ */
+.app-container {
+    max-width: 1200px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
-input{
-    margin:4px;
+/* カード風コンテナ */
+.card {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(255, 123, 147, 0.05), 0 4px 12px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+/* ヘッダーエリア */
+.header-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--color-primary);
+    text-shadow: 2px 2px 0px rgba(255, 123, 147, 0.15);
+    letter-spacing: -0.5px;
+}
+
+/* ツールバーのボタン */
+.toolbar {
+    display: flex;
+    gap: 12px;
+}
+
+.toolbar form {
+    margin: 0;
+}
+
+.toolbar button {
+    background-color: var(--color-secondary);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: 700;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 0px #3eb0b0;
+    transition: all 0.1s ease;
+}
+
+.toolbar button:hover {
+    background-color: var(--color-secondary-hover);
+    transform: translateY(2px);
+    box-shadow: 0 2px 0px #3eb0b0;
+}
+
+.toolbar button:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
+/* AI相談ボタンは目立たせるためにイエローに */
+.toolbar form:nth-of-type(2) button {
+    background-color: var(--color-accent);
+    color: var(--text-main);
+    box-shadow: 0 4px 0px #e0b03d;
+}
+
+.toolbar form:nth-of-type(2) button:hover {
+    background-color: var(--color-accent-hover);
+    box-shadow: 0 2px 0px #e0b03d;
+}
+
+/* 表示切り替えラジオエリア */
+.radio-area {
+    margin: 0;
+    display: flex;
+    gap: 12px;
+}
+
+.radio-area label {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    user-select: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.02);
+}
+
+.radio-area label:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-1px);
+}
+
+/* ラジオボタンが選択されている場合の親要素のスタイル */
+.radio-area label:has(input[type="radio"]:checked) {
+    background: var(--color-primary);
+    color: #ffffff;
+    border-color: var(--color-primary);
+    box-shadow: 0 6px 15px rgba(255, 123, 147, 0.25);
+}
+
+.radio-area input[type="radio"] {
+    margin: 0 8px 0 0;
+    cursor: pointer;
+    accent-color: #ffffff; /* ラジオボタンのチェック色 */
+}
+
+/* テーブルスタイル */
+.table-container {
+    overflow-x: auto;
+    border-radius: var(--border-radius-md);
+    border: 2px solid var(--border-color);
+}
+
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+}
+
+th {
+    background-color: var(--color-secondary);
+    color: #ffffff;
+    font-weight: 700;
+    padding: 14px 12px;
+    text-align: center;
+    font-size: 0.95rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+td {
+    padding: 14px 12px;
+    text-align: center;
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+    transition: background-color 0.2s ease;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background-color: #fff9fa;
+}
+
+/* 損益カラー */
+.plus {
+    color: var(--color-plus);
+    font-weight: 700;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.05rem;
+}
+
+.minus {
+    color: var(--color-minus);
+    font-weight: 700;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.05rem;
+}
+
+/* 削除リンクボタン */
+td a {
+    display: inline-block;
+    padding: 6px 12px;
+    background-color: #ffeef0;
+    color: var(--color-minus);
+    border-radius: var(--border-radius-sm);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+td a:hover {
+    background-color: var(--color-minus);
+    color: #ffffff;
+    transform: scale(1.05);
+}
+
+/* 銘柄追加フォームエリア */
+.form-area {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(255, 123, 147, 0.05);
+}
+
+.form-area h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    font-weight: 700;
+    border-left: 5px solid var(--color-primary);
+    padding-left: 10px;
+}
+
+.form-area form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: flex-end;
+}
+
+/* フォーム行 */
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.form-row input,
+.form-row textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background-color: #fafbfc;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(255, 123, 147, 0.15);
+}
+
+/* メモ欄は全幅 */
+.form-area form .form-row:nth-last-of-type(2) {
+    grid-column: 1 / -1;
+}
+
+/* 送信ボタンのコンテナとボタン */
+.form-submit-container {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.form-area form button[type="submit"] {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--border-radius-md);
+    padding: 12px 36px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 0px #d9465a;
+    transition: all 0.1s ease;
+}
+
+.form-area form button[type="submit"]:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(2px);
+    box-shadow: 0 2px 0px #d9465a;
+}
+
+.form-area form button[type="submit"]:active {
+    transform: translateY(4px);
+    box-shadow: none;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+    .header-area {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .toolbar {
+        width: 100%;
+        justify-content: flex-start;
+    }
 }
