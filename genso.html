@@ -209,6 +209,34 @@
             border: 1px solid var(--primary-color);
             border-radius: 8px;
             background: rgba(128, 128, 128, 0.05);
+            position: relative; /* 前面判定表示の基準位置 */
+        }
+
+        /* 周期表前面オーバーレイ */
+        .periodic-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            font-weight: 900;
+            z-index: 10;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .overlay-correct {
+            color: var(--correct-color);
+            text-shadow: 0 0 20px var(--correct-color), 0 0 40px var(--correct-color);
+        }
+        .overlay-wrong {
+            color: var(--wrong-color);
+            text-shadow: 0 0 20px var(--wrong-color), 0 0 40px var(--wrong-color);
         }
 
         .periodic-table {
@@ -217,6 +245,19 @@
             gap: 1px;
             padding: 2px;
             min-width: 500px;
+        }
+
+        /* 周期表モードでスクロールなしにするためのクラス */
+        .periodic-table-noflow {
+            min-width: unset !important;
+            width: 100% !important;
+        }
+        .periodic-table-noflow .element-cell {
+            font-size: calc(0.4rem + 0.5vw) !important;
+            padding: 0 !important;
+        }
+        .periodic-table-noflow .element-cell.target {
+            font-size: calc(0.5rem + 0.7vw) !important;
         }
 
         .element-cell {
@@ -410,7 +451,6 @@
 </header>
 
 <main>
-    <!-- メニュー画面 -->
     <div id="menu-screen" class="menu-screen active">
         <h2>学習設定</h2>
         
@@ -418,9 +458,11 @@
             <div class="setting-item">
                 <label class="setting-label" for="range-select">学習範囲:</label>
                 <select id="range-select" class="setting-select" onchange="saveSettings()">
-                    <option value="20">中学生向け (Caまで)</option>
-                    <option value="36">高校生向け (Krまで)</option>
-                    <option value="118">全部 (最後まで)</option>
+                    <option value="1-20">中学生向け（HからCaまで）</option>
+                    <option value="1-36">高校向け（HからKrまで）</option>
+                    <option value="1-118">全部（HからOgまで）</option>
+                    <option value="21-36">高校生向けのみ（ScからKrまで）</option>
+                    <option value="37-118">高校生向けより後のみ（RbからOgまで）</option>
                 </select>
             </div>
             <div class="setting-item">
@@ -467,7 +509,6 @@
         </div>
     </div>
 
-    <!-- ゲーム画面 -->
     <div id="game-screen" class="game-screen">
         <div class="stat-bar">
             <button class="btn btn-small" style="margin: 0;" onclick="showMenu()">中断して戻る</button>
@@ -479,7 +520,7 @@
             <div id="question-label" style="color: var(--primary-color); font-weight: bold;"></div>
             <div id="question-text"></div>
             <div id="periodic-display" style="display: none;">
-                <div class="periodic-table-wrapper">
+                <div class="periodic-table-wrapper" id="periodic-wrapper">
                     <div class="periodic-table" id="table-grid"></div>
                 </div>
             </div>
@@ -488,7 +529,6 @@
         <div id="feedback" class="feedback"></div>
     </div>
 
-    <!-- リザルト画面 -->
     <div id="result-screen" class="result-screen">
         <h2>結果発表</h2>
         <div id="final-score" style="font-size: 1.5rem; margin: 1rem 0; color: var(--primary-color); font-weight: bold;"></div>
@@ -496,7 +536,6 @@
         <button class="btn" onclick="showMenu()">トップに戻る</button>
     </div>
 
-    <!-- 成績画面 -->
     <div id="stats-screen" class="stats-screen">
         <h2>過去の成績</h2>
         <div id="stats-detail" class="result-table-container"></div>
@@ -573,10 +612,16 @@
         loadStats();
     };
 
-    // 設定読み込み
+    // 設定読み込み (古い互換性のためにフォーマットチェックを入れる)
     function loadSettings() {
         const savedRange = localStorage.getItem('genso-range');
-        if (savedRange) document.getElementById('range-select').value = savedRange;
+        if (savedRange) {
+            // 旧バージョンのセレクト値(20, 36, 118)が入っている場合の互換処理
+            if (savedRange === "20") document.getElementById('range-select').value = "1-20";
+            else if (savedRange === "36") document.getElementById('range-select').value = "1-36";
+            else if (savedRange === "118") document.getElementById('range-select').value = "1-118";
+            else document.getElementById('range-select').value = savedRange;
+        }
         
         const savedTime = localStorage.getItem('genso-time-limit');
         if (savedTime) document.getElementById('time-limit-select').value = savedTime;
@@ -625,10 +670,21 @@
     // メニュー表示
     function showMenu() {
         stopTimer();
+        removePeriodicOverlay();
         document.getElementById('menu-screen').classList.add('active');
         document.getElementById('game-screen').classList.remove('active');
         document.getElementById('result-screen').classList.remove('active');
         document.getElementById('stats-screen').classList.remove('active');
+    }
+
+    // パース関数：範囲文字列(例 "21-36")から最小と最大を取得
+    function getRangeMinMax() {
+        const rangeVal = document.getElementById('range-select').value;
+        const parts = rangeVal.split('-');
+        return {
+            min: parseInt(parts[0], 10),
+            max: parseInt(parts[1], 10)
+        };
     }
 
     // ゲーム開始
@@ -639,11 +695,11 @@
         quizHistory = [];
         usedElementIndices = [];
         
-        const rangeLimit = parseInt(document.getElementById('range-select').value);
+        const bounds = getRangeMinMax();
         timeLimit = parseInt(document.getElementById('time-limit-select').value);
         questionLimit = parseInt(document.getElementById('question-count-select').value);
         
-        const filteredElements = elements.filter(e => e.n <= rangeLimit);
+        const filteredElements = elements.filter(e => e.n >= bounds.min && e.n <= bounds.max);
         if (questionLimit > filteredElements.length) questionLimit = filteredElements.length;
 
         saveSettings();
@@ -656,6 +712,7 @@
     // 次の問題へ
     function nextQuestion() {
         stopTimer();
+        removePeriodicOverlay();
         if (currentQuestionIndex >= questionLimit) {
             showResult();
             return;
@@ -667,8 +724,8 @@
         document.getElementById('progress').innerText = `問題 ${currentQuestionIndex + 1} / ${questionLimit}`;
         document.getElementById('score-display').innerText = `正解: ${score}`;
 
-        const rangeLimit = parseInt(document.getElementById('range-select').value);
-        const filteredElements = elements.filter(e => e.n <= rangeLimit);
+        const bounds = getRangeMinMax();
+        const filteredElements = elements.filter(e => e.n >= bounds.min && e.n <= bounds.max);
 
         // 未使用の元素を選択
         let availableElements = filteredElements.filter((_, index) => !usedElementIndices.includes(index));
@@ -698,8 +755,10 @@
         const qLabel = document.getElementById('question-label');
         const periodicDisplay = document.getElementById('periodic-display');
         const choicesContainer = document.getElementById('choices');
+        const tableGrid = document.getElementById('table-grid');
 
         periodicDisplay.style.display = "none";
+        tableGrid.classList.remove('periodic-table-noflow'); // 初期化
         qText.style.display = "block";
         choicesContainer.innerHTML = "";
 
@@ -715,7 +774,8 @@
             qLabel.innerText = "";
             qText.style.display = "none";
             periodicDisplay.style.display = "block";
-            renderPeriodicTable(correctElement, rangeLimit);
+            tableGrid.classList.add('periodic-table-noflow'); // 横幅スクロールなしにするクラスを追加
+            renderPeriodicTable(correctElement, bounds.min, bounds.max);
             choices.forEach(el => createChoiceButton(`${el.s} (${el.name})`, el === correctElement));
         }
 
@@ -765,6 +825,14 @@
         document.getElementById('choices').appendChild(btn);
     }
 
+    // 前面のオーバーレイを削除する
+    function removePeriodicOverlay() {
+        const existingOverlay = document.getElementById('periodic-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
+        }
+    }
+
     // 回答処理
     function handleAnswer(isCorrect, btn, userText) {
         if (!isAnswering) return;
@@ -784,6 +852,23 @@
 
         // 成績更新
         updateStats(correctElement.n, isCorrect);
+
+        // 「周期表 穴埋め」の場合のみ前面に結果表示を追加
+        if (currentMode === 3) {
+            const wrapper = document.getElementById('periodic-wrapper');
+            removePeriodicOverlay(); // 安全のため既存のを削除
+
+            const overlay = document.createElement('div');
+            overlay.id = 'periodic-overlay';
+            overlay.className = 'periodic-overlay ' + (isCorrect ? 'overlay-correct' : 'overlay-wrong');
+            overlay.innerText = isCorrect ? '〇' : '×';
+            wrapper.appendChild(overlay);
+
+            // 1秒後にフェードアウトさせて消す
+            setTimeout(() => {
+                if (overlay) overlay.style.opacity = '0';
+            }, 1000);
+        }
 
         if (isCorrect) {
             score++;
@@ -814,7 +899,7 @@
     }
 
     // 周期表の描画
-    function renderPeriodicTable(target, rangeLimit) {
+    function renderPeriodicTable(target, rangeMin, rangeMax) {
         const grid = document.getElementById('table-grid');
         grid.innerHTML = "";
         
@@ -830,7 +915,8 @@
                         cell.className += ' target';
                     } else {
                         cell.innerText = el.s;
-                        if (el.n > rangeLimit) cell.style.opacity = "0.2";
+                        // 選択された範囲外の元素は不透明度を下げる
+                        if (el.n < rangeMin || el.n > rangeMax) cell.style.opacity = "0.2";
                     }
                 } else {
                     cell.className = 'element-cell empty';
