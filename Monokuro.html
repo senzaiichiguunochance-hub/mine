@@ -6,19 +6,51 @@
 <title>モノクロ画像一部カラー化</title>
 <link rel="stylesheet" type="text/css" href="Style.css" />
 <style>
+    /* ==== 全体のデザインテーマ（華やかで万人受けする大人かわいいカラー） ==== */
     :root {
         --canvas-bg: #ffffff;
+        --bg-color: #f3f7f9;             /* 爽やかなミント・ブルー系のニュアンス背景 */
+        --card-color: #ffffff;           /* ベースとなる白 */
+        --primary-color: #e3fafc;        /* 明るくかわいいパステルアクアブルー（見出し・タブ用） */
+        --secondary-color: #ff8787;      /* 華やかなコーラルピンク（アクセント・メイン） */
+        --hover-color: #ffe3e3;          /* ボタンホバー時のふんわりピンク */
+        --sidebar-bg: #f8f9fa;           /* コントロールエリアの優しいグレー */
+        --font-color: #2b2d42;           /* メリハリがありつつ目に優しいダークネイビー */
+        --text-muted: #495057;           /* 少し濃いめのグレー */
+        --active-tab-bg: #ff6b6b;        /* 際立つアクティブピンク */
     }
+
     body {
+        font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--font-color);
+        margin: 0;
+        padding: 20px;
+        display: flex;
         justify-content: flex-start;
         align-items: flex-start;
+        line-height: 1.6;
     }
+
     .container {
         width: 98%;
-        max-width: none;
+        max-width: none; /* 元の仕様通り制限なしに */
         text-align: left;
     }
     
+    .header {
+        margin-bottom: 20px;
+        border-bottom: 3px double var(--secondary-color);
+        padding-bottom: 8px;
+    }
+
+    .header h1 {
+        font-size: 26px;
+        color: var(--font-color);
+        margin: 0;
+        display: inline-block;
+    }
+
     /* Layout */
     #main-container {
         display: flex;
@@ -26,119 +58,281 @@
         flex-wrap: nowrap;
         align-items: flex-start;
     }
+
     #editor-area {
         flex-grow: 1;
         display: flex;
         flex-direction: column;
-        min-width: 0;
+        min-width: 0; /* 元のサイズ感を最優先に確保 */
     }
+
     #canvas-wrapper {
         display: grid;
         grid-template-columns: auto 1fr;
         grid-template-rows: auto 1fr;
         gap: 5px;
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px solid #dee2e6;
     }
+
     #rulerX { grid-column: 2 / 3; grid-row: 1 / 2; }
     #rulerY { grid-column: 1 / 2; grid-row: 2 / 3; }
     #canvas-area { 
         grid-column: 2 / 3; 
         grid-row: 2 / 3; 
         position: relative;
-        overflow-x: auto;
     }
 
     #controls {
-        background-color: var(--card-color);
-        border: 1px solid var(--primary-color);
-        border-radius: 15px;
+        background-color: var(--sidebar-bg);
+        border: 2px solid #e9ecef;
+        border-radius: 16px;
         padding: 20px;
         width: 100%;
-        max-width: 380px;
+        max-width: 360px; /* 操作パネルの幅は固定で見やすく */
+        box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+        box-sizing: border-box;
     }
 
     /* Tabs */
-    #tabs { margin-bottom: 15px; border-bottom: 1px solid var(--primary-color); display: flex; flex-wrap: wrap; }
-    .tab { padding: 10px 15px; margin-right: 5px; margin-bottom: 5px; border: 1px solid transparent; cursor: pointer; transition: all 0.3s ease; border-radius: 8px; background-color: var(--primary-color); flex-grow: 1; text-align: center; }
-    .tab.active { background: var(--secondary-color); color: var(--bg-color); font-weight: bold; }
-    .tab:hover:not(.active) { background-color: var(--hover-color); }
+    #tabs { 
+        margin-bottom: 18px; 
+        border-bottom: 2px solid var(--secondary-color); 
+        display: flex; 
+        flex-wrap: wrap; 
+        gap: 2px;
+    }
+
+    .tab { 
+        padding: 10px 8px; 
+        margin-bottom: -2px;
+        font-size: 14px;
+        font-weight: bold;
+        color: var(--text-muted);
+        border: 2px solid transparent; 
+        cursor: pointer; 
+        transition: all 0.15s ease; 
+        border-radius: 8px 8px 0 0; 
+        background-color: #e9ecef; 
+        flex-grow: 1; 
+        text-align: center; 
+    }
+
+    .tab.active { 
+        background: var(--secondary-color); 
+        color: #ffffff; 
+        border-color: var(--secondary-color) var(--secondary-color) transparent var(--secondary-color);
+    }
+
+    .tab:hover:not(.active) { 
+        background-color: var(--hover-color); 
+        color: var(--active-tab-bg);
+    }
 
     /* Panels */
-    .panel { display: none; padding: 10px 0; border: none; }
+    .panel { display: none; padding: 5px 0; border: none; }
     .panel.active { display: block; }
-    .panel label { display: block; margin: 12px 0 5px 0; }
+    .panel label { 
+        display: block; 
+        margin: 14px 0 6px 0; 
+        font-size: 13px;
+        font-weight: bold;
+        color: var(--font-color);
+    }
+
     .panel button, .panel select {
         width: 100%;
-        padding: 10px;
-        margin: 5px 0;
-        background-color: var(--primary-color);
+        padding: 11px;
+        margin: 6px 0;
+        background-color: #ffffff;
         color: var(--font-color);
-        border: 1px solid var(--hover-color);
-        border-radius: 5px;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
-        transition: background-color 0.3s;
+        transition: all 0.15s ease;
+        box-sizing: border-box;
     }
-    .panel button:hover:not(:disabled) { background-color: var(--hover-color); }
-    .panel button:disabled { background-color: #333; color: #888; cursor: not-allowed; }
+
+    .panel button:hover:not(:disabled) { 
+        background-color: var(--primary-color); 
+        border-color: #91e7f6;
+        color: #0b7285;
+    }
+
+    /* 特定の目立たせたい機能（保存や確定など）にピンクを少し入れる味付け */
+    .panel button[id^="save"], .panel button#snapshot {
+        border-color: #ffc9c9;
+    }
+    .panel button[id^="save"]:hover, .panel button#snapshot:hover {
+        background-color: var(--hover-color);
+        border-color: var(--secondary-color);
+        color: #c92a2a;
+    }
+
+    .panel button:disabled { 
+        background-color: #f1f3f5; 
+        color: #adb5bd; 
+        border-color: #e9ecef;
+        cursor: not-allowed; 
+    }
 
     /* Sliders */
-    input[type="range"] { -webkit-appearance: none; width: 100%; height: 10px; background: var(--primary-color); border-radius: 5px; outline: none; opacity: 0.7; transition: opacity .2s; margin: 10px 0; }
-    input[type="range"]:hover { opacity: 1; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--secondary-color); cursor: pointer; border-radius: 50%; }
-    input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; background: var(--secondary-color); cursor: pointer; border-radius: 50%; }
+    input[type="range"] { 
+        -webkit-appearance: none; 
+        width: 100%; 
+        height: 8px; 
+        background: #e9ecef; 
+        border-radius: 4px; 
+        outline: none; 
+        margin: 12px 0; 
+    }
 
-    /* Canvas */
-    #container { border: 2px solid var(--primary-color); background-color: var(--canvas-bg); border-radius: 15px; overflow: hidden; position: relative; display: inline-block; cursor: grab; }
+    input[type="range"]::-webkit-slider-thumb { 
+        -webkit-appearance: none; 
+        appearance: none; 
+        width: 18px; 
+        height: 18px; 
+        background: var(--active-tab-bg); 
+        cursor: pointer; 
+        border-radius: 50%; 
+        transition: transform 0.1s;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+    }
+
+    input[type="range"]::-moz-range-thumb { 
+        width: 18px; 
+        height: 18px; 
+        background: var(--active-tab-bg); 
+        cursor: pointer; 
+        border-radius: 50%; 
+        border: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+
+    /* カラーピッカー */
+    input[type="color"] {
+        -webkit-appearance: none;
+        border: 2px solid #dee2e6;
+        padding: 0;
+        width: 100%;
+        height: 38px;
+        border-radius: 8px;
+        cursor: pointer;
+        background: none;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+
+    /* Canvas Container (元の仕様通りのサイズ感を維持) */
+    #container { 
+        border: 4px solid #ffffff; 
+        background-color: var(--canvas-bg); 
+        overflow: hidden; 
+        position: relative; 
+        display: inline-block; 
+        cursor: grab; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
     #canvasColor, #canvasGray, #canvasGrid { position: absolute; left: 0; top: 0; }
     #canvasColor { z-index: 0; }
     #canvasGray { z-index: 1; }
     #canvasGrid { z-index: 2; pointer-events: none; }
-    #histogramCanvas { border: 2px solid var(--primary-color); background-color: var(--card-color); border-radius: 15px; margin-top: 10px; }
+    
+    #histogramCanvas { 
+        border: 2px solid #dee2e6; 
+        background-color: #ffffff; 
+        border-radius: 12px; 
+        margin-top: 20px; 
+        width: 100%;
+        box-sizing: border-box;
+    }
 
     /* File Input & Status */
-    #fileInput { margin-bottom: 20px; padding: 10px; background: var(--card-color); border: 1px solid var(--primary-color); border-radius: 10px; }
-    #status { margin-bottom: 20px; background-color: var(--primary-color); padding: 10px; border-radius: 5px; }
+    #fileInput { 
+        margin-bottom: 15px; 
+        padding: 15px; 
+        background: #fff; 
+        border: 2px dashed var(--secondary-color); 
+        border-radius: 12px; 
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    
+    #status { 
+        margin-bottom: 20px; 
+        background-color: #e3fafc; 
+        color: #0b7285;
+        padding: 10px 18px; 
+        border-radius: 30px; 
+        font-size: 13px;
+        font-weight: bold;
+        display: inline-block;
+        border: 1px solid #91e7f6;
+    }
 
     /* Rulers */
-    #rulerX, #rulerY { background-color: var(--card-color); overflow: hidden; display: none;}
+    #rulerX, #rulerY { background-color: #f1f5f7; overflow: hidden; display: none;}
     #rulerX.active, #rulerY.active { display: block; }
 
     /* Snapshot Gallery */
-    #snapshot-gallery { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; padding: 10px; background: var(--primary-color); border-radius: 10px; min-height: 50px;}
-    .snapshot-thumb { border: 2px solid var(--secondary-color); border-radius: 5px; cursor: pointer; transition: transform 0.2s; }
-    .snapshot-thumb:hover { transform: scale(1.1); }
+    #snapshot-gallery { 
+        margin-top: 15px; 
+        display: flex; 
+        gap: 10px; 
+        flex-wrap: wrap; 
+        padding: 12px; 
+        background: #e9ecef; 
+        border-radius: 12px; 
+        min-height: 50px;
+    }
+    .snapshot-thumb { 
+        border: 3px solid #ffffff; 
+        border-radius: 6px; 
+        cursor: pointer; 
+        transition: transform 0.2s, box-shadow 0.2s; 
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .snapshot-thumb:hover { 
+        transform: scale(1.1); 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
     
-    @media (max-width: 768px) {
-        #main-container {
-            flex-direction: column;
-            align-items: center;
-        }
-        #controls {
-            width: 100%;
-            max-width: none;
-            margin-top: 20px;
-        }
-        #editor-area {
-            width: 100%;
-        }
-        #canvas-wrapper {
-            /* Ensure canvas area doesn't overflow */
-            width: 100%;
-            box-sizing: border-box;
-        }
-        #canvas-area {
-            /* Allow scrolling for large images */
-            overflow-x: auto;
-        }
-        .tab {
-            padding: 8px 10px;
-            font-size: 0.9em;
-        }
+    /* メニューに戻るボタン */
+    .menu-btn {
+        position: absolute; 
+        top: 20px; 
+        right: 20px; 
+        font-size: 14px; 
+        font-weight: bold;
+        color: var(--text-muted); 
+        text-decoration: none; 
+        background: var(--card-color); 
+        padding: 8px 18px; 
+        border-radius: 20px; 
+        z-index: 1000;
+        border: 2px solid #dee2e6;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        transition: all 0.2s ease;
+    }
+    .menu-btn:hover {
+        color: var(--active-tab-bg);
+        border-color: var(--secondary-color);
+        background: var(--hover-color);
     }
 </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
+<a href="menu.html" class="menu-btn">メニューに戻る</a>
 
 <div class="container">
     <header class="header">
@@ -146,7 +340,7 @@
     </header>
     
     <input type="file" id="fileInput" accept="image/*">
-    <div id="status">画像を選択してください</div>
+    <div><div id="status">画像を選択してください</div></div>
 
     <div id="main-container">
         <div id="editor-area">
@@ -644,7 +838,7 @@ function drawRulers() {
     ctxRulerX.clearRect(0,0,w,20);
     ctxRulerY.clearRect(0,0,20,h);
 
-    ctxRulerX.fillStyle = ctxRulerY.fillStyle = '#dcdcdc';
+    ctxRulerX.fillStyle = ctxRulerY.fillStyle = '#adb5bd';
     ctxRulerX.font = ctxRulerY.font = '10px sans-serif';
 
     for (let i = 0; i < w; i += 10) {
@@ -743,5 +937,3 @@ document.getElementById('faceDetect').addEventListener('click', () => {
 
 </body>
 </html>
-
-
