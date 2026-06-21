@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多機能音声編集ワークベンチ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
     <style>
         :root {
             --bg: #07111f;
@@ -143,7 +144,7 @@
         .mini span {
             color: var(--muted);
             font-size: 13px;
-            line-line: 1.55;
+            line-height: 1.55;
         }
 
         .source {
@@ -192,6 +193,7 @@
             color: #ffffff;
         }
 
+        /* セレクトボックスのドロップダウン選択肢のみ文字を黒にする */
         .field select option {
             color: #000000;
         }
@@ -456,7 +458,7 @@
                 <div class="mini"><strong>共有音声ソース</strong><span>1つの音楽ファイルを読み込むと、各カテゴリの機能で共通利用・テスト再生できます。</span></div>
                 <div class="mini"><strong>視覚的アナライザー</strong><span>再生周波数をリアルタイム解析し、オーディオ波形として画面上に滑らかに描画します。</span></div>
                 <div class="mini"><strong>精密エフェクト処理</strong><span>フィルター、ディストーション、空間残響（ディレイ）などを重ねて適用可能です。</span></div>
-                <div class="mini"><strong>自由なWAV変換エクスポート</strong><span>トリミングした範囲やエフェクトを焼き付けた状態で、いつでもWAV保存が可能。</span></div>
+                <div class="mini"><strong>自由な音声変換エクスポート</strong><span>トリミング範囲やエフェクトを焼き付けた状態で、WAVまたはMP3保存が可能。</span></div>
             </div>
         </section>
 
@@ -475,7 +477,7 @@
         <button class="active" data-category="transform">1. 視覚化・再生調整<small>リアルタイム波形 / 速度制御</small></button>
         <button data-category="compress">2. 音質・エフェクト<small>ラジオ風 / 空間残響 / ピッチ変調</small></button>
         <button data-category="filter">3. 切り出し・トリミング<small>秒数指定カット / 部分試聴</small></button>
-        <button data-category="bulk">4. 変換・書き出し<small>加工済みWAVへのマスター出力</small></button>
+        <button data-category="bulk">4. 変換・書き出し<small>加工済みWAV・MP3出力</small></button>
     </nav>
 
     <section class="panel category active" data-panel="transform">
@@ -581,24 +583,33 @@
     <section class="panel category" data-panel="bulk">
         <div class="section-head">
             <div>
-                <h2>マスター変換・WAVエクスポート</h2>
+                <h2>マスター変換・音声エクスポート</h2>
                 <p class="section-desc">これまでのタブで設定したトリミング範囲、エフェクト、速度設定をすべて焼き付けた状態の音声ファイルを生成します。</p>
             </div>
         </div>
         <div class="cards" style="grid-template-columns: 1fr;">
             <article class="card">
                 <h3>加工済み音声のレンダリング保存・分割オプション</h3>
-                <p>「1〜3」のタブで調整した内容を適用し、指定した分割ルールに沿ってWAV出力します。</p>
+                <p>「1〜3」のタブで調整した内容を適用し、指定した分割ルールとフォーマットに沿って一括出力します。</p>
                 <div class="field" style="margin-bottom: 18px;"><label>対象音声（未選択時は共有ソースを使用）</label><input type="file" id="bulk-file" accept="audio/*"></div>
                 
                 <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 18px;">
-                    <div class="field">
-                        <label>分割モードの指定</label>
-                        <select id="export-split-mode">
-                            <option value="none">分割なし（1本のWAVとして出力）</option>
-                            <option value="count">N個に等分割</option>
-                            <option value="seconds">XXX秒ごとに分割</option>
-                        </select>
+                    <div class="row-2">
+                        <div class="field">
+                            <label>出力フォーマット</label>
+                            <select id="export-format">
+                                <option value="wav">WAV (.wav) - 高音質・無圧縮</option>
+                                <option value="mp3">MP3 (.mp3) - 高圧縮（※保存処理に時間がかかります）</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>分割モードの指定</label>
+                            <select id="export-split-mode">
+                                <option value="none">分割なし（1本のファイルとして出力）</option>
+                                <option value="count">N個に等分割</option>
+                                <option value="seconds">XXX秒ごとに分割</option>
+                            </select>
+                        </div>
                     </div>
                     
                     <div class="field" id="split-count-wrap" style="display:none; margin-top:12px;">
@@ -614,7 +625,7 @@
                 </div>
 
                 <div class="action">
-                    <button id="export-wav" style="background: linear-gradient(to right, #10b981, #059669); padding: 18px 24px;">加工済みWAVとしてローカル保存</button>
+                    <button id="export-wav" style="background: linear-gradient(to right, #10b981, #059669); padding: 18px 24px;">加工済み音声としてローカル保存</button>
                 </div>
                 <div class="status" id="export-status"></div>
             </article>
@@ -827,7 +838,7 @@
         return `変換：${result}`;
     }
 
-    // 4.分割設定UIの動的表示切り替えと日本語表記リアルタイム更新
+    // 分割設定UIの動的表示切り替えと日本語表記リアルタイム更新
     const splitModeSelect = document.getElementById('export-split-mode');
     const splitCountWrap = document.getElementById('split-count-wrap');
     const splitSecondsWrap = document.getElementById('split-seconds-wrap');
@@ -991,13 +1002,16 @@
     document.getElementById('trim-stop').addEventListener('click', stopAllAudio);
 
 
-    // 4. 加工付きWAVマスター出力 & 新設マルチ分割エクスポート
+    // 4. 加工付き音声マスター出力 & マルチ分割エクスポート（WAV / MP3 両対応）
     document.getElementById('export-wav').addEventListener('click', async () => {
         ensureAudioContext();
         try {
             const { buffer, file } = await resolveAudioSourceAsync('bulk-file', 'export-status');
             if (!buffer) return showStatus('export-status', '書き出す音声データがありません。', 'error');
             
+            // 選択された出力フォーマット (wav / mp3)
+            const exportFormat = document.getElementById('export-format').value;
+
             // 各種エフェクト・速度パラメータの抽出
             const speed = parseFloat(document.getElementById('transform-speed').value) || 1;
             const detune = parseInt(document.getElementById('fx-detune').value) || 0;
@@ -1046,11 +1060,17 @@
                 }
             }
 
-            showStatus('export-status', `ブラウザ内レンダリングを開始します（全 ${chunks.length} ファイル）...`, 'info');
+            const totalChunks = chunks.length;
+            // 総ファイル数の文字桁数を求める（例: 5個なら1桁, 12個なら2桁, 105個なら3桁）
+            const maxDigits = String(totalChunks).length;
+
+            showStatus('export-status', `ブラウザ内レンダリングを開始します（全 ${totalChunks} ファイル / フォーマット: ${exportFormat.toUpperCase()}）...`, 'info');
 
             // 各チャンクを同期・レンダリングループ処理
-            for (let chunk of chunks) {
-                showStatus('export-status', `処理中 (${chunk.index !== null ? chunk.index : 1}/${chunks.length}): レンダリング中...`, 'info');
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = chunks[i];
+                const currentNum = i + 1;
+                showStatus('export-status', `処理中 (${currentNum}/${totalChunks}): レンダリング中...`, 'info');
 
                 const sampleRate = buffer.sampleRate;
                 const numChannels = buffer.numberOfChannels;
@@ -1077,28 +1097,100 @@
 
                 // レンダリング完了を待機
                 const renderedBuffer = await offlineCtx.startRendering();
-                const wavBlob = encodeWAV(renderedBuffer);
-                const url = URL.createObjectURL(wavBlob);
+                
+                let finalBlob;
+                if (exportFormat === 'mp3') {
+                    showStatus('export-status', `処理中 (${currentNum}/${totalChunks}): MP3へローカル計算圧縮中（数秒〜数十秒かかります）...`, 'info');
+                    finalBlob = encodeMP3(renderedBuffer);
+                } else {
+                    finalBlob = encodeWAV(renderedBuffer);
+                }
+
+                const url = URL.createObjectURL(finalBlob);
                 
                 // ダウンロードトリガー
                 const a = document.createElement('a');
                 a.href = url;
+                
+                // 元ファイル名を取得
                 const baseName = file.name.split('.')[0] || 'audio';
-                const subSuffix = chunk.index !== null ? `_part${chunk.index}` : '';
-                a.download = `edited_${baseName}${subSuffix}.wav`;
+                
+                // 連番文字列の作成（総ファイル数の桁数に合わせて0埋め。分割なしの場合は空）
+                let subSuffix = '';
+                if (chunk.index !== null) {
+                    const zeroPaddedIndex = String(chunk.index).padStart(maxDigits, '0');
+                    subSuffix = `_${zeroPaddedIndex}`;
+                }
+                
+                a.download = `edited_${baseName}${subSuffix}.${exportFormat}`;
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
 
-                // 複数ファイルの連続DLによるブラウザの詰まり防止のためにわずかなラグを挟む
-                await new Promise(r => setTimeout(r, 300));
+                // メモリ解放
+                URL.revokeObjectURL(url);
+
+                // 連続ダウンロードをブラウザに拒否・ブロックされないよう、WAV/MP3それぞれで十分な待機時間を確保
+                const delayTime = exportFormat === 'mp3' ? 600 : 400;
+                await new Promise(r => setTimeout(r, delayTime));
             }
 
-            showStatus('export-status', `完了！ すべての加工済みWAVファイル (${chunks.length}本) を書き出して保存しました。`, 'success');
+            showStatus('export-status', `完了！ すべての加工済み音声ファイル (${totalChunks}本) を ${exportFormat.toUpperCase()} 形式で完全に書き出して一括保存しました。`, 'success');
         } catch (err) {
             console.error(err);
-            showStatus('export-status', 'マスター書き出し・分割処理中にエラーが発生しました。', 'error');
+            showStatus('export-status', 'マスター書き出し・変換処理中にエラーが発生しました。', 'error');
         }
     });
 
+    // AudioBufferをローカル上でMP3(128kbps)へエンコードする関数
+    function encodeMP3(audioBuffer) {
+        const channels = audioBuffer.numberOfChannels;
+        const sampleRate = audioBuffer.sampleRate;
+        
+        // lamejsによるステレオMP3エンコーダーの初期化 (128kbps)
+        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+        const mp3Data = [];
+
+        // Float32配列をlamejsが要求するInt16(PCM)に変換
+        const leftData = audioBuffer.getChannelData(0);
+        const rightData = channels > 1 ? audioBuffer.getChannelData(1) : leftData; // モノラルなら左右を共用
+
+        const sampleLength = leftData.length;
+        const leftInt16 = new Int16Array(sampleLength);
+        const rightInt16 = new Int16Array(sampleLength);
+
+        for (let i = 0; i < sampleLength; i++) {
+            // 左チャンネルをInt16範囲へクリッピング＆キャスト
+            let sL = Math.max(-1, Math.min(1, leftData[i]));
+            leftInt16[i] = sL < 0 ? sL * 0x8000 : sL * 0x7FFF;
+
+            // 右チャンネルをInt16範囲へクリッピング＆キャスト
+            let sR = Math.max(-1, Math.min(1, rightData[i]));
+            rightInt16[i] = sR < 0 ? sR * 0x8000 : sR * 0x7FFF;
+        }
+
+        // 1152サンプルごとのチャンクに小分けしてエンコード
+        const bufferSize = 1152;
+        for (let i = 0; i < sampleLength; i += bufferSize) {
+            const leftChunk = leftInt16.subarray(i, i + bufferSize);
+            const rightChunk = rightInt16.subarray(i, i + bufferSize);
+            
+            const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+            if (mp3buf.length > 0) {
+                mp3Data.push(new Uint8Array(mp3buf));
+            }
+        }
+
+        // エンコードの破棄・フラッシュ処理
+        const mp3buf = mp3encoder.flush();
+        if (mp3buf.length > 0) {
+            mp3Data.push(new Uint8Array(mp3buf));
+        }
+
+        return new Blob(mp3Data, { type: 'audio/mp3' });
+    }
+
+    // WAVエンコード関数
     function encodeWAV(buffer) {
         let numOfChan = buffer.numberOfChannels,
             length = buffer.length * numOfChan * 2 + 44,
