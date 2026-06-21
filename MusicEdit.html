@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多機能音声編集ワークベンチ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --bg: #07111f;
@@ -606,8 +607,8 @@
                             <label>分割モードの指定</label>
                             <select id="export-split-mode">
                                 <option value="none">分割なし（1本のファイルとして出力）</option>
-                                <option value="count">N個に等分割</option>
-                                <option value="seconds">XXX秒ごとに分割</option>
+                                <option value="count">N個に等分割（※ZIPにまとめて保存されます）</option>
+                                <option value="seconds">XXX秒ごとに分割（※ZIPにまとめて保存されます）</option>
                             </select>
                         </div>
                     </div>
@@ -1002,7 +1003,7 @@
     document.getElementById('trim-stop').addEventListener('click', stopAllAudio);
 
 
-    // 4. 加工付き音声マスター出力 & マルチ分割エクスポート（WAV / MP3 両対応）
+    // 4. 加工付き音声マスター出力 & マルチ分割エクスポート（WAV / MP3 両対応・自動ZIP化対応）
     document.getElementById('export-wav').addEventListener('click', async () => {
         ensureAudioContext();
         try {
@@ -1061,8 +1062,15 @@
             }
 
             const totalChunks = chunks.length;
-            // 総ファイル数の文字桁数を求める（例: 5個なら1桁, 12個なら2桁, 105個なら3桁）
             const maxDigits = String(totalChunks).length;
+            const baseName = file.name.split('.')[0] || 'audio';
+            
+            // 分割モードがある場合はJSZipインスタンスを作成
+            const useZip = (splitMode !== 'none');
+            let zip = null;
+            if (useZip) {
+                zip = new JSZip();
+            }
 
             showStatus('export-status', `ブラウザ内レンダリングを開始します（全 ${totalChunks} ファイル / フォーマット: ${exportFormat.toUpperCase()}）...`, 'info');
 
@@ -1070,7 +1078,7 @@
             for (let i = 0; i < totalChunks; i++) {
                 const chunk = chunks[i];
                 const currentNum = i + 1;
-                showStatus('export-status', `処理中 (${currentNum}/${totalChunks}): レンダリング中...`, 'info');
+                showStatus('export-status', `処理中 (${currentNum}/${totalChunks}): 音声を生成中...`, 'info');
 
                 const sampleRate = buffer.sampleRate;
                 const numChannels = buffer.numberOfChannels;
@@ -1106,36 +1114,52 @@
                     finalBlob = encodeWAV(renderedBuffer);
                 }
 
-                const url = URL.createObjectURL(finalBlob);
-                
-                // ダウンロードトリガー
-                const a = document.createElement('a');
-                a.href = url;
-                
-                // 元ファイル名を取得
-                const baseName = file.name.split('.')[0] || 'audio';
-                
-                // 連番文字列の作成（総ファイル数の桁数に合わせて0埋め。分割なしの場合は空）
+                // 連番文字列の作成（総ファイル数の桁数に合わせて0埋め）
                 let subSuffix = '';
                 if (chunk.index !== null) {
                     const zeroPaddedIndex = String(chunk.index).padStart(maxDigits, '0');
                     subSuffix = `_${zeroPaddedIndex}`;
                 }
+                const outputFileName = `edited_${baseName}${subSuffix}.${exportFormat}`;
+
+                if (useZip) {
+                    // ZIPモードの場合はファイルをZIP内に追加
+                    zip.file(outputFileName, finalBlob);
+                } else {
+                    // 単発出力モードの場合は即時ダウンロード
+                    const url = URL.createObjectURL(finalBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = outputFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+
+                // 画面のフリーズ防止にわずかな猶予を持たせる
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            // ZIP圧縮して出力する処理
+            if (useZip) {
+                showStatus('export-status', `すべての音声データを1つのZIPファイルに圧縮してまとめています...`, 'info');
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipUrl = URL.createObjectURL(zipBlob);
                 
-                a.download = `edited_${baseName}${subSuffix}.${exportFormat}`;
+                const a = document.createElement('a');
+                a.href = zipUrl;
+                a.download = `edited_${baseName}.zip`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
+                URL.revokeObjectURL(zipUrl);
 
-                // メモリ解放
-                URL.revokeObjectURL(url);
-
-                // 連続ダウンロードをブラウザに拒否・ブロックされないよう、WAV/MP3それぞれで十分な待機時間を確保
-                const delayTime = exportFormat === 'mp3' ? 600 : 400;
-                await new Promise(r => setTimeout(r, delayTime));
+                showStatus('export-status', `完了！ すべての加工済み音声ファイル (${totalChunks}本) を1つのZIPファイルにまとめて安全に保存しました！`, 'success');
+            } else {
+                showStatus('export-status', `完了！ 加工済み音声ファイルを ${exportFormat.toUpperCase()} 形式で保存しました。`, 'success');
             }
 
-            showStatus('export-status', `完了！ すべての加工済み音声ファイル (${totalChunks}本) を ${exportFormat.toUpperCase()} 形式で完全に書き出して一括保存しました。`, 'success');
         } catch (err) {
             console.error(err);
             showStatus('export-status', 'マスター書き出し・変換処理中にエラーが発生しました。', 'error');
@@ -1147,29 +1171,24 @@
         const channels = audioBuffer.numberOfChannels;
         const sampleRate = audioBuffer.sampleRate;
         
-        // lamejsによるステレオMP3エンコーダーの初期化 (128kbps)
         const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
         const mp3Data = [];
 
-        // Float32配列をlamejsが要求するInt16(PCM)に変換
         const leftData = audioBuffer.getChannelData(0);
-        const rightData = channels > 1 ? audioBuffer.getChannelData(1) : leftData; // モノラルなら左右を共用
+        const rightData = channels > 1 ? audioBuffer.getChannelData(1) : leftData;
 
         const sampleLength = leftData.length;
         const leftInt16 = new Int16Array(sampleLength);
         const rightInt16 = new Int16Array(sampleLength);
 
         for (let i = 0; i < sampleLength; i++) {
-            // 左チャンネルをInt16範囲へクリッピング＆キャスト
             let sL = Math.max(-1, Math.min(1, leftData[i]));
             leftInt16[i] = sL < 0 ? sL * 0x8000 : sL * 0x7FFF;
 
-            // 右チャンネルをInt16範囲へクリッピング＆キャスト
             let sR = Math.max(-1, Math.min(1, rightData[i]));
             rightInt16[i] = sR < 0 ? sR * 0x8000 : sR * 0x7FFF;
         }
 
-        // 1152サンプルごとのチャンクに小分けしてエンコード
         const bufferSize = 1152;
         for (let i = 0; i < sampleLength; i += bufferSize) {
             const leftChunk = leftInt16.subarray(i, i + bufferSize);
@@ -1181,7 +1200,6 @@
             }
         }
 
-        // エンコードの破棄・フラッシュ処理
         const mp3buf = mp3encoder.flush();
         if (mp3buf.length > 0) {
             mp3Data.push(new Uint8Array(mp3buf));
