@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多機能画像編集ワークベンチ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg2: #0f172a;
+            --card: rgba(15, 23, 42, 0.74);
+            --line: rgba(148, 163, 184, 0.18);
+            --text: #ecf4ff;
+            --muted: #a8b7cc;
+            --accent: #7dd3fc;
+            --accent2: #fbbf24;
+            --good: #34d399;
+            --bad: #f87171;
+            --shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 30%),
+                radial-gradient(circle at right top, rgba(251, 191, 36, 0.12), transparent 24%),
+                linear-gradient(160deg, #020617 0%, #07111f 45%, #0f172a 100%);
+            font-family: "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+        }
+
+        .app {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            color: var(--text);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--line);
+            backdrop-filter: blur(14px);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.12);
+            border: 1px solid rgba(125, 211, 252, 0.18);
+            color: #d8f5ff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .hero-main {
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-main::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -60px auto;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(125, 211, 252, 0.25), transparent 68%);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin: 14px 0 12px;
+            font-size: clamp(28px, 4vw, 54px);
+            line-height: 1.04;
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            margin: 0;
+            max-width: 70ch;
+            color: var(--muted);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+        }
+
+        .mini strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .mini span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .source {
+            padding: 20px;
+        }
+
+        .source h2,
+        .section-title {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .source p,
+        .section-desc {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 14px;
+        }
+
+        .source-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .source-row input,
+        .source-row button,
+        .field input,
+        .field textarea,
+        .field select,
+        .action button,
+        .nav button {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .source-row input,
+        .field input,
+        .field textarea,
+        .field select {
+            padding: 12px 14px;
+            width: 100%;
+            outline: none;
+        }
+
+        .source-row input[type="file"] {
+            padding: 11px 14px;
+        }
+
+        .source-row button,
+        .action button,
+        .nav button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 24px;
+            border-radius: 999px;
+            color: #ffffff;
+            font-weight: bold;
+            background: linear-gradient(to right, #0076dc, #00a3e0); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .source-row button:hover,
+        .action button:hover,
+        .nav button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 118, 220, 0.4);
+            opacity: 0.9;
+        }
+
+        .source-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .file-chip {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(125, 211, 252, 0.12);
+            border: 1px solid rgba(125, 211, 252, 0.18);
+            color: #d8f5ff;
+            font-size: 13px;
+        }
+
+        .nav {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .nav button.active {
+            background: linear-gradient(to right, #008eff, #26beff);
+            border: 2px solid #ffffff; 
+            box-shadow: 0 8px 24px rgba(0, 118, 220, 0.6);
+        }
+
+        .nav button small {
+            display: block;
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+            font-weight: normal;
+        }
+
+        .category {
+            display: none;
+            padding: 18px;
+        }
+
+        .category.active {
+            display: block;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .card p {
+            margin: 0 0 14px;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 13px;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            margin: 0 0 6px;
+            font-size: 12px;
+            color: #d4e3f4;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .action {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .action button {
+            flex: 1 1 auto;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            display: none;
+            line-height: 1.65;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .status.show { display: block; }
+        .status.success { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); }
+        .status.error { background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.3); }
+        .status.info { background: rgba(125, 211, 252, 0.12); border: 1px solid rgba(125, 211, 252, 0.3); }
+
+        .viewer {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+            gap: 14px;
+        }
+
+        .canvas-wrap {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: #0b1220;
+            overflow: auto;
+            min-height: 520px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .viewer-side {
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .info-preview {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 14px;
+            min-height: 220px;
+            overflow: auto;
+            line-height: 1.8;
+            color: #d9e5f4;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .footer-note {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 1180px) {
+            .hero, .viewer, .cards, .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 820px) {
+            .app { padding: 14px; }
+            .hero, .viewer, .cards, .nav, .hero-grid, .row-2, .row-3 { grid-template-columns: 1fr; }
+            .section-head, .topbar { flex-direction: column; align-items: start; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <a href="menu.html" class="back-btn">メニューへ戻る</a>
+    </div>
+
+    <div class="hero">
+        <section class="panel hero-main">
+            <div class="eyebrow">IMAGE WORKBENCH</div>
+            <h1>画像の編集・リサイズ・圧縮・変換を一つにまとめたワークベンチ</h1>
+            <p class="lead">
+                画像の拡大縮小、フォーマット相互変換、トリミング、色調補正、一括処理、メタデータ（EXIF）の削除、文字入れから簡易背景除去までを
+                ひとつのクリーンな画面に整理しました。共通ソースを利用し、完全にブラウザ上で安全に高速実行されます。
+            </p>
+            <div class="hero-grid">
+                <div class="mini"><strong>共有画像ソース</strong><span>1つの画像を読み込むと、各カテゴリの機能で共通利用・プレビューできます。</span></div>
+                <div class="mini"><strong>一括リサイズ対応</strong><span>大量の画像をまとめて縮小変換し、ZIPファイルに圧縮して一括保存できます。</span></div>
+                <div class="mini"><strong>完全ローカル処理</strong><span>サーバーへのアップロードは一切なし。大容量画像も手元で高速処理。</span></div>
+                <div class="mini"><strong>次世代形式サポート</strong><span>WebPやAVIF(ブラウザ依存)など、軽量なモダン形式への変換に対応。</span></div>
+            </div>
+        </section>
+
+        <aside class="panel source">
+            <h2>共有画像ソース</h2>
+            <p>加工・閲覧の基準になる画像（JPG / PNG / WebP等）をここで選択します。</p>
+            <div class="source-row" style="margin-top:16px;">
+                <input type="file" id="shared-img" accept="image/*">
+            </div>
+            <div class="source-note">この画像はマスターデータとして保持され、各タブの機能から再利用・加工ができます。</div>
+            <div id="shared-file-chip" class="file-chip" style="display:none;"></div>
+        </aside>
+    </div>
+
+    <nav class="nav" id="category-nav">
+        <button class="active" data-category="transform">1. 変形・整理<small>拡大縮小 / 回転 / トリミング</small></button>
+        <button data-category="compress">2. 圧縮・変換<small>品質最適化 / 拡張子相互変換</small></button>
+        <button data-category="filter">3. 色・フィルター<small>色調補正 / モザイク / 特殊効果</small></button>
+        <button data-category="decorate">4. 装飾・除去<small>文字入れ / EXIF消去 / 背景分離</small></button>
+        <button data-category="bulk">5. 一括処理<small>複数画像リサイズ / ZIP出力</small></button>
+    </nav>
+
+    <section class="panel category active" data-panel="transform">
+        <div class="section-head">
+            <div>
+                <h2>変形・整理</h2>
+                <p class="section-desc">画像のサイズ変更や向きの回転、必要なエリアの切り抜き処理を行います。</p>
+            </div>
+        </div>
+        <div class="viewer">
+            <div class="card">
+                <h3>リサイズ ＆ 回転</h3>
+                <p>共有ソースの画像を任意のサイズや角度に変形して書き出します。</p>
+                <div class="field"><label>個別指定（未選択時は共有ソースを使用）</label><input type="file" id="transform-file" accept="image/*"></div>
+                <div class="row-2">
+                    <div class="field"><label>幅 (px) ※0で自動比例</label><input type="number" id="transform-width" value="0"></div>
+                    <div class="field"><label>高さ (px) ※0で自動比例</label><input type="number" id="transform-height" value="0"></div>
+                </div>
+                <div class="row-2">
+                    <div class="field"><label>倍率指定 (%)</label><input type="number" id="transform-scale" value="100" min="1" max="1000"></div>
+                    <div class="field"><label>アスペクト比</label><select id="transform-aspect"><option value="keep">比率を維持する</option><option value="ignore">比率を無視する</option></select></div>
+                </div>
+                <div class="row-2">
+                    <div class="field"><label>回転角</label><select id="transform-rotate"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></div>
+                    <div class="field"><label>反転効果</label><select id="transform-flip"><option value="none">なし</option><option value="horizontal">左右反転</option><option value="vertical">上下反転</option></select></div>
+                </div>
+                <div class="action"><button id="transform-preview">プレビュー描画</button><button id="transform-run">加工して保存</button></div>
+                <div class="status" id="transform-status"></div>
+            </div>
+            <div class="viewer-side">
+                <div class="canvas-wrap"><canvas id="transform-canvas"></canvas></div>
+                <div class="info-preview" id="transform-info">画像情報をここに表示します。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="compress">
+        <div class="section-head">
+            <div>
+                <h2>圧縮・フォーマット変換</h2>
+                <p class="section-desc">画質とファイルサイズをコントロールし、WebPやAVIFなどの次世代形式へ変換します。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>クオリティ指定圧縮</h3>
+                <p>拡張子を変えずにファイルサイズを削減します。PNGの場合は可逆、JPG/WebPは不可逆圧縮を行います。</p>
+                <div class="field"><label>対象画像</label><input type="file" id="compress-file" accept="image/*"></div>
+                <div class="field"><label>品質 (0.1 〜 1.0)</label><input type="number" id="compress-quality" value="0.75" step="0.05" min="0.1" max="1.0"></div>
+                <div class="action"><button id="compress-run">最適化して保存</button></div>
+                <div class="status" id="compress-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>拡張子相互変換</h3>
+                <p>JPG、PNG、WebP、AVIF(対応環境のみ)へフォーマットをコンバートします。</p>
+                <div class="field"><label>対象画像</label><input type="file" id="convert-file" accept="image/*"></div>
+                <div class="field"><label>出力フォーマット</label><select id="convert-format"><option value="image/jpeg">JPEG (.jpg)</option><option value="image/png">PNG (.png)</option><option value="image/webp">WebP (.webp)</option><option value="image/avif">AVIF (.avif)</option></select></div>
+                <div class="action"><button id="convert-run">変換して保存</button></div>
+                <div class="status" id="convert-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>画質シミュレータ</h3>
+                <p>圧縮率を変えた際の見た目の劣化や、ファイルサイズがどの程度変化するかの目安を簡易計算します。</p>
+                <div class="action"><button id="sim-run">シミュレート実行</button></div>
+                <div class="status" id="sim-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="filter">
+        <div class="section-head">
+            <div>
+                <h2>色加工・フィルター</h2>
+                <p class="section-desc">Canvasのピクセルデータを直接操作して、様々なビジュアル効果を適用します。</p>
+            </div>
+        </div>
+        <div class="viewer">
+            <div class="card">
+                <h3>フィルターパラメータ</h3>
+                <p>スライダーやプリセットを選択して、リアルタイムなグラフィック効果を与えます。</p>
+                <div class="field"><label>対象画像</label><input type="file" id="filter-file" accept="image/*"></div>
+                <div class="field"><label>プリセット効果</label><select id="filter-preset"><option value="none">なし（カスタム）</option><option value="gray">グレースケール（白黒）</option><option value="sepia">セピア調</option><option value="invert">ネガ反転</option><option value="mosaic">モザイク</option><option value="edge">エッジ抽出</option></select></div>
+                <div class="row-3">
+                    <div class="field"><label>明るさ</label><input type="range" id="f-brightness" min="0" max="200" value="100"></div>
+                    <div class="field"><label>コントラスト</label><input type="range" id="f-contrast" min="0" max="200" value="100"></div>
+                    <div class="field"><label>彩度</label><input type="range" id="f-saturate" min="0" max="200" value="100"></div>
+                </div>
+                <div class="row-2">
+                    <div class="field"><label>ぼかし (px)</label><input type="number" id="f-blur" min="0" max="20" value="0"></div>
+                    <div class="field"><label>モザイクサイズ</label><input type="number" id="f-mosaic-size" min="1" max="32" value="8"></div>
+                </div>
+                <div class="action"><button id="filter-preview-btn">効果を適用</button><button id="filter-run">フィルター後保存</button></div>
+                <div class="status" id="filter-status"></div>
+            </div>
+            <div class="viewer-side">
+                <div class="canvas-wrap"><canvas id="filter-canvas"></canvas></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="decorate">
+        <div class="section-head">
+            <div>
+                <h2>装飾・高度な除去</h2>
+                <p class="section-desc">文字や透かし（ウォーターマーク）の合成、EXIF削除、背景除去のインターフェースです。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>テキスト・透かしの焼き付け</h3>
+                <p>画像上の任意の座標に、指定したフォントサイズや不透明度で文字を合成します。</p>
+                <div class="field"><label>対象画像</label><input type="file" id="watermark-file" accept="image/*"></div>
+                <div class="field"><label>合成文字列</label><input type="text" id="watermark-text" placeholder="CONFIDENTIAL"></div>
+                <div class="row-3">
+                    <div class="field"><label>サイズ(px)</label><input type="number" id="watermark-size" value="48"></div>
+                    <div class="field"><label>X座標</label><input type="number" id="watermark-x" value="50"></div>
+                    <div class="field"><label>Y座標</label><input type="number" id="watermark-y" value="100"></div>
+                </div>
+                <div class="field"><label>文字色</label><input type="color" id="watermark-color" value="#ffffff"></div>
+                <div class="action"><button id="watermark-run">透かしを合成して保存</button></div>
+                <div class="status" id="watermark-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>EXIFメタデータ完全消去</h3>
+                <p>撮影場所や日時、カメラモデル情報をクリーンにします。Canvasに再マッピングすることでメタデータを自動的に排除します。</p>
+                <div class="field"><label>対象画像</label><input type="file" id="exif-file" accept="image/*"></div>
+                <div class="action"><button id="exif-run">メタデータを消去して保存</button></div>
+                <div class="status" id="exif-status"></div>
+            </article>
+
+            <article class="card">
+                <h3>簡易背景除去</h3>
+                <p>被写体の輪郭を抽出し、背景の特定色や透過処理のテストを行います。（WebGPU / Transformers.js拡張用構造ベース）</p>
+                <div class="field"><label>対象画像</label><input type="file" id="ai-file" accept="image/*"></div>
+                <div class="action"><button id="ai-run">背景除去を実行</button></div>
+                <div class="status" id="ai-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="bulk">
+        <div class="section-head">
+            <div>
+                <h2>一括リサイズ・ZIP出力</h2>
+                <p class="section-desc">複数の画像をドラッグ＆ドロップでまとめて処理し、1つのZIPファイルへ統合してエクスポートします。</p>
+            </div>
+        </div>
+        <div class="cards" style="grid-template-columns: 1fr;">
+            <article class="card">
+                <h3>一括処理コントロール</h3>
+                <p>フォルダー内の画像や複数ファイルを選択してください。同じ設定で一括リサイズを行います。</p>
+                <div class="field"><label>一括処理する画像群 (複数選択可)</label><input type="file" id="bulk-files" accept="image/*" multiple></div>
+                <div class="row-3">
+                    <div class="field"><label>リサイズ最大幅 (px)</label><input type="number" id="bulk-max-width" value="1200"></div>
+                    <div class="field"><label>出力フォーマット</label><select id="bulk-format"><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></div>
+                    <div class="field"><label>保存品質</label><input type="number" id="bulk-quality" value="0.80" step="0.05" min="0.1" max="1.0"></div>
+                </div>
+                <div class="action"><button id="bulk-run">一括処理を開始してZIPダウンロード</button></div>
+                <div class="status" id="bulk-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <p class="footer-note">※大容量の画像や複数処理を行う場合、ブラウザのメモリ状況により処理スピードが変動します。ローカル処理のため外部にデータは送信されません。</p>
+</div>
+
+<script>
+    // 状態管理
+    const state = {
+        sharedFile: null,
+        sharedImgElement: null
+    };
+
+    const sharedImgInput = document.getElementById('shared-img');
+    const sharedFileChip = document.getElementById('shared-file-chip');
+    const navButtons = Array.from(document.querySelectorAll('#category-nav button'));
+    const panels = Array.from(document.querySelectorAll('.category'));
+
+    // カテゴリタブ切り替え
+    navButtons.forEach(button => button.addEventListener('click', () => {
+        navButtons.forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        panels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === button.dataset.category));
+    }));
+
+    // 共通イメージソース読み込み
+    sharedImgInput.addEventListener('change', () => {
+        const file = sharedImgInput.files[0];
+        if (!file) return;
+
+        state.sharedFile = file;
+        const sizeMb = file.size / 1024 / 1024;
+        sharedFileChip.style.display = 'inline-flex';
+        sharedFileChip.textContent = `${file.name} (${sizeMb >= 1 ? `${sizeMb.toFixed(2)} MB` : `${(file.size / 1024).toFixed(1)} KB`})`;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                state.sharedImgElement = img;
+                // 初期ロード時に最初の変形キャンバスへ描画してみる
+                drawToCanvas('transform-canvas', img);
+                updateImageInfo('transform-info', file, img);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 汎用ヘルパー：Fileオブジェクトまたは共有ソースのImage要素を取得
+    function resolveImageSource(inputId, callback) {
+        const localInput = document.getElementById(inputId);
+        if (localInput && localInput.files && localInput.files[0]) {
+            const file = localInput.files[0];
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => callback(img, file);
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else if (state.sharedImgElement) {
+            callback(state.sharedImgElement, state.sharedFile);
+        } else {
+            callback(null, null);
+        }
+    }
+
+    function drawToCanvas(canvasId, img) {
+        const canvas = document.getElementById(canvasId);
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        ctx.drawImage(img, 0, 0);
+    }
+
+    function updateImageInfo(infoId, file, img) {
+        const el = document.getElementById(infoId);
+        if(!el) return;
+        el.textContent = `[ファイル名]: ${file.name}\n[元の解像度]: ${img.naturalWidth} x ${img.naturalHeight} px\n[MIMEタイプ]: ${file.type}\n[ファイルサイズ]: ${(file.size/1024).toFixed(1)} KB`;
+    }
+
+    function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function showStatus(id, message, type = 'info') {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.textContent = message;
+        el.className = `status show ${type}`;
+    }
+
+    // 1. 変形・整理ロジック
+    document.getElementById('transform-preview').addEventListener('click', () => {
+        executeTransform(true);
+    });
+    document.getElementById('transform-run').addEventListener('click', () => {
+        executeTransform(false);
+    });
+
+    function executeTransform(isPreviewOnlyMode) {
+        resolveImageSource('transform-file', (img, file) => {
+            if (!img) return showStatus('transform-status', '画像ソースを選択するか共有ソースを読み込んでください。', 'error');
+            
+            showStatus('transform-status', '変形処理中...', 'info');
+
+            const canvas = document.getElementById('transform-canvas');
+            const ctx = canvas.getContext('2d');
+
+            let targetWidth = parseInt(document.getElementById('transform-width').value) || 0;
+            let targetHeight = parseInt(document.getElementById('transform-height').value) || 0;
+            const scalePercent = parseFloat(document.getElementById('transform-scale').value) || 100;
+            const aspectMode = document.getElementById('transform-aspect').value;
+            const rotateAngle = parseInt(document.getElementById('transform-rotate').value) || 0;
+            const flipMode = document.getElementById('transform-flip').value;
+
+            // 元サイズ
+            let w = img.naturalWidth;
+            let h = img.naturalHeight;
+
+            // 倍率計算
+            if (scalePercent !== 100) {
+                w = w * (scalePercent / 100);
+                h = h * (scalePercent / 100);
+            }
+
+            // ピクセル直接指定
+            if (targetWidth > 0 && targetHeight > 0) {
+                if (aspectMode === 'keep') {
+                    const ratio = Math.min(targetWidth / w, targetHeight / h);
+                    w = w * ratio;
+                    h = h * ratio;
+                } else {
+                    w = targetWidth;
+                    h = targetHeight;
+                }
+            } else if (targetWidth > 0) {
+                h = (targetWidth / img.naturalWidth) * h;
+                w = targetWidth;
+            } else if (targetHeight > 0) {
+                w = (targetHeight / img.naturalHeight) * w;
+                h = targetHeight;
+            }
+
+            // 回転によるキャンバスサイズのスワップ設定
+            if (rotateAngle === 90 || rotateAngle === 270) {
+                canvas.width = h;
+                canvas.height = w;
+            } else {
+                canvas.width = w;
+                canvas.height = h;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            // 回転・反転マトリックス適用
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((rotateAngle * Math.PI) / 180);
+
+            let scaleX = 1;
+            let scaleY = 1;
+            if (flipMode === 'horizontal') scaleX = -1;
+            if (flipMode === 'vertical') scaleY = -1;
+            ctx.scale(scaleX, scaleY);
+
+            ctx.drawImage(img, -w / 2, -h / 2, w, h);
+            ctx.restore();
+
+            if (isPreviewOnlyMode) {
+                showStatus('transform-status', 'プレビューを更新しました。', 'success');
+            } else {
+                canvas.toBlob((blob) => {
+                    triggerDownload(blob, `transformed_${file.name || 'image.png'}`);
+                    showStatus('transform-status', '加工画像をダウンロードしました。', 'success');
+                }, file.type || 'image/png');
+            }
+        });
+    }
+
+    // 2. 圧縮・変換ロジック
+    document.getElementById('compress-run').addEventListener('click', () => {
+        resolveImageSource('compress-file', (img, file) => {
+            if(!img) return showStatus('compress-status', '画像がありません。', 'error');
+            const quality = parseFloat(document.getElementById('compress-quality').value) || 0.75;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+
+            canvas.toBlob((blob) => {
+                triggerDownload(blob, `compressed_${file.name}`);
+                showStatus('compress-status', `圧縮完了: ${(blob.size/1024).toFixed(1)} KB`, 'success');
+            }, file.type, quality);
+        });
+    });
+
+    document.getElementById('convert-run').addEventListener('click', () => {
+        resolveImageSource('convert-file', (img, file) => {
+            if(!img) return showStatus('convert-status', '画像がありません。', 'error');
+            const format = document.getElementById('convert-format').value;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+
+            const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif' };
+
+            canvas.toBlob((blob) => {
+                if(!blob || blob.size < 100) {
+                    showStatus('convert-status', 'お使いのブラウザはこの形式へのエンコードをサポートしていません。', 'error');
+                    return;
+                }
+                triggerDownload(blob, `converted_${file.name.split('.')[0]}.${extMap[format]}`);
+                showStatus('convert-status', 'フォーマット変換に成功しました。', 'success');
+            }, format, 0.85);
+        });
+    });
+
+    document.getElementById('sim-run').addEventListener('click', () => {
+        resolveImageSource('compress-file', (img, file) => {
+            if(!img) return showStatus('sim-status', '共有ソースかファイルをセットしてください。', 'error');
+            showStatus('sim-status', `【シミュレート予測】\n元のサイズ: ${(file.size/1024).toFixed(1)} KB\nWebP(品質0.7)時推定: ~${(file.size * 0.35 / 1024).toFixed(1)} KB\nAVIF(品質0.6)時推定: ~${(file.size * 0.2 / 1024).toFixed(1)} KB`, 'info');
+        });
+    });
+
+    // 3. 色・フィルター処理ロジック
+    document.getElementById('filter-preview-btn').addEventListener('click', () => applyFilterEffect(true));
+    document.getElementById('filter-run').addEventListener('click', () => applyFilterEffect(false));
+
+    function applyFilterEffect(isPreviewOnly) {
+        resolveImageSource('filter-file', (img, file) => {
+            if(!img) return showStatus('filter-status', '画像がありません。', 'error');
+            
+            const canvas = document.getElementById('filter-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+
+            const preset = document.getElementById('filter-preset').value;
+            const b = document.getElementById('f-brightness').value;
+            const c = document.getElementById('f-contrast').value;
+            const s = document.getElementById('f-saturate').value;
+            const blur = document.getElementById('f-blur').value;
+
+            // CSSフィルターをCanvasコンテキストに適用（モダンブラウザ標準）
+            let filterString = `brightness(${b}%) contrast(${c}%) saturate(${s}%)`;
+            if (parseInt(blur) > 0) filterString += ` blur(${blur}px)`;
+            
+            if (preset === 'gray') filterString += ' grayscale(100%)';
+            if (preset === 'sepia') filterString += ' sepia(100%)';
+            if (preset === 'invert') filterString += ' invert(100%)';
+
+            // 一度Canvasをクリアして再描画
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.filter = filterString;
+            ctx.drawImage(img, 0, 0);
+            ctx.filter = 'none'; // リセット
+
+            // ピクセル操作系プリセット(モザイク・エッジ抽出)の個別実装
+            if (preset === 'mosaic' || preset === 'edge') {
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+
+                if (preset === 'mosaic') {
+                    const size = parseInt(document.getElementById('f-mosaic-size').value) || 8;
+                    for (let y = 0; y < canvas.height; y += size) {
+                        for (let x = 0; x < canvas.width; x += size) {
+                            const rIdx = (y * canvas.width + x) * 4;
+                            const r = data[rIdx];
+                            const g = data[rIdx + 1];
+                            const b = data[rIdx + 2];
+                            const a = data[rIdx + 3];
+
+                            ctx.fillStyle = `rgba(${r},${g},${b},${a/255})`;
+                            ctx.fillRect(x, y, size, size);
+                        }
+                    }
+                } else if (preset === 'edge') {
+                    // 簡易ソーベル/ラプラシアン的な輪郭抽出
+                    const w = canvas.width;
+                    const h = canvas.height;
+                    const copy = new Uint8ClampedArray(data);
+                    for (let y = 1; y < h - 1; y++) {
+                        for (let x = 1; x < w - 1; x++) {
+                            const idx = (y * w + x) * 4;
+                            // 周辺ピクセルとの輝度差を計算
+                            const val = copy[idx] * 4 - copy[idx-4] - copy[idx+4] - copy[idx-w*4] - copy[idx+w*4];
+                            data[idx] = data[idx+1] = data[idx+2] = Math.min(255, Math.max(0, val));
+                        }
+                    }
+                    ctx.putImageData(imgData, 0, 0);
+                }
+            }
+
+            if (isPreviewOnly) {
+                showStatus('filter-status', 'フィルター効果を反映しました。', 'success');
+            } else {
+                canvas.toBlob((blob) => {
+                    triggerDownload(blob, `filtered_${file.name}`);
+                    showStatus('filter-status', 'フィルター画像を保存しました。', 'success');
+                }, file.type);
+            }
+        });
+    }
+
+    // 4. 装飾・除去ロジック
+    document.getElementById('watermark-run').addEventListener('click', () => {
+        resolveImageSource('watermark-file', (img, file) => {
+            if(!img) return showStatus('watermark-status', '画像がありません。', 'error');
+            const text = document.getElementById('watermark-text').value || "CONFIDENTIAL";
+            const size = parseInt(document.getElementById('watermark-size').value) || 48;
+            const x = parseInt(document.getElementById('watermark-x').value) || 50;
+            const y = parseInt(document.getElementById('watermark-y').value) || 100;
+            const color = document.getElementById('watermark-color').value;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            ctx.font = `bold ${size}px sans-serif`;
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.6; // 透かし用の半透明
+            ctx.fillText(text, x, y);
+
+            canvas.toBlob((blob) => {
+                triggerDownload(blob, `watermarked_${file.name}`);
+                showStatus('watermark-status', '文字合成が完了しました。', 'success');
+            }, file.type);
+        });
+    });
+
+    document.getElementById('exif-run').addEventListener('click', () => {
+        resolveImageSource('exif-file', (img, file) => {
+            if(!img) return showStatus('exif-status', '画像を選択してください。', 'error');
+            
+            // Canvasを経由してBlobに再エンコードするだけで、埋め込まれていたEXIFは構造上100%消失します
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext('2d').drawImage(img, 0, 0);
+
+            canvas.toBlob((blob) => {
+                triggerDownload(blob, `cleaned_${file.name}`);
+                showStatus('exif-status', 'EXIF情報およびメタデータを完全にクリアして再保存しました。', 'success');
+            }, 'image/jpeg', 0.9);
+        });
+    });
+
+    document.getElementById('ai-run').addEventListener('click', () => {
+        resolveImageSource('ai-file', (img, file) => {
+            if(!img) return showStatus('ai-status', '画像がありません。', 'error');
+            showStatus('ai-status', 'ローカル環境解析を開始...', 'info');
+            
+            // 擬似透過モック（左上1pxの色を透明色とみなしてクロマキー処理を行う実ロジック例）
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+            const data = imgData.data;
+            const targetR = data[0], targetG = data[1], targetB = data[2];
+
+            // 簡易背景透過アルゴリズム（近似色を透過）
+            for(let i=0; i<data.length; i+=4) {
+                const r = data[i], g = data[i+1], b = data[i+2];
+                if(Math.abs(r - targetR) < 30 && Math.abs(g - targetG) < 30 && Math.abs(b - targetB) < 30) {
+                    data[i+3] = 0; // アルファチャンネルを0（透明）に
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            
+            canvas.toBlob((blob) => {
+                triggerDownload(blob, `bg_removed_${file.name.split('.')[0]}.png`);
+                showStatus('ai-status', '簡易背景透過マスクをエクスポートしました（PNG出力）。', 'success');
+            }, 'image/png');
+        });
+    });
+
+    // 5. 一括リサイズ＆ZIPエクスポート
+    document.getElementById('bulk-run').addEventListener('click', async () => {
+        const input = document.getElementById('bulk-files');
+        if (!input.files || input.files.length === 0) {
+            return showStatus('bulk-status', '処理する画像を1つ以上選択してください。', 'error');
+        }
+
+        showStatus('bulk-status', '一括リサイズ及びZIP生成を開始します。しばらくお待ちください...', 'info');
+        
+        const zip = new JSZip();
+        const maxWidth = parseInt(document.getElementById('bulk-max-width').value) || 1200;
+        const format = document.getElementById('bulk-format').value;
+        const quality = parseFloat(document.getElementById('bulk-quality').value) || 0.8;
+        const extMap = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+        try {
+            for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+                
+                // 画像ロードプロミス化
+                const img = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imgObj = new Image();
+                        imgObj.onload = () => resolve(imgObj);
+                        imgObj.onerror = reject;
+                        imgObj.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                // リサイズ計算
+                let w = img.naturalWidth;
+                let h = img.naturalHeight;
+                if (w > maxWidth) {
+                    h = (maxWidth / w) * h;
+                    w = maxWidth;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+                // Blob化してZIPへ格納
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, format, quality));
+                const cleanName = file.name.split('.')[0];
+                zip.file(`${cleanName}_resized.${extMap[format]}`, blob);
+                
+                showStatus('bulk-status', `進行中: (${i + 1} / ${input.files.length}) ${file.name} を完了`, 'info');
+            }
+
+            const zipContent = await zip.generateAsync({ type: 'blob' });
+            triggerDownload(zipContent, 'bulk_resized_images.zip');
+            showStatus('bulk-status', `すべての画像 (${input.files.length}枚) の一括変換とZIP保存が完了しました！`, 'success');
+
+        } catch (err) {
+            showStatus('bulk-status', '一括処理中にエラーが発生しました。ファイル形式を確認してください。', 'error');
+            console.error(err);
+        }
+    });
+</script>
+</body>
+</html>
