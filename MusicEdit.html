@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多機能音声編集ワークベンチ</title>
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg2: #0f172a;
+            --card: rgba(15, 23, 42, 0.74);
+            --line: rgba(148, 163, 184, 0.18);
+            --text: #ecf4ff;
+            --muted: #a8b7cc;
+            --accent: #a855f7; 
+            --accent2: #22c55e;
+            --good: #34d399;
+            --bad: #f87171;
+            --shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(168, 85, 247, 0.16), transparent 30%),
+                radial-gradient(circle at right top, rgba(34, 197, 94, 0.12), transparent 24%),
+                linear-gradient(160deg, #020617 0%, #07111f 45%, #0f172a 100%);
+            font-family: "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+        }
+
+        .app {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            color: var(--text);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--line);
+            backdrop-filter: blur(14px);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.18);
+            color: #f3e8ff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .hero-main {
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-main::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -60px auto;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.25), transparent 68%);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin: 14px 0 12px;
+            font-size: clamp(28px, 4vw, 54px);
+            line-height: 1.04;
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            margin: 0;
+            max-width: 70ch;
+            color: var(--muted);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+        }
+
+        .mini strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .mini span {
+            color: var(--muted);
+            font-size: 13px;
+            line-line: 1.55;
+        }
+
+        .source {
+            padding: 20px;
+        }
+
+        .source h2,
+        .section-title {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .source p,
+        .section-desc {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 14px;
+        }
+
+        .source-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .source-row input,
+        .field input,
+        .field select,
+        .action button,
+        .nav button {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .source-row input,
+        .field input,
+        .field select {
+            padding: 12px 14px;
+            width: 100%;
+            outline: none;
+            color: #ffffff;
+        }
+
+        .field select option {
+            color: #000000;
+        }
+
+        .source-row input[type="file"] {
+            padding: 11px 14px;
+        }
+
+        .action button,
+        .nav button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 24px;
+            border-radius: 999px;
+            color: #ffffff;
+            font-weight: bold;
+            background: linear-gradient(to right, #8b5cf6, #ec4899); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .action button:hover,
+        .nav button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(139, 92, 246, 0.4);
+            opacity: 0.9;
+        }
+
+        .source-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .file-chip {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.18);
+            color: #f3e8ff;
+            font-size: 13px;
+        }
+
+        .nav {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .nav button.active {
+            background: linear-gradient(to right, #a855f7, #ec4899);
+            border: 2px solid #ffffff; 
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.6);
+        }
+
+        .nav button small {
+            display: block;
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+            font-weight: normal;
+        }
+
+        .category {
+            display: none;
+            padding: 18px;
+        }
+
+        .category.active {
+            display: block;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .card p {
+            margin: 0 0 14px;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 13px;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            margin: 0 0 6px;
+            font-size: 12px;
+            color: #f3e8ff;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .action {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .action button {
+            flex: 1 1 auto;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            display: none;
+            line-height: 1.65;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .status.show { display: block; }
+        .status.success { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); }
+        .status.error { background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.3); }
+        .status.info { background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.3); }
+
+        .viewer {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+            gap: 14px;
+        }
+
+        .canvas-wrap {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: #0b1220;
+            overflow: hidden;
+            min-height: 340px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 220px;
+            background: #020617;
+            border-radius: 10px;
+            display: block;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .timeline-wrap {
+            width: 100%;
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .viewer-side {
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .info-preview {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 14px;
+            min-height: 240px;
+            overflow: auto;
+            line-height: 1.8;
+            color: #f3e8ff;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .footer-note {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .time-convert-label {
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
+            color: #34d399;
+            font-weight: bold;
+        }
+
+        @media (max-width: 1180px) {
+            .hero, .viewer, .cards, .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 820px) {
+            .app { padding: 14px; }
+            .hero, .viewer, .cards, .nav, .row-2 { grid-template-columns: 1fr; }
+            .section-head, .topbar { flex-direction: column; align-items: start; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <a href="menu.html" class="back-btn">メニューへ戻る</a>
+    </div>
+
+    <div class="hero">
+        <section class="panel hero-main">
+            <div class="eyebrow">AUDIO WORKBENCH</div>
+            <h1>音声の編集・トリミング・エフェクト・変換ワークベンチ</h1>
+            <p class="lead">
+                お手持ちの音声ファイル（MP3, WAV, M4Aなど）をブラウザへ読み込み、リアルタイム波形ビジュアライズ、再生速度・音高のデジタル補正、無音カットやラジオ風特殊エフェクト、範囲トリミング書き出しなどを全てサーバー不要の完全ローカルで処理します。
+            </p>
+            <div class="hero-grid">
+                <div class="mini"><strong>共有音声ソース</strong><span>1つの音楽ファイルを読み込むと、各カテゴリの機能で共通利用・テスト再生できます。</span></div>
+                <div class="mini"><strong>視覚的アナライザー</strong><span>再生周波数をリアルタイム解析し、オーディオ波形として画面上に滑らかに描画します。</span></div>
+                <div class="mini"><strong>精密エフェクト処理</strong><span>フィルター、ディストーション、空間残響（ディレイ）などを重ねて適用可能です。</span></div>
+                <div class="mini"><strong>自由なWAV変換エクスポート</strong><span>トリミングした範囲やエフェクトを焼き付けた状態で、いつでもWAV保存が可能。</span></div>
+            </div>
+        </section>
+
+        <aside class="panel source">
+            <h2>共有音声ソース</h2>
+            <p>加工・再生のベースとなるオーディオファイル（MP3 / WAV / M4A等）を読み込みます。</p>
+            <div class="source-row" style="margin-top:16px;">
+                <input type="file" id="shared-audio" accept="audio/*">
+            </div>
+            <div class="source-note">この音声はマスターデータとして保持され、各タブの機能から再利用・加工ができます。</div>
+            <div id="shared-file-chip" class="file-chip" style="display:none;"></div>
+        </aside>
+    </div>
+
+    <nav class="nav" id="category-nav">
+        <button class="active" data-category="transform">1. 視覚化・再生調整<small>リアルタイム波形 / 速度制御</small></button>
+        <button data-category="compress">2. 音質・エフェクト<small>ラジオ風 / 空間残響 / ピッチ変調</small></button>
+        <button data-category="filter">3. 切り出し・トリミング<small>秒数指定カット / 部分試聴</small></button>
+        <button data-category="bulk">4. 変換・書き出し<small>加工済みWAVへのマスター出力</small></button>
+    </nav>
+
+    <section class="panel category active" data-panel="transform">
+        <div class="section-head">
+            <div>
+                <h2>視覚化・基本再生調整</h2>
+                <p class="section-desc">周波数を視覚的にチェックしながら、再生スピードを細かくコントロールします。</p>
+            </div>
+        </div>
+        <div class="viewer">
+            <div class="card">
+                <h3>再生オプション</h3>
+                <p>共有ソースのほか、このカード専用に直接ファイルを指定して再生することも可能です。</p>
+                <div class="field"><label>個別指定（未選択時は共有ソースを使用）</label><input type="file" id="transform-file" accept="audio/*"></div>
+                
+                <div class="field"><label>再生速度 (0.5倍 〜 2.0倍)</label><input type="range" id="transform-speed" min="0.5" max="2" step="0.1" value="1"></div>
+                <div id="speed-val-display" style="font-size:14px; margin-bottom:12px; color:var(--accent);">現在の速度: 1.0x</div>
+                
+                <div class="action">
+                    <button id="transform-play">再生 / 一時停止</button>
+                    <button id="transform-stop">停止</button>
+                </div>
+                <div class="status" id="transform-status"></div>
+            </div>
+            <div class="viewer-side">
+                <div class="canvas-wrap">
+                    <canvas id="transform-canvas"></canvas>
+                    <div class="timeline-wrap">
+                        <span id="time-display" style="font-family:monospace; font-size:13px; color:var(--muted);">00:00 / 00:00</span>
+                    </div>
+                </div>
+                <div class="info-preview" id="transform-info">音声ファイルを読み込むとメタデータを表示します。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="compress">
+        <div class="section-head">
+            <div>
+                <h2>音質加工・フィルター効果</h2>
+                <p class="section-desc">特定の周波数帯を遮断（カット）したり、ディストーションや残響（ディレイ）を付与します。</p>
+            </div>
+        </div>
+        <div class="cards">
+            <article class="card">
+                <h3>フィルタープリセット</h3>
+                <p>クラブのように低音をこもらせたり、電話口のようなザラついた音質に加工します。</p>
+                <div class="field"><label>対象音声（未選択時は共有ソースを使用）</label><input type="file" id="compress-file" accept="audio/*"></div>
+                <div class="field"><label>エフェクト選択</label>
+                    <select id="fx-type">
+                        <option value="none">バイパス（効果なし）</option>
+                        <option value="lowpass">ローパス（高音カット：こもった音）</option>
+                        <option value="hipass">ハイパス（低音カット：軽いシャカシャカ音）</option>
+                        <option value="radio">ラジオ・電話風（特定の帯域のみ強調）</option>
+                    </select>
+                </div>
+                <div class="action"><button id="fx-play">効果付きで再生テスト</button><button id="fx-stop">停止</button></div>
+            </article>
+
+            <article class="card">
+                <h3>空間系・ディレイエフェクト</h3>
+                <p>音が遅れて聴こえるエコー効果を足すことで、広い部屋のような残響感を作ります。</p>
+                <div class="field"><label>残響（フィードバック）レベル</label><input type="range" id="fx-delay" min="0" max="0.8" step="0.1" value="0"></div>
+                <div class="status show info" style="margin-top:20px;">スライダーを調整しながら「再生テスト」を押してください。</div>
+            </article>
+
+            <article class="card">
+                <h3>ピッチ（音高）微変調</h3>
+                <p>再生速度を変えずに、音の高さ（ピッチ）だけを上下させてボイスチェンジャー風に変調させます。</p>
+                <div class="field"><label>ピッチ調整 (cent)</label><input type="range" id="fx-detune" min="-1200" max="1200" step="100" value="0"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="filter">
+        <div class="section-head">
+            <div>
+                <h2>トリミング・部分抽出</h2>
+                <p class="section-desc">音声の必要な部分だけを秒数で指定し、その範囲だけをプレビュー・試聴します。</p>
+            </div>
+        </div>
+        <div class="viewer">
+            <div class="card">
+                <h3>範囲指定カット</h3>
+                <p>曲のサビだけを抜き出したり、前後の不要な無音部分を削除したい時に使用します。</p>
+                <div class="field"><label>対象音声（未選択時は共有ソースを使用）</label><input type="file" id="filter-file" accept="audio/*"></div>
+                <div class="row-2">
+                    <div class="field"><label>開始時間 (秒)</label><input type="number" id="trim-start" value="0" min="0" step="0.5"></div>
+                    <div class="field"><label>終了時間 (秒) ※0で末尾まで</label><input type="number" id="trim-end" value="0" min="0" step="0.5"></div>
+                </div>
+                <div class="action">
+                    <button id="trim-play">指定区間をプレビュー試聴</button>
+                    <button id="trim-stop">停止</button>
+                </div>
+                <div class="status" id="trim-status"></div>
+            </div>
+            <div class="viewer-side">
+                <div class="canvas-wrap"><canvas id="filter-canvas"></canvas></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="bulk">
+        <div class="section-head">
+            <div>
+                <h2>マスター変換・WAVエクスポート</h2>
+                <p class="section-desc">これまでのタブで設定したトリミング範囲、エフェクト、速度設定をすべて焼き付けた状態の音声ファイルを生成します。</p>
+            </div>
+        </div>
+        <div class="cards" style="grid-template-columns: 1fr;">
+            <article class="card">
+                <h3>加工済み音声のレンダリング保存・分割オプション</h3>
+                <p>「1〜3」のタブで調整した内容を適用し、指定した分割ルールに沿ってWAV出力します。</p>
+                <div class="field" style="margin-bottom: 18px;"><label>対象音声（未選択時は共有ソースを使用）</label><input type="file" id="bulk-file" accept="audio/*"></div>
+                
+                <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 18px;">
+                    <div class="field">
+                        <label>分割モードの指定</label>
+                        <select id="export-split-mode">
+                            <option value="none">分割なし（1本のWAVとして出力）</option>
+                            <option value="count">N個に等分割</option>
+                            <option value="seconds">XXX秒ごとに分割</option>
+                        </select>
+                    </div>
+                    
+                    <div class="field" id="split-count-wrap" style="display:none; margin-top:12px;">
+                        <label>分割数 (N個)</label>
+                        <input type="number" id="split-count-val" value="2" min="2" step="1">
+                    </div>
+
+                    <div class="field" id="split-seconds-wrap" style="display:none; margin-top:12px;">
+                        <label>分割間隔 (秒数)</label>
+                        <input type="number" id="split-seconds-val" value="30" min="1" step="1">
+                        <div id="split-seconds-converted" class="time-convert-label">変換：30秒</div>
+                    </div>
+                </div>
+
+                <div class="action">
+                    <button id="export-wav" style="background: linear-gradient(to right, #10b981, #059669); padding: 18px 24px;">加工済みWAVとしてローカル保存</button>
+                </div>
+                <div class="status" id="export-status"></div>
+            </article>
+        </div>
+    </section>
+
+    <p class="footer-note">※外部サーバーへの送信は一切ありません。ブラウザのメモリ内で処理が完結するため安全です。</p>
+</div>
+
+<script>
+    // 状態管理
+    const state = {
+        sharedFile: null,
+        sharedAudioBuffer: null,
+        audioCtx: null,
+        currentSourceNode: null,
+        analyzerNode: null,
+        animationFrameId: null,
+        isPlaying: false,
+        startTime: 0
+    };
+
+    const sharedAudioInput = document.getElementById('shared-audio');
+    const sharedFileChip = document.getElementById('shared-file-chip');
+    const navButtons = Array.from(document.querySelectorAll('#category-nav button'));
+    const panels = Array.from(document.querySelectorAll('.category'));
+
+    // ユーザー操作の瞬間に確実にオーディオ制限を解除する関数
+    function ensureAudioContext() {
+        try {
+            if (!state.audioCtx) {
+                state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (state.audioCtx.state === 'suspended') {
+                state.audioCtx.resume();
+            }
+        } catch (e) {
+            console.error("AudioContext initialization failed:", e);
+        }
+    }
+
+    // タブ切り替え
+    navButtons.forEach(button => button.addEventListener('click', () => {
+        ensureAudioContext();
+        navButtons.forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        panels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === button.dataset.category));
+        stopAllAudio();
+    }));
+
+    // 共通音声ソース読み込み
+    sharedAudioInput.addEventListener('change', () => {
+        const file = sharedAudioInput.files[0];
+        if (!file) return;
+
+        state.sharedFile = file;
+        const sizeMb = file.size / 1024 / 1024;
+        sharedFileChip.style.display = 'inline-flex';
+        sharedFileChip.textContent = `${file.name} (${sizeMb.toFixed(2)} MB)`;
+
+        showStatus('transform-status', '共有ソースの音声をデコード中...', 'info');
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                state.audioCtx.decodeAudioData(e.target.result, (buffer) => {
+                    state.sharedAudioBuffer = buffer;
+                    updateAudioInfo('transform-info', file, buffer);
+                    document.getElementById('trim-end').value = Math.ceil(buffer.duration);
+                    showStatus('transform-status', '共有ソースの読み込みが完了しました！1番の再生ボタンで鳴らせます。', 'success');
+                }, (err) => {
+                    showStatus('transform-status', 'デコードに失敗しました。ファイル破損か非対応形式の可能性があります。', 'error');
+                });
+            } catch (err) {
+                showStatus('transform-status', '読み込みプロセスでエラーが発生しました。', 'error');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // ファイル読み込みとデコードを確実にPromiseとして処理
+    function decodeFileAsync(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    state.audioCtx.decodeAudioData(e.target.result, (buffer) => {
+                        resolve(buffer);
+                    }, (err) => reject(err));
+                } catch(err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = (err) => reject(err);
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // 各カードの個別ファイルまたは共通ソースを非同期解決
+    async function resolveAudioSourceAsync(inputId, statusId) {
+        ensureAudioContext();
+        const localInput = document.getElementById(inputId);
+        
+        if (localInput && localInput.files && localInput.files[0]) {
+            const file = localInput.files[0];
+            showStatus(statusId, '個別ファイルを読み込んでデコード中...', 'info');
+            try {
+                const buffer = await decodeFileAsync(file);
+                updateAudioInfo('transform-info', file, buffer);
+                return { buffer, file };
+            } catch (e) {
+                showStatus(statusId, '個別ファイルのデコードに失敗しました。', 'error');
+                return { buffer: null, file: null };
+            }
+        } 
+        
+        if (state.sharedAudioBuffer) {
+            return { buffer: state.sharedAudioBuffer, file: state.sharedFile };
+        }
+        
+        return { buffer: null, file: null };
+    }
+
+    function updateAudioInfo(infoId, file, buffer) {
+        const el = document.getElementById(infoId);
+        if(!el) return;
+        el.textContent = `[ファイル名]: ${file.name}\n[再生時間]: ${buffer.duration.toFixed(2)} 秒\n[サンプリングレート]: ${buffer.sampleRate} Hz\n[チャンネル数]: ${buffer.numberOfChannels}`;
+    }
+
+    function showStatus(id, message, type = 'info') {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.textContent = message;
+        el.className = `status show ${type}`;
+    }
+
+    // リアルタイム波形ビジュアライザー
+    function startVisualizer(canvasId, sourceNode) {
+        if (!state.audioCtx) return;
+        
+        if (!state.analyzerNode) {
+            state.analyzerNode = state.audioCtx.createAnalyser();
+            state.analyzerNode.fftSize = 256;
+        }
+        sourceNode.connect(state.analyzerNode);
+
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const bufferLength = state.analyzerNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId);
+
+        function draw() {
+            state.animationFrameId = requestAnimationFrame(draw);
+            state.analyzerNode.getByteFrequencyData(dataArray);
+
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = (canvas.width / bufferLength) * 1.4;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 1.2;
+                ctx.fillStyle = `rgb(${barHeight + 110}, 65, 240)`;
+                ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+                x += barWidth;
+            }
+
+            if (state.isPlaying && sourceNode.buffer) {
+                const current = state.audioCtx.currentTime - state.startTime;
+                const total = sourceNode.buffer.duration;
+                if (current <= total) {
+                    const timeEl = document.getElementById('time-display');
+                    if (timeEl) timeEl.textContent = `${formatTime(current)} / ${formatTime(total)}`;
+                } else {
+                    stopAllAudio();
+                }
+            }
+        }
+        draw();
+    }
+
+    function formatTime(sec) {
+        if (sec < 0) sec = 0;
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = Math.floor(sec % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    // 秒数を「X時間X分X秒」形式の日本語テキストに変換するヘルパー
+    function convertSecondsToJapaneseText(totalSeconds) {
+        if (isNaN(totalSeconds) || totalSeconds <= 0) return "0秒";
+        
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+
+        let result = "";
+        if (hours > 0) result += `${hours}時間`;
+        if (minutes > 0 || hours > 0) result += `${minutes}分`;
+        result += `${seconds}秒`;
+        
+        return `変換：${result}`;
+    }
+
+    // 4.分割設定UIの動的表示切り替えと日本語表記リアルタイム更新
+    const splitModeSelect = document.getElementById('export-split-mode');
+    const splitCountWrap = document.getElementById('split-count-wrap');
+    const splitSecondsWrap = document.getElementById('split-seconds-wrap');
+    const splitSecondsVal = document.getElementById('split-seconds-val');
+    const splitSecondsConverted = document.getElementById('split-seconds-converted');
+
+    splitModeSelect.addEventListener('change', () => {
+        const mode = splitModeSelect.value;
+        splitCountWrap.style.display = (mode === 'count') ? 'block' : 'none';
+        splitSecondsWrap.style.display = (mode === 'seconds') ? 'block' : 'none';
+    });
+
+    splitSecondsVal.addEventListener('input', () => {
+        const sec = parseFloat(splitSecondsVal.value) || 0;
+        splitSecondsConverted.textContent = convertSecondsToJapaneseText(sec);
+    });
+
+    // 再生・停止基本処理
+    function playBuffer(buffer, canvasId, options = {}) {
+        stopAllAudio();
+        ensureAudioContext();
+
+        if (!state.audioCtx) return;
+
+        const source = state.audioCtx.createBufferSource();
+        source.buffer = buffer;
+
+        source.playbackRate.value = options.speed || 1;
+        source.detune.value = options.detune || 0;
+
+        let lastNode = source;
+
+        if (options.fxType && options.fxType !== 'none') {
+            const filter = state.audioCtx.createBiquadFilter();
+            if (options.fxType === 'lowpass') { filter.type = 'lowpass'; filter.frequency.value = 700; }
+            if (options.fxType === 'hipass') { filter.type = 'highpass'; filter.frequency.value = 2200; }
+            if (options.fxType === 'radio') { filter.type = 'bandpass'; filter.frequency.value = 1100; }
+            lastNode.connect(filter);
+            lastNode = filter;
+        }
+
+        if (options.delayVal && options.delayVal > 0) {
+            const delay = state.audioCtx.createDelay();
+            delay.delayTime.value = 0.35;
+            const gain = state.audioCtx.createGain();
+            gain.gain.value = options.delayVal;
+
+            lastNode.connect(delay);
+            delay.connect(gain);
+            gain.connect(state.audioCtx.destination);
+        }
+
+        try {
+            startVisualizer(canvasId, source);
+            lastNode.connect(state.audioCtx.destination);
+
+            const startSec = options.start || 0;
+            source.start(0, startSec);
+            
+            state.currentSourceNode = source;
+            state.startTime = state.audioCtx.currentTime - startSec;
+            state.isPlaying = true;
+        } catch (e) {
+            console.error("Error playing audio nodes:", e);
+        }
+    }
+
+    function stopAllAudio() {
+        if (state.currentSourceNode) {
+            try { state.currentSourceNode.stop(); } catch(e){}
+            try { state.currentSourceNode.disconnect(); } catch(e){}
+            state.currentSourceNode = null;
+        }
+        state.isPlaying = false;
+        if (state.animationFrameId) {
+            cancelAnimationFrame(state.animationFrameId);
+            state.animationFrameId = null;
+        }
+    }
+
+    // 1. 再生調整タブイベント
+    document.getElementById('transform-speed').addEventListener('input', (e) => {
+        document.getElementById('speed-val-display').textContent = `現在の速度: ${e.target.value}x`;
+        if (state.isPlaying && state.currentSourceNode) {
+            state.currentSourceNode.playbackRate.value = e.target.value;
+        }
+    });
+
+    document.getElementById('transform-play').addEventListener('click', async () => {
+        ensureAudioContext();
+        if (state.isPlaying) {
+            stopAllAudio();
+            showStatus('transform-status', '再生を停止しました。');
+        } else {
+            try {
+                const { buffer, file } = await resolveAudioSourceAsync('transform-file', 'transform-status');
+                if (!buffer) {
+                    return showStatus('transform-status', '音声ソースがありません。上部の「共有音声ソース」にファイルをセットするか、このカードで直接選択してください。', 'error');
+                }
+                const speed = parseFloat(document.getElementById('transform-speed').value);
+                playBuffer(buffer, 'transform-canvas', { speed: speed });
+                showStatus('transform-status', '音声をデコード完了、再生中...', 'success');
+            } catch (err) {
+                showStatus('transform-status', '再生処理中にエラーが発生しました。', 'error');
+            }
+        }
+    });
+
+    document.getElementById('transform-stop').addEventListener('click', () => {
+        stopAllAudio();
+        showStatus('transform-status', '再生を停止しました。');
+    });
+
+    // 2. 音質・エフェクトタブイベント
+    document.getElementById('fx-play').addEventListener('click', async () => {
+        ensureAudioContext();
+        try {
+            const { buffer } = await resolveAudioSourceAsync('compress-file', 'transform-status');
+            if (!buffer) return alert('音声ソースが読み込まれていません。');
+            
+            const fxType = document.getElementById('fx-type').value;
+            const delayVal = parseFloat(document.getElementById('fx-delay').value);
+            const detune = parseInt(document.getElementById('fx-detune').value);
+
+            playBuffer(buffer, 'transform-canvas', {
+                fxType: fxType,
+                delayVal: delayVal,
+                detune: detune
+            });
+        } catch (err) {
+            alert('エフェクト再生に失敗しました。');
+        }
+    });
+    document.getElementById('fx-stop').addEventListener('click', stopAllAudio);
+
+    // 3. トリミング・カットイベント
+    document.getElementById('trim-play').addEventListener('click', async () => {
+        ensureAudioContext();
+        try {
+            const { buffer } = await resolveAudioSourceAsync('filter-file', 'trim-status');
+            if (!buffer) return showStatus('trim-status', '音声ソースが見つかりません。', 'error');
+            
+            const start = parseFloat(document.getElementById('trim-start').value) || 0;
+            let end = parseFloat(document.getElementById('trim-end').value) || buffer.duration;
+            if (end > buffer.duration || end === 0) end = buffer.duration;
+
+            showStatus('trim-status', `区間再生中: ${start}秒 〜 ${end}秒`, 'info');
+            playBuffer(buffer, 'filter-canvas', { start: start });
+
+            const duration = end - start;
+            setTimeout(() => {
+                if (state.isPlaying) {
+                    stopAllAudio();
+                    showStatus('trim-status', '範囲プレビュー試聴が終了しました。', 'success');
+                }
+            }, duration * 1000);
+        } catch (err) {
+            showStatus('trim-status', 'トリミング再生に失敗しました。', 'error');
+        }
+    });
+    document.getElementById('trim-stop').addEventListener('click', stopAllAudio);
+
+
+    // 4. 加工付きWAVマスター出力 & 新設マルチ分割エクスポート
+    document.getElementById('export-wav').addEventListener('click', async () => {
+        ensureAudioContext();
+        try {
+            const { buffer, file } = await resolveAudioSourceAsync('bulk-file', 'export-status');
+            if (!buffer) return showStatus('export-status', '書き出す音声データがありません。', 'error');
+            
+            // 各種エフェクト・速度パラメータの抽出
+            const speed = parseFloat(document.getElementById('transform-speed').value) || 1;
+            const detune = parseInt(document.getElementById('fx-detune').value) || 0;
+            const fxType = document.getElementById('fx-type').value;
+
+            // 3番タブで定義された大元のトリミング時間
+            const baseStartSec = parseFloat(document.getElementById('trim-start').value) || 0;
+            let baseEndSec = parseFloat(document.getElementById('trim-end').value) || buffer.duration;
+            if (baseEndSec > buffer.duration || baseEndSec === 0) baseEndSec = buffer.duration;
+
+            const totalDuration = baseEndSec - baseStartSec;
+            if (totalDuration <= 0) return showStatus('export-status', 'トリミングの対象範囲が正しくありません。', 'error');
+
+            const splitMode = splitModeSelect.value;
+            let chunks = []; // 各要素: { start, duration, index }
+
+            // 分割スケジュールの算出
+            if (splitMode === 'none') {
+                chunks.push({ start: baseStartSec, duration: totalDuration, index: null });
+            } else if (splitMode === 'count') {
+                const count = parseInt(document.getElementById('split-count-val').value) || 2;
+                const chunkLen = totalDuration / count;
+                for (let i = 0; i < count; i++) {
+                    chunks.push({
+                        start: baseStartSec + (i * chunkLen),
+                        duration: chunkLen,
+                        index: i + 1
+                    });
+                }
+            } else if (splitMode === 'seconds') {
+                const interval = parseFloat(document.getElementById('split-seconds-val').value) || 30;
+                if (interval <= 0) return showStatus('export-status', '分割秒数は0より大きい値を指定してください。', 'error');
+                
+                let currentPos = baseStartSec;
+                let idx = 1;
+                while (currentPos < baseEndSec) {
+                    let remains = baseEndSec - currentPos;
+                    let chunkLen = remains > interval ? interval : remains;
+                    chunks.push({
+                        start: currentPos,
+                        duration: chunkLen,
+                        index: idx
+                    });
+                    currentPos += interval;
+                    idx++;
+                }
+            }
+
+            showStatus('export-status', `ブラウザ内レンダリングを開始します（全 ${chunks.length} ファイル）...`, 'info');
+
+            // 各チャンクを同期・レンダリングループ処理
+            for (let chunk of chunks) {
+                showStatus('export-status', `処理中 (${chunk.index !== null ? chunk.index : 1}/${chunks.length}): レンダリング中...`, 'info');
+
+                const sampleRate = buffer.sampleRate;
+                const numChannels = buffer.numberOfChannels;
+                const offlineCtx = new OfflineAudioContext(numChannels, sampleRate * chunk.duration, sampleRate);
+
+                const bufferSource = offlineCtx.createBufferSource();
+                bufferSource.buffer = buffer;
+                bufferSource.playbackRate.value = speed;
+                bufferSource.detune.value = detune;
+
+                let lastNode = bufferSource;
+
+                if (fxType !== 'none') {
+                    const filter = offlineCtx.createBiquadFilter();
+                    if (fxType === 'lowpass') { filter.type = 'lowpass'; filter.frequency.value = 700; }
+                    if (fxType === 'hipass') { filter.type = 'highpass'; filter.frequency.value = 2200; }
+                    if (fxType === 'radio') { filter.type = 'bandpass'; filter.frequency.value = 1100; }
+                    lastNode.connect(filter);
+                    lastNode = filter;
+                }
+
+                lastNode.connect(offlineCtx.destination);
+                bufferSource.start(0, chunk.start, chunk.duration);
+
+                // レンダリング完了を待機
+                const renderedBuffer = await offlineCtx.startRendering();
+                const wavBlob = encodeWAV(renderedBuffer);
+                const url = URL.createObjectURL(wavBlob);
+                
+                // ダウンロードトリガー
+                const a = document.createElement('a');
+                a.href = url;
+                const baseName = file.name.split('.')[0] || 'audio';
+                const subSuffix = chunk.index !== null ? `_part${chunk.index}` : '';
+                a.download = `edited_${baseName}${subSuffix}.wav`;
+                a.click();
+
+                // 複数ファイルの連続DLによるブラウザの詰まり防止のためにわずかなラグを挟む
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            showStatus('export-status', `完了！ すべての加工済みWAVファイル (${chunks.length}本) を書き出して保存しました。`, 'success');
+        } catch (err) {
+            console.error(err);
+            showStatus('export-status', 'マスター書き出し・分割処理中にエラーが発生しました。', 'error');
+        }
+    });
+
+    function encodeWAV(buffer) {
+        let numOfChan = buffer.numberOfChannels,
+            length = buffer.length * numOfChan * 2 + 44,
+            bufferArr = new ArrayBuffer(length),
+            view = new DataView(bufferArr),
+            channels = [], i, sample, offset = 0, pos = 0;
+
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8);
+        setUint32(0x45564157); // "WAVE"
+        setUint32(0x20746d66); // "fmt "
+        setUint32(16); 
+        setUint16(1); // PCM
+        setUint16(numOfChan);
+        setUint32(buffer.sampleRate);
+        setUint32(buffer.sampleRate * numOfChan * 2); 
+        setUint16(numOfChan * 2); 
+        setUint16(16); // 16bit
+        setUint32(0x61746164); // "data"
+        setUint32(length - pos - 4);
+
+        for(i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
+
+        while(pos < length) {
+            for(i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            offset++;
+        }
+        return new Blob([bufferArr], { type: 'audio/wav' });
+    }
+</script>
+</body>
+</html>
