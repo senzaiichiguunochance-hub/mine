@@ -4,6 +4,10 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>フラッシュ暗算</title>
+	<!-- かわいいタイトルのためにGoogle Fontsからポップなフォントを読み込み -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
 	<style>
 		:root {
 			--bg-start: #07111f;
@@ -21,32 +25,36 @@
 			--radius: 22px;
 		}
 
+		/* 【一新】明るく甘い、お菓子のような「かわいい」テーマ */
 		body.theme-cute {
-			--bg-start: #2a1020;
-			--bg-end: #4c1d3d;
-			--card-bg: rgba(255, 245, 248, 0.92);
-			--card-border: rgba(255, 123, 171, 0.35);
-			--primary: #ff6b8b;
-			--primary-strong: #ff4d7d;
-			--secondary: #ffb86b;
-			--text: #4a2733;
-			--muted: #7d5a66;
-			--danger: #ff6b6b;
-			--success: #2ea66d;
+			--bg-start: #ffdee9;
+			--bg-end: #b5fffc;
+			--card-bg: rgba(255, 255, 255, 0.92);
+			--card-border: rgba(255, 105, 180, 0.3);
+			--primary: #ff69b4;
+			--primary-strong: #ff1493;
+			--secondary: #ffb7b2;
+			--text: #5d3f4b;
+			--muted: #9e7f8c;
+			--danger: #ff4757;
+			--success: #2ed573;
+			--shadow: 0 20px 50px rgba(255, 105, 180, 0.15);
 		}
 
+		/* 【一新】透明感と輝きのある、洗練された「キレイ」テーマ */
 		body.theme-beautiful {
-			--bg-start: #10172c;
-			--bg-end: #25345e;
-			--card-bg: rgba(255, 255, 255, 0.9);
-			--card-border: rgba(108, 92, 231, 0.22);
-			--primary: #6c5ce7;
-			--primary-strong: #5b4bd1;
-			--secondary: #9b89ff;
-			--text: #24304a;
-			--muted: #60708c;
-			--danger: #e05664;
-			--success: #24a37a;
+			--bg-start: #e0eeff;
+			--bg-end: #e6fffb;
+			--card-bg: rgba(255, 255, 255, 0.88);
+			--card-border: rgba(0, 180, 216, 0.25);
+			--primary: #00b4d8;
+			--primary-strong: #0077b6;
+			--secondary: #72efdd;
+			--text: #1d3557;
+			--muted: #64dfdf;
+			--danger: #ff6b6b;
+			--success: #48cae4;
+			--shadow: 0 20px 50px rgba(0, 180, 216, 0.12);
 		}
 
 		body.theme-stylish {
@@ -102,18 +110,33 @@
 			letter-spacing: 0.08em;
 		}
 
+		/* タイトルをかわいく立体感のあるポップなデザインに変更 */
 		h1 {
 			margin: 12px 0 8px;
-			font-size: clamp(1.7rem, 4vw, 2.7rem);
-			letter-spacing: 0.06em;
+			font-family: 'Mochiy Pop One', sans-serif;
+			font-size: clamp(1.7rem, 4vw, 2.5rem);
+			letter-spacing: 0.04em;
 			display: inline-block;
-			padding: 0.22em 0.8em;
+			padding: 0.3em 1.2em;
 			border-radius: 999px;
-			background: linear-gradient(135deg, rgba(8, 14, 26, 0.72), rgba(8, 14, 26, 0.28));
+			background: linear-gradient(135deg, var(--primary), var(--primary-strong));
 			color: #ffffff;
+			border: 3px solid #ffffff;
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+			text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.15);
+		}
+
+		/* テーマが「かわいい」「キレイ」の時はタイトルの配色を少し優しく */
+		body.theme-cute h1 {
+			background: linear-gradient(135deg, #ff85a2, #ff477e);
+		}
+		body.theme-beautiful h1 {
+			background: linear-gradient(135deg, #4ea8de, #56cfe1);
+		}
+		body.theme-stylish h1 {
+			background: linear-gradient(135deg, #e1b12c, #fbc531);
 			border: 1px solid rgba(255, 255, 255, 0.14);
-			box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-			text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7), 0 0 22px rgba(91, 231, 255, 0.35);
+			text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
 		}
 
 		.theme-controls {
@@ -134,20 +157,35 @@
 			backdrop-filter: blur(12px);
 		}
 
+		body.theme-cute .theme-select-wrap,
+		body.theme-beautiful .theme-select-wrap {
+			background: rgba(255, 255, 255, 0.6);
+			border: 1px solid rgba(0, 0, 0, 0.05);
+		}
+
 		.theme-select-label {
 			font-size: 0.88rem;
 			color: var(--muted);
 			font-weight: 700;
 		}
 
+		body.theme-cute .theme-select-label,
+		body.theme-beautiful .theme-select-label {
+			color: var(--text);
+		}
+
 		.theme-select {
-			border: 1px solid rgba(91, 231, 255, 0.25);
+			border: 1px solid var(--primary);
 			background: rgba(255, 255, 255, 0.08);
-			color: #ffffff;
+			color: var(--text);
 			border-radius: 999px;
 			padding: 8px 12px;
 			font-weight: 700;
 			outline: none;
+		}
+		
+		body.theme-cool .theme-select {
+			color: #ffffff;
 		}
 
 		.theme-select option {
@@ -188,10 +226,16 @@
 			padding: 18px;
 		}
 
+		body.theme-cute .panel,
+		body.theme-beautiful .panel {
+			background: linear-gradient(180deg, rgba(0,0,0,0.01), rgba(0,0,0,0.03));
+			border: 1px solid rgba(0, 0, 0, 0.05);
+		}
+
 		.panel h2 {
 			margin: 0 0 14px;
 			font-size: 1.15rem;
-			color: var(--primary);
+			color: var(--primary-strong);
 			letter-spacing: 0.04em;
 		}
 
@@ -215,15 +259,20 @@
 			font-weight: 700;
 			color: var(--text);
 			background: rgba(255, 255, 255, 0.06);
-			border: 1px solid rgba(91, 231, 255, 0.35);
+			border: 1px solid var(--card-border);
 			border-radius: 12px;
 			padding: 8px 12px;
 			outline: none;
 			transition: border-color 0.2s ease;
 		}
 
+		body.theme-cute .input-field,
+		body.theme-beautiful .input-field {
+			background: #ffffff;
+		}
+
 		.input-field:focus {
-			border-color: var(--primary);
+			border-color: var(--primary-strong);
 		}
 
 		.input-field option {
@@ -248,20 +297,26 @@
 			font-size: 1rem;
 			font-weight: 800;
 			letter-spacing: 0.04em;
-			color: #072031;
+			color: #ffffff;
 			cursor: pointer;
 			transition: transform 0.18s ease, box-shadow 0.18s ease;
-			box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+			box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+		}
+
+		body.theme-cool .btn {
+			color: #072031;
 		}
 
 		.btn:hover {
 			transform: translateY(-2px);
 		}
 
-		.btn-primary { background: linear-gradient(135deg, var(--primary), #b9fbff); }
-		.btn-secondary { background: linear-gradient(135deg, #ffd27f, var(--secondary)); }
-		.btn-danger { background: linear-gradient(135deg, #ff9b9b, var(--danger)); color: #320909; }
-		.btn-success { background: linear-gradient(135deg, #2ee59d, #b9ffde); }
+		.btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-strong)); }
+		.btn-secondary { background: linear-gradient(135deg, #ffd27f, var(--secondary)); color: #5d3f4b; }
+		body.theme-cool .btn-secondary { color: #072031; }
+		.btn-danger { background: linear-gradient(135deg, #ff9b9b, var(--danger)); color: #ffffff; }
+		.btn-success { background: linear-gradient(135deg, #2ee59d, #b9ffde); color: #072031; }
+		body.theme-cute .btn-success, body.theme-beautiful .btn-success { color: #ffffff; background: linear-gradient(135deg, #2ed573, #7bed9f); }
 
 		/* Game Display */
 		#gameDisplay {
@@ -314,7 +369,7 @@
 	</style>
 </head>
 <body>
-	<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
+	<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold; border-radius: 8px;">メニューに戻る</a>
 
 	<header>
 		<h1>フラッシュ暗算</h1>
