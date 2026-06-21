@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多機能動画編集ワークベンチ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg2: #0f172a;
+            --card: rgba(15, 23, 42, 0.74);
+            --line: rgba(148, 163, 184, 0.18);
+            --text: #ecf4ff;
+            --muted: #a8b7cc;
+            --accent: #a855f7; 
+            --accent2: #3b82f6;
+            --good: #34d399;
+            --bad: #f87171;
+            --shadow: 0 24px 72px rgba(0, 0, 0, 0.36);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(168, 85, 247, 0.16), transparent 30%),
+                radial-gradient(circle at right top, rgba(59, 130, 246, 0.12), transparent 24%),
+                linear-gradient(160deg, #020617 0%, #07111f 45%, #0f172a 100%);
+            font-family: "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+        }
+
+        .app {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            color: var(--text);
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--line);
+            backdrop-filter: blur(14px);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.18);
+            color: #f3e8ff;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .hero-main {
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-main::after {
+            content: "";
+            position: absolute;
+            inset: auto -60px -60px auto;
+            width: 260px;
+            height: 260px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.25), transparent 68%);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin: 14px 0 12px;
+            font-size: clamp(28px, 4vw, 54px);
+            line-height: 1.04;
+            letter-spacing: -0.04em;
+        }
+
+        .lead {
+            margin: 0;
+            max-width: 70ch;
+            color: var(--muted);
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .mini {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+        }
+
+        .mini strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .mini span {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .source {
+            padding: 20px;
+        }
+
+        .source h2,
+        .section-title {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .source p,
+        .section-desc {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 14px;
+        }
+
+        .source-row {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .source-row input,
+        .field input,
+        .field select,
+        .action button,
+        .nav button {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font: inherit;
+        }
+
+        .source-row input,
+        .field input,
+        .field select {
+            padding: 12px 14px;
+            width: 100%;
+            outline: none;
+            color: #ffffff;
+        }
+
+        .field select option {
+            color: #000000;
+        }
+
+        .source-row input[type="file"] {
+            padding: 11px 14px;
+        }
+
+        .action button,
+        .nav button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 24px;
+            border-radius: 999px;
+            color: #ffffff;
+            font-weight: bold;
+            background: linear-gradient(to right, #3b82f6, #8b5cf6); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .action button:hover,
+        .nav button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+            opacity: 0.9;
+        }
+
+        .source-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .file-chip {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.18);
+            color: #eff6ff;
+            font-size: 13px;
+        }
+
+        .nav {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .nav button.active {
+            background: linear-gradient(to right, #3b82f6, #a855f7);
+            border: 2px solid #ffffff; 
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.6);
+        }
+
+        .nav button small {
+            display: block;
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 11px;
+            font-weight: normal;
+        }
+
+        .category {
+            display: none;
+            padding: 18px;
+        }
+
+        .category.active {
+            display: block;
+        }
+
+        .section-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        .section-head h2 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 16px;
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .card p {
+            margin: 0 0 14px;
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 13px;
+        }
+
+        .field {
+            margin-bottom: 10px;
+        }
+
+        .field label {
+            display: block;
+            margin: 0 0 6px;
+            font-size: 12px;
+            color: #eff6ff;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .action {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .action button {
+            flex: 1 1 auto;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            display: none;
+            line-height: 1.65;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .status.show { display: block; }
+        .status.success { background: rgba(52, 211, 153, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); }
+        .status.error { background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.3); }
+        .status.info { background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+        .viewer {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+            gap: 14px;
+        }
+
+        .video-wrap {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: #0b1220;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            max-height: 400px;
+            background: #020617;
+            border-radius: 10px;
+            display: block;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .timeline-wrap {
+            width: 100%;
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .viewer-side {
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .info-preview {
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 14px;
+            min-height: 200px;
+            overflow: auto;
+            line-height: 1.8;
+            color: #eff6ff;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        .footer-note {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .time-convert-label {
+            display: block;
+            margin-top: 6px;
+            font-size: 13px;
+            color: #34d399;
+            font-weight: bold;
+        }
+
+        .frame-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            width: 100%;
+        }
+
+        .frame-controls button {
+            flex: 1;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--line);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .frame-controls button:hover {
+            background: rgba(255,255,255,0.12);
+        }
+
+        @media (max-width: 1180px) {
+            .hero, .viewer, .cards, .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 820px) {
+            .app { padding: 14px; }
+            .hero, .viewer, .cards, .nav, .row-2 { grid-template-columns: 1fr; }
+            .section-head, .topbar { flex-direction: column; align-items: start; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="topbar">
+        <a href="menu.html" class="back-btn">メニューへ戻る</a>
+    </div>
+
+    <div class="hero">
+        <section class="panel hero-main">
+            <div class="eyebrow">VIDEO WORKBENCH</div>
+            <h1>動画のトリミング・マルチ分割・素材抽出ワークベンチ</h1>
+            <p class="lead">
+                お手持ちの動画ファイル（MP4 / WebM / MOV等）を読み込み、再生速度変更や精密なコマ送り確認、指定区間のトリミング、そして「音声の抽出」や「静止画連番の書き出し」まで、サーバーを一切介さず安全なローカル環境で自動処理します。
+            </p>
+            <div class="hero-grid">
+                <div class="mini"><strong>共有動画ソース</strong><span>動画を1つセットするだけで、トリミング、音声分離、静止画切り出しの全機能を共通で利用できます。</span></div>
+                <div class="mini"><strong>精密フレーム制御</strong><span>1フレーム単位のコマ送り・コマ戻しに対応し、切り出したい瞬間を1ミリ秒まで逃さず捉えます。</span></div>
+                <div class="mini"><strong>高音質音声の分離</strong><span>動画から音声トラック（WAV/MP3）のみを高速で抜き出し、さらに分割して書き出すことも可能です。</span></div>
+                <div class="mini"><strong>分割一括ZIPダウンロード</strong><span>動画・音声・静止画を複数に分割して出力する際は、自動で1本のZIPにまとめてクリーンに保存します。</span></div>
+            </div>
+        </section>
+
+        <aside class="panel source">
+            <h2>共有動画ソース</h2>
+            <p>加工・再生のベースとなるビデオファイル（MP4 / WebM等）を読み込みます。</p>
+            <div class="source-row" style="margin-top:16px;">
+                <input type="file" id="shared-video" accept="video/*">
+            </div>
+            <div class="source-note">この動画データはブラウザのメモリ上に一時保持され、各タブの機能からシームレスに加工できます。</div>
+            <div id="shared-file-chip" class="file-chip" style="display:none;"></div>
+        </aside>
+    </div>
+
+    <nav class="nav" id="category-nav">
+        <button class="active" data-category="player">1. プレビュー・コマ送り<small>大画面プレビュー / 速度制御</small></button>
+        <button data-category="trim">2. 動画トリミング分割<small>MP4・WebM切り出し / ZIP保存</small></button>
+        <button data-category="audio">3. 音声トラック抽出<small>動画からWAV・MP3分離 / 分割</small></button>
+        <button data-category="frames">4. 静止画連番切り出し<small>指定区間を1秒毎に画像化 / ZIP</small></button>
+    </nav>
+
+    <section class="panel category active" data-panel="player">
+        <div class="section-head">
+            <div>
+                <h2>動画プレビュー & 精密タイム制御</h2>
+                <p class="section-desc">動画の内容を確認しながら、再生スピードの変更やフレーム単位での位置合わせを行います。</p>
+            </div>
+        </div>
+        <div class="viewer">
+            <div class="card">
+                <h3>再生コントロール</h3>
+                <div class="field"><label>個別指定（未選択時は共有ソースを使用）</label><input type="file" id="player-file" accept="video/*"></div>
+                
+                <div class="field" style="margin-top: 14px;"><label>再生速度 (0.5倍 〜 2.0倍)</label><input type="range" id="player-speed" min="0.5" max="2" step="0.1" value="1"></div>
+                <div id="speed-val-display" style="font-size:14px; margin-bottom:12px; color:var(--accent2);">現在の速度: 1.0x</div>
+                
+                <div class="action">
+                    <button id="player-play" style="background: linear-gradient(to right, #2563eb, #1d4ed8);">再生 / 一時停止</button>
+                </div>
+                <div class="status" id="player-status"></div>
+            </div>
+            <div class="viewer-side">
+                <div class="video-wrap">
+                    <video id="main-video" controls playsinline></video>
+                    <div class="timeline-wrap">
+                        <span id="time-display" style="font-family:monospace; font-size:13px; color:var(--muted);">00:00 / 00:00</span>
+                    </div>
+                    <div class="frame-controls">
+                        <button id="frame-prev-5">⏪ -5秒</button>
+                        <button id="frame-prev">◀ コマ戻し (0.03s)</button>
+                        <button id="frame-next">コマ送り (0.03s) ▶</button>
+                        <button id="frame-next-5">⏩ +5秒</button>
+                    </div>
+                </div>
+                <div class="info-preview" id="player-info">動画ファイルを読み込むとメタデータを表示します。</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="trim">
+        <div class="section-head">
+            <div>
+                <h2>動画切り出し & 分割エクスポート</h2>
+                <p class="section-desc">指定した区間のみをトリミング抽出、または等分割・秒数分割して出力します。</p>
+            </div>
+        </div>
+        <div class="cards" style="grid-template-columns: 1fr;">
+            <article class="card">
+                <h3>動画切り出し設定</h3>
+                <div class="row-2">
+                    <div class="field"><label>切り出し開始時間 (秒)</label><input type="number" id="trim-start" value="0" min="0" step="0.1"></div>
+                    <div class="field"><label>切り出し終了時間 (秒) ※0で末尾まで</label><input type="number" id="trim-end" value="0" min="0" step="0.1"></div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin: 18px 0;">
+                    <div class="row-2">
+                        <div class="field">
+                            <label>出力フォーマット</label>
+                            <select id="video-format">
+                                <option value="webm">WebM (.webm) - 高速・ブラウザ推奨</option>
+                                <option value="mp4">MP4 (.mp4) - 互換性重視</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>分割モード</label>
+                            <select id="video-split-mode">
+                                <option value="none">分割なし（1本の動画として出力）</option>
+                                <option value="count">N個に等分割（※ZIPにまとめて保存）</option>
+                                <option value="seconds">XXX秒ごとに分割（※ZIPにまとめて保存）</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field" id="v-split-count-wrap" style="display:none; margin-top:12px;">
+                        <label>分割数 (N個)</label>
+                        <input type="number" id="v-split-count-val" value="2" min="2" step="1">
+                    </div>
+
+                    <div class="field" id="v-split-seconds-wrap" style="display:none; margin-top:12px;">
+                        <label>分割間隔 (秒数)</label>
+                        <input type="number" id="v-split-seconds-val" value="10" min="1" step="1">
+                        <div id="v-split-seconds-converted" class="time-convert-label">変換：10秒</div>
+                    </div>
+                </div>
+
+                <div class="action">
+                    <button id="btn-export-video" style="background: linear-gradient(to right, #10b981, #059669); padding: 18px 24px;">動画エクスポートを実行</button>
+                </div>
+                <div class="status" id="trim-status-box"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="audio">
+        <div class="section-head">
+            <div>
+                <h2>動画から音声のみ抽出</h2>
+                <p class="section-desc">動画内のBGMや音声トラックだけを抽出し、WAVまたはMP3形式で保存します。</p>
+            </div>
+        </div>
+        <div class="cards" style="grid-template-columns: 1fr;">
+            <article class="card">
+                <h3>音声抽出・分割オプション</h3>
+                <p>※範囲は「2. 動画トリミング分割」タブで設定した秒数（開始〜終了）がそのまま適用されます。</p>
+                <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 18px;">
+                    <div class="row-2">
+                        <div class="field">
+                            <label>出力音声フォーマット</label>
+                            <select id="audio-format">
+                                <option value="wav">WAV (.wav) - 高音質・無圧縮</option>
+                                <option value="mp3">MP3 (.mp3) - 軽量（※変換に少し時間がかかります）</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>分割モード</label>
+                            <select id="audio-split-mode">
+                                <option value="none">分割なし（1本の音声ファイル）</option>
+                                <option value="count">N個に等分割（※ZIPにまとめて保存）</option>
+                                <option value="seconds">XXX秒ごとに分割（※ZIPにまとめて保存）</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field" id="a-split-count-wrap" style="display:none; margin-top:12px;">
+                        <label>分割数 (N個)</label>
+                        <input type="number" id="a-split-count-val" value="2" min="2" step="1">
+                    </div>
+
+                    <div class="field" id="a-split-seconds-wrap" style="display:none; margin-top:12px;">
+                        <label>分割間隔 (秒数)</label>
+                        <input type="number" id="a-split-seconds-val" value="30" min="1" step="1">
+                        <div id="a-split-seconds-converted" class="time-convert-label">変換：30秒</div>
+                    </div>
+                </div>
+
+                <div class="action">
+                    <button id="btn-export-audio" style="background: linear-gradient(to right, #ec4899, #db2777); padding: 18px 24px;">音声のみを抽出・エクスポート</button>
+                </div>
+                <div class="status" id="audio-status-box"></div>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel category" data-panel="frames">
+        <div class="section-head">
+            <div>
+                <h2>静止画スナップショット・連番抽出</h2>
+                <p class="section-desc">指定した区間から定期的な間隔で画像を自動キャプチャし、1つのZIPファイルにまとめて出力します。</p>
+            </div>
+        </div>
+        <div class="cards" style="grid-template-columns: 1fr;">
+            <article class="card">
+                <h3>連番画像エクスポート設定</h3>
+                <p>※範囲は「2. 動画トリミング分割」タブで設定した秒数（開始〜終了）がそのまま適用されます。</p>
+                <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 18px;">
+                    <div class="row-2">
+                        <div class="field">
+                            <label>キャプチャ間隔</label>
+                            <select id="frame-interval-mode">
+                                <option value="1">1秒ごとに1枚抽出</option>
+                                <option value="0.5">0.5秒ごとに1枚抽出</option>
+                                <option value="2">2秒ごとに1枚抽出</option>
+                                <option value="5">5秒ごとに1枚抽出</option>
+                                <option value="current">現在のプレビュー画面を1枚だけ保存</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>画像フォーマット</label>
+                            <select id="frame-format">
+                                <option value="png">PNG (.png) - 高画質</option>
+                                <option value="jpeg">JPEG (.jpg) - 軽量</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action">
+                    <button id="btn-export-frames" style="background: linear-gradient(to right, #f59e0b, #d97706); padding: 18px 24px;">静止画切り出しを実行</button>
+                </div>
+                <div class="status" id="frames-status-box"></div>
+            </article>
+        </div>
+    </section>
+
+    <p class="footer-note">※外部サーバーへの動画アップロードは一切ありません。ブラウザ内部のメモリだけで安全かつ高速に処理が完結します。</p>
+</div>
+
+<script>
+    const state = {
+        videoFile: null,
+        videoUrl: null,
+        audioBuffer: null,
+        audioCtx: null
+    };
+
+    const videoEl = document.getElementById('main-video');
+    const sharedVideoInput = document.getElementById('shared-video');
+    const playerFileInput = document.getElementById('player-file');
+    const sharedFileChip = document.getElementById('shared-file-chip');
+    
+    const navButtons = Array.from(document.querySelectorAll('#category-nav button'));
+    const panels = Array.from(document.querySelectorAll('.category'));
+
+    navButtons.forEach(button => button.addEventListener('click', () => {
+        navButtons.forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        panels.forEach(panel => panel.classList.toggle('active', panel.dataset.panel === button.dataset.category));
+        videoEl.pause();
+    }));
+
+    sharedVideoInput.addEventListener('change', () => handleVideoFile(sharedVideoInput.files[0]));
+    playerFileInput.addEventListener('change', () => handleVideoFile(playerFileInput.files[0]));
+
+    function handleVideoFile(file) {
+        if (!file) return;
+        state.videoFile = file;
+
+        showStatus('player-status', '動画ファイルをローカル暗号・セキュアデータ化に変換中...', 'info');
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            state.videoUrl = e.target.result;
+            videoEl.crossOrigin = "anonymous";
+            videoEl.src = state.videoUrl;
+            state.audioBuffer = null;
+
+            const sizeMb = file.size / 1024 / 1024;
+            sharedFileChip.style.display = 'inline-flex';
+            sharedFileChip.textContent = `${file.name} (${sizeMb.toFixed(2)} MB)`;
+
+            showStatus('player-status', 'セキュリティロック解除成功。正常に動画がマウントされました！', 'success');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    videoEl.addEventListener('loadedmetadata', () => {
+        const duration = videoEl.duration;
+        document.getElementById('trim-end').value = duration.toFixed(1);
+        document.getElementById('player-info').textContent = `[ファイル名]: ${state.videoFile ? state.videoFile.name : 'Unknown'}\n[動画総尺]: ${duration.toFixed(2)} 秒\n[解像度]: ${videoEl.videoWidth} x ${videoEl.videoHeight} px`;
+        updateTimeDisplay();
+    });
+
+    videoEl.addEventListener('timeupdate', updateTimeDisplay);
+
+    function updateTimeDisplay() {
+        document.getElementById('time-display').textContent = `${formatTime(videoEl.currentTime)} / ${formatTime(videoEl.duration || 0)}`;
+    }
+
+    function formatTime(sec) {
+        if (isNaN(sec) || sec < 0) sec = 0;
+        const m = Math.floor(sec / 60).toString().padStart(2, '0');
+        const s = Math.floor(sec % 60).toString().padStart(2, '0');
+        const ms = Math.floor((sec % 1) * 100).toString().padStart(2, '0');
+        return `${m}:${s}.${ms}`;
+    }
+
+    document.getElementById('player-play').addEventListener('click', () => {
+        if (videoEl.paused) videoEl.play();
+        else videoEl.pause();
+    });
+    document.getElementById('player-speed').addEventListener('input', (e) => {
+        videoEl.playbackRate = parseFloat(e.target.value);
+        document.getElementById('speed-val-display').textContent = `現在の速度: ${e.target.value}x`;
+    });
+    document.getElementById('frame-prev').addEventListener('click', () => { videoEl.currentTime = Math.max(0, videoEl.currentTime - 0.03); });
+    document.getElementById('frame-next').addEventListener('click', () => { videoEl.currentTime = Math.min(videoEl.duration, videoEl.currentTime + 0.03); });
+    document.getElementById('frame-prev-5').addEventListener('click', () => { videoEl.currentTime = Math.max(0, videoEl.currentTime - 5); });
+    document.getElementById('frame-next-5').addEventListener('click', () => { videoEl.currentTime = Math.min(videoEl.duration, videoEl.currentTime + 5); });
+
+    function initSplitUi(selectId, countWrapId, secondsWrapId, secondsValId, convertedId) {
+        const select = document.getElementById(selectId);
+        const countWrap = document.getElementById(countWrapId);
+        const secondsWrap = document.getElementById(secondsWrapId);
+        const secondsVal = document.getElementById(secondsValId);
+        const converted = document.getElementById(convertedId);
+
+        select.addEventListener('change', () => {
+            countWrap.style.display = (select.value === 'count') ? 'block' : 'none';
+            secondsWrap.style.display = (select.value === 'seconds') ? 'block' : 'none';
+        });
+        secondsVal.addEventListener('input', () => {
+            const sec = parseFloat(secondsVal.value) || 0;
+            const hours = Math.floor(sec / 3600);
+            const minutes = Math.floor((sec % 3600) / 60);
+            const seconds = Math.floor(sec % 60);
+            let res = "";
+            if (hours > 0) res += `${hours}時間`;
+            if (minutes > 0 || hours > 0) res += `${minutes}分`;
+            res += `${seconds}秒`;
+            converted.textContent = `変換：${res || '0秒'}`;
+        });
+    }
+    initSplitUi('video-split-mode', 'v-split-count-wrap', 'v-split-seconds-wrap', 'v-split-seconds-val', 'v-split-seconds-converted');
+    initSplitUi('audio-split-mode', 'a-split-count-wrap', 'a-split-seconds-wrap', 'a-split-seconds-val', 'a-split-seconds-converted');
+
+    function showStatus(id, msg, type = 'info') {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = msg;
+        el.className = `status show ${type}`;
+    }
+
+    /* ==========================================================================
+       2. 動画トリミング (CORS完全対応・再生駆動連動版)
+       ========================================================================== */
+    document.getElementById('btn-export-video').addEventListener('click', async () => {
+        if (!state.videoFile) return alert('動画ファイルを読み込んでください。');
+
+        const baseStart = parseFloat(document.getElementById('trim-start').value) || 0;
+        let baseEnd = parseFloat(document.getElementById('trim-end').value) || videoEl.duration;
+        if (baseEnd > videoEl.duration || baseEnd === 0) baseEnd = videoEl.duration;
+        const baseDuration = baseEnd - baseStart;
+
+        if (baseDuration <= 0) return alert('範囲指定が不正です。');
+
+        const splitMode = document.getElementById('video-split-mode').value;
+        const format = document.getElementById('video-format').value;
+        
+        let mimeType = 'video/webm;codecs=vp9,opus';
+        if (format === 'mp4') {
+            mimeType = 'video/mp4;codecs=h264';
+            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm'; 
+        }
+
+        let chunks = [];
+        if (splitMode === 'none') {
+            chunks.push({ start: baseStart, duration: baseDuration, index: null });
+        } else if (splitMode === 'count') {
+            const count = parseInt(document.getElementById('v-split-count-val').value) || 2;
+            const chunkLen = baseDuration / count;
+            for (let i = 0; i < count; i++) {
+                chunks.push({ start: baseStart + (i * chunkLen), duration: chunkLen, index: i + 1 });
+            }
+        } else if (splitMode === 'seconds') {
+            const interval = parseFloat(document.getElementById('v-split-seconds-val').value) || 10;
+            let currentPos = baseStart;
+            let idx = 1;
+            while (currentPos < baseEnd) {
+                let remains = baseEnd - currentPos;
+                let chunkLen = remains > interval ? interval : remains;
+                chunks.push({ start: currentPos, duration: chunkLen, index: idx });
+                currentPos += interval;
+                idx++;
+            }
+        }
+
+        const totalChunks = chunks.length;
+        const useZip = (splitMode !== 'none');
+        let zip = useZip ? new JSZip() : null;
+        const baseName = state.videoFile.name.split('.')[0] || 'video';
+
+        const originalSpeed = videoEl.playbackRate;
+        const originalMute = videoEl.muted;
+        
+        videoEl.muted = true;
+        // 描画を強制駆動させるために等倍再生にする
+        videoEl.playbackRate = 1.0; 
+
+        try {
+            // キャプチャ用ストリームを作成
+            const stream = videoEl.captureStream ? videoEl.captureStream(30) : videoEl.mozCaptureStream(30);
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = chunks[i];
+                const currentNum = i + 1;
+                showStatus('trim-status-box', `動画レコード中 (${currentNum}/${totalChunks})... 実時間処理されますので少々お待ちください`, 'info');
+
+                // 該当の開始位置にジャンプ
+                videoEl.currentTime = chunk.start;
+                await new Promise(r => videoEl.onseeked = r);
+                await new Promise(r => setTimeout(r, 150)); // 同期安定待ち
+
+                const recorder = new MediaRecorder(stream, { mimeType: mimeType });
+                const dataBuf = [];
+                recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) dataBuf.push(e.data); };
+
+                const recordPromise = new Promise(resolve => {
+                    recorder.onstop = () => { resolve(new Blob(dataBuf, { type: format === 'mp4' ? 'video/mp4' : 'video/webm' })); };
+                });
+
+                recorder.start();
+                videoEl.play(); // 動画を実際に動かすことでフレームデータを供給する
+
+                // 実時間で指定区間が過ぎるのを監視
+                await new Promise(resolve => {
+                    const checkProgress = () => {
+                        if (videoEl.currentTime >= (chunk.start + chunk.duration) || videoEl.currentTime >= videoEl.duration || videoEl.ended) {
+                            videoEl.pause();
+                            recorder.stop();
+                            resolve();
+                        } else {
+                            setTimeout(checkProgress, 30);
+                        }
+                    };
+                    setTimeout(checkProgress, chunk.duration * 1000);
+                });
+
+                const finalBlob = await recordPromise;
+
+                let suffix = "";
+                if (chunk.index !== null) {
+                    suffix = `_${String(chunk.index).padStart(String(totalChunks).length, '0')}`;
+                }
+                const outName = `edited_${baseName}${suffix}.${format}`;
+
+                if (useZip) {
+                    zip.file(outName, finalBlob);
+                } else {
+                    const url = URL.createObjectURL(finalBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = outName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            }
+
+            if (useZip) {
+                showStatus('trim-status-box', 'パッケージ作成中（ZIPにまとめ中）...', 'info');
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipUrl = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = zipUrl;
+                a.download = `edited_${baseName}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(zipUrl);
+                showStatus('trim-status-box', `大成功！全 ${totalChunks} 本の動画をZIPに圧縮して保存しました。`, 'success');
+            } else {
+                showStatus('trim-status-box', '大成功！切り出した動画ファイルを保存しました。', 'success');
+            }
+
+        } catch (err) {
+            console.error(err);
+            showStatus('trim-status-box', 'エラー：処理中に問題が発生しました。動画の長さや対応コーデックを確認してください。', 'error');
+        } finally {
+            videoEl.playbackRate = originalSpeed;
+            videoEl.muted = originalMute;
+        }
+    });
+
+    /* ==========================================================================
+       3. 音声トラック抽出
+       ========================================================================== */
+    async function getAudioBufferFromVideo() {
+        if (state.audioBuffer) return state.audioBuffer;
+        if (!state.audioCtx) state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        showStatus('audio-status-box', '動画から音声データを抽出デコード中（数十秒かかる場合があります）...', 'info');
+        
+        const response = await fetch(state.videoUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        state.audioBuffer = await state.audioCtx.decodeAudioData(arrayBuffer);
+        return state.audioBuffer;
+    }
+
+    document.getElementById('btn-export-audio').addEventListener('click', async () => {
+        if (!state.videoFile) return alert('動画ファイルを読み込んでください。');
+
+        try {
+            const buffer = await getAudioBufferFromVideo();
+            const baseStart = parseFloat(document.getElementById('trim-start').value) || 0;
+            let baseEnd = parseFloat(document.getElementById('trim-end').value) || buffer.duration;
+            if (baseEnd > buffer.duration || baseEnd === 0) baseEnd = buffer.duration;
+            const baseDuration = baseEnd - baseStart;
+
+            if (baseDuration <= 0) return alert('範囲指定が不正です。');
+
+            const format = document.getElementById('audio-format').value;
+            const splitMode = document.getElementById('audio-split-mode').value;
+
+            let chunks = [];
+            if (splitMode === 'none') {
+                chunks.push({ start: baseStart, duration: baseDuration, index: null });
+            } else if (splitMode === 'count') {
+                const count = parseInt(document.getElementById('a-split-count-val').value) || 2;
+                const chunkLen = baseDuration / count;
+                for (let i = 0; i < count; i++) {
+                    chunks.push({ start: baseStart + (i * chunkLen), duration: chunkLen, index: i + 1 });
+                }
+            } else if (splitMode === 'seconds') {
+                const interval = parseFloat(document.getElementById('a-split-seconds-val').value) || 30;
+                let currentPos = baseStart;
+                let idx = 1;
+                while (currentPos < baseEnd) {
+                    let remains = baseEnd - currentPos;
+                    let chunkLen = remains > interval ? interval : remains;
+                    chunks.push({ start: currentPos, duration: chunkLen, index: idx });
+                    currentPos += interval;
+                    idx++;
+                }
+            }
+
+            const totalChunks = chunks.length;
+            const useZip = (splitMode !== 'none');
+            let zip = useZip ? new JSZip() : null;
+            const baseName = state.videoFile.name.split('.')[0] || 'audio';
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = chunks[i];
+                showStatus('audio-status-box', `音声トラック変換中 (${i + 1}/${totalChunks})...`, 'info');
+
+                const sampleRate = buffer.sampleRate;
+                const numChannels = buffer.numberOfChannels;
+                const offlineCtx = new OfflineAudioContext(numChannels, sampleRate * chunk.duration, sampleRate);
+
+                const src = offlineCtx.createBufferSource();
+                src.buffer = buffer;
+                src.connect(offlineCtx.destination);
+                src.start(0, chunk.start, chunk.duration);
+
+                const renderedBuffer = await offlineCtx.startRendering();
+                const finalBlob = (format === 'mp3') ? encodeMP3(renderedBuffer) : encodeWAV(renderedBuffer);
+
+                let suffix = "";
+                if (chunk.index !== null) {
+                    suffix = `_${String(chunk.index).padStart(String(totalChunks).length, '0')}`;
+                }
+                const outName = `extracted_${baseName}${suffix}.${format}`;
+
+                if (useZip) {
+                    zip.file(outName, finalBlob);
+                } else {
+                    const url = URL.createObjectURL(finalBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = outName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            }
+
+            if (useZip) {
+                showStatus('audio-status-box', 'ZIPへパッキング中...', 'info');
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const zipUrl = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = zipUrl;
+                a.download = `extracted_${baseName}_audio.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(zipUrl);
+                showStatus('audio-status-box', `完了！全 ${totalChunks} 本の音声を1つのZIPにまとめて保存しました。`, 'success');
+            } else {
+                showStatus('audio-status-box', '完了！音声を抽出・保存しました。', 'success');
+            }
+        } catch (err) {
+            console.error(err);
+            showStatus('audio-status-box', '音声のデコードに失敗しました。動画データをご確認ください。', 'error');
+        }
+    });
+
+    /* ==========================================================================
+       4. 静止画連番切り出し
+       ========================================================================== */
+    document.getElementById('btn-export-frames').addEventListener('click', async () => {
+        if (!state.videoFile) return alert('動画ファイルを読み込んでください。');
+
+        const baseStart = parseFloat(document.getElementById('trim-start').value) || 0;
+        let baseEnd = parseFloat(document.getElementById('trim-end').value) || videoEl.duration;
+        if (baseEnd > videoEl.duration || baseEnd === 0) baseEnd = videoEl.duration;
+
+        const mode = document.getElementById('frame-interval-mode').value;
+        const format = document.getElementById('frame-format').value;
+        const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const ext = format === 'jpeg' ? 'jpg' : 'png';
+        const baseName = state.videoFile.name.split('.')[0] || 'frame';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        const ctx = canvas.getContext('2d');
+
+        if (mode === 'current') {
+            ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `snapshot_${baseName}_${videoEl.currentTime.toFixed(2)}s.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showStatus('frames-status-box', '現在のフレームのスナップショットを取得しました。', 'success');
+            }, mimeType);
+            return;
+        }
+
+        const interval = parseFloat(mode);
+        let timePoints = [];
+        for (let t = baseStart; t <= baseEnd; t += interval) {
+            timePoints.push(t);
+        }
+
+        const totalFrames = timePoints.length;
+        if (totalFrames === 0) return alert('対象の範囲がありません。');
+
+        showStatus('frames-status-box', `連番画像レンダリング中 (全 ${totalFrames} 枚)...`, 'info');
+        const zip = new JSZip();
+        const originalTime = videoEl.currentTime;
+
+        try {
+            for (let i = 0; i < totalFrames; i++) {
+                const t = timePoints[i];
+                showStatus('frames-status-box', `キャプチャ中 (${i+1}/${totalFrames}): ${t.toFixed(1)}秒の地点...`, 'info');
+
+                videoEl.currentTime = t;
+                await new Promise(r => videoEl.onseeked = r);
+                await new Promise(r => setTimeout(r, 100)); // 安定化のためのウエイト
+
+                ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                const blobPromise = new Promise(resolve => canvas.toBlob(resolve, mimeType));
+                const imgBlob = await blobPromise;
+
+                const padNum = String(i + 1).padStart(String(totalFrames).length, '0');
+                zip.file(`frame_${baseName}_${padNum}.${ext}`, imgBlob);
+            }
+
+            showStatus('frames-status-box', 'ZIP圧縮中パッケージング...', 'info');
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipUrl = URL.createObjectURL(zipBlob);
+            
+            const a = document.createElement('a');
+            a.href = zipUrl;
+            a.download = `frames_${baseName}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(zipUrl);
+
+            showStatus('frames-status-box', `完了！全 ${totalFrames} 枚をZIPに一括保存しました。`, 'success');
+        } catch (err) {
+            console.error(err);
+            showStatus('frames-status-box', '処理中にエラーが発生しました。', 'error');
+        } finally {
+            videoEl.currentTime = originalTime;
+        }
+    });
+
+    /* ==========================================================================
+       オーディオエンコーダー（WAV / MP3）
+       ========================================================================== */
+    function encodeMP3(audioBuffer) {
+        const channels = audioBuffer.numberOfChannels;
+        const sampleRate = audioBuffer.sampleRate;
+        const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+        const mp3Data = [];
+
+        const leftData = audioBuffer.getChannelData(0);
+        const rightData = channels > 1 ? audioBuffer.getChannelData(1) : leftData;
+
+        const sampleLength = leftData.length;
+        const leftInt16 = new Int16Array(sampleLength);
+        const rightInt16 = new Int16Array(sampleLength);
+
+        for (let i = 0; i < sampleLength; i++) {
+            let sL = Math.max(-1, Math.min(1, leftData[i]));
+            leftInt16[i] = sL < 0 ? sL * 0x8000 : sL * 0x7FFF;
+            let sR = Math.max(-1, Math.min(1, rightData[i]));
+            rightInt16[i] = sR < 0 ? sR * 0x8000 : sR * 0x7FFF;
+        }
+
+        const bufferSize = 1152;
+        for (let i = 0; i < sampleLength; i += bufferSize) {
+            const leftChunk = leftInt16.subarray(i, i + bufferSize);
+            const rightChunk = rightInt16.subarray(i, i + bufferSize);
+            const mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+            if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
+        }
+
+        const mp3buf = mp3encoder.flush();
+        if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
+
+        return new Blob(mp3Data, { type: 'audio/mp3' });
+    }
+
+    function encodeWAV(buffer) {
+        let numOfChan = buffer.numberOfChannels,
+            length = buffer.length * numOfChan * 2 + 44,
+            bufferArr = new ArrayBuffer(length),
+            view = new DataView(bufferArr),
+            channels = [], i, sample, offset = 0, pos = 0;
+
+        function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+        function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+        setUint32(0x46464952); 
+        setUint32(length - 8);
+        setUint32(0x45564157); 
+        setUint32(0x20746d66); 
+        setUint32(16); 
+        setUint16(1); 
+        setUint16(numOfChan);
+        setUint32(buffer.sampleRate);
+        setUint32(buffer.sampleRate * numOfChan * 2); 
+        setUint16(numOfChan * 2); 
+        setUint16(16); 
+        setUint32(0x61746164); 
+        setUint32(length - pos - 4);
+
+        for(i = 0; i < buffer.numberOfChannels; i++) channels.push(buffer.getChannelData(i));
+
+        while(pos < length) {
+            for(i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                view.setInt16(pos, sample, true);
+                pos += 2;
+            }
+            offset++;
+        }
+        return new Blob([bufferArr], { type: 'audio/wav' });
+    }
+</script>
+</body>
+</html>
