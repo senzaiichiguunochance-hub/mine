@@ -472,11 +472,11 @@
             <div class="eyebrow">VIDEO WORKBENCH</div>
             <h1>動画のトリミング・マルチ分割・素材抽出ワークベンチ</h1>
             <p class="lead">
-                お手持ちの動画ファイル（MP4 / WebM / MOV等）を読み込み、再生速度変更や精密なコマ送り確認、指定区間のトリミング、そして「音声の抽出」や「静止画連番の書き出し」まで、サーバーを一切介さず安全なローカル環境で自動処理します。
+                お手持ちの動画ファイル（MP4 / WebM / MOV等）を読み込み、再生速度変更や精密なコマ送り確認、指定区間のトリミング、さらに「音声の抽出」や「静止画連番の書き出し」まで、サーバーを一切介さず安全なローカル環境で自動処理します。
             </p>
             <div class="hero-grid">
                 <div class="mini"><strong>共有動画ソース</strong><span>動画を1つセットするだけで、トリミング、音声分離、静止画切り出しの全機能を共通で利用できます。</span></div>
-                <div class="mini"><strong>精密フレーム制御</strong><span>1フレーム単位のコマ送り・コマ戻しに対応し、切り出したい瞬間を1ミリ秒まで逃さず捉えます。</span></div>
+                <div class="mini"><strong>精密フレーム制御</strong><span>1フレーム単位 of コマ送り・コマ戻しに対応し、切り出したい瞬間を1ミリ秒まで逃さず捉えます。</span></div>
                 <div class="mini"><strong>高音質音声の分離</strong><span>動画から音声トラック（WAV/MP3）のみを高速で抜き出し、さらに分割して書き出すことも可能です。</span></div>
                 <div class="mini"><strong>分割一括ZIPダウンロード</strong><span>動画・音声・静止画を複数に分割して出力する際は、自動で1本のZIPにまとめてクリーンに保存します。</span></div>
             </div>
@@ -601,8 +601,12 @@
         </div>
         <div class="cards" style="grid-template-columns: 1fr;">
             <article class="card">
-                <h3>音声抽出・分割オプション</h3>
-                <p>※範囲は「2. 動画トリミング分割」タブで設定した秒数（開始〜終了）がそのまま適用されます。</p>
+                <h3>音声抽出範囲 & オプション設定</h3>
+                <div class="row-2" style="margin-bottom: 14px;">
+                    <div class="field"><label>抽出開始時間 (秒)</label><input type="number" id="audio-start" value="0" min="0" step="0.1"></div>
+                    <div class="field"><label>抽出終了時間 (秒) ※0で末尾まで</label><input type="number" id="audio-end" value="0" min="0" step="0.1"></div>
+                </div>
+
                 <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 18px;">
                     <div class="row-2">
                         <div class="field">
@@ -651,8 +655,12 @@
         </div>
         <div class="cards" style="grid-template-columns: 1fr;">
             <article class="card">
-                <h3>連番画像エクスポート設定</h3>
-                <p>※範囲は「2. 動画トリミング分割」タブで設定した秒数（開始〜終了）がそのまま適用されます。</p>
+                <h3>連番画像 切り出し範囲 & 設定</h3>
+                <div class="row-2" style="margin-bottom: 14px;">
+                    <div class="field"><label>画像化 開始時間 (秒)</label><input type="number" id="frames-start" value="0" min="0" step="0.1"></div>
+                    <div class="field"><label>画像化 終了時間 (秒) ※0で末尾まで</label><input type="number" id="frames-end" value="0" min="0" step="0.1"></div>
+                </div>
+
                 <div style="background: rgba(255,255,255,0.03); padding: 16px; border-radius: 14px; border: 1px solid var(--line); margin-bottom: 18px;">
                     <div class="row-2">
                         <div class="field">
@@ -662,7 +670,7 @@
                                 <option value="0.5">0.5秒ごとに1枚抽出</option>
                                 <option value="2">2秒ごとに1枚抽出</option>
                                 <option value="5">5秒ごとに1枚抽出</option>
-                                <option value="current">現在のプレビュー画面を1枚だけ保存</option>
+                                <option value="current">現在のプレビュー画面を1枚だけ保存 (※上部時間は無視されます)</option>
                             </select>
                         </div>
                         <div class="field">
@@ -736,7 +744,12 @@
 
     videoEl.addEventListener('loadedmetadata', () => {
         const duration = videoEl.duration;
+        
+        // 全てのタブの初期終了時間に動画の長さを自動セット
         document.getElementById('trim-end').value = duration.toFixed(1);
+        document.getElementById('audio-end').value = duration.toFixed(1);
+        document.getElementById('frames-end').value = duration.toFixed(1);
+        
         document.getElementById('player-info').textContent = `[ファイル名]: ${state.videoFile ? state.videoFile.name : 'Unknown'}\n[動画総尺]: ${duration.toFixed(2)} 秒\n[解像度]: ${videoEl.videoWidth} x ${videoEl.videoHeight} px`;
         updateTimeDisplay();
     });
@@ -802,7 +815,7 @@
     }
 
     /* ==========================================================================
-       2. 動画トリミング (CORS完全対応・再生駆動連動版)
+       2. 動画トリミング
        ========================================================================== */
     document.getElementById('btn-export-video').addEventListener('click', async () => {
         if (!state.videoFile) return alert('動画ファイルを読み込んでください。');
@@ -854,11 +867,9 @@
         const originalMute = videoEl.muted;
         
         videoEl.muted = true;
-        // 描画を強制駆動させるために等倍再生にする
         videoEl.playbackRate = 1.0; 
 
         try {
-            // キャプチャ用ストリームを作成
             const stream = videoEl.captureStream ? videoEl.captureStream(30) : videoEl.mozCaptureStream(30);
 
             for (let i = 0; i < totalChunks; i++) {
@@ -866,10 +877,9 @@
                 const currentNum = i + 1;
                 showStatus('trim-status-box', `動画レコード中 (${currentNum}/${totalChunks})... 実時間処理されますので少々お待ちください`, 'info');
 
-                // 該当の開始位置にジャンプ
                 videoEl.currentTime = chunk.start;
                 await new Promise(r => videoEl.onseeked = r);
-                await new Promise(r => setTimeout(r, 150)); // 同期安定待ち
+                await new Promise(r => setTimeout(r, 150)); 
 
                 const recorder = new MediaRecorder(stream, { mimeType: mimeType });
                 const dataBuf = [];
@@ -880,9 +890,8 @@
                 });
 
                 recorder.start();
-                videoEl.play(); // 動画を実際に動かすことでフレームデータを供給する
+                videoEl.play(); 
 
-                // 実時間で指定区間が過ぎるのを監視
                 await new Promise(resolve => {
                     const checkProgress = () => {
                         if (videoEl.currentTime >= (chunk.start + chunk.duration) || videoEl.currentTime >= videoEl.duration || videoEl.ended) {
@@ -944,7 +953,7 @@
     });
 
     /* ==========================================================================
-       3. 音声トラック抽出
+       3. 音声トラック抽出 (独立した範囲設定に対応)
        ========================================================================== */
     async function getAudioBufferFromVideo() {
         if (state.audioBuffer) return state.audioBuffer;
@@ -963,8 +972,10 @@
 
         try {
             const buffer = await getAudioBufferFromVideo();
-            const baseStart = parseFloat(document.getElementById('trim-start').value) || 0;
-            let baseEnd = parseFloat(document.getElementById('trim-end').value) || buffer.duration;
+            
+            // 音声専用のフォームから秒数を取得
+            const baseStart = parseFloat(document.getElementById('audio-start').value) || 0;
+            let baseEnd = parseFloat(document.getElementById('audio-end').value) || buffer.duration;
             if (baseEnd > buffer.duration || baseEnd === 0) baseEnd = buffer.duration;
             const baseDuration = baseEnd - baseStart;
 
@@ -1058,13 +1069,14 @@
     });
 
     /* ==========================================================================
-       4. 静止画連番切り出し
+       4. 静止画連番切り出し (独立した範囲設定に対応)
        ========================================================================== */
     document.getElementById('btn-export-frames').addEventListener('click', async () => {
         if (!state.videoFile) return alert('動画ファイルを読み込んでください。');
 
-        const baseStart = parseFloat(document.getElementById('trim-start').value) || 0;
-        let baseEnd = parseFloat(document.getElementById('trim-end').value) || videoEl.duration;
+        // 静止画専用のフォームから秒数を取得
+        const baseStart = parseFloat(document.getElementById('frames-start').value) || 0;
+        let baseEnd = parseFloat(document.getElementById('frames-end').value) || videoEl.duration;
         if (baseEnd > videoEl.duration || baseEnd === 0) baseEnd = videoEl.duration;
 
         const mode = document.getElementById('frame-interval-mode').value;
@@ -1114,7 +1126,7 @@
 
                 videoEl.currentTime = t;
                 await new Promise(r => videoEl.onseeked = r);
-                await new Promise(r => setTimeout(r, 100)); // 安定化のためのウエイト
+                await new Promise(r => setTimeout(r, 100)); 
 
                 ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
                 const blobPromise = new Promise(resolve => canvas.toBlob(resolve, mimeType));
