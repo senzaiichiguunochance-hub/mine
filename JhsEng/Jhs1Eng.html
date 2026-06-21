@@ -192,6 +192,10 @@
             border-color: #ff4d4d;
         }
 
+        .btn-danger:hover {
+            box-shadow: 0 0 15px #ff4d4d;
+        }
+
         #question-text {
             font-size: 2.8rem;
             margin: 0.5rem 0;
@@ -420,7 +424,7 @@
     <!-- ゲーム画面 -->
     <div id="game-screen" class="game-screen">
         <div class="stat-bar">
-            <button class="btn btn-small" style="margin: 0;" onclick="showMenu()">中断して戻る</button>
+            <button class="btn btn-small btn-danger" style="margin: 0;" onclick="showMenu()">中断して戻る</button>
             <div id="progress">問題 1 / 10</div>
             <div id="timer-display" class="timer-display">残り: --</div>
             <div id="score-display">正解: 0</div>
