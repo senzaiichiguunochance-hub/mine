@@ -4,6 +4,9 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>モスキート音ジェネレーター</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&display=swap" rel="stylesheet">
 	<style>
 		:root {
 			--bg-start: #07111f;
@@ -22,31 +25,31 @@
 		}
 
 		body.theme-cute {
-			--bg-start: #2a1020;
-			--bg-end: #4c1d3d;
-			--card-bg: rgba(255, 245, 248, 0.92);
-			--card-border: rgba(255, 123, 171, 0.35);
-			--primary: #ff6b8b;
-			--primary-strong: #ff4d7d;
-			--secondary: #ffb86b;
-			--text: #4a2733;
-			--muted: #7d5a66;
-			--danger: #ff6b6b;
-			--success: #2ea66d;
+			--bg-start: #ffdee9;
+			--bg-end: #b5fffc;
+			--card-bg: rgba(255, 255, 255, 0.92);
+			--card-border: rgba(255, 105, 180, 0.3);
+			--primary: #ff69b4;
+			--primary-strong: #ff1493;
+			--secondary: #ffb7b2;
+			--text: #5d3f4b;
+			--muted: #9e7f8c;
+			--danger: #ff4757;
+			--success: #2ed573;
 		}
 
 		body.theme-beautiful {
-			--bg-start: #10172c;
-			--bg-end: #25345e;
-			--card-bg: rgba(255, 255, 255, 0.9);
-			--card-border: rgba(108, 92, 231, 0.22);
-			--primary: #6c5ce7;
-			--primary-strong: #5b4bd1;
-			--secondary: #9b89ff;
-			--text: #24304a;
-			--muted: #60708c;
-			--danger: #e05664;
-			--success: #24a37a;
+			--bg-start: #e0eeff;
+			--bg-end: #e6fffb;
+			--card-bg: rgba(255, 255, 255, 0.88);
+			--card-border: rgba(0, 180, 216, 0.25);
+			--primary: #00b4d8;
+			--primary-strong: #0077b6;
+			--secondary: #72efdd;
+			--text: #1d3557;
+			--muted: #64dfdf;
+			--danger: #ff6b6b;
+			--success: #48cae4;
 		}
 
 		body.theme-stylish {
@@ -191,16 +194,30 @@
 
 		h1 {
 			margin: 12px 0 8px;
-			font-size: clamp(1.7rem, 4vw, 2.7rem);
-			letter-spacing: 0.06em;
+			font-family: 'Mochiy Pop One', sans-serif;
+			font-size: clamp(1.7rem, 4vw, 2.5rem);
+			letter-spacing: 0.04em;
 			display: inline-block;
-			padding: 0.22em 0.8em;
+			padding: 0.3em 1.2em;
 			border-radius: 999px;
-			background: linear-gradient(135deg, rgba(8, 14, 26, 0.72), rgba(8, 14, 26, 0.28));
+			background: linear-gradient(135deg, var(--primary), var(--primary-strong));
 			color: #ffffff;
+			border: 3px solid #ffffff;
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+			text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.15);
+		}
+
+		
+		body.theme-cute h1 {
+			background: linear-gradient(135deg, #ff85a2, #ff477e);
+		}
+		body.theme-beautiful h1 {
+			background: linear-gradient(135deg, #4ea8de, #56cfe1);
+		}
+		body.theme-stylish h1 {
+			background: linear-gradient(135deg, #e1b12c, #fbc531);
 			border: 1px solid rgba(255, 255, 255, 0.14);
-			box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-			text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7), 0 0 22px rgba(91, 231, 255, 0.35);
+			text-shadow: 0 2px 12px rgba(0, 0, 0, 0.7);
 		}
 
 		.subtitle {
