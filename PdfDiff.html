@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Enterprise PDF Diff Workbench</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        :root { --bg: #07111f; --accent: #7dd3fc; }
+        body { margin: 0; background: var(--bg); color: white; height: 100vh; display: flex; flex-direction: column; }
+        .toolbar { padding: 15px; background: #0f172a; border-bottom: 1px solid #334155; display: flex; gap: 15px; align-items: center; }
+        .viewer-container { display: flex; flex-grow: 1; overflow: hidden; gap: 2px; background: #334155; }
+        .drop-zone { flex: 1; overflow: auto; background: #fff; position: relative; }
+        /* 拡大縮小用のラッパー */
+        .canvas-wrapper { transform-origin: top left; display: inline-block; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div><button onclick="document.getElementById('f1').click()">PDF A</button><input type="file" id="f1" hidden onchange="process(this.files[0], 0)"><span id="name1">未選択</span></div>
+        <div><button onclick="document.getElementById('f2').click()">PDF B</button><input type="file" id="f2" hidden onchange="process(this.files[0], 1)"><span id="name2">未選択</span></div>
+        <button onclick="compare()">比較解析実行</button>
+        <span style="margin-left: 20px;">Wheelで拡大縮小 (Ctrl + Wheel)</span>
+    </div>
+    <div class="viewer-container">
+        <div class="drop-zone" id="dz1"><div class="canvas-wrapper"><canvas id="c1"></canvas></div></div>
+        <div class="drop-zone" id="dz2"><div class="canvas-wrapper"><canvas id="c2"></canvas></div></div>
+    </div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    let loaded = [null, null], zoom = 1.0;
+
+    async function process(file, idx) {
+        if (!file) return;
+        loaded[idx] = file;
+        document.getElementById('name' + (idx + 1)).innerText = file.name;
+        const doc = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+        const page = await doc.getPage(1);
+        const canvas = document.getElementById('c' + (idx + 1));
+        const ctx = canvas.getContext('2d');
+        const vp = page.getViewport({ scale: 1.5 });
+        canvas.width = vp.width; canvas.height = vp.height;
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    }
+
+    // 拡大縮小とドラッグ＆ドロップの統合
+    document.querySelectorAll('.drop-zone').forEach((el, idx) => {
+        el.ondragover = e => e.preventDefault();
+        el.ondrop = e => { e.preventDefault(); process(e.dataTransfer.files[0], idx); };
+        el.onwheel = e => {
+            if(e.ctrlKey) {
+                e.preventDefault();
+                zoom += e.deltaY * -0.001;
+                document.querySelectorAll('.canvas-wrapper').forEach(w => w.style.transform = `scale(${zoom})`);
+            }
+        };
+    });
+
+    // スクロール同期
+    const z1 = document.getElementById('dz1'), z2 = document.getElementById('dz2');
+    z1.onscroll = () => { z2.scrollTop = z1.scrollTop; z2.scrollLeft = z1.scrollLeft; };
+
+    async function compare() {
+        if (!loaded[0] || !loaded[1]) return alert('PDFを選択してください');
+        const ctx2 = document.getElementById('c2').getContext('2d');
+        const d1 = document.getElementById('c1').getContext('2d').getImageData(0,0,c1.width,c1.height);
+        const d2 = ctx2.getImageData(0,0,c2.width,c2.height);
+        const img = ctx2.createImageData(d2.width, d2.height);
+        for(let i=0; i<d1.data.length; i+=4) {
+            const diff = Math.abs(d1.data[i]-d2.data[i]) + Math.abs(d1.data[i+1]-d2.data[i+1]) + Math.abs(d1.data[i+2]-d2.data[i+2]);
+            if(diff > 100) { img.data[i]=255; img.data[i+3]=255; }
+            else { img.data[i]=img.data[i+1]=img.data[i+2]=d2.data[i]; img.data[i+3]=255; }
+        }
+        ctx2.putImageData(img, 0, 0);
+    }
+</script>
+</body>
+</html>
