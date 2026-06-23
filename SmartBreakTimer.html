@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマート休憩タイマー</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* 全画面ブロック用のスタイル */
+        #break-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+        }
+        /* スピンボタン（上下矢印）を非表示にする */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 text-stone-800 min-h-screen flex flex-col items-center justify-center font-sans transition-colors duration-500">
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+
+    <div class="text-center p-6 bg-white rounded-2xl shadow-xl shadow-stone-200 max-w-md w-full mx-4 my-8 border border-stone-200">
+        <h1 class="text-2xl font-bold mb-4 text-rose-600/80 tracking-wide">🌸 スマート休憩タイマー</h1>
+        
+        <button id="auth-btn" onclick="requestNotification()" class="mb-4 w-full bg-rose-500 hover:bg-rose-400 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors shadow-sm">
+            🔔 最初にブラウザ通知を許可する
+        </button>
+
+        <div class="flex items-center justify-center gap-2 mb-4 bg-rose-50/60 py-2 px-4 rounded-lg border border-rose-100">
+            <input type="checkbox" id="sound-toggle" class="w-4 h-4 rounded border-stone-300 text-rose-500 focus:ring-rose-400">
+            <label id="sound-label" for="sound-toggle" class="text-xs font-medium text-stone-600 cursor-pointer select-none">
+                減音中 🔇 時間になったら音を鳴らす
+            </label>
+        </div>
+
+        <div class="text-6xl font-mono font-bold tracking-wider my-4 text-amber-900" id="timer-display">
+            25:00
+        </div>
+
+        <div id="status-text" class="text-rose-700/80 font-medium text-xs mb-6 tracking-wide">
+            心地よいリズムで、わたし時間を整える
+        </div>
+
+        <div class="bg-stone-50 p-4 rounded-xl mb-6 border border-stone-200/80 text-left">
+            <div class="text-xs text-stone-500 mb-2 font-medium pl-1">カスタム時間指定</div>
+            <div class="flex items-center justify-center gap-2 mb-3">
+                <input type="number" id="input-hours" min="0" max="23" value="0" class="w-14 bg-white border border-stone-300 rounded-lg p-2 text-center font-mono text-lg text-stone-800 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400">
+                <span class="text-xs text-stone-500">時</span>
+                <input type="number" id="input-minutes" min="0" max="59" value="25" class="w-14 bg-white border border-stone-300 rounded-lg p-2 text-center font-mono text-lg text-stone-800 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400">
+                <span class="text-xs text-stone-500">分</span>
+                <input type="number" id="input-seconds" min="0" max="59" value="0" class="w-14 bg-white border border-stone-300 rounded-lg p-2 text-center font-mono text-lg text-stone-800 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400">
+                <span class="text-xs text-stone-500">秒</span>
+            </div>
+            <button onclick="startCustomTimer()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 rounded-lg transition-colors shadow-sm">
+                タイマースタート
+            </button>
+        </div>
+
+        <div class="space-y-4 text-left">
+            <div>
+                <div class="text-xs text-stone-500 mb-1.5 font-medium pl-1">クイック設定（1〜10分）</div>
+                <div class="grid grid-cols-5 gap-1.5">
+                    <button onclick="startFixedTimer(1 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">1分</button>
+                    <button onclick="startFixedTimer(2 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">2分</button>
+                    <button onclick="startFixedTimer(3 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">3分</button>
+                    <button onclick="startFixedTimer(4 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">4分</button>
+                    <button onclick="startFixedTimer(5 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">5分</button>
+                    <button onclick="startFixedTimer(6 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">6分</button>
+                    <button onclick="startFixedTimer(7 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">7分</button>
+                    <button onclick="startFixedTimer(8 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">8分</button>
+                    <button onclick="startFixedTimer(9 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">9分</button>
+                    <button onclick="startFixedTimer(10 * 60)" class="bg-stone-100 hover:bg-stone-200 text-stone-700 py-1.5 rounded-md text-xs font-semibold transition-colors border border-stone-200">10分</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-xs text-stone-500 mb-1.5 font-medium pl-1">クイック設定（15分〜1時間）</div>
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button onclick="startFixedTimer(15 * 60)" class="bg-amber-700/10 hover:bg-amber-700/20 text-amber-900 py-2 rounded-lg text-xs font-bold transition-colors border border-amber-200">15分</button>
+                    <button onclick="startFixedTimer(30 * 60)" class="bg-amber-700/10 hover:bg-amber-700/20 text-amber-900 py-2 rounded-lg text-xs font-bold transition-colors border border-amber-200">30分</button>
+                    <button onclick="startFixedTimer(45 * 60)" class="bg-amber-700/10 hover:bg-amber-700/20 text-amber-900 py-2 rounded-lg text-xs font-bold transition-colors border border-amber-200">45分</button>
+                    <button onclick="startFixedTimer(60 * 60)" class="bg-amber-700/10 hover:bg-amber-700/20 text-amber-900 py-2 rounded-lg text-xs font-bold transition-colors border border-amber-200">1時間</button>
+                </div>
+            </div>
+
+            <button onclick="resetTimer()" class="w-full bg-white border border-stone-300 hover:bg-stone-50 text-stone-500 py-2 rounded-xl text-sm transition-colors font-medium">
+                リセット
+            </button>
+        </div>
+    </div>
+
+    <div id="break-screen" class="bg-emerald-50 flex flex-col items-center justify-center text-center p-6 text-emerald-900">
+        <div class="max-w-xl">
+            <span class="text-8xl animate-bounce duration-1000">☕</span>
+            <h2 class="text-4xl font-extrabold my-6 text-emerald-800 tracking-wide">がんばる手を、すこし休めて。</h2>
+            <p class="text-xl text-emerald-700 mb-8 leading-relaxed">
+                おつかれさまでした。深呼吸をひとつしましょう。<br>
+                立ち上がって、背伸びをして、20秒間遠くを眺めて目をいたわってくださいね。
+            </p>
+            <button onclick="endBreak()" class="bg-rose-500 hover:bg-rose-400 text-white text-xl font-bold py-4 px-10 rounded-2xl shadow-md transition-all transform hover:scale-105">
+                作業に戻る
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let countdown;
+        let timeLeft;
+        const timerDisplay = document.getElementById('timer-display');
+        const statusText = document.getElementById('status-text');
+        const breakScreen = document.getElementById('break-screen');
+        const authBtn = document.getElementById('auth-btn');
+        const soundToggle = document.getElementById('sound-toggle');
+        const soundLabel = document.getElementById('sound-label');
+
+        const inputH = document.getElementById('input-hours');
+        const inputM = document.getElementById('input-minutes');
+        const inputS = document.getElementById('input-seconds');
+
+        // ─── 記憶と復元のロジック (localStorage) ───
+        window.addEventListener('DOMContentLoaded', () => {
+            // 保存された入力値の復元
+            if (localStorage.getItem('timer_hours') !== null) inputH.value = localStorage.getItem('timer_hours');
+            if (localStorage.getItem('timer_minutes') !== null) inputM.value = localStorage.getItem('timer_minutes');
+            if (localStorage.getItem('timer_seconds') !== null) inputS.value = localStorage.getItem('timer_seconds');
+
+            // 保存されたアラーム設定(音ON/OFF)の復元
+            if (localStorage.getItem('timer_sound_on') === 'true') {
+                soundToggle.checked = true;
+                soundLabel.textContent = "🔊 時間になったら音を鳴らす";
+            } else {
+                soundToggle.checked = false;
+                soundLabel.textContent = "🔇 時間になったら音を鳴らす";
+            }
+        });
+
+        // アラーム音の切り替えイベント＆状態保存
+        soundToggle.addEventListener('change', () => {
+            localStorage.setItem('timer_sound_on', soundToggle.checked);
+            if (soundToggle.checked) {
+                soundLabel.textContent = "🔊 時間になったら音を鳴らす";
+            } else {
+                soundLabel.textContent = "🔇 時間になったら音を鳴らす";
+            }
+        });
+
+        // 通知の許可を取る
+        function requestNotification() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    authBtn.style.display = 'none';
+                    alert("通知が許可されました！時間になると通知が届きます。");
+                }
+            });
+        }
+
+        if (Notification.permission === "granted") {
+            authBtn.style.display = 'none';
+        }
+
+        // カスタム入力からタイマーを起動（値を保存する）
+        function startCustomTimer() {
+            const h = parseInt(inputH.value) || 0;
+            const m = parseInt(inputM.value) || 0;
+            const s = parseInt(inputS.value) || 0;
+            
+            const totalSeconds = (h * 3600) + (m * 60) + s;
+            
+            if (totalSeconds <= 0) {
+                alert("1秒以上の時間を設定してください。");
+                return;
+            }
+
+            // 次回起動時のためにLocalStorageに記憶
+            localStorage.setItem('timer_hours', h);
+            localStorage.setItem('timer_minutes', m);
+            localStorage.setItem('timer_seconds', s);
+
+            startTimer(totalSeconds);
+        }
+
+        // クイック設定ボタン用（カスタム入力欄は書き換えず、タイマーだけ起動）
+        function startFixedTimer(seconds) {
+            startTimer(seconds);
+        }
+
+        // タイマー開始コアロジック
+        function startTimer(seconds) {
+            clearInterval(countdown);
+            timeLeft = seconds;
+            statusText.textContent = "✨ 心地よく集中しています（別タブで作業してOKです）";
+            
+            updateDisplay();
+
+            countdown = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    triggerBreak();
+                }
+            }, 1000);
+        }
+
+        function updateDisplay() {
+            const hours = Math.floor(timeLeft / 3600);
+            const minutes = Math.floor((timeLeft % 3600) / 60);
+            const seconds = timeLeft % 60;
+            
+            let displayString = "";
+            if (hours > 0) {
+                displayString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                displayString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            timerDisplay.textContent = displayString;
+            document.title = `(${displayString}) 作業中...`;
+        }
+
+        function triggerBreak() {
+            if (Notification.permission === "granted") {
+                new Notification("【時間です】心地よく休憩しましょう", {
+                    body: "すこし手を止めて、深呼吸タイムです🌸",
+                    icon: "https://cdn-icons-png.flaticon.com/512/2088/2088617.png"
+                });
+            }
+
+            if (soundToggle.checked) {
+                playNotificationSound();
+            }
+
+            breakScreen.style.display = 'flex';
+            document.title = "🌸 ほっと一息つきましょう";
+        }
+
+        function endBreak() {
+            breakScreen.style.display = 'none';
+            resetTimer();
+        }
+
+        function resetTimer() {
+            clearInterval(countdown);
+            timerDisplay.textContent = "25:00";
+            statusText.textContent = "心地よいリズムで、わたし時間を整える";
+            document.title = "スマート休憩タイマー";
+        }
+
+        // 上品で優しい音色（1オクターブ上げて、ちょっと柔らかいサイン波に）
+        function playNotificationSound() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(987.77, audioCtx.currentTime); // 優しいシ(B5)の音
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // 音量を少し控えめに上品に
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4); // 0.4秒優しく鳴らす
+        }
+    </script>
+</body>
+</html>
