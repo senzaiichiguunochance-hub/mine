@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプルMarkdownエディタ</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-[#f7f5f2] text-[#4a433c] h-screen flex flex-col font-sans relative">
+
+    <a href="menu.html" style="position: absolute; top: 12px; right: 16px; font-size: 12px; color: #6b5e52; text-decoration: none; background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 20px; z-index: 1000; border: 1px solid #e0dacf; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s;" onmouseover="this.style.background='#fdfbf7'" onmouseout="this.style.background='rgba(255,255,255,0.9)'">
+        メニューに戻る
+    </a>
+
+    <header class="bg-white px-6 py-3 flex justify-between items-center border-b border-[#e8e4dc] shrink-0 pr-36 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+        <div class="flex items-center gap-2.5">
+            <span class="text-xl text-[#c48a88]">✦</span>
+            <h1 class="text-lg font-bold tracking-wider text-[#5c5043]">シンプルMarkdownエディタ</h1>
+        </div>
+        <div class="flex items-center gap-5 text-xs text-[#8a7e72]">
+            <div class="hidden sm:block bg-[#f0ede6] px-2.5 py-1 rounded text-[11px] font-medium tracking-wide">💡 Ctrl+Bで太字 / Ctrl+Hで見出し</div>
+            <div>文字数: <span id="char-count" class="font-bold text-[#4a433c]">0</span> 文字</div>
+            <button onclick="copyPreview()" class="bg-[#b57a78] hover:bg-[#a16765] text-white font-semibold py-1.5 px-4 rounded-full transition-colors shadow-sm cursor-pointer text-xs tracking-wider">
+                ✨ プレビューをコピー
+            </button>
+        </div>
+    </header>
+
+    <main class="flex flex-1 overflow-hidden">
+        <div class="w-1/2 h-full p-4 border-r border-[#e8e4dc] flex flex-col bg-[#faf9f6]">
+            
+            <div class="flex flex-col gap-2 mb-3 bg-white p-3 rounded-xl border border-[#e8e4dc] shadow-[0_2px_8px_rgba(0,0,0,0.01)]">
+                <div class="flex flex-wrap gap-2 items-center justify-between border-b border-[#f2efea] pb-2">
+                    <div class="flex gap-1.5">
+                        <button onclick="toggleHeading()" class="bg-[#f5f3ee] hover:bg-[#eae6de] text-[#5c5043] text-xs py-1 px-2.5 rounded-md font-medium border border-[#e0dacf] cursor-pointer transition-colors">見出し</button>
+                        <button onclick="toggleBold()" class="bg-[#f5f3ee] hover:bg-[#eae6de] text-[#5c5043] text-xs py-1 px-2.5 rounded-md font-medium border border-[#e0dacf] cursor-pointer transition-colors">太字</button>
+                        <button onclick="insertText('- ')" class="bg-[#f5f3ee] hover:bg-[#eae6de] text-[#5c5043] text-xs py-1 px-2.5 rounded-md font-medium border border-[#e0dacf] cursor-pointer transition-colors">リスト</button>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 bg-[#faf9f6] px-3 py-1 rounded-md text-[11px] border border-[#f2efea]">
+                        <span class="text-[#8a7e72] font-medium">挿入方法:</span>
+                        <label class="inline-flex items-center gap-1 cursor-pointer select-none text-[#5c5043]">
+                            <input type="radio" name="insert-mode" value="append" checked class="accent-[#b57a78]"> カーソル位置に追加
+                        </label>
+                        <label class="inline-flex items-center gap-1 cursor-pointer select-none text-[#5c5043]">
+                            <input type="radio" name="insert-mode" value="replace" class="accent-[#b57a78]"> 全て置換
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="insertTemplate('meeting')" class="bg-[#cca27e] hover:bg-[#bd936f] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">📅 議事録テンプレート</button>
+                    <button onclick="insertTemplate('todo')" class="bg-[#8fa89b] hover:bg-[#7e998a] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">✅ タスク管理表</button>
+                    <button onclick="insertTemplate('blog')" class="bg-[#8fa0b5] hover:bg-[#7d8fa6] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">📝 ブログ下書き</button>
+                    <button onclick="insertTemplate('idea')" class="bg-[#bfa2b3] hover:bg-[#ad90a1] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">💡 アイデア発想</button>
+                </div>
+            </div>
+
+            <textarea id="editor" oninput="renderMarkdown()" onkeydown="handleShortcuts(event)" class="w-full flex-1 bg-white text-[#4a433c] p-4 font-mono text-sm rounded-xl border border-[#e8e4dc] focus:outline-none focus:border-[#b57a78] focus:ring-1 focus:ring-[#b57a78] resize-none leading-relaxed shadow-inner" placeholder="ここに入力するか、テンプレートボタンを押してください。ショートカット（Ctrl+B / Ctrl+H）も使えます..."></textarea>
+        </div>
+
+        <div class="w-1/2 h-full p-4 flex flex-col overflow-hidden">
+            <div class="text-[11px] font-bold text-[#8a7e72] mb-2 tracking-wider">PREVIEW</div>
+            <div id="preview" class="w-full flex-1 bg-white text-[#4a433c] p-7 rounded-xl overflow-y-auto border border-[#e8e4dc] shadow-[0_2px_12px_rgba(0,0,0,0.015)] leading-relaxed"></div>
+        </div>
+    </main>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const charCount = document.getElementById('char-count');
+
+        function renderMarkdown() {
+            const rawText = editor.value;
+            preview.innerHTML = marked.parse(rawText);
+            charCount.textContent = rawText.length;
+        }
+
+        // キーボードショートカット処理
+        function handleShortcuts(e) {
+            const isCtrl = e.ctrlKey || e.metaKey;
+            if (isCtrl && e.key.toLowerCase() === 'b') {
+                e.preventDefault();
+                toggleBold();
+            }
+            if (isCtrl && e.key.toLowerCase() === 'h') {
+                e.preventDefault();
+                toggleHeading();
+            }
+        }
+
+        // 賢く太字を切り替える（トグル）関数
+        function toggleBold() {
+            const startPos = editor.selectionStart;
+            const endPos = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(startPos, endPos);
+
+            if (selectedText.startsWith('**') && selectedText.endsWith('**')) {
+                const unbolded = selectedText.slice(2, -2);
+                editor.value = text.substring(0, startPos) + unbolded + text.substring(endPos);
+                editor.selectionStart = startPos;
+                editor.selectionEnd = startPos + unbolded.length;
+            } else {
+                const bolded = '**' + selectedText + '**';
+                editor.value = text.substring(0, startPos) + bolded + text.substring(endPos);
+                editor.selectionStart = startPos;
+                editor.selectionEnd = startPos + bolded.length;
+            }
+            editor.focus();
+            renderMarkdown();
+        }
+
+        // 賢く見出し（#）を切り替える関数
+        function toggleHeading() {
+            const startPos = editor.selectionStart;
+            const endPos = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(startPos, endPos);
+
+            if (selectedText.startsWith('# ')) {
+                const unheading = selectedText.slice(2);
+                editor.value = text.substring(0, startPos) + unheading + text.substring(endPos);
+                editor.selectionStart = startPos;
+                editor.selectionEnd = startPos + unheading.length;
+            } else {
+                const heading = '# ' + selectedText;
+                editor.value = text.substring(0, startPos) + heading + text.substring(endPos);
+                editor.selectionStart = startPos;
+                editor.selectionEnd = startPos + heading.length;
+            }
+            editor.focus();
+            renderMarkdown();
+        }
+
+        function insertText(beforeText, afterText = '') {
+            const startPos = editor.selectionStart;
+            const endPos = editor.selectionEnd;
+            const text = editor.value;
+            const selectedText = text.substring(startPos, endPos);
+            editor.value = text.substring(0, startPos) + beforeText + selectedText + afterText + text.substring(endPos);
+            editor.focus();
+            renderMarkdown();
+        }
+
+        function insertTemplate(type) {
+            let template = '';
+            if (type === 'meeting') {
+                template = `## 📅 【件名】ミーティング議事録\n**日時:** 2026年x月x日\n**参加者:** \n\n### 💬 決定事項\n- \n- \n\n### 📌 次回までのタスク\n- [ ] @誰々：〇〇の資料作成\n`;
+            } else if (type === 'todo') {
+                template = `## ✅ 本日のタスク管理\n| ステータス | タスク内容 | 優先度 |\n| :--- | :--- | :---: |\n| 🔥 進行中 | 提案書の作成 | 高 |\n| ⏳ 未着手 | メール返信 | 中 |\n| ✅ 完了 | ミーティング | 低 |\n`;
+            } else if (type === 'blog') {
+                template = `# 📝 【タイトル】ここにタイトルを入力\n\n## 🔍 導入（ここを読ませたい理由）\nここに読者の悩みに共感する文章を書きます。\n\n## 💡 本文（具体的な解決策）\n1. **ポイント1**：具体的な説明\n2. **ポイント2**：具体的な説明\n\n## 🏁 まとめ\n最後に全体を振り返り、読者に行動を促す文章を書きます。\n`;
+            } else if (type === 'idea') {
+                template = `## 💡 アイデア企画：【名称】\n\n### 🎯 解決したい課題\n- \n\n### ✨ 提案内容\n- \n\n### ⚖️ メリットとデメリット\n* **メリット:** \n* **デメリット:** \n`;
+            }
+
+            const mode = document.querySelector('input[name="insert-mode"]:checked').value;
+            if (mode === 'replace') {
+                editor.value = template;
+            } else {
+                insertText(template);
+            }
+            editor.focus();
+            renderMarkdown();
+        }
+
+        function copyPreview() {
+            if (!preview.innerHTML.trim()) {
+                alert("コピーする内容がありません。");
+                return;
+            }
+            const listener = function(e) {
+                e.clipboardData.setData('text/html', preview.innerHTML);
+                e.clipboardData.setData('text/plain', editor.value);
+                e.preventDefault();
+            };
+            document.addEventListener('copy', listener);
+            document.execCommand('copy');
+            document.removeEventListener('copy', listener);
+            alert("美しいデザインのままクリップボードにコピーしました！\nメールやNotion等にそのまま貼り付けられます。");
+        }
+
+        renderMarkdown();
+    </script>
+
+    <style>
+        #preview h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 1.2rem; color: #5c5043; border-bottom: 2px solid #e8e4dc; padding-bottom: 0.4rem; }
+        #preview h2 { font-size: 1.3rem; font-weight: 600; margin-top: 1.6rem; margin-bottom: 0.8rem; color: #b57a78; border-bottom: 1px solid #f2efea; padding-bottom: 0.2rem;}
+        #preview h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1.2rem; margin-bottom: 0.6rem; color: #706356; }
+        #preview p { margin-bottom: 1rem; color: #4a433c; font-size: 0.95rem; }
+        #preview ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: #4a433c; }
+        #preview ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; color: #4a433c; }
+        #preview li { margin-bottom: 0.3rem; }
+        #preview strong { color: #b57a78; font-weight: 600; background: linear-gradient(transparent 70%, #f7e6e6 70%); }
+        #preview table { width: 100%; border-collapse: collapse; margin-top: 1.2rem; margin-bottom: 1.2rem; font-size: 0.9rem; }
+        #preview th { background-color: #f7f5f2; color: #5c5043; font-weight: 600; padding: 10px; border: 1px solid #e8e4dc; text-align: left; }
+        #preview td { padding: 10px; border: 1px solid #e8e4dc; color: #4a433c; }
+        #preview tr:nth-child(even) { background-color: #fafbf9; }
+    </style>
+</body>
+</html>
