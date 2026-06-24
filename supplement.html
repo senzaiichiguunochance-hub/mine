@@ -133,10 +133,10 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedSound = localStorage.getItem('ol_sound_enabled');
-            document.getElementById('sound-toggle').checked = (savedSound !== 'false');
+            document.getElementById('sound-toggle').checked = (savedSound !== 'true');
 
             const savedImage = localStorage.getItem('ol_image_enabled');
-            document.getElementById('image-toggle').checked = (savedImage === 'true');
+            document.getElementById('image-toggle').checked = (savedImage === 'false');
 
             // 最初の1枚をセットしておく
             changeRandomImage();
