@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全肯定ボタン・サプリ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; }
+        .font-elegant { font-family: 'Cormorant Garamond', serif; }
+        @keyframes textFadeIn {
+            0% { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .animate-message { animation: textFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .crystal-glow {
+            box-shadow: 0 10px 30px rgba(244, 63, 94, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-zinc-50 via-neutral-100 to-zinc-100 text-stone-600 min-h-screen flex flex-col items-center justify-center relative select-none p-4">
+
+    <a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 11px; color: #8e8e93; text-decoration: none; background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 9999px; z-index: 1000; border: 1px solid #e4e4e7; font-weight: 500;">Menu</a>
+
+    <div class="text-center p-8 bg-white/95 backdrop-blur-md rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.04)] border border-neutral-200 max-w-md w-full min-h-[540px] flex flex-col justify-between relative overflow-hidden">
+        
+        <div id="bg-image" class="absolute inset-0 bg-cover bg-center opacity-0 pointer-events-none transition-opacity duration-500 z-0">
+            <div class="absolute inset-0 bg-white/85"></div>
+        </div>
+
+        <div class="z-10 flex flex-col justify-between flex-1">
+            <div>
+                <h1 class="text-2xl font-elegant font-medium text-transparent bg-clip-text bg-gradient-to-r from-rose-300 via-stone-400 to-amber-600 tracking-widest">
+                    Self Care Supplement
+                </h1>
+                <p class="text-[9px] text-stone-400 mt-1 tracking-widest uppercase font-mono">Mindfulness & Affirmation</p>
+            </div>
+
+            <div class="my-6 flex-1 flex flex-col items-center justify-center px-2">
+                <div id="message-target" class="text-neutral-800 font-bold text-base md:text-lg leading-relaxed tracking-wide min-h-[6rem] flex items-center justify-center text-center">
+                    <span class="text-stone-400 font-normal text-sm italic">ボタンを押して、心をゆるめる言葉を受け取って。</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center gap-5">
+                <button onclick="takeSupplement()" class="crystal-glow w-20 h-20 rounded-full bg-gradient-to-tr from-neutral-50 via-white to-rose-50 border border-neutral-200 flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95 group relative shadow-sm">
+                    <span class="text-2xl filter drop-shadow-sm group-active:scale-90 transition-transform">🌿</span>
+                </button>
+
+                <div id="lucky-box" class="w-full bg-neutral-50/80 backdrop-blur-sm rounded-xl border border-neutral-200/60 p-3 flex justify-around items-center text-[10px] text-stone-400 opacity-0 transition-opacity duration-500">
+                    <div>
+                        <span class="block text-[8px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">今日のセルフ愛</span>
+                        <span id="wave-val" class="font-bold text-rose-400">--</span>
+                    </div>
+                    <div class="h-5 w-px bg-neutral-200"></div>
+                    <div>
+                        <span class="block text-[8px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">心のデトックス度</span>
+                        <span id="virtue-val" class="font-bold text-stone-600">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 bg-white/70 backdrop-blur-sm px-5 py-3 rounded-2xl border border-neutral-200 text-xs flex gap-6 shadow-sm text-stone-500">
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="sound-toggle" onchange="saveSettings()" class="rounded border-stone-300 text-rose-400 focus:ring-rose-400/30 w-4 h-4 cursor-pointer">
+            <span>サウンド効果音</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" id="image-toggle" onchange="updateImageVisibility(); saveSettings();" class="rounded border-stone-300 text-rose-400 focus:ring-rose-400/30 w-4 h-4 cursor-pointer">
+            <span>ランダム画像表示</span>
+        </label>
+    </div>
+
+    <script>
+        const messages = [
+            "今日はがんばらない日。お気に入りの入浴剤を入れて、ただ息を吸いましょう。",
+            "スタバでラテを頼むとき、迷わずオーツミルクに変更したあなた、大正解です。",
+            "心が曇ったら、オーガニックのハーブティーを淹れて。丁寧な暮らしの第一歩。",
+            "完璧を求めなくていいよ。週末のヨガで、ぜんぶリセットしちゃおう。",
+            "デパコスをパケ買いしたっていいじゃない。それは明日への先行投資だから。",
+            "金曜日の夜のデトックス。スマホを置いて、キャンドルの火を見つめる時間も大切。",
+            "今のあなたに必要なのは、罪悪感のないご褒美スイーツです。",
+            "自分軸で生きるあなた、とっても素敵。誰のタイムラインも気にしなくていいの。",
+            "お部屋にお気に入りの季節のお花を飾る。それだけで心に余白が生まれるよ。",
+            "今日はたくさん寝て、内側からインナービューティーを満たしてあげてね。",
+            "SNSの通知をオフにしたあなた、ファインプレー。デジタルデトックス、大成功です。",
+            "自分を愛せるのは、自分だけ。今日のランチ、ちょっと良いもの食べちゃお？",
+            "朝、白湯（さゆ）を一杯飲んだだけで、今日のあなたはもう120点です。",
+            "無理に周りに合わせなくて大丈夫。あなたはあなただけのオーラをまとっているから。",
+            "今夜はアロマを焚いて、お気に入りのリネンに包まれて、深い眠りへ旅立とう。",
+            "今日のミスは、未来のあなたがもっと輝くためのスパイスにすぎないよ。",
+            "仕事帰りのエステ、全然贅沢じゃない。がんばる自分への、当然のプロデュース。",
+            "何もしたくない日は、心が『お休みして』ってサインを出している証拠だよ。",
+            "焼き芋の甘さに感動できる、そんなピュアな感性を持つあなたが好き。",
+            "丁寧に入れたコーヒーの香りを嗅ぐ。その瞬間、あなたはマインドフルネスの中にいるよ。",
+            "他人と比べる時間は、もうおしまい。あなたのストーリーの主人公はあなただけ。",
+            "お気に入りのスニーカーを履いて、一歩踏出す。それだけで新しい私に出会える気がする。",
+            "週に一回のシートマスク。お肌だけじゃなく、心にも潤いをチャージしてね。",
+            "心がモヤモヤしたら、ノートに思いを書き出して。心の断捨離、始めましょ。",
+            "サロペットを着てマルシェに行く。そんな休日の過ごし方、最高に愛おしいよね。",
+            "がんばりすぎちゃう癖、知ってるよ。たまには誰かに甘えて、ゆるっといこう。",
+            "オーガニックコットンの優しさに包まれて、トゲトゲした気持ちを溶かしてね。",
+            "美味しいパン屋さんを見つけただけで、今日という日は大成功の記念日。",
+            "あなたの笑顔は、周りの人をハッピーにするマイナスイオン。いつもありがとう。",
+            "夜風を感じながらベランダでホットミルク。そんな私、ちょっと好きかもって思っていいよ。"
+        ];
+
+        const loves = ["満タン", "溢れそう", "宇宙規模", "ご褒美レベル", "丁寧の極み"];
+        const detox = ["85%", "98%", "120% (クリア)", "完全浄化", "みなぎるマイナスイオン"];
+
+        // Unsplashから厳選した10個の「丁寧な雰囲気」の画像ID
+        const imageIds = [
+            "1540555700478-4be289fbecef", // ハーブとリネン
+            "1512290923902-8a9f81dc236c", // キャンドル
+            "1515377905703-c4788e51af15", // ハーブティー
+            "1545241047-6083a3684587", // 白湯・マグカップ
+            "1448375240586-882707db888b", // 朝霧の森
+            "1506126613408-eca07ce68773", // ヨガ・マインドフルネス
+            "1513519245088-0e12902e5a38", // ドライフラワー
+            "1517817748493-49ec54a32465", // ネイル・手元
+            "1522335789203-aabd1fc54bc9", // コスメ・ドレッサー
+            "1532634922-8fe0b757fb13"  // おしゃれなインテリア
+        ];
+
+        let audioCtx = null;
+        let lastIndex = -1;
+        let lastImageIndex = -1;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSound = localStorage.getItem('ol_sound_enabled');
+            document.getElementById('sound-toggle').checked = (savedSound !== 'false');
+
+            const savedImage = localStorage.getItem('ol_image_enabled');
+            document.getElementById('image-toggle').checked = (savedImage === 'true');
+
+            // 最初の1枚をセットしておく
+            changeRandomImage();
+            updateImageVisibility();
+        });
+
+        function saveSettings() {
+            localStorage.setItem('ol_sound_enabled', document.getElementById('sound-toggle').checked);
+            localStorage.setItem('ol_image_enabled', document.getElementById('image-toggle').checked);
+        }
+
+        function updateImageVisibility() {
+            const isChecked = document.getElementById('image-toggle').checked;
+            const bgImg = document.getElementById('bg-image');
+            if (isChecked) {
+                bgImg.classList.replace('opacity-0', 'opacity-100');
+            } else {
+                bgImg.classList.replace('opacity-100', 'opacity-0');
+            }
+        }
+
+        function changeRandomImage() {
+            let imgIndex;
+            do {
+                imgIndex = Math.floor(Math.random() * imageIds.length);
+            } while (imgIndex === lastImageIndex);
+            lastImageIndex = imgIndex;
+
+            const bgImg = document.getElementById('bg-image');
+            bgImg.style.backgroundImage = `url('https://images.unsplash.com/photo-${imageIds[imgIndex]}?auto=format&fit=crop&w=600&q=80')`;
+        }
+
+        function playChime() {
+            if (!document.getElementById('sound-toggle').checked) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioCtx.currentTime;
+            triggerTone(523.25, now);       
+            triggerTone(659.25, now + 0.04); 
+            triggerTone(783.99, now + 0.08); 
+        }
+
+        function triggerTone(freq, startTime) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0.08, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.6);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + 0.6);
+        }
+
+        function takeSupplement() {
+            playChime();
+
+            // ランダム画像表示にチェックが入っている場合のみ、背景画像を切り替える
+            if (document.getElementById('image-toggle').checked) {
+                changeRandomImage();
+            }
+
+            let index;
+            do {
+                index = Math.floor(Math.random() * messages.length);
+            } while (index === lastIndex);
+            lastIndex = index;
+
+            document.getElementById('message-target').innerHTML = `<span class="animate-message">${messages[index]}</span>`;
+            document.getElementById('wave-val').textContent = loves[Math.floor(Math.random() * loves.length)];
+            document.getElementById('virtue-val').textContent = detox[Math.floor(Math.random() * detox.length)];
+            document.getElementById('lucky-box').classList.remove('opacity-0');
+        }
+    </script>
+</body>
+</html>
