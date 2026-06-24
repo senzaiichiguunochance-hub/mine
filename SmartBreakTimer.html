@@ -258,22 +258,32 @@
             document.title = "スマート休憩タイマー";
         }
 
-        // 上品で優しい音色（1オクターブ上げて、ちょっと柔らかいサイン波に）
-        function playNotificationSound() {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // 既存の playNotificationSound() と丸ごと差し替えてください
+    function playNotificationSound() {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        
+        // 短い音を3回リピート
+        for (let i = 0; i < 3; i++) {
+            const startTime = now + (i * 0.15); // 0.15秒間隔
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(987.77, audioCtx.currentTime); // 優しいシ(B5)の音
-            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // 音量を少し控えめに上品に
+            oscillator.frequency.setValueAtTime(880.00, startTime); // 高めのラ
+            
+            // パッと鳴ってスッと消える優しいパルス
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.12);
             
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.4); // 0.4秒優しく鳴らす
+            oscillator.start(startTime);
+            oscillator.stop(startTime + 0.12);
         }
+    }
     </script>
 </body>
 </html>
