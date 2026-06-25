@@ -311,7 +311,7 @@
             <button class="btn btn-no" onclick="handleAnswer('no')">いいえ</button>
             <button class="btn btn-neutral" onclick="handleAnswer('neutral')">どちらでもない</button>
         </div>
-        <div id="qCounter" class="q-counter">第 1 問 / 全 32 問</div>
+        <div id="qCounter" class="q-counter">第 1 問 / 全 100 問</div>
     </div>
 
     <div id="resultScreen" class="screen">
@@ -324,7 +324,7 @@
 </div>
 
 <script>
-    // 質問データ（全32問、適正スコア重み付けデータ含む）
+    // 質問データ（全100問、適正スコア重み付けデータ含む）
     const masterQuestions = [
         { text: "スターバックスなどのカフェでパソコンを開いて作業をしたことがある、または開いてみたい", yes: {ip: 10, an: 0}, no: {ip: 0, an: 5} },
         { text: "スマートフォンの画面がひび割れた状態のまま長期間使用した経験がある", yes: {ip: 15, an: 0}, no: {ip: 0, an: 5} },
@@ -360,7 +360,78 @@
         { text: "指紋認証（画面タッチなど）と顔認証を、シーンやマスクの有無に応じて自由に使い分けたい", yes: {ip: 0, an: 20}, no: {ip: 15, an: 0} },
         { text: "万が一不具合が起きた際、メーカー公式ショップだけでなく、街の一般修理店でも即日対応できる安心感がほしい", yes: {ip: 20, an: 0}, no: {ip: 0, an: 0} },
         { text: "自身の性格について、与えられた環境に従うよりも、独自の選択肢を追求する傾向が強いと思う", yes: {ip: -5, an: 15}, no: {ip: 15, an: -5} },
-        { text: "機能の細かな解説よりも、総合的な分析結果によるシステムの一押しをそのまま信頼したい", yes: {ip: 20, an: 20}, no: {ip: 0, an: 0} }
+        { text: "機能の細かな解説よりも、総合的な分析結果によるシステムの一押しをそのまま信頼したい", yes: {ip: 20, an: 20}, no: {ip: 0, an: 0} },
+
+        { text: "スマートフォンは2年以上同じ機種を使うことが多い", yes:{ip:15,an:5}, no:{ip:0,an:10} },
+        { text: "ホーム画面の見た目にはこだわりたい", yes:{ip:0,an:20}, no:{ip:10,an:0} },
+        { text: "設定画面を触ることに抵抗がない", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "家族や友人がiPhone利用者であることが多い", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "新しい便利機能は積極的に試してみたい", yes:{ip:5,an:20}, no:{ip:10,an:0} },
+        { text: "価格より品質を重視する", yes:{ip:20,an:5}, no:{ip:0,an:15} },
+        { text: "コストパフォーマンスを最優先したい", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "写真は加工せずそのままSNSへ投稿することが多い", yes:{ip:15,an:5}, no:{ip:5,an:10} },
+        { text: "Googleサービスを毎日利用している", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "AirDropのような簡単なデータ共有に魅力を感じる", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "microSDカードが使えると嬉しい", yes:{ip:0,an:25}, no:{ip:15,an:0} },
+        { text: "スマホで動画撮影をよくする", yes:{ip:20,an:5}, no:{ip:0,an:0} },
+        { text: "ゲーム機のような高性能を求める", yes:{ip:10,an:15}, no:{ip:0,an:0} },
+        { text: "端末はできるだけ軽い方がいい", yes:{ip:10,an:10}, no:{ip:0,an:0} },
+        { text: "毎年新機種が気になる", yes:{ip:20,an:5}, no:{ip:0,an:10} },
+        { text: "スマホケースはシンプルなデザインが好き", yes:{ip:15,an:5}, no:{ip:0,an:10} },
+        { text: "他人とは違うスマホを持ちたい", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "メーカーには特にこだわらない", yes:{ip:0,an:15}, no:{ip:15,an:5} },
+        { text: "Googleフォトを利用している", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "iCloudのような自動バックアップに安心感を覚える", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "スマホで仕事をする機会が多い", yes:{ip:15,an:10}, no:{ip:0,an:0} },
+        { text: "充電速度は速いほど良い", yes:{ip:0,an:20}, no:{ip:10,an:0} },
+        { text: "ワイヤレス充電を利用している", yes:{ip:10,an:10}, no:{ip:0,an:0} },
+        { text: "通知はできるだけ整理しておきたい", yes:{ip:15,an:5}, no:{ip:0,an:10} },
+        { text: "スマホをよく落としてしまう", yes:{ip:5,an:5}, no:{ip:0,an:0} },
+        { text: "端末カラーは個性的な色を選びたい", yes:{ip:0,an:15}, no:{ip:10,an:0} },
+        { text: "Apple製品を複数持っている", yes:{ip:25,an:-10}, no:{ip:0,an:15} },
+        { text: "Google Pixelに興味がある", yes:{ip:0,an:25}, no:{ip:15,an:0} },
+        { text: "Galaxyシリーズに興味がある", yes:{ip:0,an:20}, no:{ip:10,an:0} },
+        { text: "Xperiaシリーズに興味がある", yes:{ip:0,an:20}, no:{ip:10,an:0} },
+        { text: "AQUOSシリーズに興味がある", yes:{ip:0,an:15}, no:{ip:10,an:0} },
+        { text: "Apple Storeへ行ったことがある", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "Google Playのセールをチェックする", yes:{ip:0,an:15}, no:{ip:10,an:0} },
+        { text: "Widget（ウィジェット）を活用している", yes:{ip:5,an:15}, no:{ip:10,an:0} },
+        { text: "ホーム画面はできるだけシンプルにしたい", yes:{ip:15,an:0}, no:{ip:0,an:10} },
+        { text: "端末を購入する前にYouTubeレビューを見る", yes:{ip:5,an:10}, no:{ip:10,an:0} },
+        { text: "最新AI機能が購入理由になる", yes:{ip:5,an:20}, no:{ip:10,an:0} },
+        { text: "カメラ性能を最重要視する", yes:{ip:15,an:15}, no:{ip:0,an:0} },
+        { text: "夜景撮影をよくする", yes:{ip:15,an:10}, no:{ip:0,an:0} },
+        { text: "旅行ではスマホだけで写真を撮る", yes:{ip:20,an:10}, no:{ip:0,an:0} },
+        { text: "USBメモリを直接接続したい", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "ブラウザはGoogle Chromeを使っている", yes:{ip:0,an:15}, no:{ip:10,an:0} },
+        { text: "Safariを使うことが多い", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "設定を細かく変更できる方が好き", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "ブランドイメージも購入理由になる", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "セールで安く買えるなら機種変更したい", yes:{ip:0,an:15}, no:{ip:10,an:0} },
+        { text: "バッテリー持ちは非常に重要だ", yes:{ip:10,an:15}, no:{ip:0,an:0} },
+        { text: "急速充電は毎日のように利用する", yes:{ip:0,an:15}, no:{ip:10,an:0} },
+        { text: "片手で操作しやすいサイズが好き", yes:{ip:15,an:5}, no:{ip:5,an:10} },
+        { text: "大画面で動画を見ることが多い", yes:{ip:5,an:15}, no:{ip:10,an:0} },
+        { text: "スマホは長く資産価値が残る方が嬉しい", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "中古で売ることを考えて購入する", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "純正アクセサリーを使いたい", yes:{ip:20,an:0}, no:{ip:0,an:10} },
+        { text: "非純正アクセサリーでも気にならない", yes:{ip:0,an:15}, no:{ip:15,an:0} },
+        { text: "スマホは道具なので見た目にはこだわらない", yes:{ip:0,an:15}, no:{ip:15,an:0} },
+        { text: "SNSでは写真映えを意識する", yes:{ip:20,an:5}, no:{ip:0,an:10} },
+        { text: "ガジェット系YouTuberをよく見る", yes:{ip:5,an:15}, no:{ip:10,an:0} },
+        { text: "スマホは毎日5時間以上使う", yes:{ip:10,an:10}, no:{ip:0,an:0} },
+        { text: "設定変更よりも簡単さを優先する", yes:{ip:20,an:-5}, no:{ip:-5,an:20} },
+        { text: "自由にアプリを入れて試したい", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "スマホは多少高くても満足できれば良い", yes:{ip:20,an:0}, no:{ip:0,an:15} },
+        { text: "発売日に購入した経験がある", yes:{ip:15,an:10}, no:{ip:0,an:0} },
+        { text: "最新モデルよりも実用性を重視する", yes:{ip:5,an:15}, no:{ip:15,an:5} },
+        { text: "スマホで資料やPDFを読むことが多い", yes:{ip:10,an:10}, no:{ip:0,an:0} },
+        { text: "電子マネーは必須機能だと思う", yes:{ip:10,an:10}, no:{ip:0,an:0} },
+        { text: "人からスマホについて相談されることが多い", yes:{ip:5,an:20}, no:{ip:10,an:0} },
+        { text: "スマホは毎日充電する習慣がある", yes:{ip:5,an:5}, no:{ip:0,an:0} },
+        { text: "メーカー独自機能よりも標準機能を重視する", yes:{ip:15,an:5}, no:{ip:0,an:15} },
+        { text: "選択肢が多い方がワクワクする", yes:{ip:0,an:20}, no:{ip:15,an:0} },
+        { text: "多少設定が難しくても自由度が高い方が好き", yes:{ip:-5,an:25}, no:{ip:20,an:-5} }
     ];
 
     let questions = [];
