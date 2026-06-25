@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhone vs Android</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #fff9fa;
+            color: #44383a;
+            line-height: 1.6;
+        }
+
+        /* アプリ全体のコンテナ */
+        .app-container {
+            max-width: 650px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(235, 104, 137, 0.1);
+            border: 1px solid rgba(247, 164, 183, 0.4);
+            overflow: hidden;
+            padding: 30px;
+            position: relative;
+        }
+
+        /* エレガントピンクな装飾 */
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: linear-gradient(90deg, #f7a4b7, #ffd700, #ff8da1);
+        }
+
+        h1 {
+            color: #d14d6b;
+            text-align: center;
+            margin-top: 0;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 13px;
+            color: #a86c77;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        /* 体力バーエリア（格闘ゲームHUD風） */
+        .battle-hud {
+            background: #2b1f22;
+            border: 3px solid #d14d6b;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 30px;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+        }
+
+        /* 「VS」ロゴ */
+        .vs-sign {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ffd700;
+            color: #2b1f22;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 2px solid #ffffff;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .gauge-container {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        .gauge-side {
+            display: table-cell;
+            width: 50%;
+            vertical-align: middle;
+            position: relative;
+        }
+
+        .gauge-label {
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            letter-spacing: 0.5px;
+        }
+        .gauge-side.left .gauge-label { text-align: left; color: #ffbccc; }
+        .gauge-side.right .gauge-label { text-align: right; color: #cce7ff; }
+
+        .bar-outer {
+            height: 24px;
+            background: #473236;
+            border: 1px solid #5c3f44;
+            overflow: hidden;
+            position: relative;
+        }
+        .gauge-side.left .bar-outer { border-radius: 4px 0 0 4px; }
+        .gauge-side.right .bar-outer { border-radius: 0 4px 4px 0; }
+
+        .bar-inner {
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease-out;
+        }
+        /* 左（iPhone）はピンクゴールド〜チェリーピンク */
+        .gauge-side.left .bar-inner {
+            float: right;
+            background: linear-gradient(90deg, #ff94b0, #f7a4b7);
+            box-shadow: 0 0 8px #ff94b0;
+        }
+        /* 右（Android）はクリアなスカイブルー〜ミント */
+        .gauge-side.right .bar-inner {
+            float: left;
+            background: linear-gradient(90deg, #9cd1ff, #7fdfc3);
+            box-shadow: 0 0 8px #9cd1ff;
+        }
+
+        .score-text {
+            position: absolute;
+            top: 0;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+            background: rgba(0,0,0,0.4);
+            padding: 0 4px;
+            border-radius: 2px;
+            z-index: 5;
+        }
+        .gauge-side.left .score-text { left: 4px; }
+        .gauge-side.right .score-text { right: 4px; }
+
+        /* 各画面の制御 */
+        .screen {
+            display: none;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        /* コンシェルジュの案内文・結果文 */
+        .concierge-message {
+            background: #fff0f3;
+            border-left: 4px solid #f7a4b7;
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 25px;
+            font-size: 14px;
+            color: #574447;
+        }
+
+        /* 質問エリア */
+        .question-box {
+            text-align: center;
+            min-height: 100px;
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .question-text {
+            display: table-cell;
+            vertical-align: middle;
+            font-size: 18px;
+            font-weight: bold;
+            color: #9e314a;
+            padding: 10px;
+            line-height: 1.5;
+        }
+
+        /* ボタン群 */
+        .btn-stack {
+            margin-top: 20px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: 1px solid #f7a4b7;
+            border-radius: 30px;
+            background: #ffffff;
+            color: #b03852;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: #fff0f3;
+            border-color: #d14d6b;
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: #d14d6b;
+            color: #ffffff;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: #b03852;
+            color: #ffffff;
+        }
+
+        .btn-yes {
+            border-color: #f7a4b7;
+            background: #fffafb;
+        }
+        .btn-yes:hover { background: #fce4e9; border-color: #d14d6b; }
+
+        .btn-no {
+            border-color: #bcccff;
+            background: #fafdff;
+        }
+        .btn-no:hover { background: #e3ecff; border-color: #5c7fff; }
+
+        .btn-neutral {
+            border-color: #e2e2e2;
+            color: #777777;
+        }
+
+        /* カウンター表示 */
+        .q-counter {
+            text-align: center;
+            font-size: 12px;
+            color: #b58d95;
+            margin-top: 15px;
+        }
+
+        /* 結果表示装飾 */
+        .result-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 0px #fff;
+        }
+        .winner-iphone { color: #d65a7f; }
+        .winner-android { color: #3d8c75; }
+
+    </style>
+</head>
+<body>
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+<div class="app-container">
+    <h1>スマートフォン選択支援システム</h1>
+    <div class="subtitle">〜 あなたに最適な端末へ導く100ptマッチングカウンセリング 〜</div>
+
+    <div id="battleHud" class="battle-hud" style="display: none;">
+        <div class="vs-sign">VS</div>
+        <div class="gauge-container">
+            <div class="gauge-side left">
+                <div class="gauge-label">♣ iPhone</div>
+                <div class="bar-outer">
+                    <div id="iphoneBar" class="bar-inner"></div>
+                    <span id="iphoneScoreText" class="score-text">0 pt</span>
+                </div>
+            </div>
+            <div class="gauge-side right">
+                <div class="gauge-label">Android ♢</div>
+                <div class="bar-outer">
+                    <div id="androidBar" class="bar-inner"></div>
+                    <span id="androidScoreText" class="score-text">0 pt</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="startScreen" class="screen active">
+        <div class="concierge-message">
+            あなたにあっているスマートフォンがiPhoneかAndroid診断します。<br><br>
+            これからの質問に対して、ご自身の生活スタイルやライフスタイルに最も近いボタンを選択してください。<br>
+            回答結果に応じて、システム内部でそれぞれの適正スコアがリアルタイムに計算されます。先に【100ポイント】に到達したOSが、お客様の運命の端末として認定されます。<br><br>
+            それでは、カウンセリングを開始いたします。
+        </div>
+        <button class="btn btn-primary" onclick="startDiagnosis()">診断を開始する</button>
+    </div>
+
+    <div id="quizScreen" class="screen">
+        <div class="question-box">
+            <div id="questionText" class="question-text">質問がここに表示されます。</div>
+        </div>
+        <div class="btn-stack">
+            <button class="btn btn-yes" onclick="handleAnswer('yes')">はい</button>
+            <button class="btn btn-no" onclick="handleAnswer('no')">いいえ</button>
+            <button class="btn btn-neutral" onclick="handleAnswer('neutral')">どちらでもない</button>
+        </div>
+        <div id="qCounter" class="q-counter">第 1 問 / 全 32 問</div>
+    </div>
+
+    <div id="resultScreen" class="screen">
+        <div id="resultTitle" class="result-title">診断結果</div>
+        <div id="resultMessage" class="concierge-message">
+            ここに総評が表示されます。
+        </div>
+        <button class="btn btn-primary" onclick="resetDiagnosis()">もう一度診断を行う</button>
+    </div>
+</div>
+
+<script>
+    // 質問データ（全32問、適正スコア重み付けデータ含む）
+    const masterQuestions = [
+        { text: "スターバックスなどのカフェでパソコンを開いて作業をしたことがある、または開いてみたい", yes: {ip: 10, an: 0}, no: {ip: 0, an: 5} },
+        { text: "スマートフォンの画面がひび割れた状態のまま長期間使用した経験がある", yes: {ip: 15, an: 0}, no: {ip: 0, an: 5} },
+        { text: "メカニズムやITガジェットに精通したカスタマイズ好きな人に魅力を感じる", yes: {ip: 0, an: 15}, no: {ip: 10, an: 0} },
+        { text: "「洗練されたこだわりのあるライフスタイル」というフレーズに惹かれる", yes: {ip: 10, an: 0}, no: {ip: 0, an: 10} },
+        { text: "製品の取扱説明書は読まないタイプであり、直感的な操作性を最優先したい", yes: {ip: 10, an: -5}, no: {ip: -5, an: 15} },
+        { text: "周囲の知人や多数派と同じ選択肢を選んでおいた方が安心感を得られる", yes: {ip: 20, an: -10}, no: {ip: -10, an: 20} },
+        { text: "スマートフォンを置き忘れて慌てて探すことが、年に数回以上発生する", yes: {ip: 10, an: 0}, no: {ip: 0, an: 0} },
+        { text: "まとまった臨時収入（宝くじなど）があった場合、特にためらわず大胆に使い切る傾向がある", yes: {ip: 15, an: 0}, no: {ip: 0, an: 15} },
+
+        { text: "スマートフォンのケースは、気分やファッションに合わせて複数個使い分けたい", yes: {ip: 20, an: -5}, no: {ip: 0, an: 10} },
+        { text: "写真フォルダに、類似した自撮り画像やスクリーンショットが大量（1万枚以上）に保存されている", yes: {ip: 10, an: 0}, no: {ip: 0, an: 0} },
+        { text: "所有している、または将来使ってみたいパソコンはWindowsよりMac（マック）である", yes: {ip: 25, an: -10}, no: {ip: -10, an: 15} },
+        { text: "アプリの通知バッジ（未読を示す赤い数字）が「99+」になっていてもあまり気にならない", yes: {ip: 0, an: 10}, no: {ip: 10, an: 0} },
+        { text: "腕時計を使用するなら、スマートウォッチ（Apple Watchなど）をスマートに着用したい", yes: {ip: 20, an: 0}, no: {ip: 0, an: 0} },
+        { text: "普段の買い物では現金を使わず、ほぼ100%キャッシュレス決済で済ませている", yes: {ip: 10, an: 10}, no: {ip: 0, an: 0} },
+        { text: "就寝前、暗い部屋で仰向けにスマートフォンを操作していて、顔面に落としたことがある", yes: {ip: 5, an: 0}, no: {ip: 0, an: 0} },
+        { text: "動画コンテンツ（映画やアニメなど）を見る際は、倍速再生を多用して効率よく消化したい", yes: {ip: 0, an: 10}, no: {ip: 0, an: 0} },
+
+        { text: "スマートフォン1台の購入費用に「15万〜20万円」を支払うのは、正直なところ躊躇する", yes: {ip: -15, an: 20}, no: {ip: 20, an: -10} },
+        { text: "「画面を折りたたむことができるスマートフォン」に対して、未来感や魅力を強く感じる", yes: {ip: 0, an: 25}, no: {ip: 10, an: 0} },
+        { text: "パソコンのデータを移す際、ケーブルを繋いでストレージフォルダに直接ファイルを移動させたい", yes: {ip: -10, an: 20}, no: {ip: 15, an: 0} },
+        { text: "アプリの配置は、画面の下側や右側など、好みの位置に隙間を空けて自由に並べ替えたい", yes: {ip: 0, an: 20}, no: {ip: 10, an: 0} },
+        { text: "負荷の高いスマートフォンゲームを、最高画質設定のまま非常に滑らかにプレイしたい", yes: {ip: 15, an: 15}, no: {ip: 0, an: 0} },
+        { text: "写真の不要部分を消す機能や自動翻訳など、最新のAIアシスタント機能を積極的に活用したい", yes: {ip: 5, an: 25}, no: {ip: 0, an: 0} },
+        { text: "遠くの景色や天体（月のクレーターなど）が鮮明に写る、超高倍率のズームカメラが欲しい", yes: {ip: 0, an: 20}, no: {ip: 10, an: 0} },
+        { text: "一度端末を購入したら、5年以上はOSを最新状態にアップデートしながら長期使用したい", yes: {ip: 20, an: 0}, no: {ip: 0, an: 0} },
+
+        { text: "スマートフォンの「戻る」ボタンや操作の選択肢が、常に画面の定位置（下部など）に常駐してほしい", yes: {ip: -5, an: 20}, no: {ip: 15, an: 0} },
+        { text: "公共交通機関などで、周囲の人が使用しているスマートフォンの機種や外観を無意識にチェックしてしまう", yes: {ip: 10, an: 0}, no: {ip: 0, an: 0} },
+        { text: "音質を最優先したいため、Bluetoothではなく有線イヤホンジャックが本体に直接搭載されていてほしい", yes: {ip: -10, an: 20}, no: {ip: 10, an: 0} },
+        { text: "自宅内の電子機器の充電ケーブルは、規格を「USB Type-C」1本に完全に統一したい", yes: {ip: 10, an: 25}, no: {ip: 0, an: 0} },
+        { text: "指紋認証（画面タッチなど）と顔認証を、シーンやマスクの有無に応じて自由に使い分けたい", yes: {ip: 0, an: 20}, no: {ip: 15, an: 0} },
+        { text: "万が一不具合が起きた際、メーカー公式ショップだけでなく、街の一般修理店でも即日対応できる安心感がほしい", yes: {ip: 20, an: 0}, no: {ip: 0, an: 0} },
+        { text: "自身の性格について、与えられた環境に従うよりも、独自の選択肢を追求する傾向が強いと思う", yes: {ip: -5, an: 15}, no: {ip: 15, an: -5} },
+        { text: "機能の細かな解説よりも、総合的な分析結果によるシステムの一押しをそのまま信頼したい", yes: {ip: 20, an: 20}, no: {ip: 0, an: 0} }
+    ];
+
+    let questions = [];
+    let currentIdx = 0;
+    let iphoneScore = 0;
+    let androidScore = 0;
+
+    // フィッシャー・イェーツによる正確な配列シャッフル
+    function shuffleArray(array) {
+        let arr = [...array];
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // 診断初期化と開始
+    function startDiagnosis() {
+        questions = shuffleArray(masterQuestions);
+        currentIdx = 0;
+        iphoneScore = 0;
+        androidScore = 0;
+        
+        updateBars();
+        document.getElementById('battleHud').style.display = 'block'; // 重複記述を修正しました
+        showScreen('quizScreen');
+        displayQuestion();
+    }
+
+    // カレント質問のDOM描画
+    function displayQuestion() {
+        if (currentIdx >= questions.length) {
+            endDiagnosis();
+            return;
+        }
+        document.getElementById('questionText').innerText = questions[currentIdx].text;
+        document.getElementById('qCounter').innerText = `第 ${currentIdx + 1} 問 / 全 ${questions.length} 問`;
+    }
+
+    // 回答トリガーハンドラ
+    function handleAnswer(answerType) {
+        const q = questions[currentIdx];
+        
+        if (answerType === 'yes') {
+            iphoneScore = Math.max(0, iphoneScore + (q.yes.ip || 0));
+            androidScore = Math.max(0, androidScore + (q.yes.an || 0));
+        } else if (answerType === 'no') {
+            iphoneScore = Math.max(0, iphoneScore + (q.no.ip || 0));
+            androidScore = Math.max(0, androidScore + (q.no.an || 0));
+        }
+
+        updateBars();
+
+        // 100ポイント先取時の判定
+        if (iphoneScore >= 100 || androidScore >= 100) {
+            setTimeout(endDiagnosis, 400);
+            return;
+        }
+
+        currentIdx++;
+        setTimeout(displayQuestion, 200);
+    }
+
+    // 上部格ゲー風インジケータのリアルタイム更新
+    function updateBars() {
+        const ipWidth = Math.min(100, iphoneScore);
+        const anWidth = Math.min(100, androidScore);
+
+        document.getElementById('iphoneBar').style.width = ipWidth + '%';
+        document.getElementById('androidBar').style.width = anWidth + '%';
+
+        document.getElementById('iphoneScoreText').innerText = iphoneScore + ' pt';
+        document.getElementById('androidScoreText').innerText = androidScore + ' pt';
+    }
+
+    // 診断完了時のロジック・結果メッセージ生成
+    function endDiagnosis() {
+        let winner = '';
+        let titleHtml = '';
+        let msg = '';
+
+        if (iphoneScore === androidScore) {
+            winner = 'iphone';
+        } else {
+            winner = iphoneScore > androidScore ? 'iphone' : 'android';
+        }
+
+        if (winner === 'iphone') {
+            titleHtml = 'おすすめ端末：<span class="winner-iphone">♣ iPhone ♣</span>';
+            msg = `当システムによる分析が完了いたしました。お客様の潜在的なニーズとのマッチング率は【iPhone】が最も高い数値を記録しました。<br><br>
+                   お客様は、直感的かつ洗練されたユーザー体験を重視されるとともに、周辺機器や連携デバイスとの一貫した使いやすさを求めていらっしゃる傾向があります。<br><br>
+                   統一されたなめらかな操作性、洗練された外観デザイン、精度高く充実したアプリケーション展開による利便性をフルに活かせる環境が最適です。メーカー独自の極めて安定したサポートエコシステムが、お客様のデジタルライフを快適に支援することをお約束いたします。`;
+        } else {
+            titleHtml = 'おすすめ端末：<span class="winner-android">♢ Android ♢</span>';
+            msg = `当システムによる分析が完了いたしました。お客様の潜在的なニーズとのマッチング率は【Android】が最も高い数値を記録しました。<br><br>
+                   お客様は、デバイスにおける自由度の高いカスタマイズ性、最先端の技術仕様、あるいは予算や用途に最適化されたスマートな費用対効果を重視される傾向があります。<br><br>
+                   好みに合わせた配置やファイル管理、最新のAIアシスタント機能、折りたたみ形状などの多様なハードウェアから、ご自身のライフスタイルに完全に合致した1台を選定・調整可能です。広大で自由度の高い選択肢を持つAndroid環境こそが、お客様の要求を最も的確に満たします。`;
+        }
+
+        document.getElementById('resultTitle').innerHTML = titleHtml;
+        document.getElementById('resultMessage').innerHTML = msg;
+        showScreen('resultScreen');
+    }
+
+    // 画面切り替えユーティリティ
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    // 状態リセット
+    function resetDiagnosis() {
+        document.getElementById('battleHud').style.display = 'none';
+        showScreen('startScreen');
+    }
+</script>
+
+</body>
+</html>
