@@ -35,12 +35,12 @@
             display: block;
         }
 
-        /* --- 1. 設定画面（横スクロール絶対防止版） --- */
+        /* --- 1. 設定画面 --- */
         #config-screen {
             background-color: #f5f5f7;
             color: #1d1d1f;
             overflow-y: auto;
-            overflow-x: hidden; /* 横スクロールを完全に禁止 */
+            overflow-x: hidden;
             padding: 20px 16px;
             width: 100%;
         }
@@ -58,7 +58,7 @@
             margin-bottom: 16px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            width: 100%; /* 親要素からはみ出さない */
+            width: 100%;
         }
         .form-group label {
             display: block;
@@ -77,7 +77,7 @@
         }
         .inline-inputs input[type="number"] {
             width: 60px;
-            flex-shrink: 0; /* 縮み防止 */
+            flex-shrink: 0;
             background: #f5f5f7;
             border: 1px solid #d2d2d7;
             color: #1d1d1f;
@@ -87,7 +87,7 @@
             font-size: 16px;
         }
         input[type="text"], input[type="datetime-local"], select {
-            width: 100%; /* 横幅いっぱいに安全に広げる */
+            width: 100%;
             padding: 10px 12px;
             background: #f5f5f7;
             border: 1px solid #d2d2d7;
@@ -100,7 +100,6 @@
             cursor: pointer;
         }
         
-        /* コンパクトな横並びスタイル（はみ出し防止） */
         .text-config-container {
             display: flex;
             gap: 10px;
@@ -109,7 +108,7 @@
         }
         .text-config-container .text-main-input {
             flex: 2;
-            min-width: 0; /* フレックスアイテムのはみ出し防止 */
+            min-width: 0;
         }
         .text-config-container select {
             flex: 1;
@@ -127,7 +126,6 @@
             flex-shrink: 0;
         }
         
-        /* ボタン系 */
         .btn-start {
             display: block;
             width: 100%;
@@ -276,6 +274,7 @@
 </head>
 <body>
 
+    <!-- ================= 1. 設定画面 ================= -->
     <div id="config-screen" class="screen active">
         <h1>📳 着信偽装設定</h1>
         
@@ -377,11 +376,13 @@
         <button class="btn-reset" onclick="resetToDefault()">デフォルトに戻す</button>
     </div>
 
+    <!-- ================= 2. 待機画面 ================= -->
     <div id="wait-screen" class="screen">
         <div id="current-time">0000/00/00<br>00:00:00</div>
         <div id="countdown-timer" onclick="cancelApp()">タップして中断</div>
     </div>
 
+    <!-- ================= 3. 着信画面 ================= -->
     <div id="incoming-screen" class="screen" onclick="stopIncoming()">
         <div class="incoming-meta-box" id="incoming-text-group">
             <div id="draw-text1"></div>
@@ -408,7 +409,6 @@
     </div>
 
     <script>
-        // デフォルト値の定義
         const DEFAULTS = {
             timeType: 'relative',
             timerH: 0, timerM: 0, timerS: 3,
@@ -426,6 +426,7 @@
 
         let clockInterval = null;
         let vibeInterval = null;
+        let returnTimeout = null; // 画面自動戻り用のタイマーを追加
         let targetTimestamp = 0;
 
         window.onload = function() {
@@ -446,12 +447,21 @@
 
         function resetToDefault() {
             if (!confirm('設定をデフォルト値に戻しますか？')) return;
-            localStorage.removeItem('fake_call_settings_v9');
+            localStorage.removeItem(STORAGE_KEY);
             applySettingsObject(DEFAULTS);
             toggleTimeInput();
         }
 
+        // すべての進行中タイマーとバイブを完全に殺す安全装置
+        function clearAllIntervals() {
+            if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
+            if (vibeInterval) { clearInterval(vibeInterval); vibeInterval = null; }
+            if (returnTimeout) { clearTimeout(returnTimeout); returnTimeout = null; }
+            if (window.navigator.vibrate) { window.navigator.vibrate(0); }
+        }
+
         function startApp() {
+            clearAllIntervals(); // 開始前に念のため全リセット
             saveSettings();
             const timeType = document.getElementById('time-type').value;
             const now = Date.now();
@@ -494,7 +504,7 @@
 
             const diffSec = Math.ceil((targetTimestamp - now) / 1000);
             if (diffSec <= 0) {
-                clearInterval(clockInterval);
+                if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
                 triggerIncoming();
             } else {
                 document.getElementById('countdown-timer').textContent = `残 ${diffSec} 秒 (タップで中断)`;
@@ -502,7 +512,7 @@
         }
 
         function cancelApp() {
-            clearInterval(clockInterval);
+            clearAllIntervals();
             switchScreen('config-screen');
         }
 
@@ -530,6 +540,8 @@
 
             switchScreen('incoming-screen');
 
+            // バイブレーション開始（古いタイマーを確実に排除してから）
+            if (vibeInterval) { clearInterval(vibeInterval); vibeInterval = null; }
             if (window.navigator.vibrate) {
                 window.navigator.vibrate(1000);
                 vibeInterval = setInterval(() => { window.navigator.vibrate(1000); }, 1100);
@@ -537,7 +549,8 @@
         }
 
         function stopIncoming() {
-            if (vibeInterval) clearInterval(vibeInterval);
+            // タップされた瞬間にバイブレーションのループを完全に停止！
+            if (vibeInterval) { clearInterval(vibeInterval); vibeInterval = null; }
             if (window.navigator.vibrate) window.navigator.vibrate(0);
 
             const incScreen = document.getElementById('incoming-screen');
@@ -557,7 +570,12 @@
             elem4.classList.add(`font-size-${sizeType4}`);
 
             const delaySec = parseInt(document.getElementById('return-delay').value) || 3;
-            setTimeout(() => { switchScreen('config-screen'); }, delaySec * 1000);
+            
+            if (returnTimeout) clearTimeout(returnTimeout);
+            returnTimeout = setTimeout(() => { 
+                clearAllIntervals(); // 画面を戻すタイミングで全ての状態を完全クリーンアップ
+                switchScreen('config-screen'); 
+            }, delaySec * 1000);
         }
 
         function applySettingsObject(settings) {
@@ -579,7 +597,6 @@
             }
         }
 
-        // 過去の別バージョン用キーを衝突させないため最新のキーで固定
         const STORAGE_KEY = 'fake_call_settings_v9_fixed';
 
         function saveSettings() {
