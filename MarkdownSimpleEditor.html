@@ -3,9 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シンプルMarkdownエディタ</title>
+    <title>シンプルMarkdown,LaTeXエディタ</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body class="bg-[#f7f5f2] text-[#4a433c] h-screen flex flex-col font-sans relative">
 
@@ -16,7 +29,7 @@
     <header class="bg-white px-6 py-3 flex justify-between items-center border-b border-[#e8e4dc] shrink-0 pr-36 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
         <div class="flex items-center gap-2.5">
             <span class="text-xl text-[#c48a88]">✦</span>
-            <h1 class="text-lg font-bold tracking-wider text-[#5c5043]">シンプルMarkdownエディタ</h1>
+            <h1 class="text-lg font-bold tracking-wider text-[#5c5043]">シンプルMarkdown,LaTeXエディタ</h1>
         </div>
         <div class="flex items-center gap-5 text-xs text-[#8a7e72]">
             <div class="hidden sm:block bg-[#f0ede6] px-2.5 py-1 rounded text-[11px] font-medium tracking-wide">💡 Ctrl+Bで太字 / Ctrl+Hで見出し</div>
@@ -54,10 +67,11 @@
                     <button onclick="insertTemplate('todo')" class="bg-[#8fa89b] hover:bg-[#7e998a] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">✅ タスク管理表</button>
                     <button onclick="insertTemplate('blog')" class="bg-[#8fa0b5] hover:bg-[#7d8fa6] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">📝 ブログ下書き</button>
                     <button onclick="insertTemplate('idea')" class="bg-[#bfa2b3] hover:bg-[#ad90a1] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">💡 アイデア発想</button>
+                    <button onclick="insertTemplate('latex')" class="bg-[#6b82a8] hover:bg-[#5a6f94] text-white text-xs py-1 px-3 rounded-full font-medium shadow-sm cursor-pointer transition-colors">📐 数式(LaTeX)サンプル</button>
                 </div>
             </div>
 
-            <textarea id="editor" oninput="renderMarkdown()" onkeydown="handleShortcuts(event)" class="w-full flex-1 bg-white text-[#4a433c] p-4 font-mono text-sm rounded-xl border border-[#e8e4dc] focus:outline-none focus:border-[#b57a78] focus:ring-1 focus:ring-[#b57a78] resize-none leading-relaxed shadow-inner" placeholder="ここに入力するか、テンプレートボタンを押してください。ショートカット（Ctrl+B / Ctrl+H）も使えます..."></textarea>
+            <textarea id="editor" oninput="renderMarkdown()" onkeydown="handleShortcuts(event)" class="w-full flex-1 bg-white text-[#4a433c] p-4 font-mono text-sm rounded-xl border border-[#e8e4dc] focus:outline-none focus:border-[#b57a78] focus:ring-1 focus:ring-[#b57a78] resize-none leading-relaxed shadow-inner" placeholder="ここに入力するか、テンプレートボタンを押してください。$E=mc^2$ のようなLaTeX数式もリアルタイムで表示されます..."></textarea>
         </div>
 
         <div class="w-1/2 h-full p-4 flex flex-col overflow-hidden">
@@ -70,11 +84,22 @@
         const editor = document.getElementById('editor');
         const preview = document.getElementById('preview');
         const charCount = document.getElementById('char-count');
+        let mathJaxTimeout;
 
         function renderMarkdown() {
             const rawText = editor.value;
             preview.innerHTML = marked.parse(rawText);
             charCount.textContent = rawText.length;
+
+            // 入力のたびに MathJax を呼び出すと重くなるため、少しタイポが止まってから（デバウンス）処理を走らせます
+            clearTimeout(mathJaxTimeout);
+            mathJaxTimeout = setTimeout(() => {
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise([preview]).catch(function (err) {
+                        console.log(err.message);
+                    });
+                }
+            }, 300);
         }
 
         // キーボードショートカット処理
@@ -90,7 +115,7 @@
             }
         }
 
-        // 賢く太字を切り替える（トグル）関数
+        // 太字切り替え（トグル）関数
         function toggleBold() {
             const startPos = editor.selectionStart;
             const endPos = editor.selectionEnd;
@@ -112,7 +137,7 @@
             renderMarkdown();
         }
 
-        // 賢く見出し（#）を切り替える関数
+        // 見出し（#）切り替え関数
         function toggleHeading() {
             const startPos = editor.selectionStart;
             const endPos = editor.selectionEnd;
@@ -154,6 +179,9 @@
                 template = `# 📝 【タイトル】ここにタイトルを入力\n\n## 🔍 導入（ここを読ませたい理由）\nここに読者の悩みに共感する文章を書きます。\n\n## 💡 本文（具体的な解決策）\n1. **ポイント1**：具体的な説明\n2. **ポイント2**：具体的な説明\n\n## 🏁 まとめ\n最後に全体を振り返り、読者に行動を促す文章を書きます。\n`;
             } else if (type === 'idea') {
                 template = `## 💡 アイデア企画：【名称】\n\n### 🎯 解決したい課題\n- \n\n### ✨ 提案内容\n- \n\n### ⚖️ メリットとデメリット\n* **メリット:** \n* **デメリット:** \n`;
+            } else if (type === 'latex') {
+                // LaTeX用のサンプルテンプレート
+                template = `## 📐 LaTeX 数式記述サンプル\n\n文中に数式を埋め込む場合は、シングルドル（ \`$\` ）で囲みます。\n例えば、アインシュタインの相対性理論の式は $E = mc^2$ です。オイラーの等式は $e^{i\\pi} + 1 = 0$ となります。\n\n独立した行として数式を目立たせたい場合は、ダブルドル（ \`$$\` ）で囲みます。\n\n$$\nf(x) = \\int_{-\\infty}^{\\infty} \\hat{f}(\\xi)\\,e^{2\\pi i x \\xi}\\,d\\xi\n$$\n\n### 📊 行列の例\n\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n\\begin{pmatrix}\nx \\\\\ny\n\\end{pmatrix}\n=\n\\begin{pmatrix}\nax + by \\\\\ncx + dy\n\\end{pmatrix}\n$$\n`;
             }
 
             const mode = document.querySelector('input[name="insert-mode"]:checked').value;
@@ -179,10 +207,13 @@
             document.addEventListener('copy', listener);
             document.execCommand('copy');
             document.removeEventListener('copy', listener);
-            alert("美しいデザインのままクリップボードにコピーしました！\nメールやNotion等にそのまま貼り付けられます。");
+            alert("美しいデザイン（数式含む）のままクリップボードにコピーしました！\nNotionや対応エディタ等にそのまま貼り付けられます。");
         }
 
-        renderMarkdown();
+        // 初期描画時に少し遅らせてMathJaxを適用
+        window.addEventListener('load', () => {
+            renderMarkdown();
+        });
     </script>
 
     <style>
@@ -198,6 +229,8 @@
         #preview th { background-color: #f7f5f2; color: #5c5043; font-weight: 600; padding: 10px; border: 1px solid #e8e4dc; text-align: left; }
         #preview td { padding: 10px; border: 1px solid #e8e4dc; color: #4a433c; }
         #preview tr:nth-child(even) { background-color: #fafbf9; }
+        /* 数式の表示が崩れないよう微調整 */
+        .mjx-chtml { margin: 0.5rem 0; }
     </style>
 </body>
 </html>
