@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>電話着信偽装ツール</title>
     <style>
         /* 全体共通スタイル */
@@ -15,6 +15,11 @@
             box-sizing: border-box;
             overflow: hidden;
             background-color: #f5f5f7;
+        }
+
+        /* すべての要素でサイズ計算を「パディング込み」に統一 */
+        *, *:before, *:after {
+            box-sizing: border-box;
         }
 
         /* 画面の切り替え制御 */
@@ -30,12 +35,14 @@
             display: block;
         }
 
-        /* --- 1. 設定画面（洗練されたライトモードUI） --- */
+        /* --- 1. 設定画面（横スクロール絶対防止版） --- */
         #config-screen {
             background-color: #f5f5f7;
             color: #1d1d1f;
             overflow-y: auto;
+            overflow-x: hidden; /* 横スクロールを完全に禁止 */
             padding: 20px 16px;
+            width: 100%;
         }
         h1 {
             font-size: 22px;
@@ -51,6 +58,7 @@
             margin-bottom: 16px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            width: 100%; /* 親要素からはみ出さない */
         }
         .form-group label {
             display: block;
@@ -65,9 +73,11 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            width: 100%;
         }
         .inline-inputs input[type="number"] {
             width: 60px;
+            flex-shrink: 0; /* 縮み防止 */
             background: #f5f5f7;
             border: 1px solid #d2d2d7;
             color: #1d1d1f;
@@ -77,31 +87,33 @@
             font-size: 16px;
         }
         input[type="text"], input[type="datetime-local"], select {
-            width: 100%;
+            width: 100%; /* 横幅いっぱいに安全に広げる */
             padding: 10px 12px;
             background: #f5f5f7;
             border: 1px solid #d2d2d7;
             border-radius: 8px;
             color: #1d1d1f;
             font-size: 16px;
-            box-sizing: border-box;
         }
         select {
             appearance: none;
             cursor: pointer;
         }
         
-        /* コンパクトな横並びスタイル */
+        /* コンパクトな横並びスタイル（はみ出し防止） */
         .text-config-container {
             display: flex;
             gap: 10px;
             align-items: center;
+            width: 100%;
         }
         .text-config-container .text-main-input {
             flex: 2;
+            min-width: 0; /* フレックスアイテムのはみ出し防止 */
         }
         .text-config-container select {
             flex: 1;
+            min-width: 0;
             text-align: center;
         }
         .text-config-container input[type="color"] {
@@ -112,7 +124,7 @@
             border: 1px solid #d2d2d7;
             border-radius: 8px;
             cursor: pointer;
-            box-sizing: border-box;
+            flex-shrink: 0;
         }
         
         /* ボタン系 */
@@ -149,7 +161,7 @@
         }
         .btn-reset:active { background: rgba(255, 59, 48, 0.05); }
 
-        /* --- 2. 待機画面（明るい仕様） --- */
+        /* --- 2. 待機画面 --- */
         #wait-screen {
             display: none;
             flex-direction: column;
@@ -180,7 +192,7 @@
             white-space: nowrap;
         }
 
-        /* --- 3. 着信画面（明るく本格的な通話風UI） --- */
+        /* --- 3. 着信画面 --- */
         #incoming-screen {
             display: none;
             flex-direction: column;
@@ -195,7 +207,6 @@
             display: flex;
         }
 
-        /* メッセージエリア */
         .incoming-meta-box {
             width: 100%;
             display: flex;
@@ -204,12 +215,10 @@
             margin-top: 40px;
         }
 
-        /* スマホ最適化フォント */
         .font-size-large { font-size: 9.5vw; font-weight: 400; margin: 10px 0; letter-spacing: -0.5px; }
         .font-size-medium { font-size: 5.5vw; font-weight: 300; margin: 8px 0; }
         .font-size-small { font-size: 4vw; font-weight: 400; opacity: 0.6; margin: 5px 0; letter-spacing: 1px; }
 
-        /* タップ後の文字4専用 */
         #draw-text4 {
             position: absolute;
             top: 45%;
@@ -220,7 +229,6 @@
             font-weight: 400;
         }
 
-        /* 明るい画面に映える着信ボタンUI */
         .fake-call-actions {
             display: flex;
             justify-content: space-around;
@@ -256,7 +264,6 @@
         }
         .btn-decline svg { transform: rotate(135deg); }
 
-        /* 画面アニメーション */
         @keyframes shake {
             0% { transform: scale(1); }
             50% { transform: scale(1.02); }
@@ -269,7 +276,6 @@
 </head>
 <body>
 
-    <!-- ================= 1. 設定画面 ================= -->
     <div id="config-screen" class="screen active">
         <h1>📳 着信偽装設定</h1>
         
@@ -293,7 +299,7 @@
             <label>背景色</label>
             <div class="inline-inputs" style="justify-content: space-between;">
                 <div><span style="font-size:14px; vertical-align:middle; margin-right:5px;">待機:</span><input type="color" id="bg-color-1" value="#ffffff"></div>
-                <div><span style="font-size:14px; vertical-align:middle; margin-right:5px;">着信（ベース色）:</span><input type="color" id="bg-color-2" value="#e0f2fe"></div>
+                <div><span style="font-size:14px; vertical-align:middle; margin-right:5px;">着信:</span><input type="color" id="bg-color-2" value="#e0f2fe"></div>
             </div>
         </div>
 
@@ -371,25 +377,20 @@
         <button class="btn-reset" onclick="resetToDefault()">デフォルトに戻す</button>
     </div>
 
-    <!-- ================= 2. 待機画面 ================= -->
     <div id="wait-screen" class="screen">
         <div id="current-time">0000/00/00<br>00:00:00</div>
         <div id="countdown-timer" onclick="cancelApp()">タップして中断</div>
     </div>
 
-    <!-- ================= 3. 着信画面 ================= -->
     <div id="incoming-screen" class="screen" onclick="stopIncoming()">
-        <!-- 上部テキストグループ -->
         <div class="incoming-meta-box" id="incoming-text-group">
             <div id="draw-text1"></div>
             <div id="draw-text2"></div>
             <div id="draw-text3"></div>
         </div>
 
-        <!-- タップ後中央メッセージ用 -->
         <div id="draw-text4"></div>
 
-        <!-- 下部リアルボタンUI -->
         <div class="fake-call-actions" id="incoming-actions-group">
             <div class="action-btn-container">
                 <div class="circle-btn btn-decline">
@@ -508,7 +509,6 @@
         function triggerIncoming() {
             const bgColor2 = document.getElementById('bg-color-2').value;
             const incScreen = document.getElementById('incoming-screen');
-            // 白（#ffffff）に向かって綺麗に抜けるグラデーション
             incScreen.style.background = `linear-gradient(to bottom, ${bgColor2}, #ffffff)`;
             incScreen.classList.add('shaking');
 
@@ -574,10 +574,13 @@
 
             for(let i=1; i<=4; i++) {
                 document.getElementById(`text${i}-val`).value = settings[`text${i}Val`];
-                document.getElementById(`textTemplate-${i}` ? `text${i}-size-type` : `text${i}-size-type`).value = settings[`text${i}SizeType`];
+                document.getElementById(`text${i}-size-type`).value = settings[`text${i}SizeType`];
                 document.getElementById(`text${i}-color`).value = settings[`text${i}Color`];
             }
         }
+
+        // 過去の別バージョン用キーを衝突させないため最新のキーで固定
+        const STORAGE_KEY = 'fake_call_settings_v9_fixed';
 
         function saveSettings() {
             const settings = {
@@ -598,11 +601,11 @@
                 settings[`text${i}SizeType`] = document.getElementById(`text${i}-size-type`).value;
                 settings[`text${i}Color`] = document.getElementById(`text${i}-color`).value;
             }
-            localStorage.setItem('fake_call_settings_v9', JSON.stringify(settings));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }
 
         function loadSettings() {
-            const saved = localStorage.getItem('fake_call_settings_v9');
+            const saved = localStorage.getItem(STORAGE_KEY);
             if (!saved) { applySettingsObject(DEFAULTS); return; }
             try {
                 const settings = JSON.parse(saved);
