@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>電話着信偽装ツール</title>
+    <style>
+        /* 全体共通スタイル */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        /* 画面の切り替え制御 */
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .screen.active {
+            display: block;
+        }
+
+        /* --- 1. 設定画面 --- */
+        #config-screen {
+            background-color: #f5f5f7;
+            color: #333;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            background: #fff;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .inline-inputs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .inline-inputs input[type="number"] {
+            width: 50px;
+            padding: 6px;
+        }
+        input[type="text"], input[type="datetime-local"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        /* 設定部分のコンパクトな横並びスタイル */
+        .text-config-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            max-width: 400px;
+        }
+        .text-config-container .text-main-input {
+            flex: 2;
+        }
+        .text-config-container select {
+            flex: 1;
+        }
+        .text-config-container input[type="color"] {
+            width: 40px;
+            height: 36px;
+            padding: 2px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .btn-start {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto 10px auto;
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-reset {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 40px auto;
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* --- 2. 待機画面 --- */
+        #wait-screen {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #wait-screen.active {
+            display: flex;
+        }
+        #current-time {
+            font-family: 'Arial Black', Impact, sans-serif;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        #countdown-timer {
+            position: absolute;
+            right: 15px;
+            bottom: 15px;
+            font-size: 12px;
+            background: rgba(0,0,0,0.1);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* --- 3. 着信画面 --- */
+        #incoming-screen {
+            display: none;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: 25vh;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        #incoming-screen.active {
+            display: flex;
+        }
+
+        /* 画面幅に合わせたフォントサイズ指定（スマホ最適化） */
+        .font-size-large { font-size: 10vw; font-weight: bold; margin: 15px 0; }
+        .font-size-medium { font-size: 6vw; margin: 10px 0; }
+        .font-size-small { font-size: 4.5vw; letter-spacing: 2px; margin: 10px 0; }
+
+        #draw-text4 {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            text-align: center;
+        }
+
+        /* 画面を揺らすアニメーション */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shaking {
+            animation: shake 0.5s;
+            animation-iteration-count: infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="config-screen" class="screen active">
+        <h1>📳 着信偽装設定</h1>
+        
+        <div class="form-group" style="max-width: 400px;">
+            <label>時間指定タイプ</label>
+            <select id="time-type" onchange="toggleTimeInput()">
+                <option value="relative">経過時間で指定</option>
+                <option value="absolute">日時で指定</option>
+            </select>
+            <div id="relative-time-input" class="inline-inputs" style="margin-top:10px;">
+                <input type="number" id="timer-h" min="0" value="0"> 時間
+                <input type="number" id="timer-m" min="0" value="0"> 分
+                <input type="number" id="timer-s" min="0" value="3"> 秒後
+            </div>
+            <div id="absolute-time-input" style="margin-top:10px; display:none;">
+                <input type="datetime-local" id="target-datetime">
+            </div>
+        </div>
+
+        <div class="form-group" style="max-width: 400px;">
+            <label>背景色</label>
+            <div class="inline-inputs">
+                <span>待機(1):</span><input type="color" id="bg-color-1" value="#98fb98">
+                <span>着信(2):</span><input type="color" id="bg-color-2" value="#b39ddb">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>待機時間表示</label>
+            <div class="text-config-container">
+                <span class="text-main-input" style="font-size:12px; color:#666;">サイズと色を指定:</span>
+                <select id="wait-time-size-type">
+                    <option value="small">小</option>
+                    <option value="medium" selected>中</option> <option value="large">大</option>
+                </select>
+                <input type="color" id="wait-time-color" value="#ffffff"> </div>
+        </div>
+
+        <div class="form-group">
+            <label>着信時メッセージ（上段）</label>
+            <div class="text-config-container">
+                <input type="text" id="text1-val" class="text-main-input" value="Calling">
+                <select id="text1-size-type">
+                    <option value="small" selected>小</option>
+                    <option value="medium">中</option>
+                    <option value="large">大</option>
+                </select>
+                <input type="color" id="text1-color" value="#ffffff">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>着信時メッセージ（中段）</label>
+            <div class="text-config-container">
+                <input type="text" id="text2-val" class="text-main-input" value="非通知">
+                <select id="text2-size-type">
+                    <option value="small">小</option>
+                    <option value="medium">中</option>
+                    <option value="large" selected>大</option>
+                </select>
+                <input type="color" id="text2-color" value="#ff0000">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>着信時メッセージ（下段）</label>
+            <div class="text-config-container">
+                <input type="text" id="text3-val" class="text-main-input" value="タップしてください">
+                <select id="text3-size-type">
+                    <option value="small" selected>小</option>
+                    <option value="medium">中</option>
+                    <option value="large">大</option>
+                </select>
+                <input type="color" id="text3-color" value="#ffffff">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>タップ後メッセージ</label>
+            <div class="text-config-container">
+                <input type="text" id="text4-val" class="text-main-input" value="通話終了">
+                <select id="text4-size-type">
+                    <option value="small">小</option>
+                    <option value="medium" selected>中</option>
+                    <option value="large">大</option>
+                </select>
+                <input type="color" id="text4-color" value="#ffffff">
+            </div>
+        </div>
+
+        <div class="form-group" style="max-width: 400px;">
+            <label>設定画面に戻るまでの秒数</label>
+            <input type="number" id="return-delay" min="0" value="3">
+        </div>
+
+        <button class="btn-start" onclick="startApp()">開始ボタン</button>
+        <button class="btn-reset" onclick="resetToDefault()">デフォルトに戻す</button>
+    </div>
+
+    <div id="wait-screen" class="screen">
+        <div id="current-time">0000/00/00<br>00:00:00</div>
+        <div id="countdown-timer" onclick="cancelApp()">残り -- 秒 (タップで中断)</div>
+    </div>
+
+    <div id="incoming-screen" class="screen" onclick="stopIncoming()">
+        <div id="draw-text1"></div>
+        <div id="draw-text2"></div>
+        <div id="draw-text3"></div>
+        <div id="draw-text4"></div>
+    </div>
+
+    <script>
+        // デフォルト値の定義
+        const DEFAULTS = {
+            timeType: 'relative',
+            timerH: 0, timerM: 0, timerS: 3,
+            targetDatetime: '',
+            bgColor1: '#98fb98',
+            bgColor2: '#b39ddb',
+            waitTimeSizeType: 'medium', // 追加
+            waitTimeColor: '#ffffff',     // 追加
+            returnDelay: 3,
+            text1Val: 'Calling', text1SizeType: 'small', text1Color: '#ffffff',
+            text2Val: '非通知', text2SizeType: 'large', text2Color: '#ff0000',
+            text3Val: 'タップしてください', text3SizeType: 'small', text3Color: '#ffffff',
+            text4Val: '通話終了', text4SizeType: 'medium', text4Color: '#ffffff'
+        };
+
+        let clockInterval = null;
+        let vibeInterval = null;
+        let targetTimestamp = 0;
+
+        window.onload = function() {
+            loadSettings();
+            toggleTimeInput();
+        };
+
+        function toggleTimeInput() {
+            const type = document.getElementById('time-type').value;
+            document.getElementById('relative-time-input').style.display = type === 'relative' ? 'flex' : 'none';
+            document.getElementById('absolute-time-input').style.display = type === 'absolute' ? 'block' : 'none';
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        // デフォルトに戻す
+        function resetToDefault() {
+            if (!confirm('設定をデフォルト値に戻しますか？')) return;
+            
+            localStorage.removeItem('fake_call_settings_v7');
+            applySettingsObject(DEFAULTS);
+            toggleTimeInput();
+        }
+
+        // 開始ボタン
+        function startApp() {
+            saveSettings();
+
+            const timeType = document.getElementById('time-type').value;
+            const now = Date.now();
+
+            if (timeType === 'relative') {
+                const h = parseInt(document.getElementById('timer-h').value) || 0;
+                const m = parseInt(document.getElementById('timer-m').value) || 0;
+                const s = parseInt(document.getElementById('timer-s').value) || 0;
+                const durationMs = ((h * 3600) + (m * 60) + s) * 1000;
+                targetTimestamp = now + durationMs;
+            } else {
+                const dtValue = document.getElementById('target-datetime').value;
+                if (!dtValue) {
+                    alert("日時を指定してください。");
+                    return;
+                }
+                targetTimestamp = new Date(dtValue).getTime();
+            }
+
+            const bgColor1 = document.getElementById('bg-color-1').value;
+            document.getElementById('wait-screen').style.backgroundColor = bgColor1;
+
+            // 待機画面の時間スタイルを適用
+            const waitTimeSize = document.getElementById('wait-time-size-type').value;
+            const waitTimeColor = document.getElementById('wait-time-color').value;
+            const timeDisplay = document.getElementById('current-time');
+            timeDisplay.className = "";
+            timeDisplay.classList.add(`font-size-${waitTimeSize}`);
+            timeDisplay.style.color = waitTimeColor;
+
+            switchScreen('wait-screen');
+            updateWaitScreen();
+
+            clockInterval = setInterval(updateWaitScreen, 200);
+        }
+
+        function updateWaitScreen() {
+            const now = Date.now();
+            
+            const d = new Date();
+            const Y = d.getFullYear();
+            const M = String(d.getMonth() + 1).padStart(2, '0');
+            const D = String(d.getDate()).padStart(2, '0');
+            const h = String(d.getHours()).padStart(2, '0');
+            const m = String(d.getMinutes()).padStart(2, '0');
+            const s = String(d.getSeconds()).padStart(2, '0');
+            document.getElementById('current-time').innerHTML = `${Y}/${M}/${D}<br>${h}:${m}:${s}`;
+
+            const diffSec = Math.ceil((targetTimestamp - now) / 1000);
+
+            if (diffSec <= 0) {
+                clearInterval(clockInterval);
+                triggerIncoming();
+            } else {
+                document.getElementById('countdown-timer').textContent = `残 ${diffSec} 秒 (タップで中断)`;
+            }
+        }
+
+        function cancelApp() {
+            clearInterval(clockInterval);
+            switchScreen('config-screen');
+        }
+
+        // 着信開始
+        function triggerIncoming() {
+            const bgColor2 = document.getElementById('bg-color-2').value;
+            const incScreen = document.getElementById('incoming-screen');
+            incScreen.style.backgroundColor = bgColor2;
+            incScreen.classList.add('shaking');
+
+            document.getElementById('draw-text4').textContent = "";
+
+            for(let i=1; i<=3; i++) {
+                const val = document.getElementById(`text${i}-val`).value;
+                const sizeType = document.getElementById(`text${i}-size-type`).value;
+                const color = document.getElementById(`text${i}-color`).value;
+
+                const targetElem = document.getElementById(`draw-text${i}`);
+                targetElem.textContent = val;
+                targetElem.style.color = color;
+                targetElem.className = ""; 
+                targetElem.classList.add(`font-size-${sizeType}`);
+            }
+
+            switchScreen('incoming-screen');
+
+            if (window.navigator.vibrate) {
+                window.navigator.vibrate(1000);
+                vibeInterval = setInterval(() => {
+                    window.navigator.vibrate(1000);
+                }, 1100);
+            }
+        }
+
+        // 着信画面タップ時
+        function stopIncoming() {
+            if (vibeInterval) clearInterval(vibeInterval);
+            if (window.navigator.vibrate) window.navigator.vibrate(0);
+
+            const incScreen = document.getElementById('incoming-screen');
+            incScreen.classList.remove('shaking');
+
+            document.getElementById('draw-text1').textContent = "";
+            document.getElementById('draw-text2').textContent = "";
+            document.getElementById('draw-text3').textContent = "";
+
+            const val4 = document.getElementById('text4-val').value;
+            const sizeType4 = document.getElementById('text4-size-type').value;
+            const color4 = document.getElementById('text4-color').value;
+
+            const elem4 = document.getElementById('draw-text4');
+            elem4.textContent = val4;
+            elem4.style.color = color4;
+            elem4.className = "";
+            elem4.classList.add(`font-size-${sizeType4}`);
+
+            const delaySec = parseInt(document.getElementById('return-delay').value) || 3;
+
+            setTimeout(() => {
+                switchScreen('config-screen');
+            }, delaySec * 1000);
+        }
+
+        // 設定オブジェクトを画面フォームに一括適用
+        function applySettingsObject(settings) {
+            document.getElementById('time-type').value = settings.timeType;
+            document.getElementById('timer-h').value = settings.timerH;
+            document.getElementById('timer-m').value = settings.timerM;
+            document.getElementById('timer-s').value = settings.timerS;
+            document.getElementById('target-datetime').value = settings.targetDatetime;
+            document.getElementById('bg-color-1').value = settings.bgColor1;
+            document.getElementById('bg-color-2').value = settings.bgColor2;
+            document.getElementById('wait-time-size-type').value = settings.waitTimeSizeType; // 追加
+            document.getElementById('wait-time-color').value = settings.waitTimeColor;         // 追加
+            document.getElementById('return-delay').value = settings.returnDelay;
+
+            for(let i=1; i<=4; i++) {
+                document.getElementById(`text${i}-val`).value = settings[`text${i}Val`];
+                document.getElementById(`text${i}-size-type`).value = settings[`text${i}SizeType`];
+                document.getElementById(`text${i}-color`).value = settings[`text${i}Color`];
+            }
+        }
+
+        // 設定保存
+        function saveSettings() {
+            const settings = {
+                timeType: document.getElementById('time-type').value,
+                timerH: document.getElementById('timer-h').value,
+                timerM: document.getElementById('timer-m').value,
+                timerS: document.getElementById('timer-s').value,
+                targetDatetime: document.getElementById('target-datetime').value,
+                bgColor1: document.getElementById('bg-color-1').value,
+                bgColor2: document.getElementById('bg-color-2').value,
+                waitTimeSizeType: document.getElementById('wait-time-size-type').value, // 追加
+                waitTimeColor: document.getElementById('wait-time-color').value,         // 追加
+                returnDelay: document.getElementById('return-delay').value,
+            };
+
+            for(let i=1; i<=4; i++) {
+                settings[`text${i}Val`] = document.getElementById(`text${i}-val`).value;
+                settings[`text${i}SizeType`] = document.getElementById(`text${i}-size-type`).value;
+                settings[`text${i}Color`] = document.getElementById(`text${i}-color`).value;
+            }
+
+            localStorage.setItem('fake_call_settings_v7', JSON.stringify(settings));
+        }
+
+        // 設定読み込み
+        function loadSettings() {
+            const saved = localStorage.getItem('fake_call_settings_v7');
+            if (!saved) {
+                applySettingsObject(DEFAULTS);
+                return;
+            }
+
+            try {
+                const settings = JSON.parse(saved);
+                const mergedSettings = Object.assign({}, DEFAULTS, settings);
+                applySettingsObject(mergedSettings);
+            } catch (e) {
+                console.error("設定の復元に失敗しました", e);
+                applySettingsObject(DEFAULTS);
+            }
+        }
+    </script>
+</body>
+</html>
