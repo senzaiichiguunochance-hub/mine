@@ -35,6 +35,24 @@
             display: block;
         }
 
+        /* メニューに戻るボタンのスタイル調整 */
+        .btn-menu-back {
+            display: inline-block;
+            float: right;
+            font-size: 14px;
+            color: #0071e3;
+            text-decoration: none;
+            background: #ffffff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid #d2d2d7;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .btn-menu-back:active {
+            background: #f5f5f7;
+        }
+
         /* --- 1. 設定画面 --- */
         #config-screen {
             background-color: #f5f5f7;
@@ -44,10 +62,15 @@
             padding: 20px 16px;
             width: 100%;
         }
+        .config-header {
+            margin: 10px 0 25px 0;
+            overflow: hidden; /* float解除用 */
+            line-height: 32px;
+        }
         h1 {
             font-size: 22px;
-            text-align: center;
-            margin: 10px 0 25px 0;
+            float: left;
+            margin: 0;
             font-weight: 600;
             letter-spacing: -0.5px;
             color: #1d1d1f;
@@ -59,6 +82,7 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
             width: 100%;
+            clear: both; /* ヘッダーのfloat対策 */
         }
         .form-group label {
             display: block;
@@ -273,11 +297,13 @@
     </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
     <!-- ================= 1. 設定画面 ================= -->
     <div id="config-screen" class="screen active">
-        <h1>📳 着信偽装設定</h1>
+        <div class="config-header">
+            <h1>📳 着信偽装設定</h1>
+            <a href="menu.html" class="btn-menu-back">メニューに戻る</a>
+        </div>
         
         <div class="form-group">
             <label>時間指定タイプ</label>
@@ -427,7 +453,7 @@
 
         let clockInterval = null;
         let vibeInterval = null;
-        let returnTimeout = null; // 画面自動戻り用のタイマーを追加
+        let returnTimeout = null;
         let targetTimestamp = 0;
 
         window.onload = function() {
@@ -453,7 +479,6 @@
             toggleTimeInput();
         }
 
-        // すべての進行中タイマーとバイブを完全に殺す安全装置
         function clearAllIntervals() {
             if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
             if (vibeInterval) { clearInterval(vibeInterval); vibeInterval = null; }
@@ -462,7 +487,7 @@
         }
 
         function startApp() {
-            clearAllIntervals(); // 開始前に念のため全リセット
+            clearAllIntervals();
             saveSettings();
             const timeType = document.getElementById('time-type').value;
             const now = Date.now();
@@ -541,7 +566,6 @@
 
             switchScreen('incoming-screen');
 
-            // バイブレーション開始（古いタイマーを確実に排除してから）
             if (vibeInterval) { clearInterval(vibeInterval); vibeInterval = null; }
             if (window.navigator.vibrate) {
                 window.navigator.vibrate(1000);
@@ -550,7 +574,6 @@
         }
 
         function stopIncoming() {
-            // タップされた瞬間にバイブレーションのループを完全に停止！
             if (vibeInterval) { clearInterval(vibeInterval); vibeInterval = null; }
             if (window.navigator.vibrate) window.navigator.vibrate(0);
 
@@ -574,7 +597,7 @@
             
             if (returnTimeout) clearTimeout(returnTimeout);
             returnTimeout = setTimeout(() => { 
-                clearAllIntervals(); // 画面を戻すタイミングで全ての状態を完全クリーンアップ
+                clearAllIntervals();
                 switchScreen('config-screen'); 
             }, delaySec * 1000);
         }
