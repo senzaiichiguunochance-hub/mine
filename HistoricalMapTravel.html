@@ -15,18 +15,18 @@
         rel="stylesheet">
     <style>
         :root {
-            --primary: #f59e0b;
-            /* Gold/Amber */
-            --primary-hover: #d97706;
-            --bg-dark: #0f172a;
-            /* Slate 900 */
-            --panel-bg: #1e293b;
-            /* Slate 800 */
-            --text-main: #f8fafc;
-            /* Slate 50 */
-            --text-muted: #94a3b8;
-            /* Slate 400 */
-            --border: rgba(255, 255, 255, 0.08);
+            --primary: #d97706;
+            /* 明るい背景に映える濃いめのアキバー */
+            --primary-hover: #b45309;
+            --bg-dark: #f8fafc;
+            /* Slate 50 (全体背景) */
+            --panel-bg: #ffffff;
+            /* 白ベース */
+            --text-main: #0f172a;
+            /* Slate 900 (メイン文字) */
+            --text-muted: #64748b;
+            /* Slate 500 (補足文字) */
+            --border: rgba(0, 0, 0, 0.08);
         }
 
         body {
@@ -46,11 +46,11 @@
             width: 380px;
             min-width: 380px;
             height: 100%;
-            background: rgba(15, 23, 42, 0.95);
+            background: rgba(255, 255, 255, 0.95);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.5);
+            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.05);
             z-index: 1000;
             backdrop-filter: blur(10px);
         }
@@ -61,24 +61,18 @@
         }
 
         .sidebar-header h2 {
-            margin: 0 0 6px 0;
+            margin: 0;
             font-size: 1.35rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             letter-spacing: -0.5px;
         }
 
-        .sidebar-subtitle {
-            margin: 0;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
         .filter-section {
             padding: 16px 20px;
-            background: rgba(30, 41, 59, 0.4);
+            background: rgba(241, 245, 249, 0.6);
             border-bottom: 1px solid var(--border);
             display: flex;
             flex-direction: column;
@@ -98,6 +92,7 @@
 
         .flex-1 {
             flex: 1;
+            min-width: 0; /* 子要素の幅をはみ出させないための指定 */
         }
 
         .filter-group label {
@@ -110,32 +105,34 @@
 
         .filter-group input,
         .filter-group select {
-            background: #1e293b;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.15);
             border-radius: 6px;
             padding: 8px 10px;
             color: var(--text-main);
             font-size: 0.82rem;
             outline: none;
             transition: all 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .filter-group input::placeholder {
-            color: #475569;
+            color: #94a3b8;
         }
 
         .filter-group input:focus,
         .filter-group select:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+            box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
         }
 
         .clear-btn {
             background: transparent;
-            border: 1px dashed rgba(255, 255, 255, 0.2);
+            border: 1px dashed rgba(0, 0, 0, 0.2);
             border-radius: 6px;
             padding: 8px;
-            color: #cbd5e1;
+            color: #475569;
             font-size: 0.8rem;
             cursor: pointer;
             font-weight: 500;
@@ -147,9 +144,9 @@
         }
 
         .clear-btn:hover {
-            background: rgba(239, 68, 68, 0.1);
+            background: rgba(239, 68, 68, 0.05);
             border-color: #ef4444;
-            color: #fca5a5;
+            color: #ef4444;
         }
 
         .event-list-container {
@@ -165,7 +162,7 @@
             font-weight: 600;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border);
-            background: rgba(15, 23, 42, 0.2);
+            background: rgba(0, 0, 0, 0.02);
         }
 
         .event-list {
@@ -175,6 +172,7 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            background-color: #f1f5f9;
         }
 
         /* Custom Scrollbar */
@@ -187,37 +185,42 @@
         }
 
         .event-list::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 3px;
         }
 
         .event-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.2);
         }
 
         /* Card design */
         .event-card {
             background: var(--panel-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: 8px;
             padding: 14px;
             cursor: pointer;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
+            height: 115px; /* 縦幅を固定 */
+            box-sizing: border-box;
+            flex-shrink: 0; /* フィルター絞り込み時につぶれるのを防ぐ */
+            display: flex;
+            flex-direction: column;
         }
 
         .event-card:hover {
             transform: translateY(-2px);
-            background: #243147;
-            border-color: rgba(245, 158, 11, 0.35);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            background: #f8fafc;
+            border-color: rgba(217, 119, 6, 0.35);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.05);
         }
 
         .event-card.active {
-            background: rgba(245, 158, 11, 0.08);
+            background: rgba(217, 119, 6, 0.04);
             border-color: var(--primary);
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.12);
+            box-shadow: 0 0 12px rgba(217, 119, 6, 0.08);
         }
 
         .event-card::before {
@@ -241,14 +244,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            flex-shrink: 0;
         }
 
         .event-year {
             font-size: 0.8rem;
             font-weight: 700;
-            color: #fbbf24;
-            background: rgba(245, 158, 11, 0.12);
+            color: #b45309;
+            background: rgba(217, 119, 6, 0.1);
             padding: 2px 8px;
             border-radius: 4px;
         }
@@ -257,7 +261,7 @@
             font-size: 0.72rem;
             font-weight: 600;
             color: var(--text-muted);
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(0, 0, 0, 0.04);
             padding: 2px 8px;
             border-radius: 4px;
         }
@@ -266,15 +270,21 @@
             font-size: 0.92rem;
             font-weight: 600;
             color: var(--text-main);
-            margin: 0 0 6px 0;
-            line-height: 1.4;
+            margin: 0 0 4px 0;
+            line-height: 1.3;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .event-desc {
             font-size: 0.78rem;
             color: var(--text-muted);
             margin: 0;
-            line-height: 1.5;
+            line-height: 1.4;
+            overflow-y: auto; /* 万が一文字が多い場合はカード内でスクロール可能に */
+            flex: 1;
         }
 
         /* Map area */
@@ -295,42 +305,42 @@
             right: 12px;
             font-size: 0.8rem;
             font-weight: 600;
-            color: var(--text-main);
+            color: #0f172a;
             text-decoration: none;
-            background: rgba(15, 23, 42, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             border: 1px solid var(--border);
             padding: 8px 14px;
             border-radius: 6px;
             z-index: 1000;
             backdrop-filter: blur(8px);
             transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .menu-back-btn:hover {
             background: var(--primary);
             border-color: var(--primary);
-            color: #0f172a;
+            color: #ffffff;
             transform: translateY(-1px);
         }
 
         /* Custom Leaflet styling */
         .leaflet-popup-content-wrapper {
-            background: #1e293b !important;
-            color: #f8fafc !important;
+            background: #ffffff !important;
+            color: #0f172a !important;
             border-radius: 10px !important;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
             padding: 4px;
         }
 
         .leaflet-popup-tip {
-            background: #1e293b !important;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.08);
         }
 
         .popup-header {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
             padding-bottom: 6px;
             margin-bottom: 8px;
         }
@@ -338,7 +348,7 @@
         .popup-title {
             font-weight: 700;
             font-size: 0.95rem;
-            color: #f8fafc;
+            color: #0f172a;
         }
 
         .popup-meta {
@@ -350,7 +360,7 @@
         }
 
         .popup-year {
-            color: #fbbf24;
+            color: #b45309;
             font-weight: bold;
         }
 
@@ -361,7 +371,7 @@
         .popup-desc {
             font-size: 0.8rem;
             line-height: 1.5;
-            color: #cbd5e1;
+            color: #334155;
         }
     </style>
 </head>
@@ -372,7 +382,6 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>🧭 歴史マップトラベル</h2>
-            <p class="sidebar-subtitle">教科書にのっている世界の歴史イベントをめぐる</p>
         </div>
 
         <div class="filter-section">
@@ -545,7 +554,7 @@
             { year: 1936, lat: 35.675, lng: 139.744, title: "二・二六事件", desc: "陸軍の皇道派青年将校らが武装蜂起し、蔵相・高橋是清らを暗殺。軍部の発言力が極大化しました。", country: "日本" },
             { year: 1937, lat: 39.904, lng: 116.407, title: "日中戦争の勃発", desc: "北京近郊の盧溝橋での衝突（盧溝橋事件）を機に、日本と中国との全面的な戦争が始まりました。", country: "中国" },
             { year: 1939, lat: 52.229, lng: 21.012, title: "第二次世界大戦の勃発", desc: "ドイツがポーランドへ電撃侵攻し、英仏が宣戦布告を行って大戦が始まりました。", country: "ポーランド" },
-            { year: 1941, lat: 21.367, lng: -157.957, title: "真珠湾攻撃（太平洋戦争勃発）", desc: "日本海軍がアメリカのハワイ真珠湾を奇襲攻撃し、アジア・太平洋地域でも大戦が始まりました。", country: "アメリカ" },
+            { year: 1941, lat: 21.367, lng: -157.957, title: "真珠湾攻撃（太平洋戦争勃発）", desc: "日本海軍がアメリカのハワイ真珠湾を奇wq襲攻撃し、アジア・太平洋地域でも大戦が始まりました。", country: "アメリカ" },
             { year: 1945, lat: 34.385, lng: 132.455, title: "広島への原子爆弾投下", desc: "アメリカ軍のB-29爆撃機により、人類最初の実戦用原子爆弾が投下され、壊滅的な被害を出しました。", country: "日本" },
             { year: 1945, lat: 32.750, lng: 129.867, title: "長崎への原子爆弾投下", desc: "広島に続き、長崎市にも原子爆弾が投下され、数多くの尊い命が奪われました。", country: "日本" },
             { year: 1945, lat: 35.689, lng: 139.753, title: "日本の無条件降伏・終戦", desc: "ポツダム宣言を受諾して降伏文書に調印し、第二次世界大戦が正式に終結しました。", country: "日本" },
@@ -667,7 +676,7 @@
                     <span class="event-year">${formatYear(ev.year)}</span>
                     <span class="event-country">🚩 ${ev.country}</span>
                 </div>
-                <h4 class="event-title">${ev.title}</h4>
+                <h4 class="event-title" title="${ev.title}">${ev.title}</h4>
                 <p class="event-desc">${ev.desc}</p>
             `;
 
