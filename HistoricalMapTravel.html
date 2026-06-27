@@ -428,11 +428,16 @@
     <script>
         // 歴史教科書に掲載されている主要イベントデータ
         const historyEvents = [
+            { year: -1800, lat: 29.979, lng: 31.134, title: "ハムラビ法典の制定", desc: "バビロン第1王朝のハムラビ王が発布した、「目には目を、歯には歯を」で知られる世界最古級の成文法です。", country: "バビロニア" },
+            { year: -500, lat: 37.983, lng: 23.727, title: "アテネの民主政確立", desc: "クレイステネスの改革により陶片追放が導入され、古代ギリシアの民主政治の基礎が築かれました。", country: "ギリシア" },
+            { year: -334, lat: 40.640, lng: 22.944, title: "アレクサンドロスの東征", desc: "マケドニアの王がペルシア遠征に出発。東西文化が融合したヘレニズム文化を生む契機となりました。", country: "マケドニア" },
             { year: -221, lat: 34.263, lng: 108.948, title: "秦の中国統一", desc: "始皇帝が戦国時代の中国を統一し、初の統一帝国を樹立しました。", country: "中国" },
+            { year: -202, lat: 34.263, lng: 108.948, title: "漢（前漢）の建国", desc: "劉邦（高祖）が項羽との「楚漢戦争」に勝利し、長安を都として漢王朝を樹立しました。", country: "中国" },
             { year: -57, lat: 35.741, lng: 129.213, title: "新羅の建国", desc: "朝鮮半島三国の一つである新羅が、初代王の赫居世によって建国されたと伝えられています。", country: "韓国" },
             { year: -27, lat: 41.890, lng: 12.492, title: "ローマ帝国の成立", desc: "オクタヴィアヌスが「アウグストゥス」の尊称を受け、帝政ローマが始まりました。", country: "イタリア" },
             { year: 57, lat: 33.606, lng: 130.418, title: "倭の奴国が後漢に朝貢", desc: "倭の奴国王が後漢の光武帝に使者を送り、金印（漢委奴国王）を授かりました。", country: "日本" },
             { year: 107, lat: 33.606, lng: 130.418, title: "倭国王帥升の朝貢", desc: "倭国王帥升らが後漢の安帝に使者を送り、生口（奴隷）を献上しました。日本史上最古の人物名の記録です。", country: "日本" },
+            { year: 220, lat: 34.797, lng: 114.307, title: "三国時代の始まり", desc: "後漢が滅亡し、魏・呉・蜀の3つの国が覇権を争う三国時代へ突入しました。", country: "中国" },
             { year: 239, lat: 34.526, lng: 135.846, title: "卑弥呼の遣使", desc: "邪馬台国の女王・卑弥呼が三国時代の魏に使者を送り、「親魏倭王」の称号を得ました。", country: "日本" },
             { year: 313, lat: 45.464, lng: 9.189, title: "ミラノ勅令", desc: "ローマ皇帝コンスタンティヌスらがキリスト教を公認し、信仰の自由を認めました。", country: "イタリア" },
             { year: 395, lat: 41.008, lng: 28.978, title: "ローマ帝国の東西分裂", desc: "テオドシウス帝の死後、帝国は東ローマ帝国と西ローマ帝国に分裂しました。", country: "トルコ" },
@@ -610,15 +615,30 @@
             }
         }
 
-        // フィルターの初期設定
+        // 国名カスタムソート関数
+        // ルール: 日本最優先 -> 漢字のみの国 -> カタカナ等の国
+        function customCountrySort(a, b) {
+            if (a === "日本") return -1;
+            if (b === "日本") return 1;
+
+            const isKanjiA = /^[\u4e00-\u9faf]+$/.test(a);
+            const isKanjiB = /^[\u4e00-\u9faf]+$/.test(b);
+
+            if (isKanjiA && !isKanjiB) return -1;
+            if (!isKanjiA && isKanjiB) return 1;
+
+            return a.localeCompare(b, 'ja');
+        }
+
         function initFilters() {
-            // 時系列順にソート
             historyEvents.sort((a, b) => a.year - b.year);
 
-            // 国名セレクトボックスの動的設定（ユニークかつソート済み）
-            const countries = [...new Set(historyEvents.map(ev => ev.country))].sort();
+            // 国名リストを取得し、ご要望の並び順にソート
+            const uniqueCountries = [...new Set(historyEvents.map(ev => ev.country))];
+            uniqueCountries.sort(customCountrySort);
+
             const countrySelect = document.getElementById('country-select');
-            countries.forEach(c => {
+            uniqueCountries.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c;
                 opt.textContent = c;
