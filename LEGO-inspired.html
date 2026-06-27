@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEGO-inspired</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #050505; 
+            font-family: Arial, sans-serif;
+        }
+        canvas { 
+            display: block; 
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px 30px;
+            border-radius: 8px;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<div id="loading">レゴの世界を生成中...</div>
+<canvas id="legoCanvas"></canvas>
+
+<script>
+// ==========================================
+// 1. 基本設定（ステージ、カメラ、レンダラー）
+// ==========================================
+const canvas = document.getElementById('legoCanvas');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#7ec0ee'); // 青空の色
+
+// 奥を少しぼかすための霧（フォグ）設定
+scene.fog = new THREE.FogExp2('#7ec0ee', 0.015);
+
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(45, 40, 55);
+
+const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+// マウスでグリグリ動かせるようにする設定
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.maxPolarAngle = Math.PI / 2 - 0.05; // 地面の下にカメラが入らないように制限
+controls.target.set(0, 2, 0);
+
+// ==========================================
+// 2. 光源（ライト）の設定
+// ==========================================
+const ambientLight = new THREE.AmbientLight('#ffffff', 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight('#fffdf0', 1.2); // 太陽光
+dirLight.position.set(50, 70, 30);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.near = 10;
+dirLight.shadow.camera.far = 200;
+const d = 40;
+dirLight.shadow.camera.left = -d;
+dirLight.shadow.camera.right = d;
+dirLight.shadow.camera.top = d;
+dirLight.shadow.camera.bottom = -d;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+
+// ==========================================
+// 3. 地形生成用の簡易ノイズ関数
+// ==========================================
+function createNoise2D() {
+    const p = new Uint8Array(256);
+    for(let i=0; i<256; i++) p[i] = Math.floor(Math.random() * 256);
+    const perm = new Uint8Array(512);
+    for(let i=0; i<512; i++) perm[i] = p[i & 255];
+    function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+    function lerp(t, a, b) { return a + t * (b - a); }
+    function grad(hash, x, y) {
+        const h = hash & 7;
+        return ((h & 1) ? -x : x) + ((h & 2) ? -2.0 * y : 2.0 * y);
+    }
+    return function(x, y) {
+        const X = Math.floor(x) & 255; const Y = Math.floor(y) & 255;
+        x -= Math.floor(x); y -= Math.floor(y);
+        const u = fade(x); const v = fade(y);
+        return lerp(v, lerp(u, grad(perm[perm[X]+Y], x, y), grad(perm[perm[X+1]+Y], x-1, y)),
+                       lerp(u, grad(perm[perm[X]+Y+1], x, y-1), grad(perm[perm[X+1]+Y+1], x-1, y-1)));
+    };
+}
+const noise2D = createNoise2D();
+
+// ==========================================
+// 4. レゴブロックの形状（土台＋上の突起）
+// ==========================================
+function createLegoGeometry() {
+    const body = new THREE.BoxGeometry(0.95, 0.95, 0.95); // 隙間をわずかに空けてレゴ感を出す
+    const stud = new THREE.CylinderGeometry(0.25, 0.25, 0.15, 16);
+    stud.translate(0, 0.475 + 0.075, 0); // 箱の真上に突起を移動
+    return { body, stud };
+}
+
+// 動画をイメージしたカラーパレット
+const PALETTE = {
+    water: new THREE.Color('#1565c0'),      // 水
+    sand: new THREE.Color('#e0cda9'),       // 砂浜
+    grass: new THREE.Color('#2e7d32'),      // 草原（濃）
+    grassLight: new THREE.Color('#4abc52'), // 草原（淡）
+    rock: new THREE.Color('#333333'),       // 火山岩（黒）
+    lava: new THREE.Color('#ff4500')        // 溶岩
+};
+
+// ==========================================
+// 5. 大量のブロックを配置（メイン処理）
+// ==========================================
+const size = 50; // マップの広さ
+const geometries = createLegoGeometry();
+
+// プラスチックっぽいツヤのあるマテリアル
+const brickMaterial = new THREE.MeshStandardMaterial({ roughness: 0.15, metalness: 0.05 });
+const lavaMaterial = new THREE.MeshStandardMaterial({ roughness: 0.2, emissive: '#ff3d00', emissiveIntensity: 1.5 });
+
+// 高速化のためのインスタンス化メッシュ
+const meshMain = new THREE.InstancedMesh(geometries.body, brickMaterial, 40000);
+const meshStud = new THREE.InstancedMesh(geometries.stud, brickMaterial, 40000);
+const meshLavaMain = new THREE.InstancedMesh(geometries.body, lavaMaterial, 5000);
+const meshLavaStud = new THREE.InstancedMesh(geometries.stud, lavaMaterial, 5000);
+
+meshMain.castShadow = true; meshMain.receiveShadow = true;
+meshStud.castShadow = true; meshLavaMain.castShadow = true;
+
+let idx = 0; let lIdx = 0;
+const dummy = new THREE.Object3D();
+
+for (let x = -size/2; x < size/2; x++) {
+    for (let z = -size/2; z < size/2; z++) {
+        // ノイズで高低差を決める
+        let h = Math.floor(noise2D(x * 0.05, z * 0.05) * 10 + noise2D(x * 0.15, z * 0.15) * 3);
+        
+        let color = PALETTE.grass;
+        let isLava = false;
+
+        // 火山エリアの判定（マップの片側を黒い岩と溶岩にする）
+        let volcano = noise2D(x * 0.05 + 2, z * 0.05 + 2) + (x / size);
+        if (volcano > 0.3) {
+            color = PALETTE.rock;
+            h += Math.floor(volcano * 4);
+            // 溶岩の池を作る
+            if (noise2D(x * 0.2, z * 0.2) > 0.1 && h > 1) {
+                isLava = true;
+                color = PALETTE.lava;
+            }
+        } else {
+            // 通常エリアのバイオーム分け
+            if (h < -2) { h = -2; color = PALETTE.water; }
+            else if (h <= -1) { color = PALETTE.sand; }
+            else if (h > 3) { color = PALETTE.grassLight; }
+        }
+
+        // 下から上までブロックを積み上げる
+        for (let y = -5; y <= h; y++) {
+            dummy.position.set(x, y, z);
+            dummy.updateMatrix();
+            let isTop = (y === h); // 一番上のブロックだけに突起をつける
+
+            if (isLava) {
+                meshLavaMain.setMatrixAt(lIdx, dummy.matrix);
+                meshLavaMain.setColorAt(lIdx, color);
+                if (isTop) { meshLavaStud.setMatrixAt(lIdx, dummy.matrix); meshLavaStud.setColorAt(lIdx, color); }
+                lIdx++;
+            } else {
+                meshMain.setMatrixAt(idx, dummy.matrix);
+                meshMain.setColorAt(idx, color);
+                if (isTop) { meshStud.setMatrixAt(idx, dummy.matrix); meshStud.setColorAt(idx, color); }
+                idx++;
+            }
+        }
+    }
+}
+
+meshMain.count = idx; meshStud.count = idx;
+meshLavaMain.count = lIdx; meshLavaStud.count = lIdx;
+
+scene.add(meshMain, meshStud, meshLavaMain, meshLavaStud);
+document.getElementById('loading').style.opacity = 0; // ローディングを消す
+
+// ==========================================
+// 6. アニメーションループ（描画）
+// ==========================================
+const clock = new THREE.Clock();
+function animate() {
+    requestAnimationFrame(animate);
+    // 溶岩をウネウネと怪しく光らせる演出
+    lavaMaterial.emissiveIntensity = 1.2 + Math.sin(clock.getElapsedTime() * 3) * 0.4;
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+// 画面サイズが変わったときの調整
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
