@@ -32,7 +32,7 @@
         }
         textarea {
             width: 100%;
-            height: 200px;
+            height: 250px;
             padding: 10px;
             box-sizing: border-box;
             border: 1px solid #ccc;
@@ -41,10 +41,9 @@
             font-size: 14px;
             resize: vertical;
         }
-        /* 差分表示エリアのスタイル */
         .result-view {
             width: 100%;
-            min-height: 200px;
+            min-height: 250px;
             padding: 10px;
             box-sizing: border-box;
             border: 1px solid #ddd;
@@ -52,19 +51,26 @@
             background-color: #fff;
             font-family: monospace;
             font-size: 14px;
-            white-space: pre-wrap; /* 改行やスペースを維持 */
+            white-space: pre-wrap;
             word-break: break-all;
         }
-        /* WinMerge風の背景色 */
-        del {
+        /* 行単位で綺麗に色を載せるスタイル */
+        .del-line {
             background-color: #f8d7da; /* 薄い赤 */
             color: #721c24;
-            text-decoration: none;
+            display: block;
+            width: 100%;
         }
-        ins {
+        .ins-line {
             background-color: #d4edda; /* 薄い緑 */
             color: #155724;
-            text-decoration: none;
+            display: block;
+            width: 100%;
+        }
+        .normal-line {
+            display: block;
+            width: 100%;
+            color: #333;
         }
         .btn-container {
             text-align: center;
@@ -123,39 +129,52 @@
             const text2 = document.getElementById('text-right').value;
 
             const dmp = new diff_match_patch();
-            // 差分データを取得
-            const diffs = dmp.diff_main(text1, text2);
-            // 視認性を良くするため、必要に応じてクリーンアップ
-            dmp.diff_cleanupSemantic(diffs);
+            
+            // 【重要】行単位の比較を行うための前処理
+            const a = dmp.diff_linesToChars_(text1, text2);
+            const lineText1 = a.chars1;
+            const lineText2 = a.chars2;
+            const lineArray = a.lineArray;
+
+            // 行単位に置き換えたデータで差分を計算
+            const diffs = dmp.diff_main(lineText1, lineText2, false);
+            
+            // 文字から元の行データに復元
+            dmp.diff_charsToLines_(diffs, lineArray);
 
             let htmlLeft = '';
             let htmlRight = '';
 
-            // 差分結果をループ処理してHTMLを生成
-            // diff[0] -> 0: 変更なし, -1: 削除(左のみ), 1: 追加(右のみ)
-            // diff[1] -> 対象の文字列
             diffs.forEach((diff) => {
                 const operation = diff[0];
-                const text = escapeHtml(diff[1]);
-
-                if (operation === 0) {
-                    // 共通部分
-                    htmlLeft += text;
-                    htmlRight += text;
-                } else if (operation === -1) {
-                    // 削除された部分（左側のみ赤背景）
-                    htmlLeft += `<del>${text}</del>`;
-                } else if (operation === 1) {
-                    // 追加された部分（右側のみ緑背景）
-                    htmlRight += `<ins>${text}</ins>`;
+                const lines = diff[1].split('\n');
+                
+                // 末尾の空行を処理するための調整
+                if (lines[lines.length - 1] === '') {
+                    lines.pop();
                 }
+
+                lines.forEach((line) => {
+                    const escapedLine = escapeHtml(line);
+                    
+                    if (operation === 0) {
+                        // 共通の行
+                        htmlLeft += `<span class="normal-line">${escapedLine}</span>\n`;
+                        htmlRight += `<span class="normal-line">${escapedLine}</span>\n`;
+                    } else if (operation === -1) {
+                        // 削除された行（左側のみ表示）
+                        htmlLeft += `<span class="del-line">${escapedLine}</span>\n`;
+                    } else if (operation === 1) {
+                        // 追加された行（右側のみ表示）
+                        htmlRight += `<span class="ins-line">${escapedLine}</span>\n`;
+                    }
+                });
             });
 
             document.getElementById('result-left').innerHTML = htmlLeft;
             document.getElementById('result-right').innerHTML = htmlRight;
         }
 
-        // HTMLタグのサニタイズ（XSS・表示崩れ防止）
         function escapeHtml(str) {
             return str
                 .replace(/&/g, "&amp;")
