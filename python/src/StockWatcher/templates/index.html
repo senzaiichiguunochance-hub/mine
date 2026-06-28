@@ -39,7 +39,7 @@
                 <th>上昇通知</th>
                 <th>下落通知</th>
                 <th>メモ</th>
-                <th>削除</th>
+                <th>操作</th>
             </tr>
             {% for stock in stocks %}
             <tr>
@@ -65,6 +65,7 @@
                 <td>{{ stock.notify_minus }}%</td>
                 <td>{{ stock.memo }}</td>
                 <td>
+                    <a href="/sell/{{ loop.index0 }}" style="margin-right: 8px;">売却</a>
                     <a href="/delete/stocks/{{ loop.index0 }}">削除</a>
                 </td>
             </tr>

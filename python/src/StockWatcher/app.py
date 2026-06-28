@@ -64,8 +64,10 @@ def load_json(file_path):
         return json.load(f)
 
 def save_json(file_path, data):
+    # 保存前にcode順でソート（文字列として比較）
+    sorted_data = sorted(data, key=lambda x: str(x.get("code", "")))
     with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+        json.dump(sorted_data, f, ensure_ascii=False, indent=4)
 
 
 # --------------------------
@@ -301,8 +303,6 @@ def index():
 
 @app.route("/add", methods=["POST"])
 def add_stock():
-    # フォームの「状態（target_json）」等で追加先を振り分ける想定
-    # デフォルトは従来のstocks.json
     target = request.form.get("target_json", "stocks")
     file_path = PAST_JSON_FILE if target == "past" else STOCKS_JSON_FILE
     
@@ -317,8 +317,27 @@ def add_stock():
         "memo": request.form["memo"]
     })
 
+    # save_jsonの内部で自動的にソートされます
     save_json(file_path, stocks)
     logging.info(f"{target}に追加:{request.form['code']}")
+    return redirect("/")
+
+
+@app.route("/sell/<int:index>")
+def sell_stock(index):
+    stocks = load_json(STOCKS_JSON_FILE)
+    past_stocks = load_json(PAST_JSON_FILE)
+
+    if 0 <= index < len(stocks):
+        # 現在保有からポップして過去保有へ追加
+        sold_stock = stocks.pop(index)
+        past_stocks.append(sold_stock)
+
+        # 両方のファイルをソートして保存
+        save_json(STOCKS_JSON_FILE, stocks)
+        save_json(PAST_JSON_FILE, past_stocks)
+        logging.info(f"売却(過去保有へ移動):{sold_stock['code']}")
+
     return redirect("/")
 
 
