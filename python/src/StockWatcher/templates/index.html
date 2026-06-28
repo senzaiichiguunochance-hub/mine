@@ -2,13 +2,9 @@
 <html lang="ja">
 
 <head>
-
-<meta charset="UTF-8">
-
-<title>Stock Watcher</title>
-
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
+    <meta charset="UTF-8">
+    <title>Stock Watcher</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
@@ -16,325 +12,177 @@
 <div class="app-container">
 
     <div class="card header-area">
-
         <h1>Stock Watcher</h1>
-
         <div class="toolbar">
-
             <form action="/backup" method="post">
-                <button type="submit">
-                    JSONバックアップ
-                </button>
+                <button type="submit">JSONバックアップ</button>
             </form>
-
             <form action="/generate_ai_prompt" method="post">
-                <button type="submit">
-                    AI相談ファイル生成
-                </button>
+                <button type="submit">AI相談ファイル生成</button>
             </form>
-
         </div>
-
-    </div>
-
-    <div class="radio-area">
-
-        <label>
-            <input
-                type="radio"
-                name="view_mode"
-                {% if mode == 'detail' %}
-                checked
-                {% endif %}
-                onchange="location.href='/?mode=detail'">
-            詳細表示
-        </label>
-
-        <label>
-            <input
-                type="radio"
-                name="view_mode"
-                {% if mode == 'summary' %}
-                checked
-                {% endif %}
-                onchange="location.href='/?mode=summary'">
-            銘柄まとめ表示
-        </label>
-
     </div>
 
     <div class="card table-container">
-
-        {% if mode == 'detail' %}
-
+        <h2>現在保有中の銘柄</h2>
+        {% if stocks %}
         <table>
-
-        <tr>
-            <th>No</th>
-            <th>銘柄</th>
-            <th>コード</th>
-            <th>購入日</th>
-            <th>保有日数</th>
-            <th>平均取得価格</th>
-            <th>現在価格</th>
-            <th>損益率</th>
-            <th>上昇通知</th>
-            <th>下落通知</th>
-            <th>メモ</th>
-            <th>削除</th>
-        </tr>
-
-        {% for stock in stocks %}
-
-        <tr>
-
-            <td>{{ loop.index0 }}</td>
-
-            <td>{{ stock.name }}</td>
-
-            <td>{{ stock.code }}</td>
-
-            <td>{{ stock.buy_date }}</td>
-
-            <td>{{ stock.holding_days }}日</td>
-
-            <td>{{ stock.avg_buy_price }}</td>
-
-            <td>
-
-                {% if stock.current_price %}
-
-                    {{ stock.current_price }}
-
-                {% else %}
-
-                    取得失敗
-
-                {% endif %}
-
-            </td>
-
-            <td>
-
-                {% if stock.profit_rate is not none %}
-
-                    {% if stock.profit_rate >= 0 %}
-
-                        <span class="plus">
-                            {{ stock.profit_rate }}%
-                        </span>
-
-                    {% else %}
-
-                        <span class="minus">
-                            {{ stock.profit_rate }}%
-                        </span>
-
+            <tr>
+                <th>No</th>
+                <th>銘柄</th>
+                <th>コード</th>
+                <th>購入日</th>
+                <th>保有日数</th>
+                <th>平均取得価格</th>
+                <th>現在価格</th>
+                <th>損益率</th>
+                <th>上昇通知</th>
+                <th>下落通知</th>
+                <th>メモ</th>
+                <th>削除</th>
+            </tr>
+            {% for stock in stocks %}
+            <tr>
+                <td>{{ loop.index0 }}</td>
+                <td>{{ stock.name }}</td>
+                <td>{{ stock.code }}</td>
+                <td>{{ stock.buy_date }}</td>
+                <td>{{ stock.holding_days }}日</td>
+                <td>{{ stock.avg_buy_price }}</td>
+                <td>
+                    {% if stock.current_price %}{{ stock.current_price }}{% else %}取得失敗{% endif %}
+                </td>
+                <td>
+                    {% if stock.profit_rate is not none %}
+                        {% if stock.profit_rate >= 0 %}
+                            <span class="plus">{{ stock.profit_rate }}%</span>
+                        {% else %}
+                            <span class="minus">{{ stock.profit_rate }}%</span>
+                        {% endif %}
                     {% endif %}
-
-                {% endif %}
-
-            </td>
-
-            <td>
-                {{ stock.notify_plus }}%
-            </td>
-
-            <td>
-                {{ stock.notify_minus }}%
-            </td>
-
-            <td>
-                {{ stock.memo }}
-            </td>
-
-            <td>
-
-                <a href="/delete/{{ loop.index0 }}">
-                    削除
-                </a>
-
-            </td>
-
-        </tr>
-
-        {% endfor %}
-
+                </td>
+                <td>{{ stock.notify_plus }}%</td>
+                <td>{{ stock.notify_minus }}%</td>
+                <td>{{ stock.memo }}</td>
+                <td>
+                    <a href="/delete/stocks/{{ loop.index0 }}">削除</a>
+                </td>
+            </tr>
+            {% endfor %}
         </table>
-
         {% else %}
-
-        <table>
-
-        <tr>
-            <th>銘柄</th>
-            <th>コード</th>
-            <th>登録件数</th>
-            <th>平均取得価格</th>
-            <th>現在価格</th>
-            <th>平均損益率</th>
-        </tr>
-
-        {% for stock in stocks %}
-
-        <tr>
-
-            <td>
-                {{ stock.name }}
-            </td>
-
-            <td>
-                {{ stock.code }}
-            </td>
-
-            <td>
-                {{ stock.count }}
-            </td>
-
-            <td>
-                {{ stock.avg_buy_price }}
-            </td>
-
-            <td>
-
-                {% if stock.current_price %}
-
-                    {{ stock.current_price }}
-
-                {% else %}
-
-                    取得失敗
-
-                {% endif %}
-
-            </td>
-
-            <td>
-
-                {% if stock.profit_rate >= 0 %}
-
-                    <span class="plus">
-                        {{ stock.profit_rate }}%
-                    </span>
-
-                {% else %}
-
-                    <span class="minus">
-                        {{ stock.profit_rate }}%
-                    </span>
-
-                {% endif %}
-
-            </td>
-
-        </tr>
-
-        {% endfor %}
-
-        </table>
-
+            <p>現在保有中の銘柄はありません。</p>
         {% endif %}
+    </div>
 
+    <div class="card table-container" style="margin-top: 20px;">
+        <h2>過去に保有していた銘柄</h2>
+        {% if past_stocks %}
+        <table>
+            <tr>
+                <th>No</th>
+                <th>銘柄</th>
+                <th>コード</th>
+                <th>購入日</th>
+                <th>保有日数</th>
+                <th>平均取得価格</th>
+                <th>現在価格</th>
+                <th>損益率</th>
+                <th>上昇通知</th>
+                <th>下落通知</th>
+                <th>メモ</th>
+                <th>削除</th>
+            </tr>
+            {% for stock in past_stocks %}
+            <tr>
+                <td>{{ loop.index0 }}</td>
+                <td>{{ stock.name }}</td>
+                <td>{{ stock.code }}</td>
+                <td>{{ stock.buy_date }}</td>
+                <td>{{ stock.holding_days }}日</td>
+                <td>{{ stock.avg_buy_price }}</td>
+                <td>
+                    {% if stock.current_price %}{{ stock.current_price }}{% else %}取得失敗{% endif %}
+                </td>
+                <td>
+                    {% if stock.profit_rate is not none %}
+                        {% if stock.profit_rate >= 0 %}
+                            <span class="plus">{{ stock.profit_rate }}%</span>
+                        {% else %}
+                            <span class="minus">{{ stock.profit_rate }}%</span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+                <td>{{ stock.notify_plus }}%</td>
+                <td>{{ stock.notify_minus }}%</td>
+                <td>{{ stock.memo }}</td>
+                <td>
+                    <a href="/delete/past/{{ loop.index0 }}">削除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+            <p>過去保有の銘柄はありません。</p>
+        {% endif %}
     </div>
 
     <div class="card form-area">
-
         <h2>銘柄追加</h2>
-
         <form action="/add" method="post">
 
             <div class="form-row">
+                登録先
+                <label style="margin-right: 15px;">
+                    <input type="radio" name="target_json" value="stocks" checked> 現在保有
+                </label>
+                <label>
+                    <input type="radio" name="target_json" value="past"> 過去保有
+                </label>
+            </div>
 
+            <div class="form-row">
                 銘柄コード
-
-                <input
-                    type="text"
-                    name="code"
-                    placeholder="1605"
-                    required>
-
+                <input type="text" name="code" placeholder="1605" required>
             </div>
 
             <div class="form-row">
-
                 銘柄名
-
-                <input
-                    type="text"
-                    name="name"
-                    placeholder="INPEX"
-                    required>
-
+                <input type="text" name="name" placeholder="INPEX" required>
             </div>
 
             <div class="form-row">
-
                 購入日
-
-                <input
-                    type="date"
-                    name="buy_date"
-                    required>
-
+                <input type="date" name="buy_date" required>
             </div>
 
             <div class="form-row">
-
                 平均取得価格
-
-                <input
-                    type="number"
-                    step="0.01"
-                    name="avg_buy_price"
-                    required>
-
+                <input type="number" step="0.01" name="avg_buy_price" required>
             </div>
 
             <div class="form-row">
-
                 上昇通知(%)
-
-                <input
-                    type="number"
-                    name="notify_plus"
-                    value="10"
-                    required>
-
+                <input type="number" name="notify_plus" value="10" required>
             </div>
 
             <div class="form-row">
-
                 下落通知(%)
-
-                <input
-                    type="number"
-                    name="notify_minus"
-                    value="10"
-                    required>
-
+                <input type="number" name="notify_minus" value="10" required>
             </div>
 
             <div class="form-row">
-
                 メモ
-
-                <textarea
-                    name="memo"></textarea>
-
+                <textarea name="memo"></textarea>
             </div>
 
             <div class="form-submit-container">
-                <button type="submit">
-                    登録
-                </button>
+                <button type="submit">登録</button>
             </div>
-
         </form>
-
     </div>
 
 </div>
 
 </body>
-
 </html>
