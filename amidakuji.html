@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本格アニメーションあみだくじ</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            padding: 40px 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 30px;
+            color: #0f172a;
+            font-weight: 800;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+            border: 1px solid var(--border);
+        }
+
+        .config-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #475569;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            max-width: 150px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .input-pair {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .input-pair-title {
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .input-pair input {
+            width: 100%;
+            padding: 8px;
+            margin: 4px 0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+
+        .legend-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            padding: 4px 10px;
+            background: #f8fafc;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .legend-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        #view-card {
+            display: none;
+            align-items: center;
+            flex-direction: column;
+            scroll-margin-top: 20px;
+        }
+
+        .canvas-wrapper {
+            overflow-x: auto;
+            max-width: 100%;
+            width: 100%;
+            padding: 10px 0;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>HTMLあみだくじ</h1>
+
+        <div class="card">
+            <div class="config-row">
+                <div class="form-group">
+                    <label for="line-count">縦線の本数 (2〜7):</label>
+                    <input type="number" id="line-count" min="2" max="7" value="5">
+                </div>
+                <div class="form-group">
+                    <label for="user-count">ユーザー数:</label>
+                    <input type="number" id="user-count" min="1" max="5" value="3">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>各ラインの設定（上：ユーザー名 / 下：ゴール結果）</label>
+                <div id="dynamic-inputs" class="inputs-grid"></div>
+            </div>
+
+            <div class="form-group">
+                <label>ユーザーのシンボル（凡例）</label>
+                <div id="legend-area" class="legend-container"></div>
+            </div>
+
+            <div class="actions">
+                <button id="start-btn" onclick="initAndStartAmida()">あみだくじをスタート！</button>
+            </div>
+        </div>
+
+        <div class="card" id="view-card">
+            <div class="canvas-wrapper">
+                <canvas id="amidaCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const storageKey = 'amida_connected_7lines_config';
+        
+        const userStyles = [
+            { color: '#ef4444', symbol: '★' },
+            { color: '#3b82f6', symbol: '●' },
+            { color: '#10b981', symbol: '◆' },
+            { color: '#f59e0b', symbol: '▲' },
+            { color: '#8b5cf6', symbol: '■' },
+            { color: '#ec4899', symbol: '♥' },
+            { color: '#14b8a6', symbol: '♣' }
+        ];
+
+        let amidaData = {
+            linesCount: 0,
+            userCount: 0,
+            horizontalLines: [],
+            starts: [],
+            ends: []
+        };
+
+        let usersProgress = []; 
+        let animationId = null;
+
+        const paddingX = 90;
+        const paddingY = 80;
+        const stepX = 120;
+        const amidaHeight = 450; 
+        
+        const totalLevels = 30; 
+        const stepY = amidaHeight / (totalLevels + 1);
+
+        window.onload = function() {
+            loadConfig();
+            document.getElementById('line-count').addEventListener('input', handleLineCountChange);
+            document.getElementById('user-count').addEventListener('input', handleUserCountChange);
+        };
+
+        function handleLineCountChange() {
+            let lineCount = parseInt(document.getElementById('line-count').value) || 2;
+            if (lineCount < 2) lineCount = 2;
+            if (lineCount > 7) lineCount = 7; // 最大7本に制限
+            document.getElementById('line-count').value = lineCount;
+
+            const userCountInput = document.getElementById('user-count');
+            userCountInput.max = lineCount;
+            if (parseInt(userCountInput.value) > lineCount) {
+                userCountInput.value = lineCount;
+            }
+            
+            updateInputs();
+        }
+
+        function handleUserCountChange() {
+            let lineCount = parseInt(document.getElementById('line-count').value) || 2;
+            let userCount = parseInt(document.getElementById('user-count').value) || 1;
+            
+            if (userCount < 1) userCount = 1;
+            if (userCount > lineCount) userCount = lineCount;
+            document.getElementById('user-count').value = userCount;
+
+            updateInputs();
+        }
+
+        function updateInputs() {
+            const lineCount = parseInt(document.getElementById('line-count').value) || 2;
+            const userCount = parseInt(document.getElementById('user-count').value) || 1;
+            
+            const container = document.getElementById('dynamic-inputs');
+            const legendArea = document.getElementById('legend-area');
+            
+            const currentStarts = Array.from(container.querySelectorAll('.start-input')).map(i => i.value);
+            const currentEnds = Array.from(container.querySelectorAll('.end-input')).map(i => i.value);
+
+            container.innerHTML = '';
+            legendArea.innerHTML = '';
+
+            for (let i = 0; i < lineCount; i++) {
+                const isUserActive = i < userCount;
+                const startVal = currentStarts[i] !== undefined ? currentStarts[i] : (isUserActive ? `プレイヤー${i + 1}` : '');
+                const endVal = currentEnds[i] !== undefined ? currentEnds[i] : `報酬${i + 1}`;
+                const style = userStyles[i % userStyles.length];
+
+                container.innerHTML += `
+                    <div class="input-pair" style="${!isUserActive ? 'opacity: 0.65;' : ''}">
+                        <div class="input-pair-title" style="color: ${isUserActive ? style.color : '#94a3b8'}">
+                            ライン ${i+1} ${isUserActive ? `(${style.symbol})` : '(ユーザーなし)'}
+                        </div>
+                        <input type="text" class="start-input" oninput="saveConfig()" value="${startVal}" ${!isUserActive ? 'disabled style="background:#e2e8f0; color:#94a3b8;" placeholder="空欄"' : 'placeholder="プレイヤー名"'}>
+                        <input type="text" class="end-input" oninput="saveConfig()" value="${endVal}" placeholder="ゴール結果">
+                    </div>
+                `;
+
+                if (isUserActive) {
+                    legendArea.innerHTML += `
+                        <div class="legend-item">
+                            <div class="legend-badge" style="background-color: ${style.color}">${style.symbol}</div>
+                            <span>${startVal || '未入力'}</span>
+                        </div>
+                    `;
+                }
+            }
+            saveConfig();
+        }
+
+        function saveConfig() {
+            const lineCount = document.getElementById('line-count').value;
+            const userCount = document.getElementById('user-count').value;
+            const starts = Array.from(document.querySelectorAll('.start-input')).map(i => i.value);
+            const ends = Array.from(document.querySelectorAll('.end-input')).map(i => i.value);
+            
+            localStorage.setItem(storageKey, JSON.stringify({ lineCount, userCount, starts, ends }));
+
+            const legendItems = document.querySelectorAll('.legend-item span');
+            let legendIdx = 0;
+            starts.forEach((val, i) => {
+                if (i < parseInt(userCount)) {
+                    if(legendItems[legendIdx]) legendItems[legendIdx].innerText = val || '未入力';
+                    legendIdx++;
+                }
+            });
+        }
+
+        function loadConfig() {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    document.getElementById('line-count').value = data.lineCount;
+                    document.getElementById('user-count').value = data.userCount;
+                    document.getElementById('user-count').max = data.lineCount;
+                    
+                    updateInputs();
+                    
+                    const startInputs = document.querySelectorAll('.start-input');
+                    const endInputs = document.querySelectorAll('.end-input');
+                    data.starts.forEach((val, i) => { if(startInputs[i]) startInputs[i].value = val; });
+                    data.ends.forEach((val, i) => { if(endInputs[i]) endInputs[i].value = val; });
+                    
+                    updateInputs();
+                    return;
+                } catch(e) { console.error(e); }
+            }
+            updateInputs();
+        }
+
+        function initAndStartAmida() {
+            if (animationId) cancelAnimationFrame(animationId);
+            saveConfig();
+
+            const lineCount = parseInt(document.getElementById('line-count').value);
+            const userCount = parseInt(document.getElementById('user-count').value);
+            
+            amidaData.linesCount = lineCount;
+            amidaData.userCount = userCount;
+            amidaData.starts = Array.from(document.querySelectorAll('.start-input')).map(i => i.value);
+            amidaData.ends = Array.from(document.querySelectorAll('.end-input')).map(i => i.value);
+            
+            // 【分断絶対阻止ロジック】
+            let generatedSuccessfully = false;
+            let attempts = 0;
+
+            while (!generatedSuccessfully && attempts < 200) {
+                attempts++;
+                amidaData.horizontalLines = [];
+                
+                let connectionCounts = new Array(lineCount).fill(0);
+                // 各「隙間」に何本の線が引かれたかをカウントする配列 (長さは lineCount - 1)
+                let gapCounts = new Array(lineCount - 1).fill(0);
+
+                for (let l = 1; l <= totalLevels; l++) {
+                    if (Math.random() > 0.3) {
+                        const targetGap = Math.floor(Math.random() * (lineCount - 1));
+                        amidaData.horizontalLines.push({ level: l, fromIdx: targetGap });
+                        
+                        connectionCounts[targetGap]++;
+                        connectionCounts[targetGap + 1]++;
+                        gapCounts[targetGap]++;
+                    }
+                }
+
+                // 条件1: 全ての縦線に5本以上接続されているか
+                const isEveryLineValid = connectionCounts.every(count => count >= 5);
+                // 条件2: 全ての「隙間」に最低2本以上の横線があるか（＝分断が起きない）
+                const isEveryGapValid = gapCounts.every(count => count >= 2);
+
+                if (isEveryLineValid && isEveryGapValid) {
+                    generatedSuccessfully = true;
+                }
+            }
+
+            // 万が一のセーフティ（条件を満たさなかった隙間に、空いている段を狙って強制補充）
+            if (!generatedSuccessfully) {
+                let gapCounts = new Array(lineCount - 1).fill(0);
+                amidaData.horizontalLines.forEach(line => {
+                    gapCounts[line.fromIdx]++;
+                });
+
+                for (let g = 0; g < lineCount - 1; g++) {
+                    let levelOffset = 1;
+                    while (gapCounts[g] < 2 && levelOffset <= totalLevels) {
+                        const isLevelEmpty = !amidaData.horizontalLines.some(line => line.level === levelOffset);
+                        if (isLevelEmpty) {
+                            amidaData.horizontalLines.push({ level: levelOffset, fromIdx: g });
+                            gapCounts[g]++;
+                        }
+                        levelOffset++;
+                    }
+                }
+                amidaData.horizontalLines.sort((a, b) => a.level - b.level);
+            }
+
+            // プレイヤー初期化
+            usersProgress = [];
+            for (let i = 0; i < userCount; i++) {
+                usersProgress.push({
+                    currentLine: i,      
+                    targetLine: i,       
+                    y: paddingY,         
+                    moveType: 'down',    
+                    sideProgress: 0,     
+                    style: userStyles[i % userStyles.length],
+                    isFinished: false
+                });
+            }
+
+            const viewCard = document.getElementById('view-card');
+            viewCard.style.display = 'flex';
+            document.getElementById('start-btn').disabled = true;
+
+            viewCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            animate();
+        }
+
+        function animate() {
+            updatePhysics();
+            drawAmida();
+
+            if (!usersProgress.every(u => u.isFinished)) {
+                animationId = requestAnimationFrame(animate);
+            } else {
+                document.getElementById('start-btn').disabled = false;
+            }
+        }
+
+        function updatePhysics() {
+            const speedY = 2.5; 
+            const speedX = 0.08; 
+
+            usersProgress.forEach(user => {
+                if (user.isFinished) return;
+
+                if (user.moveType === 'down') {
+                    const nextY = user.y + speedY;
+                    let hitBridge = null;
+                    
+                    for (let line of amidaData.horizontalLines) {
+                        const bridgeY = paddingY + line.level * stepY;
+                        if (line.fromIdx === user.currentLine || line.fromIdx + 1 === user.currentLine) {
+                            if (user.y < bridgeY && nextY >= bridgeY) {
+                                hitBridge = line;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (hitBridge) {
+                        user.y = paddingY + hitBridge.level * stepY;
+                        user.moveType = 'side';
+                        user.sideProgress = 0;
+                        user.targetLine = (hitBridge.fromIdx === user.currentLine) ? user.currentLine + 1 : user.currentLine - 1;
+                    } else {
+                        user.y = nextY;
+                        if (user.y >= paddingY + amidaHeight) {
+                            user.y = paddingY + amidaHeight;
+                            user.isFinished = true;
+                        }
+                    }
+                } 
+                else if (user.moveType === 'side') {
+                    user.sideProgress += speedX;
+                    if (user.sideProgress >= 1) {
+                        user.sideProgress = 1;
+                        user.currentLine = user.targetLine;
+                        user.moveType = 'down';
+                    }
+                }
+            });
+        }
+
+        function drawAmida() {
+            const canvas = document.getElementById('amidaCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = (amidaData.linesCount - 1) * stepX + paddingX * 2;
+            canvas.height = amidaHeight + paddingY * 2;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = '#cbd5e1';
+
+            // 縦線
+            for (let i = 0; i < amidaData.linesCount; i++) {
+                const x = paddingX + i * stepX;
+                ctx.beginPath();
+                ctx.moveTo(x, paddingY);
+                ctx.lineTo(x, paddingY + amidaHeight);
+                ctx.stroke();
+
+                ctx.font = "bold 14px sans-serif";
+                ctx.textAlign = "center";
+                
+                ctx.fillStyle = '#1e293b';
+                if (i < amidaData.userCount) {
+                    ctx.fillText(amidaData.starts[i] || '', x, paddingY - 25);
+                } else {
+                    ctx.font = "italic 12px sans-serif";
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillText('(なし)', x, paddingY - 25);
+                }
+                
+                ctx.font = "bold 14px sans-serif";
+                ctx.fillStyle = '#475569';
+                ctx.fillText(amidaData.ends[i] || '', x, paddingY + amidaHeight + 30);
+            }
+
+            // 横線
+            amidaData.horizontalLines.forEach(line => {
+                const xStart = paddingX + line.fromIdx * stepX;
+                const xEnd = paddingX + (line.fromIdx + 1) * stepX;
+                const y = paddingY + line.level * stepY;
+                ctx.beginPath();
+                ctx.moveTo(xStart, y);
+                ctx.lineTo(xEnd, y);
+                ctx.stroke();
+            });
+
+            // ユーザーキャラの描画
+            usersProgress.forEach(user => {
+                let currentX;
+                if (user.moveType === 'down') {
+                    currentX = paddingX + user.currentLine * stepX;
+                } else {
+                    const startX = paddingX + user.currentLine * stepX;
+                    const endX = paddingX + user.targetLine * stepX;
+                    currentX = startX + (endX - startX) * user.sideProgress;
+                }
+
+                ctx.beginPath();
+                ctx.arc(currentX, user.y, 16, 0, Math.PI * 2);
+                ctx.fillStyle = user.style.color + '33';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(currentX, user.y, 12, 0, Math.PI * 2);
+                ctx.fillStyle = user.style.color;
+                ctx.fill();
+
+                ctx.font = "12px Arial";
+                ctx.fillStyle = "#ffffff";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(user.style.symbol, currentX, user.y);
+            });
+        }
+    </script>
+</body>
+</html>
