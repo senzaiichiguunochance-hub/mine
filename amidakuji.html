@@ -3,229 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>本格アニメーションあみだくじ</title>
+    <title>本格アニメーションあみだくじ - Drum Theme</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Noto+Serif+JP:wght@500;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        :root {
-            --primary: #4f46e5;
-            --primary-hover: #4338ca;
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
-            --text-main: #1e293b;
-            --border: #e2e8f0;
+        .font-elegant { font-family: 'Cormorant Garamond', 'Noto Serif JP', serif; }
+        
+        @keyframes pop-in { 
+            0% { transform: scale(0.6) translateY(5px); opacity: 0; } 
+            100% { transform: scale(1) translateY(0); opacity: 1; } 
         }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
-            padding: 40px 20px;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 30px;
-            color: #0f172a;
-            font-weight: 800;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .card {
-            background: var(--bg-card);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-            border: 1px solid var(--border);
-        }
-
-        .config-row {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            flex: 1;
-            min-width: 150px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #475569;
-        }
-
-        input[type="number"] {
-            width: 100%;
-            max-width: 150px;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 1rem;
-            box-sizing: border-box;
-        }
-
-        .inputs-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 16px;
-            margin-top: 12px;
-        }
-
-        .input-pair {
-            background: #f1f5f9;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-
-        .input-pair-title {
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-
-        .input-pair input {
-            width: 100%;
-            padding: 8px;
-            margin: 4px 0;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 0.9rem;
-        }
-
-        button {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        button:hover { background-color: var(--primary-hover); }
-        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
-
-        .legend-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed var(--border);
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.85rem;
-            padding: 4px 10px;
-            background: #f8fafc;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-        }
-
-        .legend-badge {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        #view-card {
-            display: none;
-            align-items: center;
-            flex-direction: column;
-            scroll-margin-top: 20px;
-        }
-
-        .canvas-wrapper {
-            overflow-x: auto;
-            max-width: 100%;
-            width: 100%;
-            padding: 10px 0;
-        }
-
-        canvas {
-            display: block;
-            margin: 0 auto;
-            background-color: #ffffff;
-        }
+        .history-badge { animation: pop-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
-<body>
+<body class="bg-gradient-to-br from-zinc-50 via-stone-100 to-zinc-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative select-none p-4 md:p-8">
 
-    <div class="container">
-        <h1>HTMLあみだくじ</h1>
+    <a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 11px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 9999px; z-index: 1000; border: 1px solid #e4e4e7; font-weight: 500; letter-spacing: 0.05em; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">メニューに戻る</a>
 
-        <div class="card">
-            <div class="config-row">
-                <div class="form-group">
-                    <label for="line-count">縦線の本数 (2〜7):</label>
-                    <input type="number" id="line-count" min="2" max="7" value="5">
+    <div class="text-center p-4 md:p-8 bg-white/90 backdrop-blur-md rounded-3xl shadow-[0_20px_40px_rgba(165,165,150,0.15)] border border-stone-200/60 max-w-4xl w-full flex flex-col gap-6">
+        
+        <div>
+            <h1 class="text-2xl md:text-3xl font-elegant font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-purple-400 to-amber-500 tracking-widest">
+                HTMLあみだくじ
+            </h1>
+            <p class="text-[10px] md:text-[11px] text-stone-400 tracking-wide font-medium">美しい色彩が織りなす、あなただけの運命のラインセッション。</p>
+        </div>
+
+        <div class="bg-stone-50/60 p-4 md:p-5 rounded-2xl border border-stone-200/60 text-left flex flex-col gap-4">
+            <div class="flex flex-wrap gap-4">
+                <div class="flex-1 min-w-[120px]">
+                    <label for="line-count" class="block text-xs font-bold text-stone-500 mb-1.5 tracking-wide">縦線の本数 (2〜7):</label>
+                    <input type="number" id="line-count" min="2" max="7" value="5" class="w-full max-w-[120px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 focus:outline-none focus:border-rose-300 transition-colors">
                 </div>
-                <div class="form-group">
-                    <label for="user-count">ユーザー数:</label>
-                    <input type="number" id="user-count" min="1" max="5" value="3">
+                <div class="flex-1 min-w-[120px]">
+                    <label for="user-count" class="block text-xs font-bold text-stone-500 mb-1.5 tracking-wide">ユーザー数:</label>
+                    <input type="number" id="user-count" min="1" max="5" value="3" class="w-full max-w-[120px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 focus:outline-none focus:border-rose-300 transition-colors">
                 </div>
             </div>
             
-            <div class="form-group">
-                <label>各ラインの設定（上：ユーザー名 / 下：ゴール結果）</label>
-                <div id="dynamic-inputs" class="inputs-grid"></div>
+            <div class="h-px bg-stone-200/60"></div>
+
+            <div>
+                <label class="block text-xs font-bold text-stone-500 mb-2 tracking-wide">各ラインの設定（上：ユーザー名 / 下：ゴール結果）</label>
+                <div id="dynamic-inputs" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5"></div>
             </div>
 
-            <div class="form-group">
-                <label>ユーザーのシンボル（凡例）</label>
-                <div id="legend-area" class="legend-container"></div>
+            <div class="h-px bg-stone-200/60"></div>
+
+            <div>
+                <label class="block text-xs font-bold text-stone-400 mb-2 uppercase tracking-widest text-[9px]">🐾 ユーザーのシンボル（凡例）</label>
+                <div id="legend-area" class="flex flex-wrap gap-2 min-h-8 items-center"></div>
             </div>
 
-            <div class="actions">
-                <button id="start-btn" onclick="initAndStartAmida()">あみだくじをスタート！</button>
+            <div class="flex justify-center pt-2">
+                <button id="start-btn" onclick="initAndStartAmida()" class="bg-gradient-to-r from-rose-400 to-amber-400 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-bold py-3 px-8 rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 tracking-widest disabled:from-stone-300 disabled:to-stone-300 disabled:cursor-not-allowed">
+                    あみだくじをスタート！
+                </button>
             </div>
         </div>
 
-        <div class="card" id="view-card">
-            <div class="canvas-wrapper">
-                <canvas id="amidaCanvas"></canvas>
+        <div id="view-card" class="hidden flex-col items-center p-2 md:p-4 bg-white rounded-2xl border border-stone-200/60 shadow-inner overflow-hidden">
+            <div id="canvas-container" class="w-full py-2">
+                <canvas id="amidaCanvas" class="block mx-auto bg-white"></canvas>
             </div>
         </div>
     </div>
 
     <script>
-        const storageKey = 'amida_connected_7lines_config';
+        const storageKey = 'amida_drum_theme_config';
         
         const userStyles = [
-            { color: '#ef4444', symbol: '★' },
-            { color: '#3b82f6', symbol: '●' },
-            { color: '#10b981', symbol: '◆' },
-            { color: '#f59e0b', symbol: '▲' },
-            { color: '#8b5cf6', symbol: '■' },
-            { color: '#ec4899', symbol: '♥' },
-            { color: '#14b8a6', symbol: '♣' }
+            { color: '#f43f5e', bgLight: '#fff1f2', border: '#fecdd3', symbol: '★' }, 
+            { color: '#c084fc', bgLight: '#f3e8ff', border: '#e9d5ff', symbol: '●' }, 
+            { color: '#78716c', bgLight: '#f5f5f4', border: '#e7e5e4', symbol: '◆' }, 
+            { color: '#fbbf24', bgLight: '#fef3c7', border: '#fde68a', symbol: '▲' }, 
+            { color: '#2dd4bf', bgLight: '#f0fdfa', border: '#ccfbf1', symbol: '■' }, 
+            { color: '#fb7185', bgLight: '#fff1f2', border: '#ffe4e6', symbol: '♥' }, 
+            { color: '#60a5fa', bgLight: '#eff6ff', border: '#dbeafe', symbol: '♣' }
         ];
 
         let amidaData = {
@@ -239,10 +95,11 @@
         let usersProgress = []; 
         let animationId = null;
 
-        const paddingX = 90;
-        const paddingY = 80;
-        const stepX = 120;
-        const amidaHeight = 450; 
+        // 【スマホ対応】サイズ計算用の変数を動的に変更可能に
+        let paddingX = 60; 
+        let paddingY = 60;
+        let stepX = 120;
+        const amidaHeight = 400; 
         
         const totalLevels = 30; 
         const stepY = amidaHeight / (totalLevels + 1);
@@ -251,12 +108,40 @@
             loadConfig();
             document.getElementById('line-count').addEventListener('input', handleLineCountChange);
             document.getElementById('user-count').addEventListener('input', handleUserCountChange);
+            
+            // 画面サイズ変更時にもキャンバスサイズを再計算
+            window.addEventListener('resize', () => {
+                if(document.getElementById('view-card').style.display === 'flex') {
+                    resizeCanvasConfig();
+                    drawAmida();
+                }
+            });
         };
+
+        // 画面幅に応じてあみだくじの横幅を自動計算する関数
+        function resizeCanvasConfig() {
+            const containerWidth = document.getElementById('canvas-container').clientWidth;
+            
+            // 左右に確保したい最低限の合計余白
+            const desiredMargin = containerWidth < 640 ? 60 : 120; 
+            const availableWidth = containerWidth - desiredMargin;
+            
+            // 縦線の数に応じてステップ幅を決定
+            stepX = availableWidth / (amidaData.linesCount - 1);
+            
+            // あまりに広がりすぎたり縮みすぎたりしないように制限
+            if (stepX > 120) stepX = 120;
+            if (stepX < 40) stepX = 40; 
+            
+            // 実際に使用するpaddingXをセンタリングされるように逆算
+            paddingX = (containerWidth - (stepX * (amidaData.linesCount - 1))) / 2;
+            paddingY = containerWidth < 640 ? 50 : 70;
+        }
 
         function handleLineCountChange() {
             let lineCount = parseInt(document.getElementById('line-count').value) || 2;
             if (lineCount < 2) lineCount = 2;
-            if (lineCount > 7) lineCount = 7; // 最大7本に制限
+            if (lineCount > 7) lineCount = 7; 
             document.getElementById('line-count').value = lineCount;
 
             const userCountInput = document.getElementById('user-count');
@@ -264,7 +149,6 @@
             if (parseInt(userCountInput.value) > lineCount) {
                 userCountInput.value = lineCount;
             }
-            
             updateInputs();
         }
 
@@ -275,7 +159,6 @@
             if (userCount < 1) userCount = 1;
             if (userCount > lineCount) userCount = lineCount;
             document.getElementById('user-count').value = userCount;
-
             updateInputs();
         }
 
@@ -298,21 +181,24 @@
                 const endVal = currentEnds[i] !== undefined ? currentEnds[i] : `報酬${i + 1}`;
                 const style = userStyles[i % userStyles.length];
 
+                const activeBg = isUserActive ? `background-color: ${style.bgLight}; border-color: ${style.border};` : 'background-color: #f5f5f4; border-color: #e7e5e4; opacity: 0.6;';
+                const titleColor = isUserActive ? `color: ${style.color};` : 'color: #a8a29e;';
+
                 container.innerHTML += `
-                    <div class="input-pair" style="${!isUserActive ? 'opacity: 0.65;' : ''}">
-                        <div class="input-pair-title" style="color: ${isUserActive ? style.color : '#94a3b8'}">
+                    <div class="p-3 rounded-xl border transition-all duration-300" style="${activeBg}">
+                        <div class="text-[11px] font-bold mb-1 tracking-wide" style="${titleColor}">
                             ライン ${i+1} ${isUserActive ? `(${style.symbol})` : '(ユーザーなし)'}
                         </div>
-                        <input type="text" class="start-input" oninput="saveConfig()" value="${startVal}" ${!isUserActive ? 'disabled style="background:#e2e8f0; color:#94a3b8;" placeholder="空欄"' : 'placeholder="プレイヤー名"'}>
-                        <input type="text" class="end-input" oninput="saveConfig()" value="${endVal}" placeholder="ゴール結果">
+                        <input type="text" class="start-input w-full bg-white/80 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-700 mb-1 focus:outline-none focus:border-stone-400" oninput="saveConfig()" value="${startVal}" ${!isUserActive ? 'disabled style="background:#e7e5e4; color:#a8a29e;" placeholder="空欄"' : 'placeholder="プレイヤー名"'}>
+                        <input type="text" class="end-input w-full bg-white/80 border border-stone-200 rounded-lg px-2 py-1 text-xs text-stone-700 focus:outline-none focus:border-stone-400" oninput="saveConfig()" value="${endVal}" placeholder="ゴール結果">
                     </div>
                 `;
 
                 if (isUserActive) {
                     legendArea.innerHTML += `
-                        <div class="legend-item">
-                            <div class="legend-badge" style="background-color: ${style.color}">${style.symbol}</div>
-                            <span>${startVal || '未入力'}</span>
+                        <div class="history-badge flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full text-white shadow-sm border border-white/20" style="background-color: ${style.color}">
+                            <span>${style.symbol}</span>
+                            <span class="font-sans font-medium">${startVal || '未入力'}</span>
                         </div>
                     `;
                 }
@@ -328,7 +214,7 @@
             
             localStorage.setItem(storageKey, JSON.stringify({ lineCount, userCount, starts, ends }));
 
-            const legendItems = document.querySelectorAll('.legend-item span');
+            const legendItems = document.querySelectorAll('#legend-area font-medium');
             let legendIdx = 0;
             starts.forEach((val, i) => {
                 if (i < parseInt(userCount)) {
@@ -373,7 +259,6 @@
             amidaData.starts = Array.from(document.querySelectorAll('.start-input')).map(i => i.value);
             amidaData.ends = Array.from(document.querySelectorAll('.end-input')).map(i => i.value);
             
-            // 【分断絶対阻止ロジック】
             let generatedSuccessfully = false;
             let attempts = 0;
 
@@ -382,7 +267,6 @@
                 amidaData.horizontalLines = [];
                 
                 let connectionCounts = new Array(lineCount).fill(0);
-                // 各「隙間」に何本の線が引かれたかをカウントする配列 (長さは lineCount - 1)
                 let gapCounts = new Array(lineCount - 1).fill(0);
 
                 for (let l = 1; l <= totalLevels; l++) {
@@ -396,9 +280,7 @@
                     }
                 }
 
-                // 条件1: 全ての縦線に5本以上接続されているか
                 const isEveryLineValid = connectionCounts.every(count => count >= 5);
-                // 条件2: 全ての「隙間」に最低2本以上の横線があるか（＝分断が起きない）
                 const isEveryGapValid = gapCounts.every(count => count >= 2);
 
                 if (isEveryLineValid && isEveryGapValid) {
@@ -406,12 +288,9 @@
                 }
             }
 
-            // 万が一のセーフティ（条件を満たさなかった隙間に、空いている段を狙って強制補充）
             if (!generatedSuccessfully) {
                 let gapCounts = new Array(lineCount - 1).fill(0);
-                amidaData.horizontalLines.forEach(line => {
-                    gapCounts[line.fromIdx]++;
-                });
+                amidaData.horizontalLines.forEach(line => { gapCounts[line.fromIdx]++; });
 
                 for (let g = 0; g < lineCount - 1; g++) {
                     let levelOffset = 1;
@@ -427,7 +306,13 @@
                 amidaData.horizontalLines.sort((a, b) => a.level - b.level);
             }
 
-            // プレイヤー初期化
+            const viewCard = document.getElementById('view-card');
+            viewCard.style.display = 'flex';
+            document.getElementById('start-btn').disabled = true;
+
+            // キャンバスサイズを端末幅に合わせて調整
+            resizeCanvasConfig();
+
             usersProgress = [];
             for (let i = 0; i < userCount; i++) {
                 usersProgress.push({
@@ -440,10 +325,6 @@
                     isFinished: false
                 });
             }
-
-            const viewCard = document.getElementById('view-card');
-            viewCard.style.display = 'flex';
-            document.getElementById('start-btn').disabled = true;
 
             viewCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -509,14 +390,18 @@
         function drawAmida() {
             const canvas = document.getElementById('amidaCanvas');
             const ctx = canvas.getContext('2d');
+            const containerWidth = document.getElementById('canvas-container').clientWidth;
             
-            canvas.width = (amidaData.linesCount - 1) * stepX + paddingX * 2;
+            canvas.width = containerWidth;
             canvas.height = amidaHeight + paddingY * 2;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            ctx.lineWidth = 4;
+            // スマホ画面幅によってデザインサイズを微調整するスイッチ
+            const isSmall = containerWidth < 640;
+
+            ctx.lineWidth = isSmall ? 2 : 3;
             ctx.lineCap = "round";
-            ctx.strokeStyle = '#cbd5e1';
+            ctx.strokeStyle = '#e7e5e4';
 
             // 縦線
             for (let i = 0; i < amidaData.linesCount; i++) {
@@ -526,21 +411,21 @@
                 ctx.lineTo(x, paddingY + amidaHeight);
                 ctx.stroke();
 
-                ctx.font = "bold 14px sans-serif";
+                ctx.font = isSmall ? "bold 11px sans-serif" : "bold 13px sans-serif";
                 ctx.textAlign = "center";
                 
-                ctx.fillStyle = '#1e293b';
+                ctx.fillStyle = '#57534e';
                 if (i < amidaData.userCount) {
-                    ctx.fillText(amidaData.starts[i] || '', x, paddingY - 25);
+                    ctx.fillText(amidaData.starts[i] || '', x, paddingY - (isSmall ? 15 : 25));
                 } else {
-                    ctx.font = "italic 12px sans-serif";
-                    ctx.fillStyle = '#94a3b8';
-                    ctx.fillText('(なし)', x, paddingY - 25);
+                    ctx.font = isSmall ? "italic 10px sans-serif" : "italic 11px sans-serif";
+                    ctx.fillStyle = '#a8a29e';
+                    ctx.fillText('(なし)', x, paddingY - (isSmall ? 15 : 25));
                 }
                 
-                ctx.font = "bold 14px sans-serif";
-                ctx.fillStyle = '#475569';
-                ctx.fillText(amidaData.ends[i] || '', x, paddingY + amidaHeight + 30);
+                ctx.font = isSmall ? "bold 11px sans-serif" : "bold 13px sans-serif";
+                ctx.fillStyle = '#57534e';
+                ctx.fillText(amidaData.ends[i] || '', x, paddingY + amidaHeight + (isSmall ? 22 : 30));
             }
 
             // 横線
@@ -565,17 +450,23 @@
                     currentX = startX + (endX - startX) * user.sideProgress;
                 }
 
+                const outerRadius = isSmall ? 13 : 18;
+                const innerRadius = isSmall ? 9 : 13;
+
+                // 外側の淡いオーラ
                 ctx.beginPath();
-                ctx.arc(currentX, user.y, 16, 0, Math.PI * 2);
-                ctx.fillStyle = user.style.color + '33';
+                ctx.arc(currentX, user.y, outerRadius, 0, Math.PI * 2);
+                ctx.fillStyle = user.style.color + '25';
                 ctx.fill();
 
+                // 内側のメイン円
                 ctx.beginPath();
-                ctx.arc(currentX, user.y, 12, 0, Math.PI * 2);
+                ctx.arc(currentX, user.y, innerRadius, 0, Math.PI * 2);
                 ctx.fillStyle = user.style.color;
                 ctx.fill();
 
-                ctx.font = "12px Arial";
+                // シンボル文字
+                ctx.font = isSmall ? "bold 10px Arial" : "bold 12px Arial";
                 ctx.fillStyle = "#ffffff";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
