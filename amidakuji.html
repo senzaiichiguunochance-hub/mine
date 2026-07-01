@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>本格アニメーションあみだくじ - Drum Theme</title>
+    <title>あみだくじ</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Noto+Serif+JP:wght@500;900&display=swap" rel="stylesheet">
@@ -26,15 +26,15 @@
         
         <div>
             <h1 class="text-2xl md:text-3xl font-elegant font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-purple-400 to-amber-500 tracking-widest">
-                HTMLあみだくじ
+                あみだくじ
             </h1>
-            <p class="text-[10px] md:text-[11px] text-stone-400 tracking-wide font-medium">美しい色彩が織りなす、あなただけの運命のラインセッション。</p>
+            <p class="text-[10px] md:text-[11px] text-stone-400 tracking-wide font-medium">あみだくじ好きのあなたへ</p>
         </div>
 
         <div class="bg-stone-50/60 p-4 md:p-5 rounded-2xl border border-stone-200/60 text-left flex flex-col gap-4">
             <div class="flex flex-wrap gap-4">
                 <div class="flex-1 min-w-[120px]">
-                    <label for="line-count" class="block text-xs font-bold text-stone-500 mb-1.5 tracking-wide">縦線の本数 (2〜7):</label>
+                    <label for="line-count" class="block text-xs font-bold text-stone-500 mb-1.5 tracking-wide">くじの本数 (2〜7):</label>
                     <input type="number" id="line-count" min="2" max="7" value="5" class="w-full max-w-[120px] bg-white border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 focus:outline-none focus:border-rose-300 transition-colors">
                 </div>
                 <div class="flex-1 min-w-[120px]">
@@ -59,7 +59,7 @@
 
             <div class="flex justify-center pt-2">
                 <button id="start-btn" onclick="initAndStartAmida()" class="bg-gradient-to-r from-rose-400 to-amber-400 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-bold py-3 px-8 rounded-full shadow-md hover:shadow-lg cursor-pointer transition-all duration-300 tracking-widest disabled:from-stone-300 disabled:to-stone-300 disabled:cursor-not-allowed">
-                    あみだくじをスタート！
+                    スタート！
                 </button>
             </div>
         </div>
@@ -95,7 +95,6 @@
         let usersProgress = []; 
         let animationId = null;
 
-        // 【スマホ対応】サイズ計算用の変数を動的に変更可能に
         let paddingX = 60; 
         let paddingY = 60;
         let stepX = 120;
@@ -109,7 +108,6 @@
             document.getElementById('line-count').addEventListener('input', handleLineCountChange);
             document.getElementById('user-count').addEventListener('input', handleUserCountChange);
             
-            // 画面サイズ変更時にもキャンバスサイズを再計算
             window.addEventListener('resize', () => {
                 if(document.getElementById('view-card').style.display === 'flex') {
                     resizeCanvasConfig();
@@ -118,22 +116,17 @@
             });
         };
 
-        // 画面幅に応じてあみだくじの横幅を自動計算する関数
         function resizeCanvasConfig() {
             const containerWidth = document.getElementById('canvas-container').clientWidth;
             
-            // 左右に確保したい最低限の合計余白
             const desiredMargin = containerWidth < 640 ? 60 : 120; 
             const availableWidth = containerWidth - desiredMargin;
             
-            // 縦線の数に応じてステップ幅を決定
             stepX = availableWidth / (amidaData.linesCount - 1);
             
-            // あまりに広がりすぎたり縮みすぎたりしないように制限
             if (stepX > 120) stepX = 120;
             if (stepX < 40) stepX = 40; 
             
-            // 実際に使用するpaddingXをセンタリングされるように逆算
             paddingX = (containerWidth - (stepX * (amidaData.linesCount - 1))) / 2;
             paddingY = containerWidth < 640 ? 50 : 70;
         }
@@ -310,7 +303,6 @@
             viewCard.style.display = 'flex';
             document.getElementById('start-btn').disabled = true;
 
-            // キャンバスサイズを端末幅に合わせて調整
             resizeCanvasConfig();
 
             usersProgress = [];
