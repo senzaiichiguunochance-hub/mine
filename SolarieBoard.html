@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>パタパタ案内表示機</title>
+    <style>
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            color: #aaa;
+        }
+
+        /* 掲示板のベース */
+        .board {
+            background-color: #111;
+            padding: 30px 50px;
+            border: 4px solid #333;
+            border-radius: 12px;
+            display: flex;
+            gap: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+        }
+
+        .segment {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .label {
+            font-size: 0.9rem;
+            color: #777;
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+
+        /* フラップ（板）の3D構造 */
+        .flap-container {
+            position: relative;
+            width: 200px;
+            height: 100px;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            perspective: 400px;
+            
+            /* 👇 ここから追加の2行 👇 */
+            white-space: nowrap;      /* 文字を絶対に折り返さない */
+            letter-spacing: -2px;     /* 文字同士の間隔を少し詰める（お好みで） */
+        }
+
+        /* 上半分の固定板 */
+        .flap-up {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background-color: #0a0a0a;
+            border-bottom: 1px solid #000;
+            border-radius: 6px 6px 0 0;
+            overflow: hidden;
+            line-height: 100px;
+        }
+
+        /* 下半分の固定板 */
+        .flap-down {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            background-color: #0a0a0a;
+            border-top: 1px solid #000;
+            border-radius: 0 0 6px 6px;
+            overflow: hidden;
+            line-height: 0px;
+        }
+
+        /* 手前にパタンと倒れてくる動く板 */
+        .flap-hinge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            transform-origin: bottom;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            z-index: 5;
+        }
+
+        /* 動く板の表面（現在の文字の上半分） */
+        .hinge-front {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0a0a;
+            border-bottom: 1px solid #000;
+            border-radius: 6px 6px 0 0;
+            overflow: hidden;
+            line-height: 100px;
+            backface-visibility: hidden;
+        }
+
+        /* 動く板の裏面（次の文字の下半分） */
+        .hinge-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0a0a;
+            border-top: 1px solid #000;
+            border-radius: 0 0 6px 6px;
+            overflow: hidden;
+            line-height: 0px;
+            transform: rotateX(180deg);
+            backface-visibility: hidden;
+        }
+
+        /* JR中央線風の色分け */
+        .type-rapid { color: #ff4500; }
+        .type-special { color: #ff8c00; }
+        .type-commuter { color: #ff00ff; }
+        .type-local { color: #ffffff; }
+        .dest-color { color: #ffffff; }
+
+        /* 高速パタパタ用アニメーション（0.08秒で1回転） */
+        .play-flap {
+            animation: flip-down-anim 0.08s linear forwards;
+        }
+
+        @keyframes flip-down-anim {
+            0% { transform: rotateX(0deg); }
+            100% { transform: rotateX(-180deg); }
+        }
+
+        /* ボタン */
+        button {
+            margin-top: 40px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            background-color: #ff4500;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: 0.2s;
+        }
+        button:hover { background-color: #e03e00; }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+    <h1>東京近辺　JR　私鉄　パタパタ案内表示機</h1>
+
+    <div class="board">
+        <div class="segment">
+            <div class="label">種別</div>
+            <div class="flap-container" id="board-type">
+                <div class="flap-up type-local">各駅停車</div>
+                <div class="flap-down type-local">各駅停車</div>
+            </div>
+        </div>
+        
+        <div class="segment">
+            <div class="label">行先</div>
+            <div class="flap-container" id="board-dest">
+                <div class="flap-up dest-color">東京</div>
+                <div class="flap-down dest-color">東京</div>
+            </div>
+        </div>
+    </div>
+
+    <button id="btn" onclick="startSequence()">運行情報を更新</button>
+
+    <script>
+        // パタパタに搭載されている「全コマ（文字）」のマスターデータ
+        // 本物のソラリーと同じく、この順番通りにめくれていきます
+        const masterData = [
+            // === JR東日本（東京・神奈川・埼玉・千葉） ===
+            { type: "山手線", class: "type-local", dest: "大崎" },
+            { type: "山手線", class: "type-local", dest: "池袋" },
+            { type: "京浜東北線", class: "type-local", dest: "大宮" },
+            { type: "京浜東北線", class: "type-rapid", dest: "大船" },
+            { type: "京浜東北線", class: "type-local", dest: "蒲田" },
+            { type: "東海道線", class: "type-local", dest: "小田原" },
+            { type: "東海道線", class: "type-rapid", dest: "熱海" },
+            { type: "宇ト線（宇都宮線）", class: "type-local", dest: "宇宮（宇都宮）" },
+            { type: "高崎線", class: "type-local", dest: "籠原" },
+            { type: "湘南新宿ライン", class: "type-special", dest: "逗子" },
+            { type: "中央線", class: "type-local", dest: "武蔵小金井" },
+            { type: "快速", class: "type-rapid", dest: "高尾" },
+            { type: "中央特快", class: "type-special", dest: "大月" },
+            { type: "青梅特快", class: "type-special", dest: "奥多摩" },
+            { type: "通勤特快", class: "type-commuter", dest: "河辺" },
+            { type: "総武線（各駅停車）", class: "type-local", dest: "津田沼" },
+            { type: "総武線（各駅停車）", class: "type-local", dest: "千葉" },
+            { type: "総武快速線", class: "type-rapid", dest: "上総一ノ宮" },
+            { type: "総武快速線", class: "type-rapid", dest: "君津" },
+            { type: "常磐線（各駅停車）", class: "type-local", dest: "我孫子" },
+            { type: "常磐快速線", class: "type-rapid", dest: "取手" },
+            { type: "常磐線", class: "type-special", dest: "水戸" },
+            { type: "京葉線", class: "type-local", dest: "海浜幕張" },
+            { type: "京葉線", class: "type-rapid", dest: "蘇我" },
+            { type: "武蔵野線", class: "type-local", dest: "府中本町" },
+            { type: "武蔵野線", class: "type-local", dest: "東所沢" },
+            { type: "横浜線", class: "type-rapid", dest: "八王子" },
+            { type: "横浜線", class: "type-local", dest: "東神奈川" },
+            { type: "根岸線", class: "type-local", dest: "磯子" },
+            { type: "南武線", class: "type-local", dest: "登戸" },
+            { type: "南武線", class: "type-rapid", dest: "立川" },
+            { type: "埼京線", class: "type-rapid", dest: "川越" },
+            { type: "埼京線", class: "type-local", dest: "武蔵浦和" },
+            { type: "川越線", class: "type-local", dest: "高麗川" },
+            { type: "相模線", class: "type-local", dest: "茅ケ崎" },
+            { type: "鶴見線", class: "type-local", dest: "海芝浦" },
+            { type: "特急 あずさ", class: "type-commuter", dest: "松本" },
+            { type: "特急 踊り子", class: "type-rapid", dest: "伊豆急下田" },
+            { type: "特急 成田エクスプレス", class: "type-special", dest: "成田空港" },
+
+            // === 京王電鉄 ===
+            { type: "京王線 特急", class: "type-special", dest: "京王八王子" },
+            { type: "京王線 準特急", class: "type-special", dest: "高尾山口" },
+            { type: "京王相模原線 区間急行", class: "type-rapid", dest: "橋本" },
+            { type: "京王線 快速", class: "type-rapid", dest: "つつじヶ丘" },
+            { type: "井の頭線 急行", class: "type-special", dest: "吉祥寺" },
+
+            // === 小田急電鉄 ===
+            { type: "小田急 快速急行", class: "type-special", dest: "小田原" },
+            { type: "小田急 急行", class: "type-rapid", dest: "唐木田" },
+            { type: "小田急 快速急行", class: "type-special", dest: "藤沢" },
+            { type: "小田急 各停", class: "type-local", dest: "本厚木" },
+            { type: "特急 ロマンスカー", class: "type-commuter", dest: "箱根湯本" },
+
+            // === 東急電鉄 ===
+            { type: "東横線 特急", class: "type-special", dest: "元町・中華街" },
+            { type: "東横線 急行", class: "type-rapid", dest: "武蔵小杉" },
+            { type: "田園都市線 急行", class: "type-special", dest: "中央林間" },
+            { type: "田園都市線 準急", class: "type-rapid", dest: "長津田" },
+            { type: "大井町線 急行", class: "type-special", dest: "溝の口" },
+            { type: "目黒線 急行", class: "type-rapid", dest: "日吉" },
+
+            // === 京浜急行電鉄（京急） ===
+            { type: "京急 快特", class: "type-commuter", dest: "三崎口" },
+            { type: "京急 特急", class: "type-special", dest: "青砥" },
+            { type: "京急 エアポート急行", class: "type-rapid", dest: "羽田空港" },
+            { type: "京急 普通", class: "type-local", dest: "品川" },
+            { type: "京急 普通", class: "type-local", dest: "浦賀" },
+
+            // === 西武鉄道 ===
+            { type: "西武池袋線 特急", class: "type-commuter", dest: "西武秩父" },
+            { type: "西武池袋線 快速急行", class: "type-special", dest: "飯能" },
+            { type: "西武池袋線 準急", class: "type-rapid", dest: "所沢" },
+            { type: "西武新宿線 急行", class: "type-special", dest: "本川越" },
+            { type: "西武新宿線 拝島快速", class: "type-special", dest: "拝島" },
+            { type: "西武新宿線 各停", class: "type-local", dest: "田無" },
+
+            // === 東武鉄道 ===
+            { type: "東武スカイツリー線 急行", class: "type-special", dest: "南栗橋" },
+            { type: "東武伊勢崎線 区間急行", class: "type-rapid", dest: "館林" },
+            { type: "東武東上線 快速急行", class: "type-special", dest: "小川町" },
+            { type: "東武東上線 急行", class: "type-rapid", dest: "森林公園" },
+            { type: "東武東上線 準急", class: "type-rapid", dest: "川越市" },
+            { type: "特急 スペーシア", class: "type-commuter", dest: "東武日光" },
+
+            // === 京成電鉄 ===
+            { type: "京成 スカイライナー", class: "type-commuter", dest: "成田空港" },
+            { type: "京成 快速特急", class: "type-special", dest: "京成成田" },
+            { type: "京成 アクセス特急", class: "type-special", dest: "成田空港" },
+            { type: "京成 快速", class: "type-rapid", dest: "西馬込" },
+
+            // === 相模鉄道（相鉄） ===
+            { type: "相鉄 特急", class: "type-special", dest: "海老名" },
+            { type: "相鉄 各停", class: "type-local", dest: "湘南台" },
+            { type: "相鉄・JR直通線", class: "type-rapid", dest: "新宿" },
+
+            // === 東京メトロ・都営地下鉄 ===
+            { type: "東西線 快速", class: "type-rapid", dest: "東葉勝田台" },
+            { type: "千代田線 各停", class: "type-local", dest: "代々木上原" },
+            { type: "千代田線 各停", class: "type-local", dest: "綾瀬" },
+            { type: "有楽町線 各停", class: "type-local", dest: "新木場" },
+            { type: "半蔵門線 各停", class: "type-local", dest: "押上" },
+            { type: "副都心線 急行", class: "type-special", dest: "元町・中華街" },
+            { type: "丸ノ内線 各停", class: "type-local", dest: "方南町" },
+            { type: "都営新宿線 急行", class: "type-special", dest: "本八幡" },
+            { type: "都営浅草線 快特", class: "type-commuter", dest: "成田空港" },
+            { type: "都営三田線 各停", class: "type-local", dest: "西高島平" },
+
+            // === その他・準幹線（東京・埼玉・千葉・神奈川） ===
+            { type: "つくばエクスプレス 快速", class: "type-special", dest: "つくば" },
+            { type: "つくばエクスプレス 区間快速", class: "type-rapid", dest: "守谷" },
+            { type: "北総線 特急", class: "type-special", dest: "印旛日本医大" },
+            { type: "東京モノレール 区間快速", class: "type-rapid", dest: "羽田空港第2ﾀｰﾐﾅﾙ" },
+            { type: "りんかい線 快速", class: "type-rapid", dest: "川越" },
+            { type: "多摩モノレール", class: "type-local", dest: "上北台" },
+            { type: "湘南モノレール", class: "type-local", dest: "湘南江の島" },
+            { type: "金沢シーサイドライン", class: "type-local", dest: "八景島" }
+        ];
+        // 現在表示しているコマのインデックス
+        let currentIndex = 0;
+
+        // シークエンス（連続回転）の開始
+        function startSequence() {
+            const btn = document.getElementById('btn');
+            btn.disabled = true; // 回転中はボタンを押せなくする
+
+            // 2秒〜5秒の間でランダムに停止時間を決める
+            const totalDuration = Math.floor(Math.random() * (1000)) + 1000;
+            const startTime = Date.now();
+
+            // 高速パタパタのループ関数
+            function nextTick() {
+                const now = Date.now();
+                const elapsed = now - startTime;
+
+                // 現在のコマ（めくる前）
+                const currentFlap = masterData[currentIndex];
+                
+                // 次のコマ（めくった後）
+                currentIndex = (currentIndex + 1) % masterData.length;
+                const nextFlap = masterData[currentIndex];
+
+                // 画面を1枚めくる
+                flip('board-type', currentFlap.type, nextFlap.type, currentFlap.class, nextFlap.class);
+                flip('board-dest', currentFlap.dest, nextFlap.dest, 'dest-color', 'dest-color');
+
+                // 設定したランダム時間が経過していなければ、0.08秒後に次のコマへ
+                if (elapsed < totalDuration) {
+                    setTimeout(nextTick, 80);
+                } else {
+                    // 時間が来たら終了、ボタンを元に戻す
+                    btn.disabled = false;
+                }
+            }
+
+            nextTick();
+        }
+
+        // 1枚パタンと実写さながらにめくる関数（文字数自動縮小版）
+        function flip(containerId, curText, nextText, curClass, nextClass) {
+            const container = document.getElementById(containerId);
+            
+            // --- 【ここから追加】文字数に応じてフォントサイズを計算する ---
+            // 標準は 2.5rem。文字数が4文字を超えたら、1文字増えるごと段階的に小さくする
+            let curFontSize = "2.5rem";
+            let nextFontSize = "2.5rem";
+
+            if (curText.length > 4) {
+                // 例: 5文字なら2.0rem、6文字なら1.7rem... 最低1.1remまで縮小
+                curFontSize = Math.max(1.1, 2.5 - (curText.length - 4) * 0.3) + "rem";
+            }
+            if (nextText.length > 4) {
+                nextFontSize = Math.max(1.1, 2.5 - (nextText.length - 4) * 0.3) + "rem";
+            }
+            // --- 【ここまで追加】 ---
+
+            // style属性で、計算したフォントサイズ（font-size）をそれぞれの板に直接流し込む
+            container.innerHTML = `
+                <div class="flap-up ${nextClass}" style="font-size: ${nextFontSize};">${nextText}</div>
+                <div class="flap-down ${curClass}" style="font-size: ${curFontSize};">${curText}</div>
+                <div class="flap-hinge play-flap">
+                    <div class="hinge-front ${curClass}" style="font-size: ${curFontSize};">${curText}</div>
+                    <div class="hinge-back ${nextClass}" style="font-size: ${nextFontSize};">${nextText}</div>
+                </div>
+            `;
+
+            // アニメーションが完了する直前（0.07秒後）に、下の固定板の文字とサイズを追いつかせる
+            setTimeout(() => {
+                const downFlap = container.querySelector('.flap-down');
+                if(downFlap) {
+                    downFlap.textContent = nextText;
+                    downFlap.className = `flap-down ${nextClass}`;
+                    downFlap.style.fontSize = nextFontSize; // サイズも合わせて更新
+                }
+            }, 70);
+        }
+    </script>
+
+</body>
+</html>
