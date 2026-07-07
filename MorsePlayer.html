@@ -4,19 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>モールス信号プレイヤー</title>
-<link rel="stylesheet" href="Style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=Noto+Serif+JP:wght@500;900&display=swap" rel="stylesheet">
 <style>
 :root {
-  --primary-color: #6a1b9a; /* 紫系の色 */
-  --secondary-color: #ff4081; /* ピンク系の色 */
-  --card-color: #1e2749; /* カードの背景色 */
-  --font-color: #e0e0e0; /* 基本のフォント色 */
-  --background-color: #c1c19d; /* 全体の背景色 */
+  --primary-color: #c084fc; /* パープル系 */
+  --secondary-color: #f43f5e; /* ローズ（ルビー）系 */
+  --card-color: #ffffff; /* 白ベースのカード */
+  --font-color: #44403c; /* 読みやすいストーン系ダークグレー */
+  --background-color: #f4f4f5; /* ジンク・ストーン系の明るい背景 */
 }
 
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--background-color);
+  background-image: linear-gradient(to bottom right, #fafafa, #f5f5f4, #f4f4f5);
   color: var(--font-color);
   margin: 0;
   padding: 20px;
@@ -30,9 +32,11 @@ body {
 .container {
   max-width: 800px;
   width: 100%;
-  background-color: #161b22; /* より暗い背景でコンテンツを際立たせる */
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(165, 165, 150, 0.15);
+  border: 1px solid rgba(228, 228, 231, 0.6);
   padding: 30px;
   text-align: center;
 }
@@ -42,104 +46,173 @@ body {
 }
 
 .header h1 {
-  color: var(--secondary-color);
+  font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+  font-weight: 900;
+  background: linear-gradient(to right, #f43f5e, #c084fc, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   font-size: 2.5em;
-  border-bottom: 2px solid var(--primary-color);
+  letter-spacing: 0.1em;
   padding-bottom: 10px;
   display: inline-block;
+  margin: 0;
 }
 
 .control-panel {
   background-color: var(--card-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 15px;
-  padding: 20px;
+  border: 1px solid #e4e4e7;
+  border-radius: 20px;
+  padding: 24px;
   margin-bottom: 30px;
   text-align: left;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
 }
+
+label {
+  display: block;
+  font-size: 0.9em;
+  color: #71716a;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
 textarea {
   width: 100%;
   min-height: 180px;
   resize: vertical;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--primary-color);
-  background-color: #0f1b3b;
+  padding: 15px;
+  border-radius: 16px;
+  border: 1px solid #e4e4e7;
+  background-color: #fafafa;
   color: var(--font-color);
   font-size: 1em;
-  line-height: 1.5;
+  line-height: 1.6;
   box-sizing: border-box;
-  font-family: 'Consolas', 'Courier New', monospace; /* プログラミング向けフォント */
+  font-family: 'Consolas', 'Courier New', monospace;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
-.counter { text-align: right; font-size: 0.85em; color: var(--secondary-color); margin-top: 5px; }
+
+textarea:focus {
+  outline: none;
+  border-color: #f43f5e;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.1);
+}
+
+.counter { 
+  text-align: right; 
+  font-size: 0.85em; 
+  color: #a8a29e; 
+  margin-top: 6px; 
+  font-family: monospace;
+}
+
 button {
   background-color: var(--secondary-color);
-  border: none;
+  border: 1px solid rgba(255,255,255,0.1);
   color: white;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 1em;
+  padding: 10px 22px;
+  border-radius: 12px;
+  font-size: 0.95em;
+  font-weight: 600;
   cursor: pointer;
   margin-right: 10px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  outline: none; /* フォーカス時のアウトラインを削除 */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
 }
-button:hover { background-color: #ff5f7f; transform: translateY(-2px); }
-button.secondary { background-color: var(--primary-color); color: var(--font-color); }
-button.secondary:hover { background-color: #8e24aa; transform: translateY(-2px); }
+
+button:hover { 
+  background-color: #e11d48; 
+  transform: translateY(-1px); 
+  box-shadow: 0 6px 16px rgba(244, 63, 94, 0.3);
+}
+
+button.secondary { 
+  background-color: #ffffff; 
+  color: #71716a; 
+  border: 1px solid #e4e4e7;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+button.secondary:hover { 
+  background-color: #f5f5f4; 
+  color: #44403c;
+  transform: translateY(-1px);
+  border-color: #d4d4d8;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
 
 .visual-box {
-  background-color: var(--card-color);
-  border: 1px solid var(--primary-color);
-  border-radius: 15px;
-  padding: 20px;
+  background-color: #fcfcfb;
+  border: 1px solid #e4e4e7;
+  border-radius: 20px;
+  padding: 24px;
   margin-top: 30px;
   text-align: left;
-  min-height: 150px; /* 視覚表示エリアの最小高さを設定 */
+  min-height: 150px;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
 }
 
 .visual-box h3 {
-    color: var(--primary-color);
+    font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
+    color: #78716c;
+    margin-top: 0;
     margin-bottom: 15px;
+    font-size: 1.2em;
+    letter-spacing: 0.05em;
 }
 
 .symbol {
   display: inline-block;
-  padding: 6px 10px;
-  margin: 4px;
-  border-radius: 6px;
-  border: 1px solid var(--primary-color);
+  padding: 6px 14px;
+  margin: 5px;
+  border-radius: 8px;
   font-weight: bold;
-  background-color: #23355c; /* シンボルの背景色 */
-  transition: background 0.2s ease, transform 0.1s ease;
-  min-width: 15px; /* シンボルの最小幅 */
+  background-color: #ffffff;
+  border: 1px solid #e4e4e7;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 18px;
   text-align: center;
-  color: transparent; /* ドットやダッシュはcontentで表示するため */
+  color: transparent;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-.symbol.dot::after { content: "·"; color: #6ee7b7; font-size: 1.2em;} /* 緑系の色 */
-.symbol.dash::after { content: "—"; color: #fbbf24; font-size: 1.2em;} /* 黄色系の色 */
-.symbol.active { 
-    border-color: var(--secondary-color);
-    transform: scale(1.1);
-    box-shadow: 0 0 10px var(--secondary-color);
-}
-.symbol.active.dot { background: #388e3c; } /* 再生中のドットの背景 */
-.symbol.active.dash { background: #f57f17; } /* 再生中のダッシュの背景 */
 
-.symbol.inactive { opacity: 0.4; } /* 再生済みシンボルの透過度 */
+.symbol.dot::after { content: "·"; color: #cbd5e1; font-size: 1.5em; line-height: 1; display: block; }
+.symbol.dash::after { content: "—"; color: #cbd5e1; font-size: 1.2em; line-height: 1; display: block; }
+
+/* 再生中のアニメーション（ドラムのルビー色パルスを意識） */
+@keyframes pulse-ruby {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 12px rgba(225, 29, 72, 0.2); }
+  50% { transform: scale(1.08); box-shadow: 0 0 20px rgba(244, 63, 94, 0.5); }
+}
+
+.symbol.active { 
+    border-color: #f43f5e !important;
+    animation: pulse-ruby 0.6s infinite;
+}
+.symbol.active.dot { background: #ffe4e6 !important; }
+.symbol.active.dot::after { color: #f43f5e !important; }
+
+.symbol.active.dash { background: #ffe4e6 !important; }
+.symbol.active.dash::after { color: #f43f5e !important; }
+
+/* 再生が通過した後のデザイン（ニュアンスカラーで足跡を表現） */
+.symbol.inactive { opacity: 0.6; background-color: #f5f5f4; border-color: #e4e4e7; }
+.symbol.inactive.dot::after { color: #94a3b8; }
+.symbol.inactive.dash::after { color: #94a3b8; }
+
 .status { 
   margin-top: 15px; 
-  font-size: 0.95em; 
-  color: var(--font-color); 
+  font-size: 0.9em; 
+  color: #f43f5e; 
   font-weight: bold;
+  letter-spacing: 0.05em;
+  font-family: 'Cormorant Garamond', 'Noto Serif JP', serif;
 }
-
-
 </style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 11px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 5px 12px; border-radius: 9999px; z-index: 1000; border: 1px solid #e4e4e7; font-weight: 500; letter-spacing: 0.05em; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">メニューに戻る</a>
 
 <div class="container">
 <header class="header"><h1>モールス信号プレイヤー</h1></header>
@@ -157,14 +230,14 @@ button.secondary:hover { background-color: #8e24aa; transform: translateY(-2px);
 </div>
 
 <div class="visual-box">
-  <h3>モールス信号の視覚表示</h3>
+  <h3>🐾 Morse Log</h3>
   <div id="visualArea" style="margin-top:10px;"></div>
 </div>
 </div>
 
 <script>
 /* ===============================
-   モールス信号プレイヤー
+   モールス信号プレイヤー（ロジックは完全維持）
    =============================== */
 const MORSE = {
   'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..',
@@ -195,7 +268,6 @@ const UNIT_MS = 120; // モールス信号の基本単位時間 (ms)
 
 // --- 入力 ---
 function sanitizeInput(str) {
-  // 半角英数字と改行のみを許可
   return str.replace(/[^\nA-Za-z0-9]/g, '');
 }
 
@@ -204,13 +276,11 @@ textarea.addEventListener('input', () => {
   if (clean.length > 1000) clean = clean.slice(0, 1000);
   if (textarea.value !== clean) {
     textarea.value = clean;
-    // 値が変更された場合、カーソルを末尾に移動
     textarea.selectionStart = textarea.selectionEnd = clean.length;
   }
   counter.textContent = `${textarea.value.length} / 1000`;
 });
 
-// 初期表示
 counter.textContent = `${textarea.value.length} / 1000`;
 
 // --- 停止処理 ---
@@ -227,7 +297,7 @@ async function stopPlayback() {
   }
   if (audioCtx) {
     try {
-      await audioCtx.close(); // AudioContextをクローズ
+      await audioCtx.close();
       audioCtx = null;
     } catch (e) {
       console.warn("Error closing audio context:", e);
@@ -238,12 +308,11 @@ async function stopPlayback() {
 
 // --- クリア ---
 clearBtn.addEventListener('click', () => {
-  stopPlayback(); // クリア時も再生を停止
+  stopPlayback();
   textarea.value = "";
   counter.textContent = "0 / 1000";
   visualArea.innerHTML = "";
   status.textContent = "";
-  // Inactiveクラスもリセット
   document.querySelectorAll('.symbol.inactive').forEach(el => el.classList.remove('inactive'));
 });
 
@@ -256,8 +325,7 @@ playBtn.addEventListener('click', async () => {
   }
 
   if (isPlaying) {
-    await stopPlayback(); // 再生中なら即停止し、AudioContextをクローズ
-    // 少し待ってから新しい再生を開始することで、クリーンな状態にする
+    await stopPlayback();
     await sleep(50); 
   }
   
@@ -265,25 +333,19 @@ playBtn.addEventListener('click', async () => {
   isPlaying = true;
   status.textContent = "再生中...";
   
-  // 視覚表示をリセット
   buildVisual(text);
-  // 再生前の状態としてinactiveクラスを削除
   document.querySelectorAll('.symbol.inactive').forEach(el => el.classList.remove('inactive'));
   
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)(); // 新しいAudioContextを作成
-  await audioCtx.resume(); // 初音対策
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  await audioCtx.resume();
 
   await playMorse(text);
 
   if (!stopRequested) {
     status.textContent = "再生完了。";
-  } else {
-    // 明示的に停止された場合
-    // status.textContent は stopBtn クリック時に更新されるので、ここでは何もしない
   }
   
   isPlaying = false;
-  // 再生完了または停止時にAudioContextをクローズ
   if (audioCtx) {
     try {
       await audioCtx.close();
@@ -306,21 +368,20 @@ function buildVisual(text) {
   for (const ch of text.toUpperCase()) {
     if (ch === "\n") {
       const br = document.createElement("div");
-      br.style.height = "10px"; // 改行の高さ
+      br.style.height = "10px";
       visualArea.appendChild(br);
       continue;
     }
     const code = MORSE[ch];
-    if (!code) continue; // 対応しない文字はスキップ
+    if (!code) continue;
     for (const c of code) {
       const span = document.createElement("span");
       span.className = `symbol ${c === "." ? "dot" : "dash"}`;
       visualArea.appendChild(span);
     }
-    // 文字間のスペース
     const space = document.createElement("span");
     space.style.display = "inline-block";
-    space.style.width = "16px"; // 3 unit length (3 * UNIT_MS)
+    space.style.width = "16px";
     visualArea.appendChild(space);
   }
 }
@@ -332,7 +393,6 @@ async function playMorse(text) {
   for (const ch of text.toUpperCase()) {
     if (stopRequested) break;
     if (ch === "\n") {
-      // 単語間のスペースは7 unit length (7 * UNIT_MS)
       await sleep(UNIT_MS * 7); 
       continue;
     }
@@ -341,19 +401,19 @@ async function playMorse(text) {
     for (const c of code) {
       if (stopRequested) break;
       const el = symbols[index++];
-      if (el) { // 要素が存在することを確認
+      if (el) {
         el.classList.add('active');
       }
       await playTone(c === '.' ? UNIT_MS : UNIT_MS * 3);
-      if (stopRequested) break; // playTone後も停止をチェック
+      if (stopRequested) break;
       if (el) {
         el.classList.remove('active');
         el.classList.add('inactive');
       }
-      await sleep(UNIT_MS); // 符号間のスペース (1 unit length)
+      await sleep(UNIT_MS);
     }
-    if (stopRequested) break; // 文字間の遅延前も停止をチェック
-    await sleep(UNIT_MS * 2); // 文字間のスペース (3 unit length - 1 unit length already passed)
+    if (stopRequested) break;
+    await sleep(UNIT_MS * 2);
   }
 }
 
@@ -361,17 +421,15 @@ async function playMorse(text) {
 function playTone(duration) {
   return new Promise(resolve => {
     if (!audioCtx || stopRequested) { 
-        // audioCtxがないか、停止要求があれば即座に解決し音を鳴らさない
         return resolve();
     }
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-    currentOsc = osc; // 現在のオシレーターを記録
+    currentOsc = osc;
 
     osc.type = "sine";
-    osc.frequency.setValueAtTime(650, audioCtx.currentTime); // 周波数
+    osc.frequency.setValueAtTime(650, audioCtx.currentTime);
     
-    // ゲインを徐々に上げてクリックノイズを軽減
     gain.gain.setValueAtTime(0, audioCtx.currentTime);
     gain.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.01); 
 
@@ -380,14 +438,11 @@ function playTone(duration) {
     
     osc.start(audioCtx.currentTime);
     
-    // ゲインを徐々に下げてクリックノイズを軽減
-    // 音の終わりに向けてフェードアウト
     gain.gain.linearRampToValueAtTime(0.00001, audioCtx.currentTime + duration / 1000 - 0.01); 
     osc.stop(audioCtx.currentTime + duration / 1000);
 
     osc.onended = () => { 
-      if (currentOsc === osc) currentOsc = null; // 終了したオシレーターが現在のものと一致すればnullにする
-      // オシレーターとゲインノードの接続を切断してリソースを解放
+      if (currentOsc === osc) currentOsc = null;
       osc.disconnect();
       gain.disconnect();
       resolve(); 
