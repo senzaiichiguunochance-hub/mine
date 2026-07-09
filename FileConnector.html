@@ -98,7 +98,7 @@
         .terminal-log-row {
             display: flex;
             flex-direction: column;
-            height: 400px;
+            height: 340px;
             background: #09090b;
             border: 1px solid #27272a;
         }
@@ -181,12 +181,16 @@
                 </h2>
                 <p class="text-xs text-zinc-400 mb-6">対象となるファイルを投入してください。自動的にセキュアコンテナ化が実行されます。</p>
 
-                <div id="drop-zone-mesh" tabindex="0" class="border border-dashed border-zinc-700 bg-zinc-950 rounded p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-zinc-900/30 transition-all mb-6 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <div id="drop-zone-mesh" tabindex="0" class="border border-dashed border-zinc-700 bg-zinc-950 rounded p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-zinc-900/30 transition-all mb-4 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                     <i data-lucide="upload-cloud" class="w-10 h-10 text-zinc-500 mx-auto mb-3"></i>
                     <p class="text-sm font-bold text-zinc-300">ファイルをここにドラッグイン、またはクリック</p>
                     <p class="text-[11px] text-zinc-500 mt-1">複数選択時は単一コンテナに自動結合</p>
                     <input type="file" id="hidden-file-picker" class="hidden" multiple>
                 </div>
+
+                <button type="button" onclick="injectDummyTestAsset()" class="w-full text-xs text-zinc-400 hover:text-emerald-400 bg-zinc-900 border border-zinc-800 hover:border-emerald-900 py-2 rounded mb-6 transition-all flex items-center justify-center gap-1.5">
+                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i> テスト用ダミーアセット(1MB)を生成してセット
+                </button>
 
                 <div id="staged-manifest-wrapper" class="hidden mb-6"></div>
                 <button id="action-add-more-files" class="hidden w-full text-xs text-emerald-400 hover:text-emerald-300 font-bold mb-6 py-2 border border-dashed border-emerald-900 bg-emerald-950/10 transition-colors rounded">
@@ -203,7 +207,7 @@
                             <option value="15" selected>900秒 (15分間)</option>
                             <option value="30">1800秒 (30分間)</option>
                             <option value="60">3600秒 (1時間)</option>
-                            <option value="180">10800秒 (3 hours)</option>
+                            <option value="180">10800秒 (3時間)</option>
                         </select>
                     </div>
 
@@ -295,24 +299,54 @@
                 </div>
             </div>
 
-            <div id="panel-stage-receiving" class="view-section hidden-view text-center py-6">
-                <i data-lucide="unplug" class="w-10 h-10 text-emerald-400 mx-auto mb-4 animate-pulse"></i>
-                <h2 class="text-sm font-bold text-zinc-200 mb-1">リモートパイプラインより受信中</h2>
-                <p id="recv-status-message" class="text-xs text-zinc-500 mb-6">相手先ホストとの同期ネゴシエーション中...</p>
-
-                <div class="w-full bg-zinc-950 border border-zinc-800 h-3 rounded overflow-hidden mb-2">
-                    <div id="recv-progress-bar" class="bg-emerald-500 h-full transition-all duration-150" style="width: 0%"></div>
+            <div id="panel-stage-receiving" class="view-section hidden-view bg-zinc-950 border-2 border-emerald-500 p-6 md:p-8 rounded-lg shadow-2xl text-center">
+                <div class="inline-flex items-center gap-2 bg-emerald-950 border border-emerald-800 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-4 animate-pulse">
+                    <i data-lucide="download-cloud" class="w-4 h-4"></i> File Transfer Ongoing
                 </div>
-                <div class="flex justify-between text-xs font-mono text-zinc-400 mb-2">
-                    <span id="recv-progress-percent">0%</span>
-                    <span id="recv-speed-label">--</span>
-                </div>
-                <p id="recv-eta-label" class="text-[11px] text-zinc-600 text-left">残余時間予測: 算出中...</p>
+                <h2 class="text-base font-bold text-zinc-100 mb-2">相手ノードより直接暗号ファイルを受信中...</h2>
+                <p id="recv-status-message" class="text-xs text-zinc-400 mb-6 bg-zinc-900 p-2 border border-zinc-800 inline-block rounded max-w-full truncate">同期ネゴシエーション中...</p>
 
-                <div id="recv-route-restore-alert" class="hidden mt-4 bg-yellow-950/20 border border-yellow-900 text-yellow-400 p-3 rounded text-left text-xs flex items-center gap-2">
-                    <i data-lucide="git-branch" class="w-4 h-4 flex-shrink-0"></i>
+                <div class="w-full bg-zinc-900 border border-zinc-800 h-4 rounded overflow-hidden mb-3 p-0.5">
+                    <div id="recv-progress-bar" class="bg-emerald-500 h-full transition-all duration-150 rounded" style="width: 0%"></div>
+                </div>
+                <div class="grid grid-cols-3 text-xs font-mono text-zinc-400 mb-4 border-b border-zinc-800 pb-4">
+                    <div class="text-left"><span id="recv-progress-percent" class="text-lg font-bold text-emerald-400">0%</span></div>
+                    <div class="text-center self-end text-zinc-500">速度: <span id="recv-speed-label" class="text-zinc-300">--</span></div>
+                    <div class="text-right self-end text-zinc-500"><span id="recv-eta-label" class="text-zinc-300">残時間: 算出中...</span></div>
+                </div>
+
+                <div id="recv-route-restore-alert" class="hidden bg-yellow-950/40 border border-yellow-900 text-yellow-400 p-3 rounded text-left text-xs flex items-center gap-2">
+                    <i data-lucide="git-branch" class="w-4 h-4 flex-shrink-0 animate-spin"></i>
                     <span id="recv-restore-text">セッション断線を検知。ルートの再探索を行っています...</span>
                 </div>
+            </div>
+
+            <div id="panel-stage-extracted" class="view-section hidden-view bg-zinc-950 border-2 border-emerald-500 p-6 md:p-8 rounded-lg shadow-2xl text-center">
+                <div class="inline-flex items-center gap-2 bg-emerald-500 text-zinc-950 px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-4 shadow-lg">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i> Success / Decrypted
+                </div>
+                <h2 class="text-lg font-bold text-zinc-100 mb-1">暗号コンテナデータの完全展開に成功しました</h2>
+                <p class="text-xs text-zinc-400 mb-6">エンドツーエンド復号、及びバイナリの整合性検証（E2EE）が完了しました。</p>
+
+                <div id="integrity-signal-badge" class="inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-4">
+                    </div>
+
+                <div class="bg-zinc-900 border border-zinc-800 rounded p-4 text-left mb-6">
+                    <div class="text-[10px] text-zinc-500 font-bold mb-1 uppercase tracking-wider">復元アセット名</div>
+                    <p id="extracted-file-name" class="font-bold text-sm text-emerald-400 break-all mb-3"></p>
+                    <div id="extracted-hash-signature" class="hidden font-mono text-[10px] text-zinc-500 bg-zinc-950 border border-zinc-800 p-2 rounded break-all select-all"></div>
+                    
+                    <div id="extracted-media-preview" class="flex justify-center items-center rounded bg-zinc-950 min-h-[120px] mt-3 border border-zinc-800 p-2">
+                        </div>
+                </div>
+                
+                <a id="action-native-download" href="#" class="block w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black py-4 px-6 rounded shadow-xl transition-all mb-4 text-sm tracking-widest text-center uppercase border border-emerald-300">
+                    <i data-lucide="download" class="w-5 h-5 inline mr-1.5 -mt-1"></i> ローカルストレージに書き出す (保存)
+                </a>
+
+                <button id="action-trigger-duplex-reply" onclick="requestDuplexInversion()" class="block w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold py-3 px-4 rounded transition-all mb-4 text-xs tracking-wider border border-zinc-700">
+                    <i data-lucide="repeat" class="w-4 h-4 inline mr-1 text-emerald-400"></i> ファイルを受け取った状態で暗号チャットを開く
+                </button>
             </div>
 
             <div id="panel-stage-terminal-room" class="view-section hidden-view">
@@ -348,35 +382,6 @@
                     </button>
                     <span>※タブ閉鎖と同時にRAM領域内のバッファは消滅します</span>
                 </div>
-            </div>
-
-            <div id="panel-stage-extracted" class="view-section hidden-view text-center">
-                <i data-lucide="shield" class="w-10 h-10 text-emerald-400 mx-auto mb-3"></i>
-                <h2 class="text-sm font-bold text-zinc-200 mb-1">コンテナデータの展開に成功しました</h2>
-                <p class="text-xs text-zinc-500 mb-4">エンドツーエンド復号及びデータの整合性確認が完了しました。</p>
-
-                <div id="integrity-signal-badge" class="inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6">
-                    </div>
-
-                <div class="bg-zinc-950 border border-zinc-800 rounded p-4 text-left mb-6">
-                    <p id="extracted-file-name" class="font-bold text-xs text-zinc-300 break-all mb-2"></p>
-                    <div id="extracted-hash-signature" class="hidden font-mono text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800 p-2 rounded break-all select-all"></div>
-                    
-                    <div id="extracted-media-preview" class="flex justify-center items-center rounded bg-zinc-950 min-h-[140px] mt-4 border border-zinc-900 p-2">
-                        </div>
-                </div>
-                
-                <a id="action-native-download" href="#" class="block w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold py-3 px-4 rounded transition-all mb-3 text-xs tracking-widest text-center">
-                    <i data-lucide="download" class="w-4 h-4 inline mr-1"></i> ストレージへ書き出す
-                </a>
-
-                <button id="action-trigger-duplex-reply" onclick="requestDuplexInversion()" class="block w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold py-3 px-4 rounded transition-all mb-4 text-xs tracking-wider">
-                    <i data-lucide="repeat" class="w-4 h-4 inline mr-1 text-emerald-400"></i> このセッションのままファイルを返送
-                </button>
-                
-                <button onclick="window.location.href = window.location.pathname" class="text-xs text-zinc-500 hover:text-zinc-300 underline transition-colors">
-                    ターミナルメインへ戻る
-                </button>
             </div>
 
         </div>
@@ -533,6 +538,48 @@
             }, duration);
         }
 
+        // コピー関数の完全修正
+        async function executeUrlTextCopy() {
+            const copyInput = ui('display-sharable-url');
+            if (!copyInput || !copyInput.value) return;
+
+            try {
+                await navigator.clipboard.writeText(copyInput.value);
+                const btnText = ui('btn-copy-text');
+                if (btnText) {
+                    btnText.textContent = 'コピー完了';
+                    setTimeout(() => { btnText.textContent = 'コピー'; }, 2000);
+                }
+                dispatchDashboardAlert('暗号ノードURLをクリップボードに格納しました。', 'success');
+            } catch (err) {
+                console.error('Clipboard copy error:', err);
+                copyInput.select();
+                dispatchDashboardAlert('ブラウザ制限のため手動コピーしてください。', 'error');
+            }
+        }
+
+        // テスト用架空ファイルの自動インジェクション機能
+        function injectDummyTestAsset() {
+            try {
+                const targetSize = 1 * 1024 * 1024; // 1MB
+                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\n";
+                let rawText = "--- QuantumTunnel 自動生成ダミー通信テスト用アセット ---\n";
+                while (rawText.length < targetSize) {
+                    rawText += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                const blob = new Blob([rawText], { type: 'text/plain' });
+                // Fileオブジェクトに擬態させてキューへ格納
+                const dummyFile = new File([blob], `quantum_dummy_payload_${Math.floor(Math.random()*900+100)}.txt`, { type: 'text/plain' });
+                
+                internalStagedQueue = [dummyFile]; // 今回は即時単一テスト用にクリアして代入
+                renderStagedManifest();
+                dispatchDashboardAlert('1MBのテスト用ダミーファイルを構築・配置しました。', 'info');
+            } catch (e) {
+                console.error('Dummy injection failure:', e);
+                dispatchDashboardAlert('ダミーアセット生成に失敗しました。', 'error');
+            }
+        }
+
         async function blockSystemSleep() {
             try {
                 if ('wakeLock' in navigator) {
@@ -667,7 +714,7 @@
         // ========================================================
         async function commitBroadcastingTask() {
             if (internalStagedQueue.length === 0) {
-                dispatchDashboardAlert('投入資産が空です。', 'error');
+                dispatchDashboardAlert('投入資産が空です。ファイルをドロップするか、ダミーボタンを押してください。', 'error');
                 return;
             }
 
@@ -927,6 +974,7 @@
                 return;
             }
 
+            // 受信開始したらまず明示的に受信進捗パネルを表示
             transitionToView('panel-stage-receiving');
             ui('recv-status-message').textContent = '暗号トークン暗号解読シーケンス中...';
 
@@ -1069,7 +1117,7 @@
             };
 
             transitionToView('panel-stage-receiving');
-            ui('recv-status-message').textContent = `データパケット再構築中: "${meta.name}"`;
+            ui('recv-status-message').textContent = `データパケットを受信中: "${meta.name}" (${formatBytesToReadable(size)})`;
             
             if (meta.streamMode) {
                 try {
@@ -1111,7 +1159,7 @@
                     
                     if (bps > 0) {
                         const remainingSec = (expected - receiverDownloadState.receivedBytes) / bps;
-                        ui('recv-eta-label').textContent = `残余時間予測: 約 ${calculateRemainingTimeStr(remainingSec)}`;
+                        ui('recv-eta-label').textContent = `残時間: 約 ${calculateRemainingTimeStr(remainingSec)}`;
                     }
                 }
 
@@ -1132,7 +1180,7 @@
             const hexArea = ui('extracted-hash-signature');
             const preview = ui('extracted-media-preview');
 
-            badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6";
+            badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-4";
             badge.innerHTML = '';
             hexArea.classList.add('hidden');
             preview.innerHTML = '<p class="text-zinc-600 text-xs">プレビュー非対応インスペクション</p>';
@@ -1155,13 +1203,13 @@
                 badge.innerHTML = '';
 
                 if (computedHash && computedHash === receiverDownloadState.expectedHash) {
-                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6 bg-emerald-950 text-emerald-400 border border-emerald-900";
+                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-4 bg-emerald-950 text-emerald-400 border border-emerald-900";
                     badge.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> INTEGRITY MATCH (OK)`;
                 } else if (!receiverDownloadState.expectedHash) {
-                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6 bg-zinc-900 text-zinc-400 border border-zinc-800";
+                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-4 bg-zinc-900 text-zinc-400 border border-zinc-800";
                     badge.innerHTML = `<i data-lucide="minus" class="w-3.5 h-3.5"></i> ハッシュ署名なし`;
                 } else {
-                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6 bg-red-950 text-red-400 border border-red-900";
+                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-4 bg-red-950 text-red-400 border border-red-900";
                     badge.innerHTML = `<i data-lucide="x" class="w-3.5 h-3.5"></i> INTEGRITY ERROR (破損検出)`;
                 }
 
@@ -1183,13 +1231,13 @@
                 downloadBtn.classList.add('hidden');
             }
 
-            dispatchDashboardAlert('暗号パケットの結合・復元に成功しました。', 'success');
+            dispatchDashboardAlert('暗号パケットの結合・復元に成功しました。ダウンロード可能です。', 'success');
             lucide.createIcons();
 
             if (isDuplexSessionUpgraded) {
                 postSystemBroadcastLog('データアセットの受信・構築が完了しました。');
             } else {
-                upgradeToTerminalConsoleMode();
+                // 初回受信直後は強制的にチャットを開かず、ダウンロード画面で一度ストップさせ、ユーザーがボタンを押したらチャットに行く動線にします
             }
         }
 
@@ -1247,7 +1295,20 @@
         }
 
         // ========================================================
-        // 対話コンソール入出力イベントハンドラ
+        // 各種チェックサム計算用
+        // ========================================================
+        async function computeFileChecksum(blob) {
+            try {
+                const arrayBuffer = await blob.arrayBuffer();
+                const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // ========================================================
+        // 对話コンソール入出力イベントハンドラ
         // ========================================================
         function registerTerminalActionTriggers() {
             isConsoleListenerHooked = true;
@@ -1318,6 +1379,7 @@
 
         function pushTerminalLineNode(msgObj) {
             const box = ui('terminal-canvas-view');
+            if(!box) return;
             const layer = document.createElement('div');
             layer.className = 'flex flex-col w-full';
 
