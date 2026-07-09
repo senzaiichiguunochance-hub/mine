@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantumTunnel FileConnector</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.min.js"></script>
+    <style>
+        /* ビュー切り替え用の制御クラス */
+        .hidden-view { display: none !important; }
+        
+        /* サイバーグリッド背景テクスチャ */
+        .cyber-grid-bg {
+            background-color: #09090b;
+            background-image: linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* ドラッグオーバー時の高輝度エフェクト */
+        .drop-target-active { 
+            border-color: #10b981 !important; 
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+            background-color: rgba(6, 78, 59, 0.2) !important; 
+        }
+
+        /* 通知システム配置スタック */
+        #notification-center {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            pointer-events: none;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .toast-bubble {
+            background: #18181b;
+            color: #e4e4e7;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translateX(50px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            font-size: 13px;
+            border-left: 4px solid #52525b;
+        }
+        .toast-bubble.active { opacity: 1; transform: translateX(0); }
+        .toast-bubble.success { border-left-color: #10b981; background: #022c22; }
+        .toast-bubble.error { border-left-color: #ef4444; background: #450a0a; }
+        .toast-bubble.info { border-left-color: #06b6d4; background: #0c4a6e; }
+
+        /* マトリクスQRコード出力枠 */
+        #matrix-qr-canvas img,
+        #matrix-qr-canvas canvas {
+            margin: 0 auto;
+            border: 4px solid #27272a;
+            padding: 6px;
+            background: #ffffff;
+            border-radius: 4px;
+        }
+
+        /* スクロールバーのカスタマイズ */
+        .custom-terminal-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-terminal-scroll::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; }
+        .custom-terminal-scroll::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        /* トグルスイッチ基盤 */
+        .pipeline-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 22px;
+        }
+        .pipeline-switch input { opacity: 0; width: 0; height: 0; }
+        .pipeline-slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #27272a; transition: .2s; border-radius: 4px;
+            border: 1px solid #3f3f46;
+        }
+        .pipeline-slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: #a1a1aa; transition: .2s; border-radius: 2px;
+        }
+        input:checked + .pipeline-slider { background-color: #065f46; border-color: #10b981; }
+        input:checked + .pipeline-slider:before { transform: translateX(18px); background-color: #10b981; }
+
+        /* 通信ログ・コンソール用 */
+        .terminal-log-row {
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+            background: #09090b;
+            border: 1px solid #27272a;
+        }
+        .terminal-canvas-body {
+            flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .packet-node {
+            max-width: 85%; padding: 12px; border-radius: 4px; font-size: 13px; line-height: 1.6;
+        }
+        .packet-node.outbound { align-self: flex-end; background: #065f46; color: #e6f4ea; border: 1px solid #10b981; }
+        .packet-node.inbound { align-self: flex-start; background: #18181b; color: #e4e4e7; border: 1px solid #27272a; }
+        .packet-node.system-broadcast { align-self: center; background: #1c1917; color: #d6d3d1; font-size: 11px; border: 1px solid #44403c; width: 100%; text-align: center; }
+        
+        .packet-node.binary-file { width: 260px; }
+        .packet-node.outbound.binary-file { background: #022c22; border-color: #047857; }
+        .packet-node.inbound.binary-file { background: #09090b; border-color: #3f3f46; }
+
+        /* モバイル対応のブレイクポイント */
+        @media (max-width: 768px) {
+            .desktop-split-layout { flex-direction: column; }
+            .sidebar-status-panel { width: 100% !important; border-right: none !important; border-bottom: 1px solid #27272a; }
+        }
+    </style>
+</head>
+<body class="cyber-grid-bg text-zinc-300 font-mono min-h-screen flex items-center justify-center p-0 md:p-6">
+
+    <div id="notification-center"></div>
+
+    <div class="w-full max-w-5xl bg-zinc-950 md:border md:border-zinc-800 shadow-2xl flex desktop-split-layout min-h-screen md:min-h-[680px] md:rounded-lg overflow-hidden">
+        
+        <div class="w-80 bg-zinc-900/60 border-r border-zinc-800 p-6 flex flex-col justify-between sidebar-status-panel flex-shrink-0">
+            <div>
+                <div class="flex items-center gap-2 text-emerald-400 font-bold tracking-widest text-sm border-b border-zinc-800 pb-4 mb-6">
+                    <i data-lucide="activity" class="w-4 h-4 animate-pulse"></i>
+                    QT-CONNECTOR v2.0
+                </div>
+                
+                <div class="space-y-4 text-xs">
+                    <div>
+                        <span class="text-zinc-500 block mb-1">プロトコル規格:</span>
+                        <div class="bg-zinc-950 p-2 border border-zinc-800 text-zinc-400 flex items-center gap-1.5 rounded">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                            P2P WebRTC / AES-GCM
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-zinc-500 block mb-1">セキュリティレイヤー:</span>
+                        <p class="text-zinc-400 leading-relaxed">仲介サーバー上に生データ及び復号鍵を残さない完全スタンドアロン型のエンドツーエンド暗号化が常時適用されます。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-zinc-800 text-[11px] text-zinc-500 space-y-1">
+                <div>ローカルノード保護: 有効</div>
+                <div>メモリバッファクリーン: 待機中</div>
+            </div>
+        </div>
+
+        <div class="flex-1 p-6 md:p-8 flex flex-col justify-center bg-zinc-900/20">
+
+            <div id="protocol-anomaly-banner" class="hidden bg-red-950/20 border border-red-900 text-red-400 p-4 mb-6 rounded text-xs">
+                <div class="flex items-start gap-2">
+                    <i data-lucide="alert-octagon" class="w-4 h-4 flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <span class="font-bold block text-red-200 mb-1">非セキュア環境の検出</span>
+                        ローカルファイルパス形式で稼働しています。この状態では外部ネットワーク上のピアとハンドシェイクを行うことはできません。Webサーバー環境を中継させてください。
+                    </div>
+                </div>
+            </div>
+
+            <div id="panel-stage-input" class="view-section hidden-view">
+                <div id="session-upgrade-banner" class="hidden bg-emerald-950/20 border border-emerald-900 text-emerald-400 p-3 mb-6 rounded text-xs flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i>
+                    <span><b>常時双方向パイプライン確立済</b>: このまま追加アセットのデリバリーが可能です。</span>
+                </div>
+
+                <h2 class="text-lg font-bold text-zinc-100 mb-2 flex items-center gap-2">
+                    <i data-lucide="terminal" class="w-4 h-4 text-emerald-500"></i>
+                    トランスミッションアセット設定
+                </h2>
+                <p class="text-xs text-zinc-400 mb-6">対象となるファイルを投入してください。自動的にセキュアコンテナ化が実行されます。</p>
+
+                <div id="drop-zone-mesh" tabindex="0" class="border border-dashed border-zinc-700 bg-zinc-950 rounded p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-zinc-900/30 transition-all mb-6 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <i data-lucide="upload-cloud" class="w-10 h-10 text-zinc-500 mx-auto mb-3"></i>
+                    <p class="text-sm font-bold text-zinc-300">ファイルをここにドラッグイン、またはクリック</p>
+                    <p class="text-[11px] text-zinc-500 mt-1">複数選択時は単一コンテナに自動結合</p>
+                    <input type="file" id="hidden-file-picker" class="hidden" multiple>
+                </div>
+
+                <div id="staged-manifest-wrapper" class="hidden mb-6"></div>
+                <button id="action-add-more-files" class="hidden w-full text-xs text-emerald-400 hover:text-emerald-300 font-bold mb-6 py-2 border border-dashed border-emerald-900 bg-emerald-950/10 transition-colors rounded">
+                    + 構成資産を追加登録
+                </button>
+
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-zinc-400 mb-2 flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3.5 h-3.5"></i> リンク生存期間
+                        </label>
+                        <select id="config-time-limit" class="w-full bg-zinc-950 border border-zinc-800 text-zinc-300 rounded p-2.5 text-xs focus:border-emerald-500 outline-none">
+                            <option value="5">300秒 (5分間)</option>
+                            <option value="15" selected>900秒 (15分間)</option>
+                            <option value="30">1800秒 (30分間)</option>
+                            <option value="60">3600秒 (1時間)</option>
+                            <option value="180">10800秒 (3 hours)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-zinc-400 mb-2 flex items-center gap-1.5">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5"></i> ストリーミング・パイプライン
+                        </label>
+                        <div class="bg-zinc-950 border border-zinc-800 rounded p-2 flex items-center justify-between h-[38px]">
+                            <span class="text-[11px] text-zinc-500">StreamSaverを有効化</span>
+                            <label class="pipeline-switch" aria-label="ストリームトグル">
+                                <input type="checkbox" id="config-use-streamsaver">
+                                <span class="pipeline-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="notice-streamsaver-active" class="hidden mb-6 text-[11px] text-amber-400 bg-amber-950/20 border border-amber-900 p-3 rounded">
+                    ※HTTPSプロトコル必須。ギガバイト級データをRAMを消費せずに直列保存します（チェックサム検証はスキップ）。
+                </div>
+
+                <button onclick="commitBroadcastingTask()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold py-3 px-4 rounded shadow-lg transition-all flex justify-center items-center gap-2 text-xs tracking-widest">
+                    <i data-lucide="radio" class="w-4 h-4"></i> 暗号通信チャネルを開放する
+                </button>
+            </div>
+
+            <div id="panel-stage-compiling" class="view-section hidden-view text-center py-6">
+                <i data-lucide="loader" class="w-10 h-10 text-emerald-500 mx-auto mb-4 animate-spin"></i>
+                <h2 class="text-sm font-bold text-zinc-200 mb-1" id="compile-status-title">セキュリティペイロード生成中...</h2>
+                <p class="text-xs text-zinc-500 mb-6" id="compile-status-desc">ハッシュツリー構成及び暗号鍵のマトリクス結合中</p>
+                <div class="w-full bg-zinc-900 border border-zinc-800 h-2 rounded overflow-hidden">
+                    <div id="compile-progress-bar" class="bg-emerald-500 h-full transition-all duration-150" style="width: 0%"></div>
+                </div>
+                <p id="compile-progress-string" class="text-xs font-mono text-emerald-400 mt-2">0%</p>
+            </div>
+
+            <div id="panel-stage-broadcasting" class="view-section hidden-view">
+                <h2 class="text-base font-bold text-zinc-100 mb-1 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+                    外部接続要求受付中
+                </h2>
+                <p class="text-xs text-zinc-400 mb-6">ピア接続を確立するため、以下のトークン情報を相手先ノードに共有してください。</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 items-center">
+                    <div class="bg-zinc-950 border border-zinc-800 p-4 rounded text-center">
+                        <div id="matrix-qr-canvas"></div>
+                        <p class="text-[10px] text-zinc-500 mt-2">光学スキャン用二次元マトリクス</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-[11px] text-zinc-500 block mb-1">ノードアクセスURL:</span>
+                            <div class="flex gap-2">
+                                <input type="text" id="display-sharable-url" readonly class="w-full bg-zinc-950 border border-zinc-800 text-zinc-400 rounded p-2 text-xs focus:outline-none">
+                                <button onclick="executeUrlTextCopy()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-4 rounded text-xs transition-colors whitespace-nowrap flex items-center gap-1">
+                                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> <span id="btn-copy-text">コピー</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-zinc-950 border border-zinc-800 p-3 rounded text-[11px] text-zinc-400 leading-relaxed">
+                            URL末尾の <code class="text-emerald-400">#k=</code> 以降はエンドツーエンド復号用のシークレットトークンであり、シグナリングサーバーを一切通過しません。
+                        </div>
+                    </div>
+                </div>
+
+                <div id="transfer-metrics-panel" class="hidden bg-zinc-950 border border-zinc-800 p-4 rounded mb-6">
+                    <div class="flex justify-between text-xs text-zinc-400 mb-2">
+                        <span>P2Pデータパイプライン射出中...</span>
+                        <span id="transfer-progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-zinc-900 h-1.5 rounded overflow-hidden">
+                        <div id="transfer-progress-bar" class="bg-emerald-500 h-full transition-all duration-150" style="width: 0%"></div>
+                    </div>
+                    <p id="transfer-speed-label" class="text-[11px] text-zinc-500 mt-1.5">データレート: --</p>
+                </div>
+
+                <div class="bg-zinc-950 border border-zinc-800 p-4 rounded text-center mb-6">
+                    <span class="text-[11px] text-zinc-500 block mb-1">この暗号チャネルが自動消滅するまでの時間</span>
+                    <span id="countdown-clock-timer" class="text-2xl font-bold font-mono text-emerald-400">--:--</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="btn-trigger-another-send" onclick="returnToInitialState()" class="hidden flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold py-2.5 px-4 rounded transition-all text-xs">
+                        新しい資産をシグナルへ追加
+                    </button>
+                    <button onclick="terminateSessionHard('管理ユーザーの命令によりチャット及び共有ノードは完全閉鎖されました。')" class="flex-1 bg-zinc-950 hover:bg-red-950/40 border border-zinc-800 hover:border-red-900 text-zinc-400 hover:text-red-400 font-bold py-2.5 px-4 rounded transition-all text-xs">
+                        全通信チャネルの完全破棄
+                    </button>
+                </div>
+            </div>
+
+            <div id="panel-stage-receiving" class="view-section hidden-view text-center py-6">
+                <i data-lucide="unplug" class="w-10 h-10 text-emerald-400 mx-auto mb-4 animate-pulse"></i>
+                <h2 class="text-sm font-bold text-zinc-200 mb-1">リモートパイプラインより受信中</h2>
+                <p id="recv-status-message" class="text-xs text-zinc-500 mb-6">相手先ホストとの同期ネゴシエーション中...</p>
+
+                <div class="w-full bg-zinc-950 border border-zinc-800 h-3 rounded overflow-hidden mb-2">
+                    <div id="recv-progress-bar" class="bg-emerald-500 h-full transition-all duration-150" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs font-mono text-zinc-400 mb-2">
+                    <span id="recv-progress-percent">0%</span>
+                    <span id="recv-speed-label">--</span>
+                </div>
+                <p id="recv-eta-label" class="text-[11px] text-zinc-600 text-left">残余時間予測: 算出中...</p>
+
+                <div id="recv-route-restore-alert" class="hidden mt-4 bg-yellow-950/20 border border-yellow-900 text-yellow-400 p-3 rounded text-left text-xs flex items-center gap-2">
+                    <i data-lucide="git-branch" class="w-4 h-4 flex-shrink-0"></i>
+                    <span id="recv-restore-text">セッション断線を検知。ルートの再探索を行っています...</span>
+                </div>
+            </div>
+
+            <div id="panel-stage-terminal-room" class="view-section hidden-view">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
+                        <i data-lucide="terminal" class="w-4 h-4 text-emerald-500"></i>
+                        暗号化パケット通信ログ
+                    </h2>
+                    <span id="terminal-session-timer" class="text-xs text-zinc-500 font-mono">--:--</span>
+                </div>
+
+                <div class="terminal-log-row rounded">
+                    <div id="terminal-canvas-view" class="terminal-canvas-body custom-terminal-scroll">
+                        </div>
+
+                    <div class="p-3 bg-zinc-950 border-t border-zinc-800 flex items-end gap-2">
+                        <button id="btn-terminal-file-inject" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 p-2.5 rounded border border-zinc-800 flex-shrink-0" title="オブジェクトのインジェクト">
+                            <i data-lucide="paperclip" class="w-4 h-4"></i>
+                        </button>
+                        <input type="file" id="terminal-hidden-uploader" class="hidden" multiple>
+                        
+                        <textarea id="terminal-msg-input" class="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded p-2 text-xs focus:outline-none focus:border-emerald-500 resize-none max-h-24 min-h-[36px] custom-terminal-scroll" placeholder="セキュアテキストを入力..." rows="1"></textarea>
+                        
+                        <button id="btn-terminal-dispatch" class="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 p-2.5 rounded flex-shrink-0 transition-colors" disabled>
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-zinc-500">
+                    <button onclick="terminateSessionHard('セッションの閉鎖要求が受領されました。')" class="underline hover:text-red-400 transition-colors">
+                        このプライベート回線を切断する
+                    </button>
+                    <span>※タブ閉鎖と同時にRAM領域内のバッファは消滅します</span>
+                </div>
+            </div>
+
+            <div id="panel-stage-extracted" class="view-section hidden-view text-center">
+                <i data-lucide="shield" class="w-10 h-10 text-emerald-400 mx-auto mb-3"></i>
+                <h2 class="text-sm font-bold text-zinc-200 mb-1">コンテナデータの展開に成功しました</h2>
+                <p class="text-xs text-zinc-500 mb-4">エンドツーエンド復号及びデータの整合性確認が完了しました。</p>
+
+                <div id="integrity-signal-badge" class="inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6">
+                    </div>
+
+                <div class="bg-zinc-950 border border-zinc-800 rounded p-4 text-left mb-6">
+                    <p id="extracted-file-name" class="font-bold text-xs text-zinc-300 break-all mb-2"></p>
+                    <div id="extracted-hash-signature" class="hidden font-mono text-[10px] text-zinc-500 bg-zinc-900 border border-zinc-800 p-2 rounded break-all select-all"></div>
+                    
+                    <div id="extracted-media-preview" class="flex justify-center items-center rounded bg-zinc-950 min-h-[140px] mt-4 border border-zinc-900 p-2">
+                        </div>
+                </div>
+                
+                <a id="action-native-download" href="#" class="block w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950 font-bold py-3 px-4 rounded transition-all mb-3 text-xs tracking-widest text-center">
+                    <i data-lucide="download" class="w-4 h-4 inline mr-1"></i> ストレージへ書き出す
+                </a>
+
+                <button id="action-trigger-duplex-reply" onclick="requestDuplexInversion()" class="block w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold py-3 px-4 rounded transition-all mb-4 text-xs tracking-wider">
+                    <i data-lucide="repeat" class="w-4 h-4 inline mr-1 text-emerald-400"></i> このセッションのままファイルを返送
+                </button>
+                
+                <button onclick="window.location.href = window.location.pathname" class="text-xs text-zinc-500 hover:text-zinc-300 underline transition-colors">
+                    ターミナルメインへ戻る
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // グローバルコア構成変数群 (隠蔽化および置換)
+        // ========================================================
+        const PIPELINE_CHUNK_SIZE = 64 * 1024; 
+        const MAXIMUM_HASH_LIMIT = 500 * 1024 * 1024; 
+        const RECONNECT_RETRY_LIMIT = 3; 
+        const dynamicAlertRegistry = new Map(); 
+
+        let peerInstance = null;
+        let localBinaryBlob = null; 
+        let localBlobIdentifier = ''; 
+        let expectedVerificationHash = null; 
+        let internalStagedQueue = []; 
+        let globalClockIntervalId = null;
+        let systemScreenWakeLock = null;
+        let sessionSelfDestructEpoch = null;
+        let streamingPipelineEnabled = false; 
+        let sessionSymmetricKey = null; 
+        let serializedKeyToken = ''; 
+        let assignedPeerNodeId = null; 
+        let activeDataConnection = null; 
+        let connectionRetryAttemptCount = 0;
+        let isPipeTransmittingActive = false; 
+        let isDuplexSessionUpgraded = false; 
+        let isConsoleListenerHooked = false; 
+        const sessionFileRegistry = new Map(); 
+
+        let receiverDownloadState = null; 
+
+        if (typeof streamSaver !== 'undefined') {
+            streamSaver.mitm = 'https://jimmywarting.github.io/StreamSaver.js/mitm.html?version=2.0.0';
+        }
+
+        // ========================================================
+        // 暗号プロトコルエンジン (AES-GCM 256bit)
+        // ========================================================
+        async function createSymmetricCryptoKey() {
+            return await crypto.subtle.generateKey(
+                { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']
+            );
+        }
+
+        async function exportKeyToToken(cryptoKey) {
+            const buffer = await crypto.subtle.exportKey('raw', cryptoKey);
+            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        async function importKeyFromToken(tokenString) {
+            const normalized = tokenString.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+            const binary = atob(padded);
+            const array = Uint8Array.from(binary, c => c.charCodeAt(0));
+            return await crypto.subtle.importKey(
+                'raw', array, { name: 'AES-GCM' }, true, ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptBinaryChunk(cryptoKey, rawBuffer) {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const ciphertext = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv: iv }, cryptoKey, rawBuffer
+            );
+            const pack = new Uint8Array(iv.length + ciphertext.byteLength);
+            pack.set(iv, 0);
+            pack.set(new Uint8Array(ciphertext), iv.length);
+            return pack.buffer;
+        }
+
+        async function decryptBinaryChunk(cryptoKey, packedBuffer) {
+            const view = new Uint8Array(packedBuffer);
+            const iv = view.slice(0, 12);
+            const ciphertext = view.slice(12);
+            return await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: iv }, cryptoKey, ciphertext
+            );
+        }
+
+        async function encryptStringData(cryptoKey, plaintext) {
+            const bytes = new TextEncoder().encode(plaintext);
+            return await encryptBinaryChunk(cryptoKey, bytes.buffer);
+        }
+
+        async function decryptStringData(cryptoKey, cipherBuffer) {
+            const raw = await decryptBinaryChunk(cryptoKey, cipherBuffer);
+            return new TextDecoder().decode(raw);
+        }
+
+        async function parseBlobChecksum(targetBlob, progressMonitor) {
+            if (targetBlob.size > MAXIMUM_HASH_LIMIT) return null;
+            const buffer = await targetBlob.arrayBuffer();
+            if (progressMonitor) progressMonitor(0.5);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            if (progressMonitor) progressMonitor(1.0);
+            return Array.from(new Uint8Array(hashBuffer))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // ========================================================
+        // UIヘルパーユーティリティ
+        // ========================================================
+        const ui = (id) => document.getElementById(id);
+        
+        const transitionToView = (viewId) => {
+            document.querySelectorAll('.view-section').forEach(v => v.classList.add('hidden-view'));
+            ui(viewId).classList.remove('hidden-view');
+            setTimeout(() => lucide.createIcons(), 0);
+        };
+
+        function formatBytesToReadable(bytes, decimals = 2) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(decimals < 0 ? 0 : decimals)) + ' ' + units[i];
+        }
+
+        function calculateRemainingTimeStr(sec) {
+            if (!isFinite(sec) || sec < 0) return '--';
+            if (sec < 60) return `${Math.ceil(sec)}s`;
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return `${m}m ${s.toString().padStart(2, '0')}s`;
+        }
+
+        function escapeMarkupChars(str) {
+            return String(str).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
+        function dispatchDashboardAlert(msg, type = 'success', duration = 3000) {
+            const now = Date.now();
+            const lastSeen = dynamicAlertRegistry.get(msg);
+            if (lastSeen && now - lastSeen < 3000) return;
+            dynamicAlertRegistry.set(msg, now);
+
+            const container = ui('notification-center');
+            const element = document.createElement('div');
+            element.className = `toast-bubble ${type}`;
+            element.textContent = msg;
+            container.appendChild(element);
+            
+            requestAnimationFrame(() => element.classList.add('active'));
+            setTimeout(() => {
+                element.classList.remove('active');
+                setTimeout(() => element.remove(), 400);
+            }, duration);
+        }
+
+        async function blockSystemSleep() {
+            try {
+                if ('wakeLock' in navigator) {
+                    systemScreenWakeLock = await navigator.wakeLock.request('screen');
+                    document.addEventListener('visibilitychange', recheckWakeLockStatus);
+                }
+            } catch (e) {
+                console.warn('WakeLock registration fault:', e);
+            }
+        }
+
+        async function recheckWakeLockStatus() {
+            if (systemScreenWakeLock !== null && document.visibilityState === 'visible') {
+                try {
+                    systemScreenWakeLock = await navigator.wakeLock.request('screen');
+                } catch (err) {
+                    console.error('WakeLock restoration failed:', err);
+                }
+            }
+        }
+
+        function clearSystemSleepBlock() {
+            if (systemScreenWakeLock) {
+                systemScreenWakeLock.release().then(() => {
+                    systemScreenWakeLock = null;
+                });
+                document.removeEventListener('visibilitychange', recheckWakeLockStatus);
+            }
+        }
+
+        function invokeChannelCountdown() {
+            const currentEpoch = Date.now();
+            const deltaSeconds = Math.max(0, Math.floor((sessionSelfDestructEpoch - currentEpoch) / 1000));
+            
+            const timeString = calculateRemainingTimeStr(deltaSeconds);
+            if (ui('countdown-clock-timer')) ui('countdown-clock-timer').textContent = timeString;
+            if (ui('terminal-session-timer')) ui('terminal-session-timer').textContent = timeString;
+
+            if (deltaSeconds <= 0) {
+                clearInterval(globalClockIntervalId);
+                terminateSessionHard('チャネル生存時間を超過したため、セッションは自動クリアされました。');
+            }
+        }
+
+        // ========================================================
+        // ドラッグ＆ドロップインタラクション処理
+        // ========================================================
+        function initializeDropZoneInteractivity() {
+            const zone = ui('drop-zone-mesh');
+            const picker = ui('hidden-file-picker');
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('drop-target-active');
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('drop-target-active');
+            });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drop-target-active');
+                if (e.dataTransfer.files.length > 0) {
+                    pushFilesToPipeline(e.dataTransfer.files);
+                }
+            });
+            zone.addEventListener('click', () => picker.click());
+            zone.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    picker.click();
+                }
+            });
+            picker.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    pushFilesToPipeline(e.target.files);
+                }
+            });
+
+            ui('action-add-more-files').addEventListener('click', () => picker.click());
+        }
+
+        function pushFilesToPipeline(fileList) {
+            for (let i = 0; i < fileList.length; i++) {
+                internalStagedQueue.push(fileList[i]);
+            }
+            renderStagedManifest();
+        }
+
+        function removeFileFromPipeline(index) {
+            internalStagedQueue.splice(index, 1);
+            renderStagedManifest();
+        }
+
+        function renderStagedManifest() {
+            const manifestPanel = ui('staged-manifest-wrapper');
+            const btnAddMore = ui('action-add-more-files');
+            
+            if (internalStagedQueue.length === 0) {
+                manifestPanel.innerHTML = '';
+                manifestPanel.classList.add('hidden');
+                btnAddMore.classList.add('hidden');
+                return;
+            }
+
+            manifestPanel.classList.remove('hidden');
+            if (!isDuplexSessionUpgraded) {
+                btnAddMore.classList.remove('hidden');
+            }
+
+            let html = '<div class="space-y-2 max-h-[160px] overflow-y-auto custom-terminal-scroll pr-1">';
+            internalStagedQueue.forEach((file, idx) => {
+                html += `
+                    <div class="bg-zinc-950 border border-zinc-800 text-zinc-300 flex items-center justify-between p-2.5 rounded text-xs">
+                        <span class="truncate flex-1 font-mono" title="${escapeMarkupChars(file.name)}">
+                            ${escapeMarkupChars(file.name)} <span class="text-zinc-600">(${formatBytesToReadable(file.size)})</span>
+                        </span>
+                        ${isDuplexSessionUpgraded ? '' : `
+                        <button type="button" class="text-zinc-500 hover:text-red-400 p-1 outline-none" onclick="removeFileFromPipeline(${idx})" aria-label="パージ">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                        `}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            manifestPanel.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // ========================================================
+        // 配信ノードパブリッシュ処理
+        // ========================================================
+        async function commitBroadcastingTask() {
+            if (internalStagedQueue.length === 0) {
+                dispatchDashboardAlert('投入資産が空です。', 'error');
+                return;
+            }
+
+            transitionToView('panel-stage-compiling');
+            ui('compile-status-title').textContent = '暗号マトリクス生成中...';
+            ui('compile-progress-string').textContent = '0%';
+            ui('compile-progress-bar').style.width = '0%';
+
+            try {
+                if (!sessionSymmetricKey) {
+                    sessionSymmetricKey = await createSymmetricCryptoKey();
+                    serializedKeyToken = await exportKeyToToken(sessionSymmetricKey);
+                }
+
+                streamingPipelineEnabled = ui('config-use-streamsaver').checked;
+
+                if (internalStagedQueue.length === 1) {
+                    const singleFile = internalStagedQueue[0];
+                    localBlobIdentifier = singleFile.name;
+                    
+                    if (streamingPipelineEnabled) {
+                        localBinaryBlob = singleFile; 
+                        expectedVerificationHash = null;
+                    } else {
+                        ui('compile-status-title').textContent = 'バイナリ整合性検証コード算出中...';
+                        expectedVerificationHash = await parseBlobChecksum(singleFile, (ratio) => {
+                            const p = Math.floor(ratio * 100);
+                            ui('compile-progress-string').textContent = `${p}%`;
+                            ui('compile-progress-bar').style.width = `${p}%`;
+                        });
+                        localBinaryBlob = singleFile;
+                    }
+                } else {
+                    ui('compile-status-title').textContent = '複数オブジェクトのアーカイブ構造化中...';
+                    const archive = new JSZip();
+                    internalStagedQueue.forEach(f => archive.file(f.name, f));
+                    
+                    const compressed = await archive.generateAsync({ type: 'blob' }, (meta) => {
+                        const p = Math.floor(meta.percent);
+                        ui('compile-progress-string').textContent = `${p}%`;
+                        ui('compile-progress-bar').style.width = `${p}%`;
+                    });
+
+                    localBlobIdentifier = 'network_transmission_pack.zip';
+                    
+                    if (streamingPipelineEnabled) {
+                        localBinaryBlob = compressed;
+                        expectedVerificationHash = null;
+                    } else {
+                        ui('compile-status-title').textContent = 'アーカイブ整合性コード算出中...';
+                        expectedVerificationHash = await parseBlobChecksum(compressed, (ratio) => {
+                            const p = Math.floor(ratio * 100);
+                            ui('compile-progress-string').textContent = `${p}%`;
+                            ui('compile-progress-bar').style.width = `${p}%`;
+                        });
+                        localBinaryBlob = compressed;
+                    }
+                }
+
+                const minutes = parseInt(ui('config-time-limit').value, 10) || 15;
+                sessionSelfDestructEpoch = Date.now() + minutes * 60 * 1000;
+
+                if (isDuplexSessionUpgraded) {
+                    transitionToView('panel-stage-broadcasting');
+                    resetTransferInterfaceDisplays();
+                    
+                    if (activeDataConnection && activeDataConnection.open) {
+                        pumpDataThroughPipeline();
+                    } else {
+                        dispatchDashboardAlert('対向ピアとのセッションが切断されています。', 'error');
+                    }
+                } else {
+                    initializeBrokerInstance();
+                }
+
+            } catch (err) {
+                console.error(err);
+                dispatchDashboardAlert('暗号コンテナ生成エラー', 'error');
+                transitionToView('panel-stage-input');
+            }
+        }
+
+        function initializeBrokerInstance() {
+            if (peerInstance) return;
+
+            peerInstance = new Peer({
+                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+            });
+
+            peerInstance.on('open', (id) => {
+                assignedPeerNodeId = id;
+                const base = window.location.origin + window.location.pathname;
+                const completeUrl = `${base}?p=${id}&m=${streamingPipelineEnabled ? 's' : 'n'}#k=${serializedKeyToken}`;
+                
+                ui('display-sharable-url').value = completeUrl;
+
+                const qrContainer = ui('matrix-qr-canvas');
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, {
+                    text: completeUrl,
+                    width: 200,
+                    height: 200,
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+
+                transitionToView('panel-stage-broadcasting');
+                resetTransferInterfaceDisplays();
+
+                clearInterval(globalClockIntervalId);
+                globalClockIntervalId = setInterval(invokeChannelCountdown, 1000);
+                invokeChannelCountdown();
+                blockSystemSleep();
+            });
+
+            peerInstance.on('connection', (conn) => {
+                if (activeDataConnection) {
+                    conn.on('open', () => {
+                        conn.send({ type: 'SIGNAL_REJECT', reason: 'BUSY' });
+                        setTimeout(() => conn.close(), 500);
+                    });
+                    return;
+                }
+                bindIncomingConnectionEvents(conn);
+            });
+
+            peerInstance.on('error', (err) => {
+                console.error('Broker Fault:', err);
+                dispatchDashboardAlert(`システムエラーが発生しました: ${err.type}`, 'error');
+            });
+        }
+
+        function bindIncomingConnectionEvents(conn) {
+            activeDataConnection = conn;
+            
+            dispatchDashboardAlert('リモートピアによるハンドシェイク要請を承認。', 'info');
+            
+            conn.on('open', () => {
+                connectionRetryAttemptCount = 0;
+                pumpDataThroughPipeline();
+            });
+
+            conn.on('data', async (payload) => {
+                await dispatchIncomingPayload(payload);
+            });
+
+            conn.on('close', () => {
+                handleConnectionTeardown('対向ノードとの仮想セッションが途絶しました。');
+            });
+
+            conn.on('error', (err) => {
+                console.error('DataPipe Error:', err);
+            });
+        }
+
+        function resetTransferInterfaceDisplays() {
+            ui('transfer-metrics-panel').classList.add('hidden');
+            ui('transfer-progress-bar').style.width = '0%';
+            ui('transfer-progress-percent').textContent = '0%';
+            ui('transfer-speed-label').textContent = 'データレート: --';
+        }
+
+        // ========================================================
+        // 伝送パイプラインデータ送出コア
+        // ========================================================
+        async function pumpDataThroughPipeline() {
+            if (isPipeTransmittingActive) return;
+            isPipeTransmittingActive = true;
+
+            ui('transfer-metrics-panel').classList.remove('hidden');
+
+            try {
+                activeDataConnection.send({
+                    type: 'META_INIT',
+                    name: localBlobIdentifier,
+                    size: localBinaryBlob.size,
+                    hash: expectedVerificationHash,
+                    streamMode: streamingPipelineEnabled
+                });
+
+                const totalBytes = localBinaryBlob.size;
+                let bytesOffset = 0;
+                let chunkSeq = 0;
+                let startTime = Date.now();
+
+                while (bytesOffset < totalBytes) {
+                    if (!activeDataConnection || !activeDataConnection.open) {
+                        throw new Error('Connection aborted during pipeline flush.');
+                    }
+
+                    if (activeDataConnection.bufferedAmount > 8 * 1024 * 1024) {
+                        await new Promise(r => setTimeout(r, 45));
+                        continue;
+                    }
+
+                    const endPos = Math.min(bytesOffset + PIPELINE_CHUNK_SIZE, totalBytes);
+                    const slice = localBinaryBlob.slice(bytesOffset, endPos);
+                    const buffer = await slice.arrayBuffer();
+
+                    const encryptedData = await encryptBinaryChunk(sessionSymmetricKey, buffer);
+
+                    activeDataConnection.send({
+                        type: 'STREAM_PACKET',
+                        index: chunkSeq,
+                        data: encryptedData
+                    });
+
+                    bytesOffset = endPos;
+                    chunkSeq++;
+
+                    if (chunkSeq % 12 === 0 || bytesOffset === totalBytes) {
+                        const pct = Math.floor((bytesOffset / totalBytes) * 100);
+                        ui('transfer-progress-bar').style.width = `${pct}%`;
+                        ui('transfer-progress-percent').textContent = `${pct}%`;
+
+                        const duration = (Date.now() - startTime) / 1000;
+                        if (duration > 0.5) {
+                            const bps = bytesOffset / duration;
+                            ui('transfer-speed-label').textContent = `データレート: ${formatBytesToReadable(bps)}/s`;
+                        }
+                    }
+                }
+
+                activeDataConnection.send({ type: 'STREAM_EOF' });
+                dispatchDashboardAlert('全パケットの送出プロセスが正常終了。', 'success');
+
+                if (isDuplexSessionUpgraded) {
+                    postSystemBroadcastLog('データアセットの送信が正常に完了しました。');
+                    ui('btn-trigger-another-send').classList.remove('hidden');
+                } else {
+                    upgradeToTerminalConsoleMode();
+                }
+
+            } catch (err) {
+                console.error(err);
+                dispatchDashboardAlert('トランスミッション中に例外が発生しました。', 'error');
+            } finally {
+                isPipeTransmittingActive = false;
+            }
+        }
+
+        // ========================================================
+        // 受信初期接続クエリデコード
+        // ========================================================
+        function inspectInboundRoutingParams() {
+            const params = new URLSearchParams(window.location.search);
+            const hash = window.location.hash;
+
+            const targetId = params.get('p');
+            const mode = params.get('m');
+
+            if (!targetId) {
+                transitionToView('panel-stage-input');
+                initializeDropZoneInteractivity();
+                if (window.location.protocol === 'file:') {
+                    ui('protocol-anomaly-banner').classList.remove('hidden');
+                }
+                return;
+            }
+
+            transitionToView('panel-stage-receiving');
+            ui('recv-status-message').textContent = '暗号トークン暗号解読シーケンス中...';
+
+            if (!hash.startsWith('#k=')) {
+                dispatchDashboardAlert('認証キー情報が不足しています。', 'error');
+                ui('recv-status-message').textContent = '認証暗号鍵がURLに含まれていないため、デコード不能です。';
+                return;
+            }
+
+            const cleanKeyToken = hash.substring(3);
+            connectToSourceBroadcastNode(targetId, mode === 's', cleanKeyToken);
+        }
+
+        function connectToSourceBroadcastNode(remoteId, isStream, rawKey) {
+            serializedKeyToken = rawKey;
+            streamingPipelineEnabled = isStream;
+
+            peerInstance = new Peer({
+                config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
+            });
+
+            peerInstance.on('open', () => {
+                ui('recv-status-message').textContent = '対向ブロードキャストノードへルートを要求中...';
+                createOutboundPipe(remoteId);
+            });
+
+            peerInstance.on('error', (err) => {
+                console.error('Client Peer Error:', err);
+                dispatchDashboardAlert('ブローカーのノード接続生成に失敗。', 'error');
+            });
+        }
+
+        function createOutboundPipe(targetNodeId) {
+            const pipe = peerInstance.connect(targetNodeId, { reliable: true });
+            activeDataConnection = pipe;
+
+            pipe.on('open', () => {
+                connectionRetryAttemptCount = 0;
+                ui('recv-route-restore-alert').classList.add('hidden');
+                ui('recv-status-message').textContent = 'コネクション確立。シグナルメタデータの同期待機中...';
+                blockSystemSleep();
+            });
+
+            pipe.on('data', async (payload) => {
+                await dispatchIncomingPayload(payload);
+            });
+
+            pipe.on('close', () => {
+                if (!receiverDownloadState || receiverDownloadState.isDone) {
+                    handleConnectionTeardown('回線保護のため通信が終了されました。');
+                    return;
+                }
+                attemptRouteRestoration(targetNodeId);
+            });
+
+            pipe.on('error', (err) => {
+                console.error('Pipe process abort:', err);
+            });
+        }
+
+        function attemptRouteRestoration(nodeTargetId) {
+            if (connectionRetryAttemptCount >= RECONNECT_RETRY_LIMIT) {
+                handleConnectionTeardown('再接続限界。相手方ノードが消滅した可能性があります。');
+                return;
+            }
+
+            connectionRetryAttemptCount++;
+            ui('recv-route-restore-alert').classList.remove('hidden');
+            ui('recv-restore-text').textContent = `ルート再探索シーケンス起動中 (${connectionRetryAttemptCount}/${RECONNECT_RETRY_LIMIT})...`;
+            
+            setTimeout(() => {
+                if (peerInstance && !peerInstance.destroyed) {
+                    createOutboundPipe(nodeTargetId);
+                }
+            }, 2000);
+        }
+
+        // ========================================================
+        // パケット受信マルチプレクサ
+        // ========================================================
+        async function dispatchIncomingPayload(payload) {
+            if (!sessionSymmetricKey && serializedKeyToken) {
+                sessionSymmetricKey = await importKeyFromToken(serializedKeyToken);
+            }
+
+            switch (payload.type) {
+                case 'SIGNAL_REJECT':
+                    if (payload.reason === 'BUSY') {
+                        dispatchDashboardAlert('接続先ノードは別のパケット処理要求で占有されています。', 'error');
+                        clearInterval(globalClockIntervalId);
+                    }
+                    break;
+
+                case 'META_INIT':
+                    allocateStreamWorkspace(payload);
+                    break;
+
+                case 'STREAM_PACKET':
+                    await appendPayloadToWorkspace(payload);
+                    break;
+
+                case 'STREAM_EOF':
+                    await finalizeWorkspaceAssembly();
+                    break;
+
+                case 'CHAT_MSG':
+                    await ingestTerminalTextMessage(payload);
+                    break;
+
+                case 'CHAT_FILE_INFO':
+                    await ingestTerminalFileManifest(payload);
+                    break;
+
+                case 'CHAT_FILE_PACKET':
+                    await ingestTerminalFileSegment(payload);
+                    break;
+
+                case 'CHAT_FILE_EOF':
+                    await finalizeTerminalFileAssembly(payload);
+                    break;
+            }
+        }
+
+        // ========================================================
+        // ストリームバッファおよびファイル復元
+        // ========================================================
+        function allocateStreamWorkspace(meta) {
+            const size = meta.size;
+            
+            receiverDownloadState = {
+                name: meta.name,
+                size: size,
+                expectedHash: meta.hash,
+                streamMode: meta.streamMode,
+                receivedBytes: 0,
+                buffers: [],
+                writerStream: null,
+                isDone: false,
+                stamp: Date.now()
+            };
+
+            transitionToView('panel-stage-receiving');
+            ui('recv-status-message').textContent = `データパケット再構築中: "${meta.name}"`;
+            
+            if (meta.streamMode) {
+                try {
+                    receiverDownloadState.writerStream = streamSaver.createWriteStream(meta.name, { size: size });
+                    receiverDownloadState.fileUnderlyingWriter = receiverDownloadState.writerStream.getWriter();
+                } catch (e) {
+                    console.error('StreamSaver init fault, falling back to RAM buffer', e);
+                    receiverDownloadState.streamMode = false;
+                }
+            }
+        }
+
+        async function appendPayloadToWorkspace(payload) {
+            if (!receiverDownloadState) return;
+
+            try {
+                const clearBuffer = await decryptBinaryChunk(sessionSymmetricKey, payload.data);
+                const array = new Uint8Array(clearBuffer);
+
+                if (receiverDownloadState.streamMode && receiverDownloadState.fileUnderlyingWriter) {
+                    await receiverDownloadState.fileUnderlyingWriter.write(array);
+                    receiverDownloadState.receivedBytes += array.byteLength;
+                } else {
+                    receiverDownloadState.buffers.push(array);
+                    receiverDownloadState.receivedBytes += array.byteLength;
+                }
+
+                const expected = receiverDownloadState.size;
+                const ratio = expected > 0 ? (receiverDownloadState.receivedBytes / expected) : 0;
+                const percentage = Math.floor(ratio * 100);
+
+                ui('recv-progress-bar').style.width = `${percentage}%`;
+                ui('recv-progress-percent').textContent = `${percentage}%`;
+
+                const duration = (Date.now() - receiverDownloadState.stamp) / 1000;
+                if (duration > 0.5) {
+                    const bps = receiverDownloadState.receivedBytes / duration;
+                    ui('recv-speed-label').textContent = `${formatBytesToReadable(bps)}/s`;
+                    
+                    if (bps > 0) {
+                        const remainingSec = (expected - receiverDownloadState.receivedBytes) / bps;
+                        ui('recv-eta-label').textContent = `残余時間予測: 約 ${calculateRemainingTimeStr(remainingSec)}`;
+                    }
+                }
+
+            } catch (err) {
+                console.error('Decryption failed at chunk sequence', err);
+                dispatchDashboardAlert('暗号化チェックサムが適合しません。鍵トークン不正。', 'error');
+            }
+        }
+
+        async function finalizeWorkspaceAssembly() {
+            if (!receiverDownloadState) return;
+            receiverDownloadState.isDone = true;
+
+            transitionToView('panel-stage-extracted');
+            ui('extracted-file-name').textContent = receiverDownloadState.name;
+
+            const badge = ui('integrity-signal-badge');
+            const hexArea = ui('extracted-hash-signature');
+            const preview = ui('extracted-media-preview');
+
+            badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6";
+            badge.innerHTML = '';
+            hexArea.classList.add('hidden');
+            preview.innerHTML = '<p class="text-zinc-600 text-xs">プレビュー非対応インスペクション</p>';
+
+            let compiledBlob = null;
+
+            if (receiverDownloadState.streamMode && receiverDownloadState.fileUnderlyingWriter) {
+                await receiverDownloadState.fileUnderlyingWriter.close();
+                badge.classList.add('bg-zinc-900', 'text-amber-400', 'border', 'border-zinc-800');
+                badge.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> パイプライン直列ディスク書込 (ハッシュ未検証)`;
+                preview.innerHTML = '<p class="text-zinc-600 text-xs font-mono">ストリーミング展開時はバイナリプレビューをスキップします</p>';
+            } else {
+                compiledBlob = new Blob(receiverDownloadState.buffers, { type: 'application/octet-stream' });
+                
+                badge.classList.add('bg-zinc-900', 'text-zinc-500', 'border', 'border-zinc-800');
+                badge.innerHTML = `<i data-lucide="refresh-cw" class="w-3.5 h-3.5 animate-spin"></i> SHA-256 検証シーケンス中...`;
+                lucide.createIcons();
+
+                const computedHash = await parseBlobChecksum(compiledBlob);
+                badge.innerHTML = '';
+
+                if (computedHash && computedHash === receiverDownloadState.expectedHash) {
+                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6 bg-emerald-950 text-emerald-400 border border-emerald-900";
+                    badge.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> INTEGRITY MATCH (OK)`;
+                } else if (!receiverDownloadState.expectedHash) {
+                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6 bg-zinc-900 text-zinc-400 border border-zinc-800";
+                    badge.innerHTML = `<i data-lucide="minus" class="w-3.5 h-3.5"></i> ハッシュ署名なし`;
+                } else {
+                    badge.className = "inline-flex items-center gap-1.5 text-[11px] font-mono px-3 py-1 rounded mb-6 bg-red-950 text-red-400 border border-red-900";
+                    badge.innerHTML = `<i data-lucide="x" class="w-3.5 h-3.5"></i> INTEGRITY ERROR (破損検出)`;
+                }
+
+                if (computedHash) {
+                    hexArea.classList.remove('hidden');
+                    hexArea.textContent = `HEX SIGNATURE: ${computedHash}`;
+                }
+
+                renderDynamicPreview(receiverDownloadState.name, compiledBlob);
+            }
+
+            const downloadBtn = ui('action-native-download');
+            if (compiledBlob) {
+                const downloadUrl = URL.createObjectURL(compiledBlob);
+                downloadBtn.href = downloadUrl;
+                downloadBtn.download = receiverDownloadState.name;
+            } else {
+                downloadBtn.removeAttribute('href');
+                downloadBtn.classList.add('hidden');
+            }
+
+            dispatchDashboardAlert('暗号パケットの結合・復元に成功しました。', 'success');
+            lucide.createIcons();
+
+            if (isDuplexSessionUpgraded) {
+                postSystemBroadcastLog('データアセットの受信・構築が完了しました。');
+            } else {
+                upgradeToTerminalConsoleMode();
+            }
+        }
+
+        function renderDynamicPreview(name, blob) {
+            const view = ui('extracted-media-preview');
+            const lower = name.toLowerCase();
+            
+            const imgs = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+            const vids = ['.mp4', '.webm', '.ogg', '.mov'];
+
+            if (imgs.some(ext => lower.endsWith(ext))) {
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(blob);
+                img.className = "max-h-[200px] max-w-full object-contain mx-auto border border-zinc-800 rounded shadow";
+                view.innerHTML = '';
+                view.appendChild(img);
+            } else if (vids.some(ext => lower.endsWith(ext))) {
+                const vid = document.createElement('video');
+                vid.src = URL.createObjectURL(blob);
+                vid.controls = true;
+                vid.className = "max-h-[200px] max-w-full mx-auto border border-zinc-800 rounded shadow";
+                view.innerHTML = '';
+                view.appendChild(vid);
+            }
+        }
+
+        // ========================================================
+        // ターミナルログモード（双方向チャット）の初期化
+        // ========================================================
+        function upgradeToTerminalConsoleMode() {
+            isDuplexSessionUpgraded = true;
+            if (!isConsoleListenerHooked) registerTerminalActionTriggers();
+            transitionToView('panel-stage-terminal-room');
+            postSystemBroadcastLog('セキュリティパイプラインを用いたセキュア対話回線が確立しました。');
+        }
+
+        function requestDuplexInversion() {
+            if (!activeDataConnection || !activeDataConnection.open) {
+                dispatchDashboardAlert('セッションコンテキストが消失しています。', 'error', 4000);
+                return;
+            }
+            receiverDownloadState = null;
+            isDuplexSessionUpgraded = true;
+            if (!isConsoleListenerHooked) registerTerminalActionTriggers();
+            transitionToView('panel-stage-terminal-room');
+            dispatchDashboardAlert('対話ターミナルが開きました。', 'info');
+            ui('terminal-msg-input').focus();
+        }
+
+        function returnToInitialState() {
+            internalStagedQueue = [];
+            renderStagedManifest();
+            transitionToView('panel-stage-input');
+            ui('session-upgrade-banner').classList.remove('hidden');
+        }
+
+        // ========================================================
+        // 対話コンソール入出力イベントハンドラ
+        // ========================================================
+        function registerTerminalActionTriggers() {
+            isConsoleListenerHooked = true;
+            const input = ui('terminal-msg-input');
+            const dispatch = ui('btn-terminal-dispatch');
+            const clip = ui('btn-terminal-file-inject');
+            const hiddenUploader = ui('terminal-hidden-uploader');
+
+            input.addEventListener('input', () => {
+                input.style.height = 'auto';
+                input.style.height = (input.scrollHeight) + 'px';
+                dispatch.disabled = !input.value.trim();
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    transmitConsoleStringPacket();
+                }
+            });
+
+            dispatch.addEventListener('click', transmitConsoleStringPacket);
+            dispatch.disabled = true;
+
+            clip.addEventListener('click', () => hiddenUploader.click());
+            hiddenUploader.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    transmitConsoleFileContainer(e.target.files);
+                    hiddenUploader.value = ''; 
+                }
+            });
+        }
+
+        async function transmitConsoleStringPacket() {
+            const txtArea = ui('terminal-msg-input');
+            const text = txtArea.value.trim();
+            if (!text || !activeDataConnection || !activeDataConnection.open) return;
+
+            txtArea.value = '';
+            txtArea.style.height = '36px';
+            ui('btn-terminal-dispatch').disabled = true;
+
+            try {
+                const encrypted = await encryptStringData(sessionSymmetricKey, text);
+                activeDataConnection.send({
+                    type: 'CHAT_MSG',
+                    data: encrypted
+                });
+                pushTerminalLineNode({ dir: 'outbound', body: text, stamp: Date.now() });
+            } catch (err) {
+                console.error(err);
+                dispatchDashboardAlert('パケット射出失敗。', 'error');
+            }
+        }
+
+        async function ingestTerminalTextMessage(payload) {
+            try {
+                const decrypted = await decryptStringData(sessionSymmetricKey, payload.data);
+                pushTerminalLineNode({ dir: 'inbound', body: decrypted, stamp: Date.now() });
+            } catch (err) {
+                console.error('Console text package parsing exception:', err);
+            }
+        }
+
+        function postSystemBroadcastLog(message) {
+            pushTerminalLineNode({ dir: 'system-broadcast', body: message, stamp: Date.now() });
+        }
+
+        function pushTerminalLineNode(msgObj) {
+            const box = ui('terminal-canvas-view');
+            const layer = document.createElement('div');
+            layer.className = 'flex flex-col w-full';
+
+            if (msgObj.dir === 'system-broadcast') {
+                const sysNode = document.createElement('div');
+                sysNode.className = 'packet-node system-broadcast';
+                sysNode.innerHTML = escapeMarkupChars(msgObj.body);
+                layer.appendChild(sysNode);
+            } else {
+                const bubble = document.createElement('div');
+                bubble.className = `packet-node ${msgObj.dir === 'outbound' ? 'outbound' : 'inbound'}`;
+                
+                if (msgObj.isBinaryMeta) {
+                    bubble.classList.add('binary-file');
+                    bubble.innerHTML = msgObj.body;
+                } else {
+                    bubble.textContent = msgObj.body;
+                }
+
+                const d = new Date(msgObj.stamp);
+                const stampLabel = document.createElement('div');
+                stampLabel.className = 'text-[9px] text-zinc-600 mt-1 px-1 ' + (msgObj.dir === 'outbound' ? 'text-right' : 'text-left');
+                stampLabel.textContent = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+
+                layer.appendChild(bubble);
+                layer.appendChild(stampLabel);
+            }
+
+            box.appendChild(layer);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // ========================================================
+        // コンソール内包ファイルパケットルーティング
+        // ========================================================
+        async function transmitConsoleFileContainer(fileList) {
+            if (fileList.length === 0 || !activeDataConnection || !activeDataConnection.open) return;
+            
+            let fileObj = fileList[0];
+            let name = fileObj.name;
+
+            if (fileList.length > 1) {
+                postSystemBroadcastLog('複数アセットのアーカイブ圧縮を実行中...');
+                const zip = new JSZip();
+                for(let i=0; i<fileList.length; i++) {
+                    zip.file(fileList[i].name, fileList[i]);
+                }
+                fileObj = await zip.generateAsync({ type: 'blob' });
+                name = 'console_injected_assets.zip';
+            }
+
+            const assetId = 'ast-' + Math.random().toString(36).substring(2, 9);
+            const hash = await computeFileChecksum(fileObj);
+
+            const injectCardMarkup = `
+                <div class="space-y-1" id="box-${assetId}">
+                    <div class="font-bold truncate text-zinc-100 flex items-center gap-1">
+                        <i data-lucide="file-code" class="w-3.5 h-3.5 text-emerald-400"></i> ${escapeMarkupChars(name)}
+                    </div>
+                    <div class="text-[11px] text-zinc-400">${formatBytesToReadable(fileObj.size)}</div>
+                    <div class="w-full bg-zinc-950 h-1 mt-1 rounded overflow-hidden">
+                        <div class="bg-emerald-500 h-full transition-all duration-150" id="gauge-${assetId}" style="width:0%"></div>
+                    </div>
+                </div>
+            `;
+            pushTerminalLineNode({ dir: 'outbound', body: injectCardMarkup, isBinaryMeta: true, stamp: Date.now() });
+            lucide.createIcons();
+
+            activeDataConnection.send({
+                type: 'CHAT_FILE_INFO',
+                fileId: assetId,
+                name: name,
+                size: fileObj.size,
+                hash: hash
+            });
+
+            setTimeout(async () => {
+                const max = fileObj.size;
+                let sent = 0;
+                let index = 0;
+
+                while (sent < max) {
+                    if (!activeDataConnection || !activeDataConnection.open) break;
+                    if (activeDataConnection.bufferedAmount > 4 * 1024 * 1024) {
+                        await new Promise(r => setTimeout(r, 40));
+                        continue;
+                    }
+
+                    const tail = Math.min(sent + PIPELINE_CHUNK_SIZE, max);
+                    const chunk = fileObj.slice(sent, tail);
+                    const arrayBuffer = await chunk.arrayBuffer();
+                    const encPacket = await encryptBinaryChunk(sessionSymmetricKey, arrayBuffer);
+
+                    activeDataConnection.send({
+                        type: 'CHAT_FILE_PACKET',
+                        fileId: assetId,
+                        index: index,
+                        data: encPacket
+                    });
+
+                    sent = tail;
+                    index++;
+
+                    if (index % 6 === 0 || sent === max) {
+                        const pct = Math.floor((sent / max) * 100);
+                        const progress = ui(`gauge-${assetId}`);
+                        if (progress) progress.style.width = `${pct}%`;
+                    }
+                }
+
+                activeDataConnection.send({ type: 'CHAT_FILE_EOF', fileId: assetId });
+                const gauge = ui(`gauge-${assetId}`);
+                if (gauge) gauge.parentElement.remove();
+            }, 100);
+        }
+
+        async function ingestTerminalFileManifest(payload) {
+            sessionFileRegistry.set(payload.fileId, {
+                name: payload.name,
+                size: payload.size,
+                expectedHash: payload.hash,
+                receivedBytes: 0,
+                chunks: []
+            });
+
+            const id = payload.fileId;
+            const receiverCardMarkup = `
+                <div class="space-y-1" id="box-${id}">
+                    <div class="font-bold truncate text-zinc-100 flex items-center gap-1">
+                        <i data-lucide="download-cloud" class="w-3.5 h-3.5 text-emerald-400"></i> ${escapeMarkupChars(payload.name)}
+                    </div>
+                    <div class="text-[11px] text-zinc-400">${formatBytesToReadable(payload.size)}</div>
+                    <div class="w-full bg-zinc-950 h-1 mt-1 rounded overflow-hidden">
+                        <div class="bg-emerald-500 h-full transition-all duration-150" id="gauge-${id}" style="width:0%"></div>
+                    </div>
+                    <div class="pt-1 hidden" id="ctrl-${id}">
+                        <a class="inline-block bg-zinc-800 hover:bg-emerald-600 text-zinc-300 hover:text-zinc-950 px-2 py-0.5 rounded text-[10px] font-mono transition-colors" id="btn-dl-${id}">DOWNLOAD</a>
+                    </div>
+                </div>
+            `;
+            pushTerminalLineNode({ dir: 'inbound', body: receiverCardMarkup, isBinaryMeta: true, stamp: Date.now() });
+            lucide.createIcons();
+        }
+
+        async function ingestTerminalFileSegment(payload) {
+            const fileRecord = sessionFileRegistry.get(payload.fileId);
+            if (!fileRecord) return;
+
+            try {
+                const clearBuffer = await decryptBinaryChunk(sessionSymmetricKey, payload.data);
+                fileRecord.chunks.push(new Uint8Array(clearBuffer));
+                fileRecord.receivedBytes += clearBuffer.byteLength;
+
+                const pct = Math.floor((fileRecord.receivedBytes / fileRecord.size) * 100);
+                const gauge = ui(`gauge-${payload.fileId}`);
+                if (gauge) gauge.style.width = `${pct}%`;
+            } catch (err) {
+                console.error('Chunk integration failed:', err);
+            }
+        }
+
+        async function finalizeTerminalFileAssembly(payload) {
+            const fileRecord = sessionFileRegistry.get(payload.fileId);
+            if (!fileRecord) return;
+
+            const mergedBlob = new Blob(fileRecord.chunks, { type: 'application/octet-stream' });
+            const localHash = await computeFileChecksum(mergedBlob);
+
+            const gauge = ui(`gauge-${payload.fileId}`);
+            if (gauge) gauge.parentElement.remove();
+
+            const controlBox = ui(`ctrl-${payload.fileId}`);
+            const anchor = ui(`btn-dl-${payload.fileId}`);
+
+            if (controlBox && anchor) {
+                controlBox.classList.remove('hidden');
+                anchor.href = URL.createObjectURL(mergedBlob);
+                anchor.download = fileRecord.name;
+                
+                if (localHash && localHash === fileRecord.expectedHash) {
+                    anchor.textContent = 'DOWNLOAD (INTEGRITY PASS)';
+                }
+            }
+            dispatchDashboardAlert(`インジェクションファイルを検知: ${fileRecord.name}`, 'info');
+        }
+
+        // ========================================================
+        // 接続クリーンアップ・破壊フェーズ
+        // ========================================================
+        function handleConnectionTeardown(message) {
+            if (activeDataConnection) {
+                activeDataConnection.close();
+                activeDataConnection = null;
+            }
+            
+            if (isDuplexSessionUpgraded) {
+                postSystemBroadcastLog('回線の異常切断、または自発的切断を検知しました。コマンドの送信はこれ以上許可されません。');
+                ui('terminal-session-timer').textContent = 'OFFLINE';
+                ui('btn-terminal-dispatch').disabled = true;
+                ui('btn-terminal-file-inject').disabled = true;
+            } else {
+                dispatchDashboardAlert(message, 'error');
+                transitionToView('panel-stage-input');
+                returnToInitialState();
+            }
+        }
+
+        function terminateSessionHard(alertText) {
+            clearInterval(globalClockIntervalId);
+            clearSystemSleepBlock();
+
+            if (activeDataConnection) {
+                activeDataConnection.close();
+                activeDataConnection = null;
+            }
+            if (peerInstance) {
+                peerInstance.destroy();
+                peerInstance = null;
+            }
+
+            dispatchDashboardAlert(alertText, 'info', 4000);
+            
+            sessionSymmetricKey = null;
+            serializedKeyToken = '';
+            isDuplexSessionUpgraded = false;
+            internalStagedQueue = [];
+            
+            window.location.href = window.location.pathname; 
+        }
+
+        // システムカーネル初期起動
+        window.addEventListener('DOMContentLoaded', () => {
+            inspectInboundRoutingParams();
+        });
+    </script>
+</body>
+</html>
