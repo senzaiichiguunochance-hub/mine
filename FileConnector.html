@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FileConnector1</title>
+    <title>QuantumTunnel FileConnector</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -98,9 +98,10 @@
         .terminal-log-row {
             display: flex;
             flex-direction: column;
-            height: 340px;
+            height: 380px;
             background: #09090b;
             border: 1px solid #27272a;
+            position: relative;
         }
         .terminal-canvas-body {
             flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px;
@@ -133,7 +134,7 @@
             <div>
                 <div class="flex items-center gap-2 text-emerald-400 font-bold tracking-widest text-sm border-b border-zinc-800 pb-4 mb-6">
                     <i data-lucide="activity" class="w-4 h-4 animate-pulse"></i>
-                    QT-CONNECTOR v2.0
+                    QT-CONNECTOR v2.1
                 </div>
                 
                 <div class="space-y-4 text-xs">
@@ -179,18 +180,14 @@
                     <i data-lucide="terminal" class="w-4 h-4 text-emerald-500"></i>
                     トランスミッションアセット設定
                 </h2>
-                <p class="text-xs text-zinc-400 mb-6">対象となるファイルを投入してください。自動的にセキュアコンテナ化が実行されます。</p>
+                <p class="text-xs text-zinc-400 mb-6">送信したいファイルを投入してください。空のまま開放するとチャット専用トークンが自動生成されます。</p>
 
-                <div id="drop-zone-mesh" tabindex="0" class="border border-dashed border-zinc-700 bg-zinc-950 rounded p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-zinc-900/30 transition-all mb-4 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <div id="drop-zone-mesh" tabindex="0" class="border border-dashed border-zinc-700 bg-zinc-950 rounded p-12 text-center cursor-pointer hover:border-emerald-500 hover:bg-zinc-900/30 transition-all mb-6 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                     <i data-lucide="upload-cloud" class="w-10 h-10 text-zinc-500 mx-auto mb-3"></i>
                     <p class="text-sm font-bold text-zinc-300">ファイルをここにドラッグイン、またはクリック</p>
-                    <p class="text-[11px] text-zinc-500 mt-1">複数選択時は単一コンテナに自動結合</p>
+                    <p class="text-[11px] text-zinc-500 mt-1">複数選択時は単一コンテナに自動結合 / 未選択時はチャットセッション開始</p>
                     <input type="file" id="hidden-file-picker" class="hidden" multiple>
                 </div>
-
-                <button type="button" onclick="injectDummyTestAsset()" class="w-full text-xs text-zinc-400 hover:text-emerald-400 bg-zinc-900 border border-zinc-800 hover:border-emerald-900 py-2 rounded mb-6 transition-all flex items-center justify-center gap-1.5">
-                    <i data-lucide="file-plus" class="w-3.5 h-3.5"></i> テスト用ダミーアセット(1MB)を生成してセット
-                </button>
 
                 <div id="staged-manifest-wrapper" class="hidden mb-6"></div>
                 <button id="action-add-more-files" class="hidden w-full text-xs text-emerald-400 hover:text-emerald-300 font-bold mb-6 py-2 border border-dashed border-emerald-900 bg-emerald-950/10 transition-colors rounded">
@@ -353,14 +350,29 @@
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-sm font-bold text-zinc-200 flex items-center gap-1.5">
                         <i data-lucide="terminal" class="w-4 h-4 text-emerald-500"></i>
-                        暗号化パケット通信ログ
+                        暗号化パケット通信ログ <span class="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded ml-1 border border-zinc-700">ドラッグ＆ドロップ対応区画</span>
                     </h2>
                     <span id="terminal-session-timer" class="text-xs text-zinc-500 font-mono">--:--</span>
                 </div>
 
-                <div class="terminal-log-row rounded">
+                <div id="terminal-log-row-container" class="terminal-log-row rounded">
                     <div id="terminal-canvas-view" class="terminal-canvas-body custom-terminal-scroll">
                         </div>
+
+                    <div id="chat-staged-file-zone" class="hidden bg-zinc-900 border-t border-zinc-800 p-3 flex items-center justify-between text-xs text-zinc-300">
+                        <div class="flex items-center gap-2 truncate">
+                            <i data-lucide="file-warning" class="w-4 h-4 text-amber-400"></i>
+                            <span id="chat-staged-file-name" class="font-bold truncate"></span>
+                        </div>
+                        <div class="flex gap-2 flex-shrink-0">
+                            <button onclick="clearChatStagedFile()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 px-3 py-1.5 rounded font-bold transition-all">
+                                取消
+                            </button>
+                            <button id="btn-chat-staged-send" class="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 px-4 py-1.5 rounded font-black tracking-wider transition-all flex items-center gap-1 shadow-md">
+                                <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i> ファイルを射出
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="p-3 bg-zinc-950 border-t border-zinc-800 flex items-end gap-2">
                         <button id="btn-terminal-file-inject" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 p-2.5 rounded border border-zinc-800 flex-shrink-0" title="オブジェクトのインジェクト">
@@ -368,7 +380,7 @@
                         </button>
                         <input type="file" id="terminal-hidden-uploader" class="hidden" multiple>
                         
-                        <textarea id="terminal-msg-input" class="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded p-2 text-xs focus:outline-none focus:border-emerald-500 resize-none max-h-24 min-h-[36px] custom-terminal-scroll" placeholder="セキュアテキストを入力..." rows="1"></textarea>
+                        <textarea id="terminal-msg-input" class="flex-1 bg-zinc-900 border border-zinc-800 text-zinc-300 rounded p-2 text-xs focus:outline-none focus:border-emerald-500 resize-none max-h-24 min-h-[36px] custom-terminal-scroll" placeholder="セキュアテキストを入力... (ファイルをここにドロップでも送信待機可能)" rows="1"></textarea>
                         
                         <button id="btn-terminal-dispatch" class="bg-emerald-600 hover:bg-emerald-500 text-zinc-950 p-2.5 rounded flex-shrink-0 transition-colors" disabled>
                             <i data-lucide="send" class="w-4 h-4"></i>
@@ -389,11 +401,12 @@
 
     <script>
         // ========================================================
-        // グローバルコア構成変数群 (隠蔽化および置換)
+        // グローバルコア構成変数群
         // ========================================================
         const PIPELINE_CHUNK_SIZE = 64 * 1024; 
         const MAXIMUM_HASH_LIMIT = 500 * 1024 * 1024; 
         const RECONNECT_RETRY_LIMIT = 3; 
+        const STELTH_HANDSHAKE_DUMMY_NAME = "qt_system_handshake_dummy_payload.dat"; // 特殊共通ダミー名
         const dynamicAlertRegistry = new Map(); 
 
         let peerInstance = null;
@@ -401,6 +414,7 @@
         let localBlobIdentifier = ''; 
         let expectedVerificationHash = null; 
         let internalStagedQueue = []; 
+        let chatStagedFileList = null; // チャット画面用の単一送信待機ファイル保持オブジェクト
         let globalClockIntervalId = null;
         let systemScreenWakeLock = null;
         let sessionSelfDestructEpoch = null;
@@ -538,7 +552,6 @@
             }, duration);
         }
 
-        // コピー関数の完全修正
         async function executeUrlTextCopy() {
             const copyInput = ui('display-sharable-url');
             if (!copyInput || !copyInput.value) return;
@@ -555,28 +568,6 @@
                 console.error('Clipboard copy error:', err);
                 copyInput.select();
                 dispatchDashboardAlert('ブラウザ制限のため手動コピーしてください。', 'error');
-            }
-        }
-
-        // テスト用架空ファイルの自動インジェクション機能
-        function injectDummyTestAsset() {
-            try {
-                const targetSize = 1 * 1024 * 1024; // 1MB
-                const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\n";
-                let rawText = "--- QuantumTunnel 自動生成ダミー通信テスト用アセット ---\n";
-                while (rawText.length < targetSize) {
-                    rawText += chars.charAt(Math.floor(Math.random() * chars.length));
-                }
-                const blob = new Blob([rawText], { type: 'text/plain' });
-                // Fileオブジェクトに擬態させてキューへ格納
-                const dummyFile = new File([blob], `quantum_dummy_payload_${Math.floor(Math.random()*900+100)}.txt`, { type: 'text/plain' });
-                
-                internalStagedQueue = [dummyFile]; // 今回は即時単一テスト用にクリアして代入
-                renderStagedManifest();
-                dispatchDashboardAlert('1MBのテスト用ダミーファイルを構築・配置しました。', 'info');
-            } catch (e) {
-                console.error('Dummy injection failure:', e);
-                dispatchDashboardAlert('ダミーアセット生成に失敗しました。', 'error');
             }
         }
 
@@ -625,7 +616,7 @@
         }
 
         // ========================================================
-        // ドラッグ＆ドロップインタラクション処理
+        // ドラッグ＆ドロップインタラクション処理 (初期画面用)
         // ========================================================
         function initializeDropZoneInteractivity() {
             const zone = ui('drop-zone-mesh');
@@ -710,12 +701,15 @@
         }
 
         // ========================================================
-        // 配信ノードパブリッシュ処理
+        // 配信ノードパブリッシュ処理 (空ならダミーを隠れて自動セット)
         // ========================================================
         async function commitBroadcastingTask() {
+            // ファイルが1つも選ばれていない場合、暗黙の了解として特殊ダミーをセットして進行
             if (internalStagedQueue.length === 0) {
-                dispatchDashboardAlert('投入資産が空です。ファイルをドロップするか、ダミーボタンを押してください。', 'error');
-                return;
+                const dummyContent = "QUANTUM_TUNNEL_ESTABLISHED_SUCCESSFULLY_STEALTH_HANDSHAKE_TOKEN";
+                const dummyFile = new File([dummyContent], STELTH_HANDSHAKE_DUMMY_NAME, { type: 'text/plain' });
+                internalStagedQueue.push(dummyFile);
+                dispatchDashboardAlert('資産未指定のため、チャット専用ルートを割り当て中...', 'info');
             }
 
             transitionToView('panel-stage-compiling');
@@ -848,7 +842,6 @@
 
         function bindIncomingConnectionEvents(conn) {
             activeDataConnection = conn;
-            
             dispatchDashboardAlert('リモートピアによるハンドシェイク要請を承認。', 'info');
             
             conn.on('open', () => {
@@ -883,7 +876,11 @@
             if (isPipeTransmittingActive) return;
             isPipeTransmittingActive = true;
 
-            ui('transfer-metrics-panel').classList.remove('hidden');
+            // 特殊共通ダミー名である場合は送信中プログレス表示を隠してステルス送出
+            const isStealth = (localBlobIdentifier === STELTH_HANDSHAKE_DUMMY_NAME);
+            if (!isStealth) {
+                ui('transfer-metrics-panel').classList.remove('hidden');
+            }
 
             try {
                 activeDataConnection.send({
@@ -924,7 +921,7 @@
                     bytesOffset = endPos;
                     chunkSeq++;
 
-                    if (chunkSeq % 12 === 0 || bytesOffset === totalBytes) {
+                    if (!isStealth && (chunkSeq % 12 === 0 || bytesOffset === totalBytes)) {
                         const pct = Math.floor((bytesOffset / totalBytes) * 100);
                         ui('transfer-progress-bar').style.width = `${pct}%`;
                         ui('transfer-progress-percent').textContent = `${pct}%`;
@@ -938,7 +935,10 @@
                 }
 
                 activeDataConnection.send({ type: 'STREAM_EOF' });
-                dispatchDashboardAlert('全パケットの送出プロセスが正常終了。', 'success');
+                
+                if (!isStealth) {
+                    dispatchDashboardAlert('全パケットの送出プロセスが正常終了。', 'success');
+                }
 
                 if (isDuplexSessionUpgraded) {
                     postSystemBroadcastLog('データアセットの送信が正常に完了しました。');
@@ -974,7 +974,6 @@
                 return;
             }
 
-            // 受信開始したらまず明示的に受信進捗パネルを表示
             transitionToView('panel-stage-receiving');
             ui('recv-status-message').textContent = '暗号トークン暗号解読シーケンス中...';
 
@@ -1116,10 +1115,13 @@
                 stamp: Date.now()
             };
 
-            transitionToView('panel-stage-receiving');
-            ui('recv-status-message').textContent = `データパケットを受信中: "${meta.name}" (${formatBytesToReadable(size)})`;
+            // ダミーファイルならパネル表示を切り替えない（ステルス受信）
+            if (meta.name !== STELTH_HANDSHAKE_DUMMY_NAME) {
+                transitionToView('panel-stage-receiving');
+                ui('recv-status-message').textContent = `データパケットを受信中: "${meta.name}" (${formatBytesToReadable(size)})`;
+            }
             
-            if (meta.streamMode) {
+            if (meta.streamMode && meta.name !== STELTH_HANDSHAKE_DUMMY_NAME) {
                 try {
                     receiverDownloadState.writerStream = streamSaver.createWriteStream(meta.name, { size: size });
                     receiverDownloadState.fileUnderlyingWriter = receiverDownloadState.writerStream.getWriter();
@@ -1144,6 +1146,9 @@
                     receiverDownloadState.buffers.push(array);
                     receiverDownloadState.receivedBytes += array.byteLength;
                 }
+
+                // ステルスダミーの場合は進捗バー等の描画更新をスキップ
+                if (receiverDownloadState.name === STELTH_HANDSHAKE_DUMMY_NAME) return;
 
                 const expected = receiverDownloadState.size;
                 const ratio = expected > 0 ? (receiverDownloadState.receivedBytes / expected) : 0;
@@ -1173,6 +1178,14 @@
             if (!receiverDownloadState) return;
             receiverDownloadState.isDone = true;
 
+            // 特殊ダミーファイルである場合のインテリジェントルーティング
+            if (receiverDownloadState.name === STELTH_HANDSHAKE_DUMMY_NAME) {
+                // ダウンロード促し画面・ボタンを一切介さず直接チャット画面を覚醒
+                requestDuplexInversion();
+                return;
+            }
+
+            // 通常アセット受信時の処理
             transitionToView('panel-stage-extracted');
             ui('extracted-file-name').textContent = receiverDownloadState.name;
 
@@ -1233,12 +1246,6 @@
 
             dispatchDashboardAlert('暗号パケットの結合・復元に成功しました。ダウンロード可能です。', 'success');
             lucide.createIcons();
-
-            if (isDuplexSessionUpgraded) {
-                postSystemBroadcastLog('データアセットの受信・構築が完了しました。');
-            } else {
-                // 初回受信直後は強制的にチャットを開かず、ダウンロード画面で一度ストップさせ、ユーザーがボタンを押したらチャットに行く動線にします
-            }
         }
 
         function renderDynamicPreview(name, blob) {
@@ -1294,9 +1301,6 @@
             ui('session-upgrade-banner').classList.remove('hidden');
         }
 
-        // ========================================================
-        // 各種チェックサム計算用
-        // ========================================================
         async function computeFileChecksum(blob) {
             try {
                 const arrayBuffer = await blob.arrayBuffer();
@@ -1308,7 +1312,7 @@
         }
 
         // ========================================================
-        // 对話コンソール入出力イベントハンドラ
+        // 対話コンソール入出力イベントハンドラ（チャット内D&D機能包含）
         // ========================================================
         function registerTerminalActionTriggers() {
             isConsoleListenerHooked = true;
@@ -1316,7 +1320,10 @@
             const dispatch = ui('btn-terminal-dispatch');
             const clip = ui('btn-terminal-file-inject');
             const hiddenUploader = ui('terminal-hidden-uploader');
+            const logContainer = ui('terminal-log-row-container');
+            const stagedSendBtn = ui('btn-chat-staged-send');
 
+            // 1. テキスト入力追従
             input.addEventListener('input', () => {
                 input.style.height = 'auto';
                 input.style.height = (input.scrollHeight) + 'px';
@@ -1331,15 +1338,60 @@
             });
 
             dispatch.addEventListener('click', transmitConsoleStringPacket);
-            dispatch.disabled = true;
 
+            // 2. クリップマークでのファイル選択
             clip.addEventListener('click', () => hiddenUploader.click());
             hiddenUploader.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
-                    transmitConsoleFileContainer(e.target.files);
+                    stageChatFile(e.target.files);
                     hiddenUploader.value = ''; 
                 }
             });
+
+            // 3. 【新機能】チャット画面のドラッグ＆ドロップ（誤送信防止の確定送信ボタン付き）
+            logContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                logContainer.classList.add('drop-target-active');
+            });
+            logContainer.addEventListener('dragleave', () => {
+                logContainer.classList.remove('drop-target-active');
+            });
+            logContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                logContainer.classList.remove('drop-target-active');
+                if (e.dataTransfer.files.length > 0) {
+                    stageChatFile(e.dataTransfer.files);
+                }
+            });
+
+            // 誤送信防止の確定発射トリガー
+            stagedSendBtn.addEventListener('click', () => {
+                if (chatStagedFileList) {
+                    transmitConsoleFileContainer(chatStagedFileList);
+                    clearChatStagedFile();
+                }
+            });
+        }
+
+        // チャットファイルステージング処理（即時送出せず一旦プールする）
+        function stageChatFile(files) {
+            chatStagedFileList = files;
+            const zone = ui('chat-staged-file-zone');
+            const label = ui('chat-staged-file-name');
+
+            if (files.length === 1) {
+                label.textContent = `${files[0].name} (${formatBytesToReadable(files[0].size)})`;
+            } else {
+                label.textContent = `${files.length}個のオブジェクト（ZIP自動アーカイブ化対象）`;
+            }
+
+            zone.classList.remove('hidden');
+            dispatchDashboardAlert('送信待機ファイルがセットされました。「ファイルを射出」で送信します。', 'info');
+        }
+
+        function clearChatStagedFile() {
+            chatStagedFileList = null;
+            ui('chat-staged-file-zone').classList.add('hidden');
         }
 
         async function transmitConsoleStringPacket() {
@@ -1413,7 +1465,7 @@
         }
 
         // ========================================================
-        // コンソール内包ファイルパケットルーティング
+        // コンソール内包ファイルパケットルーティング (実送信コア)
         // ========================================================
         async function transmitConsoleFileContainer(fileList) {
             if (fileList.length === 0 || !activeDataConnection || !activeDataConnection.open) return;
