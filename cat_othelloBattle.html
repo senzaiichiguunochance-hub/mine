@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ネット対戦・いたずら猫のオセロ (安定版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #c1c19d, #b1b18d);
+            margin: 0;
+            min-height: 100vh;
+        }
+        .hidden-view { display: none !important; }
+        
+        #board-container {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            background-color: #004d40;
+            padding: 12px;
+            border-radius: 8px;
+            aspect-ratio: 1 / 1;
+        }
+        .cell {
+            background-color: #00695c;
+            border: 1px solid #004d40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            aspect-ratio: 1 / 1;
+        }
+        .stone-container {
+            width: 85%;
+            height: 85%;
+            perspective: 1000px;
+            position: absolute;
+        }
+        .stone {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.4s;
+            transform-style: preserve-3d;
+        }
+        .stone.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .stone-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            box-shadow: inset 0 -4px 8px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .stone-face.front { background: #111; }
+        .stone-face.back { background: #f0f0f0; transform: rotateY(180deg); }
+
+        .possible-move::after {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.25);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.2; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+        }
+
+        @keyframes mild-shake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-4px, 2px) rotate(-1deg); }
+            50% { transform: translate(4px, -2px) rotate(1deg); }
+            75% { transform: translate(-2px, -4px) rotate(-0.5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        .active-shake { animation: mild-shake 0.15s infinite; }
+
+        .cute-card {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border: 4px solid #fed7aa;
+        }
+        .cute-btn {
+            background-color: #f97316;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 0 #c2410c;
+            transition: all 0.1s ease;
+            font-weight: 900;
+        }
+        .cute-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #c2410c; }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+    <div id="notification-center" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col gap-3 w-full max-w-sm"></div>
+
+    <div class="w-full max-w-4xl cute-card p-6 md:p-8">
+        
+        <div id="stage-setup" class="view-section text-center">
+            <h1 class="text-3xl font-black text-orange-500 mb-2">🐾 いたずら猫のネット対戦オセロ 🐾</h1>
+            <p class="text-sm font-bold text-gray-500 mb-8">お互いのブラウザを丸ごと全同期する安定版システム</p>
+            
+            <div class="max-w-md mx-auto bg-orange-50 border-2 border-orange-100 p-6 rounded-2xl mb-6">
+                <button onclick="startHostingGame()" class="w-full cute-btn py-4 px-6 text-lg tracking-wider flex justify-center items-center gap-2">
+                    <i data-lucide="play" class="w-5 h-5 fill-white"></i> 対戦部屋を作る（ホストになる）
+                </button>
+            </div>
+        </div>
+
+        <div id="stage-loading" class="view-section hidden-view text-center py-8">
+            <i data-lucide="loader2" class="w-12 h-12 text-orange-500 mx-auto mb-4 animate-spin"></i>
+            <h2 class="text-lg font-black text-zinc-700" id="loading-title">通信路を作成中...</h2>
+        </div>
+
+        <div id="stage-broadcasting" class="view-section hidden-view text-center">
+            <h2 class="text-xl font-black text-orange-500 mb-2 flex items-center justify-center gap-2">
+                <span class="w-3 h-3 bg-orange-500 rounded-full animate-ping"></span>
+                対戦相手の接続を待っています...
+            </h2>
+            <div class="bg-white border-2 border-orange-100 rounded-2xl p-6 mb-6 inline-flex flex-col items-center shadow-inner">
+                <div id="matrix-qr-canvas" class="mb-4 bg-white p-2 border border-zinc-200 rounded-xl"></div>
+                <div class="w-full max-w-md">
+                    <div class="flex gap-2">
+                        <input type="text" id="display-sharable-url" readonly class="w-full bg-zinc-50 border border-zinc-200 text-gray-600 rounded-xl p-3 text-xs font-bold outline-none">
+                        <button onclick="copySharedUrl()" class="bg-zinc-700 text-white font-bold px-4 rounded-xl text-xs whitespace-nowrap">コピー</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="stage-game" class="view-section hidden-view">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="game-wrapper">
+                
+                <div class="md:col-span-2 flex justify-center items-center">
+                    <div id="board-container" class="w-full max-w-[500px]"></div>
+                </div>
+
+                <div class="flex flex-col justify-between bg-zinc-50 border-2 border-zinc-200 p-4 rounded-2xl shadow-inner">
+                    <div>
+                        <div class="text-center mb-4">
+                            <span id="role-badge" class="inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-800">取得中</span>
+                        </div>
+                        
+                        <div class="bg-white border border-zinc-200 rounded-xl p-4 text-center mb-4 shadow-sm">
+                            <h3 class="text-xs font-bold text-gray-400 mb-2">スコア</h3>
+                            <div class="flex justify-around text-2xl font-black">
+                                <div class="text-zinc-900">⚫ 黒: <span id="black-score">2</span></div>
+                                <div class="text-zinc-500">⚪ 白: <span id="white-score">2</span></div>
+                            </div>
+                        </div>
+
+                        <div id="turn-box" class="border border-zinc-200 rounded-xl p-4 text-center mb-4 shadow-sm transition-all duration-300">
+                            <h3 class="text-xs font-bold text-gray-400 mb-1">現在の手番</h3>
+                            <div id="turn-display" class="text-xl font-black">--</div>
+                        </div>
+
+                        <div class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl p-4 text-center text-xs font-bold min-h-[60px] flex items-center justify-center">
+                            <p id="message-display">準備中...</p>
+                        </div>
+                    </div>
+
+                    <button onclick="terminateSessionHard('ゲームを終了しました。')" class="w-full bg-red-500 hover:bg-red-600 shadow-[0_4px_0_#b91c1c] text-white font-black py-3 rounded-xl text-sm mt-4 tracking-wider transition-all">
+                        対戦を終了する
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let peerInstance = null;
+        let activeDataConnection = null;
+        let sessionSymmetricKey = null;
+        let isHost = false; 
+
+        const EMPTY = 0, BLACK = 1, WHITE = 2;
+        let board = [];
+        let currentPlayer = BLACK;
+        let gameActive = false;
+
+        const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+        const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('notification-center');
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-xl shadow-lg border-2 text-sm font-bold bg-white pointer-events-auto transform transition-all duration-300 translate-x-10 opacity-0`;
+            if(type === 'success') toast.className += ' border-emerald-500 bg-emerald-50 text-emerald-900';
+            else if(type === 'error') toast.className += ' border-red-500 bg-red-50 text-red-900';
+            else toast.className += ' border-blue-500 bg-blue-50 text-blue-900';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-x-10', 'opacity-0'); }, 10);
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function transitionToView(targetId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden-view'));
+            document.getElementById(targetId).classList.remove('hidden-view');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            const hash = window.location.hash;
+            if (hash && hash.includes('k=')) {
+                isHost = false;
+                startJoiningGame(hash);
+            } else {
+                transitionToView('stage-setup');
+            }
+        });
+
+        // --- 暗号化処理 ---
+        async function encryptData(text) {
+            const textBytes = new TextEncoder().encode(text);
+            const nonce = crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: nonce }, sessionSymmetricKey, textBytes);
+            return { payload: encrypted, nonce: nonce };
+        }
+
+        async function decryptData(cipherBuffer, nonce) {
+            const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, sessionSymmetricKey, cipherBuffer);
+            return new TextDecoder().decode(dec);
+        }
+
+        // --- 部屋作成（ホスト） ---
+        async function startHostingGame() {
+            try {
+                isHost = true;
+                transitionToView('stage-loading');
+                
+                sessionSymmetricKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+                const rawKey = await crypto.subtle.exportKey('raw', sessionSymmetricKey);
+                const serializedKeyToken = btoa(String.fromCharCode(...new Uint8Array(rawKey))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+                peerInstance = new Peer({ config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] } });
+                peerInstance.on('open', (id) => {
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}#k=${serializedKeyToken}`;
+                    document.getElementById('display-sharable-url').value = shareUrl;
+                    document.getElementById('matrix-qr-canvas').innerHTML = '';
+                    new QRCode(document.getElementById('matrix-qr-canvas'), { text: shareUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+                    transitionToView('stage-broadcasting');
+                });
+
+                peerInstance.on('connection', (conn) => {
+                    if (activeDataConnection) { conn.close(); return; }
+                    setupConnection(conn);
+                });
+            } catch (e) {
+                showToast('部屋の作成に失敗しました。', 'error');
+                terminateSessionHard();
+            }
+        }
+
+        // --- 部屋参加（ゲスト） ---
+        async function startJoiningGame(hashFragment) {
+            try {
+                transitionToView('stage-loading');
+                const urlParams = new URLSearchParams(window.location.search);
+                const roomId = urlParams.get('room');
+                
+                const keyIndex = hashFragment.indexOf('k=');
+                const keyString = hashFragment.substring(keyIndex + 2);
+                const binaryString = atob(keyString.replace(/-/g, '+').replace(/_/g, '/'));
+                const keyBuffer = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) { keyBuffer[i] = binaryString.charCodeAt(i); }
+
+                sessionSymmetricKey = await crypto.subtle.importKey('raw', keyBuffer, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+
+                peerInstance = new Peer({ config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] } });
+                peerInstance.on('open', () => {
+                    const conn = peerInstance.connect(roomId, { reliable: true });
+                    setupConnection(conn);
+                });
+            } catch(e) {
+                showToast('認証鍵のインポートに失敗しました。', 'error');
+                setTimeout(() => { window.location.href = window.location.pathname; }, 2000);
+            }
+        }
+
+        function setupConnection(conn) {
+            activeDataConnection = conn;
+            conn.on('open', () => {
+                showToast('対戦相手と接続しました！');
+                const badge = document.getElementById('role-badge');
+                if(isHost) {
+                    badge.textContent = "あなた: ⚫黒 (ホスト)";
+                    badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-900";
+                } else {
+                    badge.textContent = "あなた: ⚪白 (ゲスト)";
+                    badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-zinc-900 bg-white border border-zinc-300";
+                }
+                transitionToView('stage-game');
+                if(isHost) {
+                    initGameEngine();
+                }
+            });
+
+            conn.on('data', async (envelope) => {
+                try {
+                    const decryptedText = await decryptData(envelope.payload, envelope.nonce);
+                    const data = JSON.parse(decryptedText);
+
+                    if (data.type === 'sync') {
+                        // 【全同期】相手から送られてきた状態をそのまま丸ごと上書きする
+                        board = data.board;
+                        currentPlayer = data.currentPlayer;
+                        gameActive = data.gameActive;
+                        
+                        if (data.catAlert) {
+                            const gameWrapper = document.getElementById('game-wrapper');
+                            gameWrapper.classList.add('active-shake');
+                            document.getElementById('message-display').textContent = `🐈 猫が乱入！盤面が荒らされた！`;
+                            await sleep(800);
+                            gameWrapper.classList.remove('active-shake');
+                        } else {
+                            document.getElementById('message-display').textContent = data.msg;
+                        }
+                        
+                        renderBoard();
+                    }
+                } catch (e) {
+                    console.error("同期データ受信エラー:", e);
+                }
+            });
+
+            conn.on('close', () => {
+                showToast('対戦相手との通信が切断されました。', 'error');
+                gameActive = false;
+            });
+        }
+
+        function copySharedUrl() {
+            const input = document.getElementById('display-sharable-url');
+            input.select();
+            navigator.clipboard.writeText(input.value);
+            showToast('URLをコピーしました！');
+        }
+
+        function terminateSessionHard(msg) {
+            if(activeDataConnection) activeDataConnection.close();
+            if(peerInstance) peerInstance.destroy();
+            if(msg) showToast(msg, 'info');
+            setTimeout(() => { window.location.href = window.location.pathname; }, 500);
+        }
+
+        // --- ゲーム管理ロジック (ホストがベースラインを生成) ---
+        function initGameEngine() {
+            board = Array(8).fill(0).map(() => Array(8).fill(EMPTY));
+            board[3][3] = WHITE; board[3][4] = BLACK;
+            board[4][3] = BLACK; board[4][4] = WHITE;
+            currentPlayer = BLACK;
+            gameActive = true;
+            broadcastGameState("ゲーム開始！あなたのターンです。");
+            renderBoard();
+        }
+
+        // 現在の全状態を丸ごと相手に送信するコア関数
+        async function broadcastGameState(msgText, catAlert = false) {
+            if (!activeDataConnection) return;
+            const syncPacket = JSON.stringify({
+                type: 'sync',
+                board: board,
+                currentPlayer: currentPlayer,
+                gameActive: gameActive,
+                msg: msgText,
+                catAlert: catAlert
+            });
+            const envelope = await encryptData(syncPacket);
+            activeDataConnection.send(envelope);
+        }
+
+        function renderBoard() {
+            const boardContainer = document.getElementById('board-container');
+            boardContainer.innerHTML = '';
+            let blackCount = 0, whiteCount = 0;
+
+            const isMyTurn = (isHost && currentPlayer === BLACK) || (!isHost && currentPlayer === WHITE);
+            const validMoves = (gameActive && isMyTurn) ? getValidMoves(currentPlayer) : [];
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    const stoneVal = board[r][c];
+                    if (stoneVal !== EMPTY) {
+                        const stoneContainer = document.createElement('div');
+                        stoneContainer.className = 'stone-container';
+                        const stone = document.createElement('div');
+                        stone.className = 'stone';
+                        if (stoneVal === WHITE) stone.classList.add('is-flipped');
+                        
+                        stone.innerHTML = '<div class="stone-face front"></div><div class="stone-face back"></div>';
+                        stoneContainer.appendChild(stone);
+                        cell.appendChild(stoneContainer);
+                        stoneVal === BLACK ? blackCount++ : whiteCount++;
+                    }
+
+                    if (validMoves.some(m => m.r === r && m.c === c)) {
+                        cell.classList.add('possible-move');
+                        cell.onclick = () => handleCellClick(r, c);
+                    }
+                    boardContainer.appendChild(cell);
+                }
+            }
+            document.getElementById('black-score').textContent = blackCount;
+            document.getElementById('white-score').textContent = whiteCount;
+
+            const turnDisplay = document.getElementById('turn-display');
+            const turnBox = document.getElementById('turn-box');
+            if (currentPlayer === BLACK) {
+                turnDisplay.textContent = '黒の番' + (isHost ? ' (あなた)' : ' (相手)');
+                turnBox.style.backgroundColor = '#111';
+                turnDisplay.style.color = '#fff';
+            } else {
+                turnDisplay.textContent = '白の番' + (!isHost ? ' (あなた)' : ' (相手)');
+                turnBox.style.backgroundColor = '#f0f0f0';
+                turnDisplay.style.color = '#111';
+            }
+        }
+
+        // 石の配置処理
+        async function handleCellClick(r, c) {
+            if (!gameActive) return;
+            gameActive = false; // 処理中の連打防止
+            
+            // 1. ひっくり返す処理を実行
+            const flips = getFlips(r, c, currentPlayer);
+            board[r][c] = currentPlayer;
+            flips.forEach(flip => board[flip.r][flip.c] = currentPlayer);
+            
+            // 2. 猫のいたずら抽選（通信同期の親であるホスト側でのみ確率計算する）
+            let catTriggered = false;
+            if (isHost && Math.random() < 0.3) {
+                executeCatMischiefLogic();
+                catTriggered = true;
+            }
+
+            // 3. 手番交代の計算
+            let nextPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+            let nextMoves = getValidMoves(nextPlayer);
+
+            if (nextMoves.length === 0) {
+                // パスの場合
+                let standardMoves = getValidMoves(currentPlayer);
+                if (standardMoves.length === 0) {
+                    // 両者打てなければ終了
+                    gameActive = false;
+                    const black = board.flat().filter(s => s === BLACK).length;
+                    const white = board.flat().filter(s => s === WHITE).length;
+                    let endMsg = black === white ? '引き分け！' : (black > white ? '黒の勝ち！' : '白の勝ち！');
+                    
+                    if(isHost) {
+                        broadcastGameState(`ゲーム終了！ ${endMsg}`);
+                        document.getElementById('message-display').textContent = `ゲーム終了！ ${endMsg}`;
+                        renderBoard();
+                    } else {
+                        // ゲスト側が終局させた場合はホストに処理を一度投げる
+                        await requestHostToSync(board, currentPlayer, false, `ゲーム終了！ ${endMsg}`);
+                    }
+                    return;
+                }
+                // パスして現在のプレイヤー続行
+                nextPlayer = currentPlayer;
+            }
+
+            currentPlayer = nextPlayer;
+            gameActive = true;
+
+            // 4. 全画面データの同期送信
+            if (isHost) {
+                renderBoard();
+                if(catTriggered) {
+                    const gameWrapper = document.getElementById('game-wrapper');
+                    gameWrapper.classList.add('active-shake');
+                    document.getElementById('message-display').textContent = `🐈 猫が乱入！盤面が荒らされた！`;
+                    await broadcastGameState("", true);
+                    await sleep(800);
+                    gameWrapper.classList.remove('active-shake');
+                }
+                broadcastGameState(currentPlayer === BLACK ? "黒の番です。" : "白の番です。");
+            } else {
+                // ゲストが着手した場合は最新の盤面をホストに「これに同期して」と伝える
+                await requestHostToSync(board, currentPlayer, catTriggered, "相手が打ちました。あなたの番です。");
+            }
+        }
+
+        // ゲストからホストへ最新データを送ってホスト側から全体へ配信してもらう関数
+        async function requestHostToSync(targetBoard, nextPlayer, catAlert, msg) {
+            if (!activeDataConnection) return;
+            // ゲストからも構造を揃えて送る（ホスト側のconn.on('data')でsyncとして処理される）
+            const packet = JSON.stringify({
+                type: 'sync',
+                board: targetBoard,
+                currentPlayer: nextPlayer,
+                gameActive: true,
+                msg: msg,
+                catAlert: catAlert
+            });
+            const envelope = await encryptData(packet);
+            activeDataConnection.send(envelope);
+            
+            // 自分の画面も更新
+            renderBoard();
+            document.getElementById('message-display').textContent = "相手の応答を待っています...";
+        }
+
+        // 猫のいたずら計算ロジック (完全にホスト側の配列操作のみで行う)
+        function executeCatMischiefLogic() {
+            const isDouble = Math.random() < 0.25;
+            const count = isDouble ? 2 : 1;
+
+            for (let i = 0; i < count; i++) {
+                let movableStones = [];
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        if (board[r][c] !== EMPTY) {
+                            let emptyNeighbors = [];
+                            for (const [dr, dc] of DIRS) {
+                                let nr = r + dr, nc = c + dc;
+                                if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8 && board[nr][nc] === EMPTY) {
+                                    emptyNeighbors.push({ r: nr, c: nc });
+                                }
+                            }
+                            if (emptyNeighbors.length > 0) {
+                                movableStones.push({ from: { r, c }, toOptions: emptyNeighbors });
+                            }
+                        }
+                    }
+                }
+
+                if (movableStones.length > 0) {
+                    const choice = movableStones[Math.floor(Math.random() * movableStones.length)];
+                    const target = choice.toOptions[Math.floor(Math.random() * choice.toOptions.length)];
+                    const stoneType = board[choice.from.r][choice.from.c];
+                    
+                    board[choice.from.r][choice.from.c] = EMPTY;
+                    board[target.r][target.c] = stoneType;
+                }
+            }
+        }
+
+        // --- ルール算出ヘルパー ---
+        function getValidMoves(player) {
+            const moves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] === EMPTY && getFlips(r, c, player).length > 0) {
+                        moves.push({ r, c });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function getFlips(r, c, player) {
+            const opponent = player === BLACK ? WHITE : BLACK;
+            let allFlips = [];
+            for (const [dr, dc] of DIRS) {
+                let line = [];
+                let cr = r + dr, cc = c + dc;
+                while (cr >= 0 && cr < 8 && cc >= 0 && cc < 8 && board[cr][cc] === opponent) {
+                    line.push({ r: cr, c: cc });
+                    cr += dr; cc += dc;
+                }
+                if (line.length > 0 && cr >= 0 && cr < 8 && cc >= 0 && cc < 8 && board[cr][cc] === player) {
+                    allFlips.push(...line);
+                }
+            }
+            return allFlips;
+        }
+    </script>
+</body>
+</html>
