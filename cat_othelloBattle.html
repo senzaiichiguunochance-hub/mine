@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ネット対戦・いたずら猫のオセロ (安定版)</title>
+    <title>ネット対戦・いたずら猫のオセロ (完全版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -54,9 +54,7 @@
             transition: transform 0.4s;
             transform-style: preserve-3d;
         }
-        .stone.is-flipped {
-            transform: rotateY(180deg);
-        }
+        .stone.is-flipped { transform: rotateY(180deg); }
         .stone-face {
             position: absolute;
             width: 100%;
@@ -106,32 +104,55 @@
             font-weight: 900;
         }
         .cute-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #c2410c; }
+
+        @keyframes pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
     <div id="notification-center" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col gap-3 w-full max-w-sm"></div>
 
-    <div class="w-full max-w-4xl cute-card p-6 md:p-8">
+    <div class="w-full max-w-6xl cute-card p-4 md:p-6">
         
-        <div id="stage-setup" class="view-section text-center">
+        <!-- STAGE 1: 初期メニュー -->
+        <div id="stage-setup" class="view-section text-center py-6">
             <h1 class="text-3xl font-black text-orange-500 mb-2">🐾 いたずら猫のネット対戦オセロ 🐾</h1>
-            <p class="text-sm font-bold text-gray-500 mb-8">お互いのブラウザを丸ごと全同期する安定版システム</p>
+            <p class="text-sm font-bold text-gray-500 mb-8">音楽・チャット・時間制限機能つきフルパッケージ</p>
             
-            <div class="max-w-md mx-auto bg-orange-50 border-2 border-orange-100 p-6 rounded-2xl mb-6">
+            <div class="max-w-md mx-auto bg-orange-50 border-2 border-orange-100 p-6 rounded-2xl mb-6 text-left">
+                <label class="block text-sm font-black text-gray-700 mb-2">持ち時間（1手あたり）:</label>
+                <select id="time-limit-select" class="w-full bg-white border border-orange-200 p-3 rounded-xl mb-6 font-bold text-gray-700 outline-none">
+                    <option value="5">5秒</option>
+                    <option value="10">10秒</option>
+                    <option value="15">15秒</option>
+                    <option value="20">20秒</option>
+                    <option value="25">25秒</option>
+                    <option value="30">30秒</option>
+                    <option value="60">60秒</option>
+                    <option value="120">120秒</option>
+                    <option value="180">180秒</option>
+                    <option value="999999">無制限</option>
+                </select>
+
                 <button onclick="startHostingGame()" class="w-full cute-btn py-4 px-6 text-lg tracking-wider flex justify-center items-center gap-2">
                     <i data-lucide="play" class="w-5 h-5 fill-white"></i> 対戦部屋を作る（ホストになる）
                 </button>
             </div>
         </div>
 
+        <!-- STAGE 2: ロード中 -->
         <div id="stage-loading" class="view-section hidden-view text-center py-8">
             <i data-lucide="loader2" class="w-12 h-12 text-orange-500 mx-auto mb-4 animate-spin"></i>
             <h2 class="text-lg font-black text-zinc-700" id="loading-title">通信路を作成中...</h2>
         </div>
 
-        <div id="stage-broadcasting" class="view-section hidden-view text-center">
+        <!-- STAGE 3: 接続待機 -->
+        <div id="stage-broadcasting" class="view-section hidden-view text-center py-6">
             <h2 class="text-xl font-black text-orange-500 mb-2 flex items-center justify-center gap-2">
                 <span class="w-3 h-3 bg-orange-500 rounded-full animate-ping"></span>
                 対戦相手の接続を待っています...
@@ -147,41 +168,100 @@
             </div>
         </div>
 
+        <!-- STAGE 4: メインゲーム画面 -->
         <div id="stage-game" class="view-section hidden-view">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="game-wrapper">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6" id="game-wrapper">
                 
-                <div class="md:col-span-2 flex justify-center items-center">
-                    <div id="board-container" class="w-full max-w-[500px]"></div>
+                <!-- 左〜中央: ゲーム盤面＆音楽プレイヤーエリア -->
+                <div class="lg:col-span-2 flex flex-col items-center justify-center relative">
+                    
+                    <div class="w-full max-w-[480px] relative">
+                        <div id="board-container" class="w-full"></div>
+                        
+                        <!-- ポップアップレイヤー -->
+                        <div id="board-overlay" class="absolute inset-0 bg-black/40 rounded-xl hidden flex items-center justify-center p-4 z-30">
+                            <div id="overlay-content" class="bg-white border-4 border-amber-400 rounded-3xl p-6 shadow-2xl text-center max-w-[90%] animate-pop-in"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 音楽プレイヤー群 (自分用：上、相手用：下) -->
+                    <div class="w-full max-w-[480px] flex flex-col gap-2 mt-4">
+                        <!-- 自分の音楽 -->
+                        <div class="bg-white border border-zinc-200 rounded-xl p-2.5 flex items-center justify-between gap-3 shadow-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">自分</span>
+                                <button id="my-music-play-btn" onclick="toggleMusicPlayback('my')" disabled class="bg-zinc-200 text-zinc-400 p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all">
+                                    <i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music
+                                </button>
+                                <span id="my-music-status-text" class="text-xs text-zinc-400 font-bold max-w-[140px] truncate">音楽未設定</span>
+                            </div>
+                            <label class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-xl font-black text-xs cursor-pointer text-center transition-all whitespace-nowrap">
+                                <i data-lucide="upload" class="w-3 h-3 inline mr-1"></i> 曲を送信
+                                <input type="file" id="my-music-file-input" accept="audio/*" onchange="handleMusicUpload(this)" class="hidden">
+                            </label>
+                        </div>
+                        
+                        <!-- 相手の音楽 -->
+                        <div class="bg-white border border-zinc-200 rounded-xl p-2.5 flex items-center justify-between gap-3 shadow-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">相手</span>
+                                <button id="peer-music-play-btn" onclick="toggleMusicPlayback('peer')" disabled class="bg-zinc-200 text-zinc-400 p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all">
+                                    <i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music
+                                </button>
+                                <span id="peer-music-status-text" class="text-xs text-zinc-400 font-bold max-w-[140px] truncate">音楽未設定</span>
+                            </div>
+                            <!-- 相手枠側のアップロードはダミー（非表示または無効化） -->
+                            <button disabled class="bg-zinc-100 text-zinc-300 px-3 py-2 rounded-xl font-black text-xs whitespace-nowrap cursor-not-allowed">
+                                受信専用
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- オーディオ要素（分離） -->
+                    <audio id="audio-player-my" loop class="hidden"></audio>
+                    <audio id="audio-player-peer" loop class="hidden"></audio>
                 </div>
 
+                <!-- 右側上: 対戦ステータスパネル -->
                 <div class="flex flex-col justify-between bg-zinc-50 border-2 border-zinc-200 p-4 rounded-2xl shadow-inner">
                     <div>
-                        <div class="text-center mb-4">
+                        <div class="text-center mb-3">
                             <span id="role-badge" class="inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-800">取得中</span>
                         </div>
                         
-                        <div class="bg-white border border-zinc-200 rounded-xl p-4 text-center mb-4 shadow-sm">
-                            <h3 class="text-xs font-bold text-gray-400 mb-2">スコア</h3>
-                            <div class="flex justify-around text-2xl font-black">
+                        <div class="bg-white border border-zinc-200 rounded-xl p-3 text-center mb-3 shadow-sm">
+                            <div class="flex justify-around text-xl font-black">
                                 <div class="text-zinc-900">⚫ 黒: <span id="black-score">2</span></div>
                                 <div class="text-zinc-500">⚪ 白: <span id="white-score">2</span></div>
                             </div>
                         </div>
 
-                        <div id="turn-box" class="border border-zinc-200 rounded-xl p-4 text-center mb-4 shadow-sm transition-all duration-300">
-                            <h3 class="text-xs font-bold text-gray-400 mb-1">現在の手番</h3>
-                            <div id="turn-display" class="text-xl font-black">--</div>
-                        </div>
-
-                        <div class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl p-4 text-center text-xs font-bold min-h-[60px] flex items-center justify-center">
-                            <p id="message-display">準備中...</p>
+                        <!-- タイマー＆手番表示 -->
+                        <div id="turn-box" class="border border-zinc-200 rounded-xl p-3 text-center mb-3 shadow-sm transition-all duration-300">
+                            <div id="turn-display" class="text-md font-black">--</div>
+                            <div id="timer-display" class="text-2xl font-black text-red-500 mt-1">⏳ -- 秒</div>
                         </div>
                     </div>
 
-                    <button onclick="terminateSessionHard('ゲームを終了しました。')" class="w-full bg-red-500 hover:bg-red-600 shadow-[0_4px_0_#b91c1c] text-white font-black py-3 rounded-xl text-sm mt-4 tracking-wider transition-all">
-                        対戦を終了する
-                    </button>
+                    <div>
+                        <button onclick="handleSurrenderClick()" class="w-full bg-amber-500 hover:bg-amber-600 shadow-[0_4px_0_#d97706] text-white font-black py-3 rounded-xl text-sm tracking-wider transition-all">
+                            🏳️ まいった（降伏する）
+                        </button>
+                    </div>
                 </div>
+
+                <!-- 右側下: リアルタイムチャットパネル -->
+                <div class="flex flex-col bg-white border-2 border-zinc-200 p-3 rounded-2xl shadow-sm h-[320px] lg:h-auto">
+                    <h3 class="text-xs font-black text-gray-400 mb-2 flex items-center gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> チャット</h3>
+                    <div id="chat-log-box" class="flex-1 overflow-y-auto border border-zinc-100 p-2 rounded-xl text-xs bg-zinc-50 flex flex-col gap-1.5 mb-2">
+                        <div class="text-gray-400 italic">チャットへようこそ！</div>
+                    </div>
+                    <div class="flex gap-1">
+                        <input type="text" id="chat-input" onkeydown="if(event.key==='Enter') sendChatMessage()" placeholder="メッセージを入力..." class="w-full bg-zinc-100 border border-zinc-200 rounded-xl p-2 text-xs font-bold outline-none">
+                        <button onclick="sendChatMessage()" class="bg-orange-500 text-white font-black px-3 rounded-xl text-xs">送信</button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -196,6 +276,15 @@
         let board = [];
         let currentPlayer = BLACK;
         let gameActive = false;
+        
+        // 自分の石の色 (BLACK または WHITE) - ランダム決定用
+        let myColor = BLACK;
+
+        let timeLimitPerTurn = 25; 
+        let currentTimeRemaining = 25;
+        let gameTimerInterval = null;
+
+        let isMusicAlertShown = false;
 
         const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
         const sleep = ms => new Promise(res => setTimeout(res, ms));
@@ -221,8 +310,15 @@
             document.getElementById(targetId).classList.remove('hidden-view');
         }
 
+        // 起動時に制限時間をLocalStorageから復元
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
+            
+            const savedTime = localStorage.getItem('othello_time_limit');
+            if (savedTime) {
+                document.getElementById('time-limit-select').value = savedTime;
+            }
+
             const hash = window.location.hash;
             if (hash && hash.includes('k=')) {
                 isHost = false;
@@ -232,7 +328,6 @@
             }
         });
 
-        // --- 暗号化処理 ---
         async function encryptData(text) {
             const textBytes = new TextEncoder().encode(text);
             const nonce = crypto.getRandomValues(new Uint8Array(12));
@@ -249,6 +344,12 @@
         async function startHostingGame() {
             try {
                 isHost = true;
+                const selectEl = document.getElementById('time-limit-select');
+                timeLimitPerTurn = parseInt(selectEl.value);
+                
+                // 次回のために秒数を記憶
+                localStorage.setItem('othello_time_limit', selectEl.value);
+                
                 transitionToView('stage-loading');
                 
                 sessionSymmetricKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -257,7 +358,7 @@
 
                 peerInstance = new Peer({ config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] } });
                 peerInstance.on('open', (id) => {
-                    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}#k=${serializedKeyToken}`;
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}&t=${timeLimitPerTurn}#k=${serializedKeyToken}`;
                     document.getElementById('display-sharable-url').value = shareUrl;
                     document.getElementById('matrix-qr-canvas').innerHTML = '';
                     new QRCode(document.getElementById('matrix-qr-canvas'), { text: shareUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
@@ -280,6 +381,7 @@
                 transitionToView('stage-loading');
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomId = urlParams.get('room');
+                timeLimitPerTurn = parseInt(urlParams.get('t') || "25");
                 
                 const keyIndex = hashFragment.indexOf('k=');
                 const keyString = hashFragment.substring(keyIndex + 2);
@@ -300,21 +402,30 @@
             }
         }
 
+        function updateRoleBadge() {
+            const badge = document.getElementById('role-badge');
+            if (myColor === BLACK) {
+                badge.textContent = `あなた: ⚫黒 (${isHost ? 'ホスト' : 'ゲスト'})`;
+                badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-900";
+            } else {
+                badge.textContent = `あなた: ⚪白 (${isHost ? 'ホスト' : 'ゲスト'})`;
+                badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-zinc-900 bg-white border border-zinc-300";
+            }
+        }
+
         function setupConnection(conn) {
             activeDataConnection = conn;
-            conn.on('open', () => {
+            conn.on('open', async () => {
                 showToast('対戦相手と接続しました！');
-                const badge = document.getElementById('role-badge');
-                if(isHost) {
-                    badge.textContent = "あなた: ⚫黒 (ホスト)";
-                    badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-900";
-                } else {
-                    badge.textContent = "あなた: ⚪白 (ゲスト)";
-                    badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-zinc-900 bg-white border border-zinc-300";
-                }
                 transitionToView('stage-game');
+                
                 if(isHost) {
-                    initGameEngine();
+                    // 【ランダム化】ホストがランダムに自分の色を黒か白に決定する
+                    myColor = Math.random() < 0.5 ? BLACK : WHITE;
+                    const peerColor = myColor === BLACK ? WHITE : BLACK;
+                    
+                    updateRoleBadge();
+                    initGameEngine(peerColor);
                 }
             });
 
@@ -323,8 +434,16 @@
                     const decryptedText = await decryptData(envelope.payload, envelope.nonce);
                     const data = JSON.parse(decryptedText);
 
-                    if (data.type === 'sync') {
-                        // 【全同期】相手から送られてきた状態をそのまま丸ごと上書きする
+                    if (data.type === 'init') {
+                        // ゲスト側：ホストから送られてきた初期割当て色を反映してゲーム開始
+                        myColor = data.guestColor;
+                        board = data.board;
+                        currentPlayer = data.currentPlayer;
+                        gameActive = data.gameActive;
+                        updateRoleBadge();
+                        renderBoard();
+                        resetLocalTurnTimer();
+                    } else if (data.type === 'sync') {
                         board = data.board;
                         currentPlayer = data.currentPlayer;
                         gameActive = data.gameActive;
@@ -332,23 +451,32 @@
                         if (data.catAlert) {
                             const gameWrapper = document.getElementById('game-wrapper');
                             gameWrapper.classList.add('active-shake');
-                            document.getElementById('message-display').textContent = `🐈 猫が乱入！盤面が荒らされた！`;
                             await sleep(800);
                             gameWrapper.classList.remove('active-shake');
-                        } else {
-                            document.getElementById('message-display').textContent = data.msg;
                         }
                         
                         renderBoard();
+
+                        if (data.gameOutcome) {
+                            showPopOutcome(data.gameOutcome);
+                        } else {
+                            resetLocalTurnTimer();
+                        }
+                    } else if (data.type === 'chat') {
+                        appendChatLog(data.sender, data.text);
+                    } else if (data.type === 'music') {
+                        // 相手から送られてきた音楽データは「相手プレイヤー(下段)」にセット
+                        setupReceivedMusic(data.audioDataUrl, data.fileName);
                     }
                 } catch (e) {
-                    console.error("同期データ受信エラー:", e);
+                    console.error("データ同期エラー:", e);
                 }
             });
 
             conn.on('close', () => {
                 showToast('対戦相手との通信が切断されました。', 'error');
                 gameActive = false;
+                clearInterval(gameTimerInterval);
             });
         }
 
@@ -360,33 +488,281 @@
         }
 
         function terminateSessionHard(msg) {
+            clearInterval(gameTimerInterval);
             if(activeDataConnection) activeDataConnection.close();
             if(peerInstance) peerInstance.destroy();
             if(msg) showToast(msg, 'info');
             setTimeout(() => { window.location.href = window.location.pathname; }, 500);
         }
 
-        // --- ゲーム管理ロジック (ホストがベースラインを生成) ---
-        function initGameEngine() {
+        // --- チャット機能 ---
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const senderName = myColor === BLACK ? "⚫黒" : "⚪白";
+            appendChatLog(senderName + " (あなた)", text);
+            input.value = "";
+
+            if (activeDataConnection) {
+                const packet = JSON.stringify({ type: 'chat', sender: senderName, text: text });
+                const envelope = await encryptData(packet);
+                activeDataConnection.send(envelope);
+            }
+        }
+
+        function appendChatLog(sender, text) {
+            const box = document.getElementById('chat-log-box');
+            const msgRow = document.createElement('div');
+            msgRow.innerHTML = `<span class="font-black text-gray-700">${sender}:</span> <span class="text-gray-600 break-all">${text}</span>`;
+            box.appendChild(msgRow);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // --- 降伏（まいった）機能 ---
+        async function handleSurrenderClick() {
+            if (!gameActive) return;
+            if (!confirm("本当に「まいった」して降伏しますか？")) return;
+
+            gameActive = false;
+            clearInterval(gameTimerInterval);
+            
+            // 自分が降伏したので、勝者は相手プレイヤー
+            const hostWon = (myColor === BLACK) ? false : true; // 自分が黒なら白(ホスト以外)の勝ち、自分が白なら黒(ホスト)の勝ち
+            
+            const outcomeData = {
+                trigger: 'surrender',
+                hostWon: hostWon
+            };
+
+            showPopOutcome(outcomeData);
+            
+            if (isHost) {
+                broadcastGameState(outcomeData);
+            } else {
+                await requestHostToSync(board, currentPlayer, false, outcomeData);
+            }
+        }
+
+        // --- タイムアウト手番交代タイマー制御 ---
+        function resetLocalTurnTimer() {
+            clearInterval(gameTimerInterval);
+            if (!gameActive || timeLimitPerTurn > 90000) {
+                document.getElementById('timer-display').textContent = "⏳ 無制限";
+                return;
+            }
+
+            currentTimeRemaining = timeLimitPerTurn;
+            document.getElementById('timer-display').textContent = `⏳ ${currentTimeRemaining} 秒`;
+
+            gameTimerInterval = setInterval(async () => {
+                currentTimeRemaining--;
+                document.getElementById('timer-display').textContent = `⏳ ${currentTimeRemaining} 秒`;
+
+                if (currentTimeRemaining <= 0) {
+                    clearInterval(gameTimerInterval);
+                    
+                    const isMyTurn = (currentPlayer === myColor);
+                    if (isMyTurn) {
+                        showToast("時間切れ！手番が交代します。", "error");
+                        currentPlayer = currentPlayer === BLACK ? WHITE : BLACK;
+                        
+                        if (isHost) {
+                            broadcastGameState(null);
+                            renderBoard();
+                            resetLocalTurnTimer();
+                        } else {
+                            await requestHostToSync(board, currentPlayer, false, null);
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        // --- 音楽ファイル送信＆再生機能 (分離対応) ---
+        function handleMusicUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            showToast("音楽ファイルを読み込み中...", "info");
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const dataUrl = e.target.result;
+                
+                // 自分のプレイヤー(上段)にセット
+                silentSetupMyMusic(dataUrl, file.name);
+                showToast("音楽を読み込みました！相手へ送信中...");
+
+                if (activeDataConnection) {
+                    const packet = JSON.stringify({ type: 'music', audioDataUrl: dataUrl, fileName: file.name });
+                    const envelope = await encryptData(packet);
+                    activeDataConnection.send(envelope);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 自分の音楽（上段）の設定
+        function silentSetupMyMusic(dataUrl, fileName) {
+            const player = document.getElementById('audio-player-my');
+            player.src = dataUrl;
+            document.getElementById('my-music-status-text').textContent = fileName;
+            document.getElementById('my-music-status-text').className = "text-xs text-blue-600 font-bold max-w-[140px] truncate";
+            
+            const btn = document.getElementById('my-music-play-btn');
+            btn.disabled = false;
+            btn.className = "bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#1d4ed8]";
+        }
+
+        // 相手の音楽（下段）の設定 (初回限定ポップアップ)
+        function setupReceivedMusic(dataUrl, fileName) {
+            const player = document.getElementById('audio-player-peer');
+            player.src = dataUrl;
+            document.getElementById('peer-music-status-text').textContent = fileName;
+            document.getElementById('peer-music-status-text').className = "text-xs text-purple-600 font-bold max-w-[140px] truncate";
+            
+            const btn = document.getElementById('peer-music-play-btn');
+            btn.disabled = false;
+            btn.className = "bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#6b21a8]";
+
+            // ゲーム開始から1回限定のド派手なオーバーレイ表示
+            if (!isMusicAlertShown) {
+                isMusicAlertShown = true;
+                
+                const overlay = document.getElementById('board-overlay');
+                const content = document.getElementById('overlay-content');
+                
+                overlay.classList.remove('hidden');
+                content.innerHTML = `
+                    <div class="text-4xl mb-2">🎁🎵</div>
+                    <h2 class="text-xl font-black text-purple-600 mb-3 tracking-wide">音楽のプレゼント！</h2>
+                    <p class="text-sm font-bold text-gray-600 mb-6 leading-relaxed">
+                        相手から音楽のプレゼントがありました。<br>
+                        下部にある <span class="text-purple-600 font-black">Play Music</span> で開始します。
+                    </p>
+                    <button onclick="closeBoardOverlay()" class="bg-purple-500 hover:bg-purple-600 shadow-[0_4px_0_#7e22ce] text-white font-black py-2.5 px-6 rounded-2xl text-xs tracking-wider transition-all">
+                        とじる
+                    </button>
+                `;
+            } else {
+                showToast(`🎵 相手から新曲「${fileName}」を受信しました`);
+            }
+        }
+
+        function toggleMusicPlayback(target) {
+            const player = document.getElementById(target === 'my' ? 'audio-player-my' : 'audio-player-peer');
+            const btn = document.getElementById(target === 'my' ? 'my-music-play-btn' : 'peer-music-play-btn');
+            const baseColorClass = target === 'my' ? "bg-blue-500 hover:bg-blue-600" : "bg-purple-500 hover:bg-purple-600";
+
+            if (player.paused) {
+                player.play();
+                btn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5"></i> Pause`;
+                btn.className = `${baseColorClass} text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all`;
+                lucide.createIcons();
+            } else {
+                player.pause();
+                btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music`;
+                btn.className = `${baseColorClass} text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all`;
+                lucide.createIcons();
+            }
+        }
+
+        function closeBoardOverlay() {
+            document.getElementById('board-overlay').classList.add('hidden');
+        }
+
+        // --- 派手な勝敗ポップアップ表示 ---
+        function showPopOutcome(outcome) {
+            const overlay = document.getElementById('board-overlay');
+            const content = document.getElementById('overlay-content');
+            overlay.classList.remove('hidden');
+
+            let title = "";
+            let subtext = "";
+            let colorClass = "";
+            let emoji = "";
+
+            if (outcome.trigger === 'surrender') {
+                const iWon = (myColor === BLACK && outcome.hostWon) || (myColor === WHITE && !outcome.hostWon);
+                if (iWon) {
+                    title = "WIN !";
+                    subtext = "相手がまいったしました。Win！";
+                    colorClass = "text-emerald-500";
+                    emoji = "🏆🎉";
+                } else {
+                    title = "LOSE";
+                    subtext = "あなたがまいったしました。";
+                    colorClass = "text-red-500";
+                    emoji = "🏳️💦";
+                }
+            } else {
+                if (outcome.result === 'draw') {
+                    title = "DRAW";
+                    subtext = `引き分け！ (${outcome.black} 対 ${outcome.white})`;
+                    colorClass = "text-amber-500";
+                    emoji = "🤝";
+                } else {
+                    const hostWon = outcome.result === 'black';
+                    const iWon = (myColor === BLACK && hostWon) || (myColor === WHITE && !hostWon);
+                    if (iWon) {
+                        title = "WIN !!";
+                        subtext = `あなたの勝ち！ (${outcome.black} 対 ${outcome.white})`;
+                        colorClass = "text-emerald-500";
+                        emoji = "👑✨";
+                    } else {
+                        title = "LOSE";
+                        subtext = `あなたの負け... (${outcome.black} 対 ${outcome.white})`;
+                        colorClass = "text-zinc-500";
+                        emoji = "🐱💬";
+                    }
+                }
+            }
+
+            content.innerHTML = `
+                <div class="text-5xl mb-2">${emoji}</div>
+                <h2 class="text-5xl font-black ${colorClass} tracking-wider mb-4 animate-bounce">${title}</h2>
+                <p class="text-sm font-bold text-gray-700 mb-6">${subtext}</p>
+                <button onclick="terminateSessionHard()" class="bg-zinc-800 hover:bg-zinc-900 shadow-[0_4px_0_#18181b] text-white font-black py-3 px-8 rounded-2xl text-xs tracking-wider transition-all">
+                    タイトルに戻る
+                </button>
+            `;
+        }
+
+        // --- ゲームコア管理ロジック ---
+        async function initGameEngine(guestColor) {
             board = Array(8).fill(0).map(() => Array(8).fill(EMPTY));
             board[3][3] = WHITE; board[3][4] = BLACK;
             board[4][3] = BLACK; board[4][4] = WHITE;
-            currentPlayer = BLACK;
+            currentPlayer = BLACK; // オセロの基本ルール通り常に黒からスタート
             gameActive = true;
-            broadcastGameState("ゲーム開始！あなたのターンです。");
+
+            // ゲスト側に初期の色配置情報を通知
+            if (activeDataConnection) {
+                const initPacket = JSON.stringify({
+                    type: 'init',
+                    guestColor: guestColor,
+                    board: board,
+                    currentPlayer: currentPlayer,
+                    gameActive: gameActive
+                });
+                const envelope = await encryptData(initPacket);
+                activeDataConnection.send(envelope);
+            }
+
             renderBoard();
+            resetLocalTurnTimer();
         }
 
-        // 現在の全状態を丸ごと相手に送信するコア関数
-        async function broadcastGameState(msgText, catAlert = false) {
+        async function broadcastGameState(gameOutcome = null, catAlert = false) {
             if (!activeDataConnection) return;
             const syncPacket = JSON.stringify({
                 type: 'sync',
                 board: board,
                 currentPlayer: currentPlayer,
                 gameActive: gameActive,
-                msg: msgText,
-                catAlert: catAlert
+                catAlert: catAlert,
+                gameOutcome: gameOutcome
             });
             const envelope = await encryptData(syncPacket);
             activeDataConnection.send(envelope);
@@ -397,7 +773,7 @@
             boardContainer.innerHTML = '';
             let blackCount = 0, whiteCount = 0;
 
-            const isMyTurn = (isHost && currentPlayer === BLACK) || (!isHost && currentPlayer === WHITE);
+            const isMyTurn = (currentPlayer === myColor);
             const validMoves = (gameActive && isMyTurn) ? getValidMoves(currentPlayer) : [];
 
             for (let r = 0; r < 8; r++) {
@@ -432,107 +808,99 @@
             const turnDisplay = document.getElementById('turn-display');
             const turnBox = document.getElementById('turn-box');
             if (currentPlayer === BLACK) {
-                turnDisplay.textContent = '黒の番' + (isHost ? ' (あなた)' : ' (相手)');
+                turnDisplay.textContent = '黒の番' + (myColor === BLACK ? ' (あなた)' : ' (相手)');
                 turnBox.style.backgroundColor = '#111';
                 turnDisplay.style.color = '#fff';
             } else {
-                turnDisplay.textContent = '白の番' + (!isHost ? ' (あなた)' : ' (相手)');
+                turnDisplay.textContent = '白の番' + (myColor === WHITE ? ' (あなた)' : ' (相手)');
                 turnBox.style.backgroundColor = '#f0f0f0';
                 turnDisplay.style.color = '#111';
             }
         }
 
-        // 石の配置処理
         async function handleCellClick(r, c) {
             if (!gameActive) return;
-            gameActive = false; // 処理中の連打防止
+            gameActive = false; 
+            clearInterval(gameTimerInterval); 
             
-            // 1. ひっくり返す処理を実行
             const flips = getFlips(r, c, currentPlayer);
             board[r][c] = currentPlayer;
             flips.forEach(flip => board[flip.r][flip.c] = currentPlayer);
             
-            // 2. 猫のいたずら抽選（通信同期の親であるホスト側でのみ確率計算する）
             let catTriggered = false;
             if (isHost && Math.random() < 0.3) {
                 executeCatMischiefLogic();
                 catTriggered = true;
             }
 
-            // 3. 手番交代の計算
             let nextPlayer = currentPlayer === BLACK ? WHITE : BLACK;
             let nextMoves = getValidMoves(nextPlayer);
 
             if (nextMoves.length === 0) {
-                // パスの場合
                 let standardMoves = getValidMoves(currentPlayer);
                 if (standardMoves.length === 0) {
-                    // 両者打てなければ終了
                     gameActive = false;
                     const black = board.flat().filter(s => s === BLACK).length;
                     const white = board.flat().filter(s => s === WHITE).length;
-                    let endMsg = black === white ? '引き分け！' : (black > white ? '黒の勝ち！' : '白の勝ち！');
+                    
+                    let resultType = black === white ? 'draw' : (black > white ? 'black' : 'white');
+                    const outcomeData = {
+                        trigger: 'normal',
+                        result: resultType,
+                        black: black,
+                        white: white
+                    };
+
+                    showPopOutcome(outcomeData);
                     
                     if(isHost) {
-                        broadcastGameState(`ゲーム終了！ ${endMsg}`);
-                        document.getElementById('message-display').textContent = `ゲーム終了！ ${endMsg}`;
+                        broadcastGameState(outcomeData);
                         renderBoard();
                     } else {
-                        // ゲスト側が終局させた場合はホストに処理を一度投げる
-                        await requestHostToSync(board, currentPlayer, false, `ゲーム終了！ ${endMsg}`);
+                        await requestHostToSync(board, currentPlayer, false, outcomeData);
                     }
                     return;
                 }
-                // パスして現在のプレイヤー続行
-                nextPlayer = currentPlayer;
+                nextPlayer = currentPlayer; 
             }
 
             currentPlayer = nextPlayer;
             gameActive = true;
 
-            // 4. 全画面データの同期送信
             if (isHost) {
                 renderBoard();
                 if(catTriggered) {
                     const gameWrapper = document.getElementById('game-wrapper');
                     gameWrapper.classList.add('active-shake');
-                    document.getElementById('message-display').textContent = `🐈 猫が乱入！盤面が荒らされた！`;
-                    await broadcastGameState("", true);
+                    await broadcastGameState(null, true);
                     await sleep(800);
                     gameWrapper.classList.remove('active-shake');
                 }
-                broadcastGameState(currentPlayer === BLACK ? "黒の番です。" : "白の番です。");
+                broadcastGameState(null);
+                resetLocalTurnTimer();
             } else {
-                // ゲストが着手した場合は最新の盤面をホストに「これに同期して」と伝える
-                await requestHostToSync(board, currentPlayer, catTriggered, "相手が打ちました。あなたの番です。");
+                await requestHostToSync(board, currentPlayer, catTriggered, null);
             }
         }
 
-        // ゲストからホストへ最新データを送ってホスト側から全体へ配信してもらう関数
-        async function requestHostToSync(targetBoard, nextPlayer, catAlert, msg) {
+        async function requestHostToSync(targetBoard, nextPlayer, catAlert, gameOutcome) {
             if (!activeDataConnection) return;
-            // ゲストからも構造を揃えて送る（ホスト側のconn.on('data')でsyncとして処理される）
             const packet = JSON.stringify({
                 type: 'sync',
                 board: targetBoard,
                 currentPlayer: nextPlayer,
-                gameActive: true,
-                msg: msg,
-                catAlert: catAlert
+                gameActive: gameActive,
+                catAlert: catAlert,
+                gameOutcome: gameOutcome
             });
             const envelope = await encryptData(packet);
             activeDataConnection.send(envelope);
-            
-            // 自分の画面も更新
             renderBoard();
-            document.getElementById('message-display').textContent = "相手の応答を待っています...";
         }
 
-        // 猫のいたずら計算ロジック (完全にホスト側の配列操作のみで行う)
         function executeCatMischiefLogic() {
             const isDouble = Math.random() < 0.25;
             const count = isDouble ? 2 : 1;
-
             for (let i = 0; i < count; i++) {
                 let movableStones = [];
                 for (let r = 0; r < 8; r++) {
@@ -551,19 +919,16 @@
                         }
                     }
                 }
-
                 if (movableStones.length > 0) {
                     const choice = movableStones[Math.floor(Math.random() * movableStones.length)];
                     const target = choice.toOptions[Math.floor(Math.random() * choice.toOptions.length)];
                     const stoneType = board[choice.from.r][choice.from.c];
-                    
                     board[choice.from.r][choice.from.c] = EMPTY;
                     board[target.r][target.c] = stoneType;
                 }
             }
         }
 
-        // --- ルール算出ヘルパー ---
         function getValidMoves(player) {
             const moves = [];
             for (let r = 0; r < 8; r++) {
