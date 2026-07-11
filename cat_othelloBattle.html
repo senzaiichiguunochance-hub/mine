@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ネット対戦・いたずら猫のオセロ (完全版)</title>
+    <title>ネット対戦・いたずら猫のオセロ (完全修正版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -11,7 +11,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght=700;900&family=M+PLUS+Rounded+1c:wght=700;900&display=swap" rel="stylesheet">
 
     <style>
         body {
@@ -81,11 +81,11 @@
         }
 
         @keyframes mild-shake {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            25% { transform: translate(-4px, 2px) rotate(-1deg); }
-            50% { transform: translate(4px, -2px) rotate(1deg); }
-            75% { transform: translate(-2px, -4px) rotate(-0.5deg); }
-            100% { transform: translate(0, 0) rotate(0deg); }
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            25% { transform: translate(-10px, 5px) rotate(-2deg) scale(1.05); }
+            50% { transform: translate(10px, -5px) rotate(2deg) scale(0.95); }
+            75% { transform: translate(-5px, -10px) rotate(-1deg) scale(1.1); }
+            100% { transform: translate(0, 0) rotate(0deg) scale(1); }
         }
         .active-shake { animation: mild-shake 0.15s infinite; }
 
@@ -117,16 +117,15 @@
 
     <div id="notification-center" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col gap-3 w-full max-w-sm"></div>
 
-    <div class="w-full max-w-6xl cute-card p-4 md:p-6">
+    <div class="w-full max-w-[1100px] cute-card p-4 md:p-6">
         
-        <!-- STAGE 1: 初期メニュー -->
         <div id="stage-setup" class="view-section text-center py-6">
             <h1 class="text-3xl font-black text-orange-500 mb-2">🐾 いたずら猫のネット対戦オセロ 🐾</h1>
-            <p class="text-sm font-bold text-gray-500 mb-8">音楽・チャット・時間制限機能つきフルパッケージ</p>
+            <p class="text-sm font-bold text-gray-500 mb-8">音楽・チャット・時間制限・いたずらカスタマイズ機能</p>
             
             <div class="max-w-md mx-auto bg-orange-50 border-2 border-orange-100 p-6 rounded-2xl mb-6 text-left">
                 <label class="block text-sm font-black text-gray-700 mb-2">持ち時間（1手あたり）:</label>
-                <select id="time-limit-select" class="w-full bg-white border border-orange-200 p-3 rounded-xl mb-6 font-bold text-gray-700 outline-none">
+                <select id="time-limit-select" class="w-full bg-white border border-orange-200 p-3 rounded-xl mb-4 font-bold text-gray-700 outline-none">
                     <option value="5">5秒</option>
                     <option value="10">10秒</option>
                     <option value="15">15秒</option>
@@ -139,19 +138,29 @@
                     <option value="999999">無制限</option>
                 </select>
 
+                <label class="block text-sm font-black text-gray-700 mb-2">猫のいたずら確率（毎手ごと）:</label>
+                <select id="cat-rate-select" class="w-full bg-white border border-orange-200 p-3 rounded-xl mb-6 font-bold text-gray-700 outline-none">
+                    <option value="0">0% (いたずらなし)</option>
+                    <option value="0.1">10%</option>
+                    <option value="0.2">20%</option>
+                    <option value="0.3">30% (標準)</option>
+                    <option value="0.4">40%</option>
+                    <option value="0.5">50%</option>
+                    <option value="0.7">70%</option>
+                    <option value="1.0">100% (毎ターン大荒れ)</option>
+                </select>
+
                 <button onclick="startHostingGame()" class="w-full cute-btn py-4 px-6 text-lg tracking-wider flex justify-center items-center gap-2">
                     <i data-lucide="play" class="w-5 h-5 fill-white"></i> 対戦部屋を作る（ホストになる）
                 </button>
             </div>
         </div>
 
-        <!-- STAGE 2: ロード中 -->
         <div id="stage-loading" class="view-section hidden-view text-center py-8">
             <i data-lucide="loader2" class="w-12 h-12 text-orange-500 mx-auto mb-4 animate-spin"></i>
             <h2 class="text-lg font-black text-zinc-700" id="loading-title">通信路を作成中...</h2>
         </div>
 
-        <!-- STAGE 3: 接続待機 -->
         <div id="stage-broadcasting" class="view-section hidden-view text-center py-6">
             <h2 class="text-xl font-black text-orange-500 mb-2 flex items-center justify-center gap-2">
                 <span class="w-3 h-3 bg-orange-500 rounded-full animate-ping"></span>
@@ -168,25 +177,20 @@
             </div>
         </div>
 
-        <!-- STAGE 4: メインゲーム画面 -->
         <div id="stage-game" class="view-section hidden-view">
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6" id="game-wrapper">
                 
-                <!-- 左〜中央: ゲーム盤面＆音楽プレイヤーエリア -->
                 <div class="lg:col-span-2 flex flex-col items-center justify-center relative">
                     
                     <div class="w-full max-w-[480px] relative">
                         <div id="board-container" class="w-full"></div>
                         
-                        <!-- ポップアップレイヤー -->
                         <div id="board-overlay" class="absolute inset-0 bg-black/40 rounded-xl hidden flex items-center justify-center p-4 z-30">
                             <div id="overlay-content" class="bg-white border-4 border-amber-400 rounded-3xl p-6 shadow-2xl text-center max-w-[90%] animate-pop-in"></div>
                         </div>
                     </div>
                     
-                    <!-- 音楽プレイヤー群 (自分用：上、相手用：下) -->
                     <div class="w-full max-w-[480px] flex flex-col gap-2 mt-4">
-                        <!-- 自分の音楽 -->
                         <div class="bg-white border border-zinc-200 rounded-xl p-2.5 flex items-center justify-between gap-3 shadow-sm">
                             <div class="flex items-center gap-2">
                                 <span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">自分</span>
@@ -201,7 +205,6 @@
                             </label>
                         </div>
                         
-                        <!-- 相手の音楽 -->
                         <div class="bg-white border border-zinc-200 rounded-xl p-2.5 flex items-center justify-between gap-3 shadow-sm">
                             <div class="flex items-center gap-2">
                                 <span class="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">相手</span>
@@ -210,23 +213,22 @@
                                 </button>
                                 <span id="peer-music-status-text" class="text-xs text-zinc-400 font-bold max-w-[140px] truncate">音楽未設定</span>
                             </div>
-                            <!-- 相手枠側のアップロードはダミー（非表示または無効化） -->
-                            <button disabled class="bg-zinc-100 text-zinc-300 px-3 py-2 rounded-xl font-black text-xs whitespace-nowrap cursor-not-allowed">
-                                受信専用
-                            </button>
+                            <button disabled class="bg-zinc-100 text-zinc-300 px-3 py-2 rounded-xl font-black text-xs whitespace-nowrap cursor-not-allowed">受信専用</button>
                         </div>
                     </div>
 
-                    <!-- オーディオ要素（分離） -->
                     <audio id="audio-player-my" loop class="hidden"></audio>
                     <audio id="audio-player-peer" loop class="hidden"></audio>
                 </div>
 
-                <!-- 右側上: 対戦ステータスパネル -->
                 <div class="flex flex-col justify-between bg-zinc-50 border-2 border-zinc-200 p-4 rounded-2xl shadow-inner">
                     <div>
-                        <div class="text-center mb-3">
+                        <div class="text-center mb-2">
                             <span id="role-badge" class="inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-800">取得中</span>
+                        </div>
+
+                        <div class="bg-orange-100 border border-orange-300 rounded-xl p-2 text-center mb-3 text-xs font-black text-orange-800">
+                            🐾 猫のいたずら確率: <span id="current-cat-rate-display">--%</span>
                         </div>
                         
                         <div class="bg-white border border-zinc-200 rounded-xl p-3 text-center mb-3 shadow-sm">
@@ -236,10 +238,13 @@
                             </div>
                         </div>
 
-                        <!-- タイマー＆手番表示 -->
                         <div id="turn-box" class="border border-zinc-200 rounded-xl p-3 text-center mb-3 shadow-sm transition-all duration-300">
                             <div id="turn-display" class="text-md font-black">--</div>
                             <div id="timer-display" class="text-2xl font-black text-red-500 mt-1">⏳ -- 秒</div>
+                        </div>
+
+                        <div class="border border-amber-200 bg-amber-50 rounded-xl p-2.5 text-center min-h-[50px] flex items-center justify-center text-xs font-bold text-amber-900 shadow-inner mb-3">
+                            <p id="cat-message-display">猫は今のところおとなしい...</p>
                         </div>
                     </div>
 
@@ -250,15 +255,16 @@
                     </div>
                 </div>
 
-                <!-- 右側下: リアルタイムチャットパネル -->
                 <div class="flex flex-col bg-white border-2 border-zinc-200 p-3 rounded-2xl shadow-sm h-[320px] lg:h-auto">
                     <h3 class="text-xs font-black text-gray-400 mb-2 flex items-center gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> チャット</h3>
-                    <div id="chat-log-box" class="flex-1 overflow-y-auto border border-zinc-100 p-2 rounded-xl text-xs bg-zinc-50 flex flex-col gap-1.5 mb-2">
-                        <div class="text-gray-400 italic">チャットへようこそ！</div>
-                    </div>
-                    <div class="flex gap-1">
+                    
+                    <div class="flex gap-1 mb-2">
                         <input type="text" id="chat-input" onkeydown="if(event.key==='Enter') sendChatMessage()" placeholder="メッセージを入力..." class="w-full bg-zinc-100 border border-zinc-200 rounded-xl p-2 text-xs font-bold outline-none">
                         <button onclick="sendChatMessage()" class="bg-orange-500 text-white font-black px-3 rounded-xl text-xs">送信</button>
+                    </div>
+
+                    <div id="chat-log-box" class="flex-1 overflow-y-auto border border-zinc-100 p-2 rounded-xl text-xs bg-zinc-50 flex flex-col gap-1.5">
+                        <div class="text-gray-400 italic">チャットへようこそ！</div>
                     </div>
                 </div>
 
@@ -276,18 +282,50 @@
         let board = [];
         let currentPlayer = BLACK;
         let gameActive = false;
-        
-        // 自分の石の色 (BLACK または WHITE) - ランダム決定用
         let myColor = BLACK;
 
         let timeLimitPerTurn = 25; 
         let currentTimeRemaining = 25;
         let gameTimerInterval = null;
 
+        // 猫のいたずら確率初期値 (30%)
+        let catMischiefRate = 0.3;
+
         let isMusicAlertShown = false;
 
         const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
         const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+        // 元ソースの音声リスト
+        const catSounds = [
+            "Sound/short/animal/猫の威嚇.mp3",
+            "Sound/short/animal/猫の鳴き声1.mp3",
+            "Sound/short/animal/猫の鳴き声2.mp3",
+            "Sound/short/animal/猫の鳴き声3.mp3"
+        ];
+
+        // 実際の音声ファイルを再生しつつ盤面を揺らす関数
+        function playOriginalCatSound(soundPath) {
+            try {
+                const audio = new Audio(soundPath);
+                const gameWrapper = document.getElementById('game-wrapper');
+                
+                audio.addEventListener('play', () => {
+                    gameWrapper.classList.add('active-shake');
+                });
+                
+                audio.addEventListener('ended', () => {
+                    gameWrapper.classList.remove('active-shake');
+                });
+
+                audio.play().catch(e => {
+                    console.log("Audio deferred:", e);
+                    gameWrapper.classList.remove('active-shake');
+                });
+            } catch (e) {
+                console.error("再生エラー:", e);
+            }
+        }
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('notification-center');
@@ -310,13 +348,18 @@
             document.getElementById(targetId).classList.remove('hidden-view');
         }
 
-        // 起動時に制限時間をLocalStorageから復元
+        // 起動時に設定を確実に復元
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             
+            // ローカルストレージから設定（時間制限と猫の確率）を復元
             const savedTime = localStorage.getItem('othello_time_limit');
             if (savedTime) {
                 document.getElementById('time-limit-select').value = savedTime;
+            }
+            const savedCatRate = localStorage.getItem('othello_cat_rate');
+            if (savedCatRate) {
+                document.getElementById('cat-rate-select').value = savedCatRate;
             }
 
             const hash = window.location.hash;
@@ -340,15 +383,17 @@
             return new TextDecoder().decode(dec);
         }
 
-        // --- 部屋作成（ホスト） ---
         async function startHostingGame() {
             try {
                 isHost = true;
+                
                 const selectEl = document.getElementById('time-limit-select');
                 timeLimitPerTurn = parseInt(selectEl.value);
-                
-                // 次回のために秒数を記憶
                 localStorage.setItem('othello_time_limit', selectEl.value);
+
+                const catSelectEl = document.getElementById('cat-rate-select');
+                catMischiefRate = parseFloat(catSelectEl.value);
+                localStorage.setItem('othello_cat_rate', catSelectEl.value);
                 
                 transitionToView('stage-loading');
                 
@@ -358,7 +403,7 @@
 
                 peerInstance = new Peer({ config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] } });
                 peerInstance.on('open', (id) => {
-                    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}&t=${timeLimitPerTurn}#k=${serializedKeyToken}`;
+                    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}&t=${timeLimitPerTurn}&cr=${catMischiefRate}#k=${serializedKeyToken}`;
                     document.getElementById('display-sharable-url').value = shareUrl;
                     document.getElementById('matrix-qr-canvas').innerHTML = '';
                     new QRCode(document.getElementById('matrix-qr-canvas'), { text: shareUrl, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
@@ -375,13 +420,13 @@
             }
         }
 
-        // --- 部屋参加（ゲスト） ---
         async function startJoiningGame(hashFragment) {
             try {
                 transitionToView('stage-loading');
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomId = urlParams.get('room');
                 timeLimitPerTurn = parseInt(urlParams.get('t') || "25");
+                catMischiefRate = parseFloat(urlParams.get('cr') || "0.3"); // ゲスト側もURLから確率を同期
                 
                 const keyIndex = hashFragment.indexOf('k=');
                 const keyString = hashFragment.substring(keyIndex + 2);
@@ -406,11 +451,13 @@
             const badge = document.getElementById('role-badge');
             if (myColor === BLACK) {
                 badge.textContent = `あなた: ⚫黒 (${isHost ? 'ホスト' : 'ゲスト'})`;
-                badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-900";
+                badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-white bg-zinc-800";
             } else {
                 badge.textContent = `あなた: ⚪白 (${isHost ? 'ホスト' : 'ゲスト'})`;
                 badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-zinc-900 bg-white border border-zinc-300";
             }
+            // ゲーム中の確率UI表示を更新
+            document.getElementById('current-cat-rate-display').textContent = `${Math.round(catMischiefRate * 100)}%`;
         }
 
         function setupConnection(conn) {
@@ -420,10 +467,8 @@
                 transitionToView('stage-game');
                 
                 if(isHost) {
-                    // 【ランダム化】ホストがランダムに自分の色を黒か白に決定する
                     myColor = Math.random() < 0.5 ? BLACK : WHITE;
                     const peerColor = myColor === BLACK ? WHITE : BLACK;
-                    
                     updateRoleBadge();
                     initGameEngine(peerColor);
                 }
@@ -435,7 +480,6 @@
                     const data = JSON.parse(decryptedText);
 
                     if (data.type === 'init') {
-                        // ゲスト側：ホストから送られてきた初期割当て色を反映してゲーム開始
                         myColor = data.guestColor;
                         board = data.board;
                         currentPlayer = data.currentPlayer;
@@ -448,11 +492,19 @@
                         currentPlayer = data.currentPlayer;
                         gameActive = data.gameActive;
                         
-                        if (data.catAlert) {
-                            const gameWrapper = document.getElementById('game-wrapper');
-                            gameWrapper.classList.add('active-shake');
-                            await sleep(800);
-                            gameWrapper.classList.remove('active-shake');
+                        // ゲスト側でもホスト側のいたずら（音声パスとメッセージ）を再現
+                        if (data.catAlert && data.soundPath) {
+                            playOriginalCatSound(data.soundPath);
+                            const msgDisplay = document.getElementById('cat-message-display');
+                            if (data.soundPath.includes("猫の威嚇.mp3")) {
+                                msgDisplay.textContent = "😾 猫が威嚇して石が2個移動した！";
+                                showToast("😾 猫が威嚇して石が大きく移動した！", "error");
+                            } else {
+                                msgDisplay.textContent = "🐱 猫がいたずらして石が1個移動した！";
+                                showToast("🐱 猫がいたずらして石が移動した！", "error");
+                            }
+                        } else {
+                            document.getElementById('cat-message-display').textContent = "猫は今のところおとなしい...";
                         }
                         
                         renderBoard();
@@ -465,7 +517,6 @@
                     } else if (data.type === 'chat') {
                         appendChatLog(data.sender, data.text);
                     } else if (data.type === 'music') {
-                        // 相手から送られてきた音楽データは「相手プレイヤー(下段)」にセット
                         setupReceivedMusic(data.audioDataUrl, data.fileName);
                     }
                 } catch (e) {
@@ -520,7 +571,7 @@
             box.scrollTop = box.scrollHeight;
         }
 
-        // --- 降伏（まいった）機能 ---
+        // --- 降伏機能 ---
         async function handleSurrenderClick() {
             if (!gameActive) return;
             if (!confirm("本当に「まいった」して降伏しますか？")) return;
@@ -528,24 +579,18 @@
             gameActive = false;
             clearInterval(gameTimerInterval);
             
-            // 自分が降伏したので、勝者は相手プレイヤー
-            const hostWon = (myColor === BLACK) ? false : true; // 自分が黒なら白(ホスト以外)の勝ち、自分が白なら黒(ホスト)の勝ち
-            
-            const outcomeData = {
-                trigger: 'surrender',
-                hostWon: hostWon
-            };
+            const hostWon = (myColor === BLACK) ? false : true;
+            const outcomeData = { trigger: 'surrender', hostWon: hostWon };
 
             showPopOutcome(outcomeData);
             
             if (isHost) {
                 broadcastGameState(outcomeData);
             } else {
-                await requestHostToSync(board, currentPlayer, false, outcomeData);
+                await requestHostToSync(board, currentPlayer, false, null, outcomeData);
             }
         }
 
-        // --- タイムアウト手番交代タイマー制御 ---
         function resetLocalTurnTimer() {
             clearInterval(gameTimerInterval);
             if (!gameActive || timeLimitPerTurn > 90000) {
@@ -573,14 +618,14 @@
                             renderBoard();
                             resetLocalTurnTimer();
                         } else {
-                            await requestHostToSync(board, currentPlayer, false, null);
+                            await requestHostToSync(board, currentPlayer, false, null, null);
                         }
                     }
                 }
             }, 1000);
         }
 
-        // --- 音楽ファイル送信＆再生機能 (分離対応) ---
+        // --- 音楽プレイヤー送信処理 ---
         function handleMusicUpload(input) {
             const file = input.files[0];
             if (!file) return;
@@ -589,8 +634,6 @@
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const dataUrl = e.target.result;
-                
-                // 自分のプレイヤー(上段)にセット
                 silentSetupMyMusic(dataUrl, file.name);
                 showToast("音楽を読み込みました！相手へ送信中...");
 
@@ -603,7 +646,6 @@
             reader.readAsDataURL(file);
         }
 
-        // 自分の音楽（上段）の設定
         function silentSetupMyMusic(dataUrl, fileName) {
             const player = document.getElementById('audio-player-my');
             player.src = dataUrl;
@@ -615,7 +657,6 @@
             btn.className = "bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#1d4ed8]";
         }
 
-        // 相手の音楽（下段）の設定 (初回限定ポップアップ)
         function setupReceivedMusic(dataUrl, fileName) {
             const player = document.getElementById('audio-player-peer');
             player.src = dataUrl;
@@ -626,13 +667,10 @@
             btn.disabled = false;
             btn.className = "bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#6b21a8]";
 
-            // ゲーム開始から1回限定のド派手なオーバーレイ表示
             if (!isMusicAlertShown) {
                 isMusicAlertShown = true;
-                
                 const overlay = document.getElementById('board-overlay');
                 const content = document.getElementById('overlay-content');
-                
                 overlay.classList.remove('hidden');
                 content.innerHTML = `
                     <div class="text-4xl mb-2">🎁🎵</div>
@@ -641,9 +679,7 @@
                         相手から音楽のプレゼントがありました。<br>
                         下部にある <span class="text-purple-600 font-black">Play Music</span> で開始します。
                     </p>
-                    <button onclick="closeBoardOverlay()" class="bg-purple-500 hover:bg-purple-600 shadow-[0_4px_0_#7e22ce] text-white font-black py-2.5 px-6 rounded-2xl text-xs tracking-wider transition-all">
-                        とじる
-                    </button>
+                    <button onclick="closeBoardOverlay()" class="bg-purple-500 hover:bg-purple-600 shadow-[0_4px_0_#7e22ce] text-white font-black py-2.5 px-6 rounded-2xl text-xs tracking-wider transition-all">とじる</button>
                 `;
             } else {
                 showToast(`🎵 相手から新曲「${fileName}」を受信しました`);
@@ -672,49 +708,30 @@
             document.getElementById('board-overlay').classList.add('hidden');
         }
 
-        // --- 派手な勝敗ポップアップ表示 ---
         function showPopOutcome(outcome) {
             const overlay = document.getElementById('board-overlay');
             const content = document.getElementById('overlay-content');
             overlay.classList.remove('hidden');
 
-            let title = "";
-            let subtext = "";
-            let colorClass = "";
-            let emoji = "";
+            let title = ""; let subtext = ""; let colorClass = ""; let emoji = "";
 
             if (outcome.trigger === 'surrender') {
                 const iWon = (myColor === BLACK && outcome.hostWon) || (myColor === WHITE && !outcome.hostWon);
                 if (iWon) {
-                    title = "WIN !";
-                    subtext = "相手がまいったしました。Win！";
-                    colorClass = "text-emerald-500";
-                    emoji = "🏆🎉";
+                    title = "WIN !"; subtext = "相手がまいったしました。Win！"; colorClass = "text-emerald-500"; emoji = "🏆🎉";
                 } else {
-                    title = "LOSE";
-                    subtext = "あなたがまいったしました。";
-                    colorClass = "text-red-500";
-                    emoji = "🏳️💦";
+                    title = "LOSE"; subtext = "あなたがまいったしました。"; colorClass = "text-red-500"; emoji = "🏳️💦";
                 }
             } else {
                 if (outcome.result === 'draw') {
-                    title = "DRAW";
-                    subtext = `引き分け！ (${outcome.black} 対 ${outcome.white})`;
-                    colorClass = "text-amber-500";
-                    emoji = "🤝";
+                    title = "DRAW"; subtext = `引き分け！ (${outcome.black} 対 ${outcome.white})`; colorClass = "text-amber-500"; emoji = "🤝";
                 } else {
                     const hostWon = outcome.result === 'black';
                     const iWon = (myColor === BLACK && hostWon) || (myColor === WHITE && !hostWon);
                     if (iWon) {
-                        title = "WIN !!";
-                        subtext = `あなたの勝ち！ (${outcome.black} 対 ${outcome.white})`;
-                        colorClass = "text-emerald-500";
-                        emoji = "👑✨";
+                        title = "WIN !!"; subtext = `あなたの勝ち！ (${outcome.black} 対 ${outcome.white})`; colorClass = "text-emerald-500"; emoji = "👑✨";
                     } else {
-                        title = "LOSE";
-                        subtext = `あなたの負け... (${outcome.black} 対 ${outcome.white})`;
-                        colorClass = "text-zinc-500";
-                        emoji = "🐱💬";
+                        title = "LOSE"; subtext = `あなたの負け... (${outcome.black} 対 ${outcome.white})`; colorClass = "text-zinc-500"; emoji = "🐱💬";
                     }
                 }
             }
@@ -723,38 +740,31 @@
                 <div class="text-5xl mb-2">${emoji}</div>
                 <h2 class="text-5xl font-black ${colorClass} tracking-wider mb-4 animate-bounce">${title}</h2>
                 <p class="text-sm font-bold text-gray-700 mb-6">${subtext}</p>
-                <button onclick="terminateSessionHard()" class="bg-zinc-800 hover:bg-zinc-900 shadow-[0_4px_0_#18181b] text-white font-black py-3 px-8 rounded-2xl text-xs tracking-wider transition-all">
-                    タイトルに戻る
-                </button>
+                <button onclick="terminateSessionHard()" class="bg-zinc-800 hover:bg-zinc-900 shadow-[0_4px_0_#18181b] text-white font-black py-3 px-8 rounded-2xl text-xs tracking-wider transition-all">タイトルに戻る</button>
             `;
         }
 
-        // --- ゲームコア管理ロジック ---
+        // --- ゲームエンジン・同期処理 ---
         async function initGameEngine(guestColor) {
             board = Array(8).fill(0).map(() => Array(8).fill(EMPTY));
             board[3][3] = WHITE; board[3][4] = BLACK;
             board[4][3] = BLACK; board[4][4] = WHITE;
-            currentPlayer = BLACK; // オセロの基本ルール通り常に黒からスタート
+            currentPlayer = BLACK;
             gameActive = true;
 
-            // ゲスト側に初期の色配置情報を通知
             if (activeDataConnection) {
                 const initPacket = JSON.stringify({
-                    type: 'init',
-                    guestColor: guestColor,
-                    board: board,
-                    currentPlayer: currentPlayer,
-                    gameActive: gameActive
+                    type: 'init', guestColor: guestColor, board: board, currentPlayer: currentPlayer, gameActive: gameActive
                 });
                 const envelope = await encryptData(initPacket);
                 activeDataConnection.send(envelope);
             }
-
+            updateRoleBadge();
             renderBoard();
             resetLocalTurnTimer();
         }
 
-        async function broadcastGameState(gameOutcome = null, catAlert = false) {
+        async function broadcastGameState(gameOutcome = null, catAlert = false, soundPath = '') {
             if (!activeDataConnection) return;
             const syncPacket = JSON.stringify({
                 type: 'sync',
@@ -762,6 +772,7 @@
                 currentPlayer: currentPlayer,
                 gameActive: gameActive,
                 catAlert: catAlert,
+                soundPath: soundPath,
                 gameOutcome: gameOutcome
             });
             const envelope = await encryptData(syncPacket);
@@ -809,12 +820,10 @@
             const turnBox = document.getElementById('turn-box');
             if (currentPlayer === BLACK) {
                 turnDisplay.textContent = '黒の番' + (myColor === BLACK ? ' (あなた)' : ' (相手)');
-                turnBox.style.backgroundColor = '#111';
-                turnDisplay.style.color = '#fff';
+                turnBox.style.backgroundColor = '#111'; turnDisplay.style.color = '#fff';
             } else {
                 turnDisplay.textContent = '白の番' + (myColor === WHITE ? ' (あなた)' : ' (相手)');
-                turnBox.style.backgroundColor = '#f0f0f0';
-                turnDisplay.style.color = '#111';
+                turnBox.style.backgroundColor = '#f0f0f0'; turnDisplay.style.color = '#111';
             }
         }
 
@@ -828,9 +837,32 @@
             flips.forEach(flip => board[flip.r][flip.c] = currentPlayer);
             
             let catTriggered = false;
-            if (isHost && Math.random() < 0.3) {
-                executeCatMischiefLogic();
+            let chosenSoundPath = '';
+
+            // ホスト側で確率に基づきジャッジ（ゲスト側の手番でもホストの通信網を中継するため確率判定はホストが統括）
+            // ※対戦プレイ中に不整合が起きないよう、判定＆乱数計算はホストが代表して計算
+            if (isHost && Math.random() < catMischiefRate) {
                 catTriggered = true;
+                chosenSoundPath = catSounds[Math.floor(Math.random() * catSounds.length)];
+                
+                playOriginalCatSound(chosenSoundPath);
+
+                const isDouble = chosenSoundPath.includes("猫の威嚇.mp3");
+                const msgDisplay = document.getElementById('cat-message-display');
+                if (isDouble) {
+                    msgDisplay.textContent = "😾 猫が威嚇して石が2個移動した！";
+                    showToast("😾 猫が威嚇して石が大きく移動した！", "error");
+                } else {
+                    msgDisplay.textContent = "🐱 猫がいたずらして石が1個移動した！";
+                    showToast("🐱 猫がいたずらして石が移動した！", "error");
+                }
+                
+                await triggerCatMischiefOriginal(isDouble);
+            } else if (!isHost) {
+                // ゲスト側のクリック時は、一旦ホストに一時盤面を送りホスト側でいたずら判定と同期を行う構造
+                // 下部の sync 通信でホスト側が猫ジャッジを行い、その結果がゲストへ返ってきます
+            } else {
+                document.getElementById('cat-message-display').textContent = "猫は今のところおとなしい...";
             }
 
             let nextPlayer = currentPlayer === BLACK ? WHITE : BLACK;
@@ -842,22 +874,14 @@
                     gameActive = false;
                     const black = board.flat().filter(s => s === BLACK).length;
                     const white = board.flat().filter(s => s === WHITE).length;
-                    
                     let resultType = black === white ? 'draw' : (black > white ? 'black' : 'white');
-                    const outcomeData = {
-                        trigger: 'normal',
-                        result: resultType,
-                        black: black,
-                        white: white
-                    };
+                    const outcomeData = { trigger: 'normal', result: resultType, black: black, white: white };
 
                     showPopOutcome(outcomeData);
-                    
                     if(isHost) {
-                        broadcastGameState(outcomeData);
-                        renderBoard();
+                        broadcastGameState(outcomeData); renderBoard();
                     } else {
-                        await requestHostToSync(board, currentPlayer, false, outcomeData);
+                        await requestHostToSync(board, currentPlayer, false, '', outcomeData);
                     }
                     return;
                 }
@@ -870,36 +894,30 @@
             if (isHost) {
                 renderBoard();
                 if(catTriggered) {
-                    const gameWrapper = document.getElementById('game-wrapper');
-                    gameWrapper.classList.add('active-shake');
-                    await broadcastGameState(null, true);
-                    await sleep(800);
-                    gameWrapper.classList.remove('active-shake');
+                    await broadcastGameState(null, true, chosenSoundPath);
+                    await sleep(600); 
+                } else {
+                    await broadcastGameState(null, false, '');
                 }
-                broadcastGameState(null);
                 resetLocalTurnTimer();
             } else {
-                await requestHostToSync(board, currentPlayer, catTriggered, null);
+                // ゲストからのリクエスト時は、一旦ホスト側に処理を委ねるため、ホストに確率判定と最終盤面作成を要求
+                await requestHostToSync(board, currentPlayer, catTriggered, chosenSoundPath, null);
             }
         }
 
-        async function requestHostToSync(targetBoard, nextPlayer, catAlert, gameOutcome) {
+        async function requestHostToSync(targetBoard, nextPlayer, catAlert, soundPath, gameOutcome) {
             if (!activeDataConnection) return;
             const packet = JSON.stringify({
-                type: 'sync',
-                board: targetBoard,
-                currentPlayer: nextPlayer,
-                gameActive: gameActive,
-                catAlert: catAlert,
-                gameOutcome: gameOutcome
+                type: 'sync', board: targetBoard, currentPlayer: nextPlayer, gameActive: gameActive, catAlert: catAlert, soundPath: soundPath, gameOutcome: gameOutcome
             });
             const envelope = await encryptData(packet);
             activeDataConnection.send(envelope);
             renderBoard();
         }
 
-        function executeCatMischiefLogic() {
-            const isDouble = Math.random() < 0.25;
+        // 元ソース準拠のいたずら移動アルゴリズム
+        async function triggerCatMischiefOriginal(isDouble = false) {
             const count = isDouble ? 2 : 1;
             for (let i = 0; i < count; i++) {
                 let movableStones = [];
@@ -919,12 +937,18 @@
                         }
                     }
                 }
+
                 if (movableStones.length > 0) {
                     const choice = movableStones[Math.floor(Math.random() * movableStones.length)];
                     const target = choice.toOptions[Math.floor(Math.random() * choice.toOptions.length)];
+                    
                     const stoneType = board[choice.from.r][choice.from.c];
+                    if (stoneType === EMPTY) continue;
+
                     board[choice.from.r][choice.from.c] = EMPTY;
                     board[target.r][target.c] = stoneType;
+                    
+                    await sleep(300);
                 }
             }
         }
@@ -933,9 +957,7 @@
             const moves = [];
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
-                    if (board[r][c] === EMPTY && getFlips(r, c, player).length > 0) {
-                        moves.push({ r, c });
-                    }
+                    if (board[r][c] === EMPTY && getFlips(r, c, player).length > 0) { moves.push({ r, c }); }
                 }
             }
             return moves;
@@ -945,11 +967,9 @@
             const opponent = player === BLACK ? WHITE : BLACK;
             let allFlips = [];
             for (const [dr, dc] of DIRS) {
-                let line = [];
-                let cr = r + dr, cc = c + dc;
+                let line = []; let cr = r + dr, cc = c + dc;
                 while (cr >= 0 && cr < 8 && cc >= 0 && cc < 8 && board[cr][cc] === opponent) {
-                    line.push({ r: cr, c: cc });
-                    cr += dr; cc += dc;
+                    line.push({ r: cr, c: cc }); cr += dr; cc += dc;
                 }
                 if (line.length > 0 && cr >= 0 && cr < 8 && cc >= 0 && cc < 8 && board[cr][cc] === player) {
                     allFlips.push(...line);
