@@ -400,7 +400,7 @@ async function getMofaData() {
         renderMofaResults();
     } catch (e) {
         mofaRawData = [];
-        box.innerHTML = '<p class="status-msg">情報の取得に失敗しました。</p>';
+        box.innerHTML = '<p class="status-msg">情報の取得に失敗しました。（「すべての地域」は情報量が多いため、失敗する場合があります。）</p>';
         showError(box, '海外安全情報APIエラー', e, url);
     }
 }
