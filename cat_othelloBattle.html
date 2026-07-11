@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ネット対戦・いたずら猫のオセロ (完全修正版)</title>
+    <title>ネット対戦・いたずら猫のオセロ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -121,7 +121,7 @@
         
         <div id="stage-setup" class="view-section text-center py-6">
             <h1 class="text-3xl font-black text-orange-500 mb-2">🐾 いたずら猫のネット対戦オセロ 🐾</h1>
-            <p class="text-sm font-bold text-gray-500 mb-8">音楽・チャット・時間制限・いたずらカスタマイズ機能</p>
+            <p class="text-sm font-bold text-gray-500 mb-8">音楽・チャット・時間制限・いたずら完全同期版</p>
             
             <div class="max-w-md mx-auto bg-orange-50 border-2 border-orange-100 p-6 rounded-2xl mb-6 text-left">
                 <label class="block text-sm font-black text-gray-700 mb-2">持ち時間（1手あたり）:</label>
@@ -139,7 +139,7 @@
                 </select>
 
                 <label class="block text-sm font-black text-gray-700 mb-2">猫のいたずら確率（毎手ごと）:</label>
-                <select id="cat-rate-select" class="w-full bg-white border border-orange-200 p-3 rounded-xl mb-6 font-bold text-gray-700 outline-none">
+                <select id="cat-rate-select" onchange="updateCatRateFromUI(this.value)" class="w-full bg-white border border-orange-200 p-3 rounded-xl mb-6 font-bold text-gray-700 outline-none">
                     <option value="0">0% (いたずらなし)</option>
                     <option value="0.1">10%</option>
                     <option value="0.2">20%</option>
@@ -181,7 +181,6 @@
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-6" id="game-wrapper">
                 
                 <div class="lg:col-span-2 flex flex-col items-center justify-center relative">
-                    
                     <div class="w-full max-w-[480px] relative">
                         <div id="board-container" class="w-full"></div>
                         
@@ -267,7 +266,6 @@
                         <div class="text-gray-400 italic">チャットへようこそ！</div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -288,15 +286,14 @@
         let currentTimeRemaining = 25;
         let gameTimerInterval = null;
 
-        // 猫のいたずら確率初期値 (30%)
+        // 猫のいたずら確率初期値
         let catMischiefRate = 0.3;
-
         let isMusicAlertShown = false;
 
         const DIRS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-        // 元ソースの音声リスト
+        // 音声リスト
         const catSounds = [
             "Sound/short/animal/猫の威嚇.mp3",
             "Sound/short/animal/猫の鳴き声1.mp3",
@@ -304,20 +301,20 @@
             "Sound/short/animal/猫の鳴き声3.mp3"
         ];
 
-        // 実際の音声ファイルを再生しつつ盤面を揺らす関数
+        // セレクトボックス変更時に即座に変数をアップデートする関数
+        function updateCatRateFromUI(val) {
+            catMischiefRate = parseFloat(val);
+            localStorage.setItem('othello_cat_rate', val);
+            document.getElementById('current-cat-rate-display').textContent = `${Math.round(catMischiefRate * 100)}%`;
+        }
+
         function playOriginalCatSound(soundPath) {
             try {
                 const audio = new Audio(soundPath);
                 const gameWrapper = document.getElementById('game-wrapper');
                 
-                audio.addEventListener('play', () => {
-                    gameWrapper.classList.add('active-shake');
-                });
-                
-                audio.addEventListener('ended', () => {
-                    gameWrapper.classList.remove('active-shake');
-                });
-
+                audio.addEventListener('play', () => { gameWrapper.classList.add('active-shake'); });
+                audio.addEventListener('ended', () => { gameWrapper.classList.remove('active-shake'); });
                 audio.play().catch(e => {
                     console.log("Audio deferred:", e);
                     gameWrapper.classList.remove('active-shake');
@@ -348,18 +345,17 @@
             document.getElementById(targetId).classList.remove('hidden-view');
         }
 
-        // 起動時に設定を確実に復元
+        // 起動時にロードしてセレクトボックスに即時設定
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             
-            // ローカルストレージから設定（時間制限と猫の確率）を復元
             const savedTime = localStorage.getItem('othello_time_limit');
-            if (savedTime) {
-                document.getElementById('time-limit-select').value = savedTime;
-            }
+            if (savedTime) { document.getElementById('time-limit-select').value = savedTime; }
+            
             const savedCatRate = localStorage.getItem('othello_cat_rate');
             if (savedCatRate) {
                 document.getElementById('cat-rate-select').value = savedCatRate;
+                catMischiefRate = parseFloat(savedCatRate);
             }
 
             const hash = window.location.hash;
@@ -386,14 +382,12 @@
         async function startHostingGame() {
             try {
                 isHost = true;
-                
-                const selectEl = document.getElementById('time-limit-select');
-                timeLimitPerTurn = parseInt(selectEl.value);
-                localStorage.setItem('othello_time_limit', selectEl.value);
+                timeLimitPerTurn = parseInt(document.getElementById('time-limit-select').value);
+                localStorage.setItem('othello_time_limit', timeLimitPerTurn);
 
-                const catSelectEl = document.getElementById('cat-rate-select');
-                catMischiefRate = parseFloat(catSelectEl.value);
-                localStorage.setItem('othello_cat_rate', catSelectEl.value);
+                // 改めて最新の確率設定をバインド
+                catMischiefRate = parseFloat(document.getElementById('cat-rate-select').value);
+                localStorage.setItem('othello_cat_rate', catMischiefRate);
                 
                 transitionToView('stage-loading');
                 
@@ -426,7 +420,7 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomId = urlParams.get('room');
                 timeLimitPerTurn = parseInt(urlParams.get('t') || "25");
-                catMischiefRate = parseFloat(urlParams.get('cr') || "0.3"); // ゲスト側もURLから確率を同期
+                catMischiefRate = parseFloat(urlParams.get('cr') || "0.3"); 
                 
                 const keyIndex = hashFragment.indexOf('k=');
                 const keyString = hashFragment.substring(keyIndex + 2);
@@ -456,7 +450,6 @@
                 badge.textContent = `あなた: ⚪白 (${isHost ? 'ホスト' : 'ゲスト'})`;
                 badge.className = "inline-block text-xs font-black px-3 py-1 rounded-full text-zinc-900 bg-white border border-zinc-300";
             }
-            // ゲーム中の確率UI表示を更新
             document.getElementById('current-cat-rate-display').textContent = `${Math.round(catMischiefRate * 100)}%`;
         }
 
@@ -487,16 +480,21 @@
                         updateRoleBadge();
                         renderBoard();
                         resetLocalTurnTimer();
-                    } else if (data.type === 'sync') {
+                    } 
+                    // ★ホスト側：ゲストから送られてきた石設置後の盤面に対し、いたずら判定の集約処理を行う
+                    else if (data.type === 'guest_move' && isHost) {
+                        board = data.board;
+                        await processTurnAndCatMischief();
+                    } 
+                    else if (data.type === 'sync') {
                         board = data.board;
                         currentPlayer = data.currentPlayer;
                         gameActive = data.gameActive;
                         
-                        // ゲスト側でもホスト側のいたずら（音声パスとメッセージ）を再現
                         if (data.catAlert && data.soundPath) {
                             playOriginalCatSound(data.soundPath);
                             const msgDisplay = document.getElementById('cat-message-display');
-                            if (data.soundPath.includes("猫の威嚇.mp3")) {
+                            if (data.soundPath === catSounds[0]) {
                                 msgDisplay.textContent = "😾 猫が威嚇して石が2個移動した！";
                                 showToast("😾 猫が威嚇して石が大きく移動した！", "error");
                             } else {
@@ -587,7 +585,12 @@
             if (isHost) {
                 broadcastGameState(outcomeData);
             } else {
-                await requestHostToSync(board, currentPlayer, false, null, outcomeData);
+                // 降伏時は即時送信
+                if(activeDataConnection) {
+                    const packet = JSON.stringify({ type: 'sync', board: board, currentPlayer: currentPlayer, gameActive: false, catAlert: false, soundPath: '', gameOutcome: outcomeData });
+                    const env = await encryptData(packet);
+                    activeDataConnection.send(env);
+                }
             }
         }
 
@@ -618,7 +621,12 @@
                             renderBoard();
                             resetLocalTurnTimer();
                         } else {
-                            await requestHostToSync(board, currentPlayer, false, null, null);
+                            // ゲスト側の時間切れ
+                            if(activeDataConnection) {
+                                const packet = JSON.stringify({ type: 'guest_move', board: board });
+                                const env = await encryptData(packet);
+                                activeDataConnection.send(env);
+                            }
                         }
                     }
                 }
@@ -767,13 +775,7 @@
         async function broadcastGameState(gameOutcome = null, catAlert = false, soundPath = '') {
             if (!activeDataConnection) return;
             const syncPacket = JSON.stringify({
-                type: 'sync',
-                board: board,
-                currentPlayer: currentPlayer,
-                gameActive: gameActive,
-                catAlert: catAlert,
-                soundPath: soundPath,
-                gameOutcome: gameOutcome
+                type: 'sync', board: board, currentPlayer: currentPlayer, gameActive: gameActive, catAlert: catAlert, soundPath: soundPath, gameOutcome: gameOutcome
             });
             const envelope = await encryptData(syncPacket);
             activeDataConnection.send(envelope);
@@ -827,27 +829,45 @@
             }
         }
 
+        // 盤面に石を置いた時の処理
         async function handleCellClick(r, c) {
             if (!gameActive) return;
             gameActive = false; 
             clearInterval(gameTimerInterval); 
             
+            // ひっくり返す処理を実行
             const flips = getFlips(r, c, currentPlayer);
             board[r][c] = currentPlayer;
             flips.forEach(flip => board[flip.r][flip.c] = currentPlayer);
             
+            if (isHost) {
+                // ホスト自身のターンの時は直接いたずら判定
+                await processTurnAndCatMischief();
+            } else {
+                // ★ゲストのターンの時は、即時終了せずホストに現在の仮盤面を送信してジャッジを頼む
+                renderBoard(); // 手元の仮反映
+                if (activeDataConnection) {
+                    const packet = JSON.stringify({ type: 'guest_move', board: board });
+                    const envelope = await encryptData(packet);
+                    activeDataConnection.send(envelope);
+                }
+            }
+        }
+
+        // ★ホスト側でいたずら確率判定およびターン交代・勝敗処理を統括するコアロジック
+        async function processTurnAndCatMischief() {
             let catTriggered = false;
             let chosenSoundPath = '';
 
-            // ホスト側で確率に基づきジャッジ（ゲスト側の手番でもホストの通信網を中継するため確率判定はホストが統括）
-            // ※対戦プレイ中に不整合が起きないよう、判定＆乱数計算はホストが代表して計算
-            if (isHost && Math.random() < catMischiefRate) {
+            // 確率判定
+            if (Math.random() < catMischiefRate) {
                 catTriggered = true;
                 chosenSoundPath = catSounds[Math.floor(Math.random() * catSounds.length)];
                 
+                // ホスト側で演出再生
                 playOriginalCatSound(chosenSoundPath);
 
-                const isDouble = chosenSoundPath.includes("猫の威嚇.mp3");
+                const isDouble = (chosenSoundPath === catSounds[0]); // 威嚇音か厳密チェック
                 const msgDisplay = document.getElementById('cat-message-display');
                 if (isDouble) {
                     msgDisplay.textContent = "😾 猫が威嚇して石が2個移動した！";
@@ -858,16 +878,15 @@
                 }
                 
                 await triggerCatMischiefOriginal(isDouble);
-            } else if (!isHost) {
-                // ゲスト側のクリック時は、一旦ホストに一時盤面を送りホスト側でいたずら判定と同期を行う構造
-                // 下部の sync 通信でホスト側が猫ジャッジを行い、その結果がゲストへ返ってきます
             } else {
                 document.getElementById('cat-message-display').textContent = "猫は今のところおとなしい...";
             }
 
+            // 手番交代の検証
             let nextPlayer = currentPlayer === BLACK ? WHITE : BLACK;
             let nextMoves = getValidMoves(nextPlayer);
 
+            let outcomeData = null;
             if (nextMoves.length === 0) {
                 let standardMoves = getValidMoves(currentPlayer);
                 if (standardMoves.length === 0) {
@@ -875,48 +894,33 @@
                     const black = board.flat().filter(s => s === BLACK).length;
                     const white = board.flat().filter(s => s === WHITE).length;
                     let resultType = black === white ? 'draw' : (black > white ? 'black' : 'white');
-                    const outcomeData = { trigger: 'normal', result: resultType, black: black, white: white };
-
-                    showPopOutcome(outcomeData);
-                    if(isHost) {
-                        broadcastGameState(outcomeData); renderBoard();
-                    } else {
-                        await requestHostToSync(board, currentPlayer, false, '', outcomeData);
-                    }
-                    return;
-                }
-                nextPlayer = currentPlayer; 
-            }
-
-            currentPlayer = nextPlayer;
-            gameActive = true;
-
-            if (isHost) {
-                renderBoard();
-                if(catTriggered) {
-                    await broadcastGameState(null, true, chosenSoundPath);
-                    await sleep(600); 
+                    outcomeData = { trigger: 'normal', result: resultType, black: black, white: white };
                 } else {
-                    await broadcastGameState(null, false, '');
+                    nextPlayer = currentPlayer; // パス
                 }
-                resetLocalTurnTimer();
-            } else {
-                // ゲストからのリクエスト時は、一旦ホスト側に処理を委ねるため、ホストに確率判定と最終盤面作成を要求
-                await requestHostToSync(board, currentPlayer, catTriggered, chosenSoundPath, null);
             }
-        }
 
-        async function requestHostToSync(targetBoard, nextPlayer, catAlert, soundPath, gameOutcome) {
-            if (!activeDataConnection) return;
-            const packet = JSON.stringify({
-                type: 'sync', board: targetBoard, currentPlayer: nextPlayer, gameActive: gameActive, catAlert: catAlert, soundPath: soundPath, gameOutcome: gameOutcome
-            });
-            const envelope = await encryptData(packet);
-            activeDataConnection.send(envelope);
+            if (outcomeData === null) {
+                currentPlayer = nextPlayer;
+                gameActive = true;
+            }
+
+            // ホスト側の画面を更新
             renderBoard();
+            if(outcomeData) showPopOutcome(outcomeData);
+
+            // ゲスト側に完全に同期されたデータをプッシュ送信
+            if (catTriggered) {
+                await broadcastGameState(outcomeData, true, chosenSoundPath);
+                await sleep(600);
+            } else {
+                await broadcastGameState(outcomeData, false, '');
+            }
+            
+            resetLocalTurnTimer();
         }
 
-        // 元ソース準拠のいたずら移動アルゴリズム
+        // いたずら移動アルゴリズム
         async function triggerCatMischiefOriginal(isDouble = false) {
             const count = isDouble ? 2 : 1;
             for (let i = 0; i < count; i++) {
