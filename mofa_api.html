@@ -2,26 +2,30 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>海外安全情報（外務省オープンデータ）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- 基本スタイル設定 -->
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@300;400;600&display=swap');
 :root {
-    --bg-color: #c1c19d;
-    --card-color: #16213e;
-    --primary-color: #0f3460;
-    --secondary-color: #e94560;
-    --font-color: #dcdcdc;
-    --hover-color: #537895;
+    --bg-gradient: linear-gradient(135deg, #fef3c7, #ffedd5, #fef08a);
+    --card-color: #ffffff;
+    --primary-color: #f97316;
+    --primary-hover: #ea580c;
+    --primary-shadow: #c2410c;
+    --secondary-color: #71716a;
+    --font-color: #44403c;
+    --border-color: #fed7aa;
 }
 body {
-    font-family: 'Noto Sans JP', sans-serif;
+    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: var(--bg-color);
+    background: var(--bg-gradient);
     color: var(--font-color);
     display: flex;
     justify-content: center;
@@ -29,94 +33,151 @@ body {
     min-height: 100vh;
     padding: 20px;
     box-sizing: border-box;
+    user-select: none;
 }
 .container { width: 90%; max-width: 1200px; text-align: center; }
-.header { margin-bottom: 40px; }
+.header { margin-bottom: 24px; }
 .header h1 {
-    font-family: 'Poppins', sans-serif;
-    font-size: 3em;
-    font-weight: 600;
-    color: var(--secondary-color);
-    text-transform: uppercase;
+    font-size: 2.2em;
+    font-weight: 900;
+    margin: 0 0 4px 0;
+    background: linear-gradient(to right, #f97316, #ef4444, #eab308);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 1px;
+}
+.header p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #fb923c;
+    font-weight: bold;
     letter-spacing: 2px;
-    text-shadow: 0 0 15px var(--secondary-color);
 }
 .box {
-    background-color: var(--card-color);
-    border-radius: 15px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 24px;
     padding: 30px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 40px rgba(180,150,120,0.2);
     margin-bottom: 20px;
-    border: 1px solid var(--primary-color);
+    border: 4px solid var(--border-color);
 }
-label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; }
-input[type="text"], select {
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid var(--primary-color);
-    background-color: #0f1a3a;
-    color: var(--font-color);
-    font-size: 1rem;
-}
-textarea {
-    width: 100%; min-height: 120px;
-    padding: 10px; border-radius: 10px;
-    border: 1px solid var(--primary-color);
-    background-color: #0f1a3a; color: var(--font-color);
-    font-size: 1rem; resize: vertical;
-}
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; }
-button {
-    padding: 10px 20px; border-radius: 12px; border: none;
-    cursor: pointer; font-weight: 600; font-size: 1rem;
-    transition: 0.3s;
-}
-button.primary { background-color: var(--primary-color); color: var(--font-color); }
-button.primary:hover { background-color: var(--hover-color); }
-button.secondary { background-color: var(--secondary-color); color: var(--font-color); }
-button.secondary:hover { background-color: #ff5678; }
-#mofa-results .card {
-    background-color: var(--card-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 15px;
-    padding: 20px;
+h2 {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #f97316;
+    margin-top: 20px;
     margin-bottom: 15px;
-    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
     text-align: left;
 }
-#mofa-results .card h4 { color: var(--secondary-color); margin-top: 0; margin-bottom: 10px; font-size: 1.2em; }
-#mofa-results .card p { font-size: 0.95em; line-height: 1.5; margin-bottom: 5px; }
-#mofa-results .card a.action-btn {
-    background-color: var(--secondary-color);
+h3 {
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: #57534e;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+label { display: block; margin-bottom: 8px; font-weight: 700; font-size: 0.85rem; color: #f97316; }
+
+/* ドラムパッド風の立体的な入力UI */
+input[type="text"], select {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 2px solid #e4e4e7;
+    background-color: #ffffff;
     color: var(--font-color);
-    padding: 8px 15px;
-    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    outline: none;
+    transition: all 0.1s ease;
+    box-shadow: 0 4px 0 #e4e4e7;
+}
+input[type="text"]:focus, select:focus {
+    border-color: #fb923c;
+}
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; background: rgba(254,243,199,0.4); padding: 16px; border-radius: 16px; border: 2px solid #ffedd5; }
+
+/* 立体的なボタン */
+button {
+    padding: 10px 20px; border-radius: 12px; border: none;
+    cursor: pointer; font-weight: 700; font-size: 0.9rem;
+    transition: all 0.1s ease;
+}
+button.primary { 
+    background-color: var(--primary-color); 
+    color: #ffffff; 
+    box-shadow: 0 4px 0 var(--primary-shadow);
+}
+button.primary:active {
+    transform: translateY(4px);
+    box-shadow: 0 0px 0 var(--primary-shadow);
+}
+input[type="text"]#mofa-filter {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    border: 2px solid #e4e4e7;
+}
+
+#mofa-results .card {
+    background-color: #ffffff;
+    border: 2px solid #f5f5f4;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    text-align: left;
+}
+#mofa-results .card h4 { color: #ef4444; margin-top: 0; margin-bottom: 10px; font-size: 1.1em; font-weight: 900; }
+#mofa-results .card p { font-size: 0.85em; line-height: 1.6; margin-bottom: 6px; font-weight: 700; color: #57534e; }
+#mofa-results .card p strong { color: #a8a29e; font-size: 0.9em; }
+
+/* 立体的なアクションボタン */
+#mofa-results .card a.action-btn {
+    background-color: #292524;
+    color: #ffffff;
+    padding: 8px 16px;
+    border-radius: 12px;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 0.85rem;
     display: inline-block;
     margin-top: 10px;
+    transition: all 0.1s ease;
+    box-shadow: 0 4px 0 #1c1917;
 }
+#mofa-results .card a.action-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 0px 0 #1c1917;
+}
+
 .error-box {
-    background-color: rgba(233, 69, 96, 0.08);
-    border-left: 4px solid var(--secondary-color);
-    color: var(--secondary-color);
-    padding: 10px 12px;
+    background-color: rgba(239, 68, 68, 0.05);
+    border: 2px solid #fca5a5;
+    color: #ef4444;
+    padding: 12px;
     margin-top: 12px;
-    border-radius: 6px;
-    font-size: 0.95em;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 700;
     white-space: pre-wrap;
     word-break: break-word;
+    text-align: left;
 }
 .map-container {
     height: 150px;
     width: 100%;
     margin-top: 15px;
-    border-radius: 8px;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
     z-index: 0;
+}
+.status-msg {
+    font-weight: bold;
+    color: #a8a29e;
+    font-size: 0.9rem;
+    padding: 20px;
 }
 </style>
 
-<!-- fetch のエラーハンドリング強化 -->
 <script>
 (function(){
   const _origFetch = window.fetch.bind(window);
@@ -143,20 +204,22 @@ button.secondary:hover { background-color: #ff5678; }
   window.showError = function(container, title, error, url) {
     const box = document.createElement('div');
     box.className = 'error-box';
-    box.innerHTML = `<strong>${title}</strong><br>${error.message}${url ? `<br><small>URL: ${url}</small>` : ''}`;
+    box.innerHTML = `<strong>${title}</strong><br>${error.message}${url ? `<br><small style="color:#78716c;">URL: ${url}</small>` : ''}`;
     container.appendChild(box);
   };
 })();
 </script>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 9999px; z-index: 1000; border: 2px solid #e4e4e7; font-weight: bold;">メニューにもどる</a>
 
 <div class="container">
-    <header class="header"><h1>海外安全情報（外務省オープンデータ）</h1></header>
+    <header class="header">
+        <h1>海外安全情報</h1>
+        <p>外務省オープンデータをつかって 安全を確認しよう！</p>
+    </header>
 
     <div class="box">
-        <!-- 操作パネル -->
         <div id="mofa-controls" class="controls">
             <select id="mofa-type" onchange="toggleMofaCodeInputs()">
                 <option value="newarrival">1. 新着情報</option>
@@ -174,7 +237,7 @@ button.secondary:hover { background-color: #ff5678; }
         </div>
 
         <h2>検索結果</h2>
-        <div id="mofa-results"></div>
+        <div id="mofa-results"><p class="status-msg">まず「情報を取得」を押してください。</p></div>
     </div>
 </div>
 
@@ -260,7 +323,7 @@ async function renderMofaResults() {
     const f = document.getElementById('mofa-filter').value.toLowerCase().trim();
     const box = document.getElementById('mofa-results');
     if (mofaRawData.length === 0) {
-        box.innerHTML = '<p>まず「情報を取得」を押してください。</p>';
+        box.innerHTML = '<p class="status-msg">まず「情報を取得」を押してください。</p>';
         return;
     }
     const keywords = f.split(/\s+/).filter(x => x);
@@ -286,7 +349,7 @@ async function renderMofaResults() {
             <p><strong>発表日時:</strong> ${date}</p>
             <p>${lead}</p>
             <div id="map-${index}" class="map-container"></div>
-            <a href="${url}" target="_blank" class="action-btn" style="margin-top: 15px;">原文のページへ</a>
+            <a href="${url}" target="_blank" class="action-btn">原文のページへ</a>
         </div>`;
     });
     box.innerHTML = html;
@@ -318,7 +381,7 @@ async function renderMofaResults() {
 
 async function getMofaData() {
     const box = document.getElementById('mofa-results');
-    box.innerHTML = '<p>情報を取得中...</p>';
+    box.innerHTML = '<p class="status-msg">情報を取得中...</p>';
     document.getElementById('mofa-filter').value = '';
 
     const type = document.getElementById('mofa-type').value;
@@ -337,7 +400,7 @@ async function getMofaData() {
         renderMofaResults();
     } catch (e) {
         mofaRawData = [];
-        box.innerHTML = '<p>情報の取得に失敗しました。</p>';
+        box.innerHTML = '<p class="status-msg">情報の取得に失敗しました。</p>';
         showError(box, '海外安全情報APIエラー', e, url);
     }
 }
