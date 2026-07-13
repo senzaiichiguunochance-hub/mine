@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>悲しきぶつかりおじさん</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background: #000; }
+        canvas { display: block; }
+        
+        #ui-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; }
+        .panel { 
+            pointer-events: auto; background: rgba(0,0,0,0.9); color: white; 
+            padding: 30px; border-radius: 15px; position: absolute;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; width: 360px; border: 2px solid #555;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        #game-title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 32px; margin-bottom: 20px;
+            text-shadow: 4px 4px 0px #222;
+            color: #e74c3c;
+        }
+        #version { font-size: 14px; color: #aaa; margin-top: -10px; margin-bottom: 20px; }
+
+        button { 
+            width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; 
+            border: none; font-size: 16px; background: #e67e22; color: white; cursor: pointer; font-weight: bold;
+        }
+        button:hover { background: #f39c12; }
+
+        #guide {
+            position: absolute; bottom: 20px; left: 20px; color: white;
+            background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px;
+            font-size: 14px; line-height: 1.6;
+        }
+        #status-hud {
+            position: absolute; top: 20px; left: 20px; color: white;
+            background: rgba(0,0,0,0.7); padding: 15px; border-radius: 10px;
+            font-size: 18px; font-weight: bold; pointer-events: none;
+        }
+        .hidden { display: none; }
+
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    </style>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<div id="ui-layer">
+    <div id="start-menu" class="panel">
+        <div id="game-title">悲しきぶつかりおじさん</div>
+        <div id="version">Prototype v2026.07.13</div>
+        <p style="text-align:left; font-size:14px; color:#ccc; line-height:1.5;">
+            自分より【小さいキャラ】にぶつかって態度と体をデカくしろ！<br>
+            【大きいキャラ】にぶつかるとおとなしく縮んでしまうぞ。<br>
+            初期の2倍のサイズで勝利！最弱サイズで敗北！<br>
+        </p>
+        <button id="start-btn">ゲーム開始</button>
+    </div>
+
+    <div id="status-hud" class="hidden">
+        おじさんのサイズ: <span id="size-meter">1.00</span>倍<br>
+        <span style="font-size:12px; color:#aaa;">(2.00倍で勝利 / 最少で敗北)</span>
+    </div>
+
+    <div id="clear-screen" class="panel hidden">
+        <h2 style="color: #f1c40f;">勝利！</h2>
+        <p>態度も体も誰もが恐れる最強のおじさんへと成長した！</p>
+        <button onclick="location.reload()">もう一度遊ぶ</button>
+    </div>
+
+    <div id="gameover-screen" class="panel hidden">
+        <h2 style="color: #e74c3c;">敗北...</h2>
+        <p>誰も気付かないほどおとなしく、小さくなってしまった...</p>
+        <button onclick="location.reload()">リベンジする</button>
+    </div>
+
+    <div id="guide" class="hidden">
+        【操作方法】<br>
+        ・[W][A][S][D] または [矢印キー] で移動<br>
+        ・マウスドラッグでカメラ回転
+    </div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    let scene, camera, renderer, controls;
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+    
+    let playerMesh;
+    let playerScale = 1.0; 
+    const basePlayerRadius = 0.4;
+    const basePlayerHeight = 1.6;
+    let playerVelocity = new THREE.Vector3(); 
+    let playerKnockbackTimer = 0; 
+
+    let isGameActive = false;
+    const collidables = [];
+    const otherPeople = [];
+    const worldBounds = { xMin: -14.5, xMax: 14.5, zMin: -49.5, zMax: 49.5 };
+
+    const startBtn = document.getElementById('start-btn');
+    const startMenu = document.getElementById('start-menu');
+    const guide = document.getElementById('guide');
+    const hud = document.getElementById('status-hud');
+    const sizeMeter = document.getElementById('size-meter');
+    const clearScreen = document.getElementById('clear-screen');
+    const gameoverScreen = document.getElementById('gameover-screen');
+
+    // 重力の設定
+    const gravity = -25.0;
+
+    function init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        scene.fog = new THREE.Fog(0x1a1a1a, 0, 60);
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 15;
+        controls.enablePan = false;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const light1 = new THREE.PointLight(0xffffff, 120, 60);
+        light1.position.set(0, 8, -20);
+        scene.add(light1);
+        const light2 = new THREE.PointLight(0xffffff, 120, 60);
+        light2.position.set(0, 8, 20);
+        scene.add(light2);
+
+        const floorGeo = new THREE.PlaneGeometry(30, 100);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.3 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        scene.add(floor);
+
+        const wallGeo = new THREE.BoxGeometry(0.5, 6, 100);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.7 });
+        const wallLeft = new THREE.Mesh(wallGeo, wallMat);
+        wallLeft.position.set(-15, 3, 0);
+        scene.add(wallLeft);
+        collidables.push(wallLeft);
+        
+        const wallRight = new THREE.Mesh(wallGeo, wallMat);
+        wallRight.position.set(15, 3, 0);
+        scene.add(wallRight);
+        collidables.push(wallRight);
+
+        for(let i = -40; i <= 40; i += 20) {
+            const p1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 1.5), wallMat);
+            p1.position.set(6, 3, i);
+            scene.add(p1); collidables.push(p1);
+            
+            const p2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 1.5), wallMat);
+            p2.position.set(-6, 3, i);
+            scene.add(p2); collidables.push(p2);
+        }
+
+        createPlayer();
+        initPeople();
+
+        const onKeyDown = (e) => {
+            switch (e.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = true; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = true; break;
+                case 'KeyD': case 'ArrowRight': moveRight = true; break;
+            }
+        };
+        const onKeyUp = (e) => {
+            switch (e.code) {
+                case 'KeyW': case 'ArrowUp': moveForward = false; break;
+                case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
+                case 'KeyS': case 'ArrowDown': moveBackward = false; break;
+                case 'KeyD': case 'ArrowRight': moveRight = false; break;
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
+        animate();
+    }
+
+    function createPlayer() {
+        playerMesh = new THREE.Group();
+        
+        const bodyGeo = new THREE.BoxGeometry(basePlayerRadius * 2, basePlayerHeight, basePlayerRadius * 1.5);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = basePlayerHeight / 2;
+        playerMesh.add(body);
+
+        const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = basePlayerHeight + 0.2;
+        playerMesh.add(head);
+
+        playerMesh.position.set(0, 0, 30);
+        scene.add(playerMesh);
+    }
+
+    function initPeople() {
+        const numPeople = 15;
+        for (let i = 0; i < numPeople; i++) {
+            const person = createPerson();
+            scene.add(person.mesh);
+            otherPeople.push(person);
+        }
+    }
+
+    function createPerson() {
+        const personGroup = new THREE.Group();
+
+        const sizeSpread = THREE.MathUtils.randFloat(0.4, 2.2); 
+        const w = basePlayerRadius * 2 * sizeSpread;
+        const h = basePlayerHeight * sizeSpread;
+
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(Math.random() * 0xffffff),
+            roughness: 0.5
+        });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), bodyMat);
+        body.position.y = h / 2;
+        personGroup.add(body);
+
+        const headSize = 0.4 * sizeSpread;
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+        const head = new THREE.Mesh(new THREE.BoxGeometry(headSize, headSize, headSize), headMat);
+        head.position.y = h + (headSize / 2);
+        personGroup.add(head);
+
+        const personObject = {
+            mesh: personGroup,
+            radius: (w / 2),
+            height: h,
+            scaleFactor: sizeSpread,
+            velocity: new THREE.Vector3(),
+            timer: 0,
+            lifeTime: THREE.MathUtils.randFloat(7000, 12000),
+            isFlying: false, 
+            flyVelocity: new THREE.Vector3(),
+
+            reset: function() {
+                this.mesh.position.set(
+                    THREE.MathUtils.randFloat(worldBounds.xMin + 2, worldBounds.xMax - 2),
+                    0,
+                    THREE.MathUtils.randFloat(worldBounds.zMin + 5, worldBounds.zMax - 5)
+                );
+                if(this.mesh.position.distanceTo(playerMesh.position) < 5) {
+                    this.mesh.position.z -= 10;
+                }
+                this.velocity.set((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 5);
+                this.mesh.visible = true;
+                this.timer = Date.now();
+                this.isFlying = false;
+                this.mesh.rotation.set(0, 0, 0);
+                
+                const newSpread = THREE.MathUtils.randFloat(0.4, 2.2);
+                this.scaleFactor = newSpread;
+                this.mesh.scale.set(newSpread, newSpread, newSpread);
+                this.radius = (basePlayerRadius * newSpread);
+                this.height = basePlayerHeight * newSpread;
+            },
+
+            startFlying: function(knockbackDir, power) {
+                this.isFlying = true;
+                this.visible = true;
+                this.flyVelocity.copy(knockbackDir).multiplyScalar(power).y = power * 0.5;
+            }
+        };
+
+        personObject.reset();
+        return personObject;
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        const delta = 0.016;
+
+        if (isGameActive) {
+            // ★【修正】おじさんに常時重力・物理ベロシティを適用する
+            if (playerMesh.position.y > 0 || playerVelocity.lengthSq() > 0 || playerKnockbackTimer > 0) {
+                // 空中にいる場合は重力を加算
+                if (playerMesh.position.y > 0) {
+                    playerVelocity.y += gravity * delta;
+                }
+
+                // 物理ベロシティでおじさんを移動
+                playerMesh.position.addScaledVector(playerVelocity, delta);
+                
+                // 水平方向の速度を少しずつ減衰（摩擦）
+                playerVelocity.x *= 0.92;
+                playerVelocity.z *= 0.92;
+
+                // 地面（y=0）に着地したときの判定
+                if (playerMesh.position.y <= 0) {
+                    playerMesh.position.y = 0;
+                    playerVelocity.y = 0; // 垂直速度リセット
+                }
+            }
+
+            // 硬直タイマーの減少
+            if (playerKnockbackTimer > 0) {
+                playerKnockbackTimer -= delta;
+            } else {
+                // ノックバック硬直中でなければ、キーボードで通常移動
+                const moveSpeed = 8.0;
+                const camDirection = new THREE.Vector3();
+                camera.getWorldDirection(camDirection);
+                camDirection.y = 0;
+                camDirection.normalize();
+
+                const camSideways = new THREE.Vector3(-camDirection.z, 0, camDirection.x);
+
+                const moveVector = new THREE.Vector3();
+                if (moveForward) moveVector.add(camDirection);
+                if (moveBackward) moveVector.add(camDirection.clone().negate());
+                if (moveRight) moveVector.add(camSideways);
+                if (moveLeft) moveVector.add(camSideways.clone().negate());
+
+                if (moveVector.lengthSq() > 0) {
+                    moveVector.normalize();
+                    playerMesh.position.addScaledVector(moveVector, moveSpeed * delta);
+                    
+                    const targetAngle = Math.atan2(moveVector.x, moveVector.z);
+                    playerMesh.rotation.y = targetAngle;
+                }
+            }
+
+            // ステージ外（壁）との衝突判定
+            const currentRadius = basePlayerRadius * playerScale;
+            playerMesh.position.x = Math.max(worldBounds.xMin + currentRadius, Math.min(worldBounds.xMax - currentRadius, playerMesh.position.x));
+            playerMesh.position.z = Math.max(worldBounds.zMin + currentRadius, Math.min(worldBounds.zMax - currentRadius, playerMesh.position.z));
+
+            // 柱との衝突判定
+            collidables.forEach(obj => {
+                if(obj.geometry.type === "BoxGeometry" && obj.position.z !== 0) {
+                    const pPos = playerMesh.position;
+                    const oPos = obj.position;
+                    const dx = Math.abs(pPos.x - oPos.x);
+                    const dz = Math.abs(pPos.z - oPos.z);
+                    const minDistX = (obj.geometry.parameters.width / 2) + currentRadius;
+                    const minDistZ = (obj.geometry.parameters.depth / 2) + currentRadius;
+                    if(dx < minDistX && dz < minDistZ) {
+                        if(dx/minDistX > dz/minDistZ) {
+                            playerMesh.position.x = oPos.x + (pPos.x > oPos.x ? minDistX : -minDistX);
+                            if(playerKnockbackTimer > 0) playerVelocity.x *= -1;
+                        } else {
+                            playerMesh.position.z = oPos.z + (pPos.z > oPos.z ? minDistZ : -minDistZ);
+                            if(playerKnockbackTimer > 0) playerVelocity.z *= -1;
+                        }
+                    }
+                }
+            });
+
+            const now = Date.now();
+
+            otherPeople.forEach(p => {
+                if (!p.mesh.visible) return;
+
+                if (p.isFlying) {
+                    p.flyVelocity.y += gravity * delta;
+                    p.mesh.position.addScaledVector(p.flyVelocity, delta);
+                    p.mesh.rotation.x += delta * 12;
+                    p.mesh.rotation.z += delta * 8;
+
+                    if (p.mesh.position.y < -p.height) {
+                        p.reset();
+                    }
+                } else {
+                    p.mesh.position.addScaledVector(p.velocity, delta);
+
+                    if (p.mesh.position.x < worldBounds.xMin || p.mesh.position.x > worldBounds.xMax) p.velocity.x *= -1;
+                    if (p.mesh.position.z < worldBounds.zMin || p.mesh.position.z > worldBounds.zMax) p.velocity.z *= -1;
+
+                    if (now - p.timer > p.lifeTime) {
+                        p.reset();
+                    }
+
+                    // プレイヤーが硬直（無敵）中でなければ当たり判定を行う
+                    if (playerKnockbackTimer <= 0) {
+                        const dist = playerMesh.position.distanceTo(p.mesh.position);
+                        const minDist = currentRadius + p.radius;
+
+                        if (dist < minDist) {
+                            const impactDir = new THREE.Vector3().subVectors(p.mesh.position, playerMesh.position).normalize();
+                            
+                            if (currentRadius >= p.radius) {
+                                // 自分と同じ、または小さいキャラ：相手を跳ね飛ばす
+                                playerScale += 0.1;
+                                p.startFlying(impactDir, 25.0); 
+                            } else {
+                                // 自分より大きいキャラ：おじさんが跳ね飛ばされる！
+                                playerScale -= 0.15;
+                                if (playerScale < 0.2) playerScale = 0.2; 
+
+                                const knockbackDir = impactDir.negate();
+                                // ★後方に強く弾き、上にもふわりと浮かせる（重力処理でちゃんと着地する）
+                                playerVelocity.set(knockbackDir.x * 22.0, 8.0, knockbackDir.z * 22.0); 
+                                playerKnockbackTimer = 0.5; // 無敵＆ノックバック時間
+
+                                p.velocity.multiplyScalar(0.1); 
+                            }
+
+                            playerMesh.scale.set(playerScale, playerScale, playerScale);
+                            sizeMeter.innerText = Math.max(0, playerScale).toFixed(2);
+
+                            checkGameEnd();
+                        }
+                    }
+                }
+            });
+
+            controls.target.copy(playerMesh.position).add(new THREE.Vector3(0, basePlayerHeight * playerScale, 0));
+        }
+
+        controls.update();
+        renderer.render(scene, camera);
+    }
+
+    function checkGameEnd() {
+        if (playerScale >= 2.0) {
+            isGameActive = false;
+            clearScreen.classList.remove('hidden');
+            hud.classList.add('hidden');
+            return;
+        }
+        
+        let isMostSmall = true;
+        const currentRadius = basePlayerRadius * playerScale;
+        otherPeople.forEach(p => {
+            if(p.mesh.visible && !p.isFlying && currentRadius >= p.radius) {
+                isMostSmall = false; 
+            }
+        });
+
+        if (isMostSmall || playerScale <= 0.3) { 
+            isGameActive = false;
+            gameoverScreen.classList.remove('hidden');
+            hud.classList.add('hidden');
+        }
+    }
+
+    startBtn.addEventListener('click', () => {
+        startMenu.classList.add('hidden');
+        guide.classList.remove('hidden');
+        hud.classList.remove('hidden');
+        
+        camera.position.set(0, 5, 38);
+        controls.target.copy(playerMesh.position);
+        
+        isGameActive = true;
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    init();
+</script>
+</body>
+</html>
