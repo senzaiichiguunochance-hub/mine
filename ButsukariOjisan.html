@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>悲しきぶつかりおじさん</title>
+    <title>かわちいぶつかりおじさん</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; background: #000; }
         canvas { display: block; }
@@ -18,17 +18,17 @@
 
         #game-title {
             font-family: 'Press Start 2P', cursive;
-            font-size: 32px; margin-bottom: 20px;
+            font-size: 26px; margin-bottom: 20px;
             text-shadow: 4px 4px 0px #222;
-            color: #e74c3c;
+            color: #ff77bb;
         }
         #version { font-size: 14px; color: #aaa; margin-top: -10px; margin-bottom: 20px; }
 
         button { 
             width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; 
-            border: none; font-size: 16px; background: #e67e22; color: white; cursor: pointer; font-weight: bold;
+            border: none; font-size: 16px; background: #ff77bb; color: white; cursor: pointer; font-weight: bold;
         }
-        button:hover { background: #f39c12; }
+        button:hover { background: #ff99cc; }
 
         #guide {
             position: absolute; bottom: 20px; left: 20px; color: white;
@@ -48,15 +48,14 @@
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-
 <div id="ui-layer">
     <div id="start-menu" class="panel">
-        <div id="game-title">悲しきぶつかりおじさん</div>
-        <div id="version">Prototype v2026.07.13</div>
+        <div id="game-title">かわちいぶつかりおじさん</div>
+        <div id="version">walkingChara Pure Square v2026.07.18</div>
         <p style="text-align:left; font-size:14px; color:#ccc; line-height:1.5;">
-            自分より【小さいキャラ】にぶつかって態度と体をデカくしろ！<br>
-            【大きいキャラ】にぶつかるとおとなしく縮んでしまうぞ。<br>
-            初期の2倍のサイズで勝利！最弱サイズで敗北！<br>
+            自分より小さい人にぶつかって、おじさんの態度を大きくしろ！
+            大きい人へおじさんビームを当てて小さくしてしまえ！
+            初期の2倍のサイズで勝利！最弱サイズで敗北！
         </p>
         <button id="start-btn">ゲーム開始</button>
     </div>
@@ -68,7 +67,7 @@
 
     <div id="clear-screen" class="panel hidden">
         <h2 style="color: #f1c40f;">勝利！</h2>
-        <p>態度も体も誰もが恐れる最強のおじさんへと成長した！</p>
+        <p>誰もが恐れ、かつ愛される最強にかわいいおじさんへと成長した！</p>
         <button onclick="location.reload()">もう一度遊ぶ</button>
     </div>
 
@@ -80,8 +79,9 @@
 
     <div id="guide" class="hidden">
         【操作方法】<br>
-        ・[W][A][S][D] または [矢印キー] で移動<br>
-        ・マウスドラッグでカメラ回転
+        ・[W][A][S][D] / [矢印キー] : 移動<br>
+        ・[スペースキー] / [画面内を左クリック] : ビーム発射<br>
+        ・[右ドラッグ] または [Ctrl+左ドラッグ] : カメラ回転
     </div>
 </div>
 
@@ -102,8 +102,9 @@
     let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
     
     let playerMesh;
+    let playerAnims = { armL: null, armR: null, legL: null, legR: null };
     let playerScale = 1.0; 
-    const basePlayerRadius = 0.4;
+    const basePlayerRadius = 0.5;
     const basePlayerHeight = 1.6;
     let playerVelocity = new THREE.Vector3(); 
     let playerKnockbackTimer = 0; 
@@ -111,7 +112,9 @@
     let isGameActive = false;
     const collidables = [];
     const otherPeople = [];
-    const worldBounds = { xMin: -14.5, xMax: 14.5, zMin: -49.5, zMax: 49.5 };
+    const beams = [];
+    
+    const worldBounds = { xMin: -99.5, xMax: 99.5, zMin: -99.5, zMax: 99.5 };
 
     const startBtn = document.getElementById('start-btn');
     const startMenu = document.getElementById('start-menu');
@@ -121,13 +124,17 @@
     const clearScreen = document.getElementById('clear-screen');
     const gameoverScreen = document.getElementById('gameover-screen');
 
-    // 重力の設定
     const gravity = -25.0;
+
+    const mWhite = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
+    const mLimb = new THREE.MeshStandardMaterial({ color: 0xf3f4f6, roughness: 0.4 });
+    const mPink = new THREE.MeshStandardMaterial({ color: 0xff77bb, roughness: 0.4 });
+    const mEye = new THREE.MeshBasicMaterial({ color: 0x222222 });
 
     function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
-        scene.fog = new THREE.Fog(0x1a1a1a, 0, 60);
+        scene.fog = new THREE.Fog(0x1a1a1a, 0, 120);
 
         camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -139,93 +146,196 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.minDistance = 3;
-        controls.maxDistance = 15;
+        controls.maxDistance = 25; 
         controls.enablePan = false;
+        
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.ROTATE, 
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE 
+        };
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambientLight);
 
-        const light1 = new THREE.PointLight(0xffffff, 120, 60);
-        light1.position.set(0, 8, -20);
+        const light1 = new THREE.PointLight(0xffffff, 300, 150);
+        light1.position.set(0, 20, -50);
         scene.add(light1);
-        const light2 = new THREE.PointLight(0xffffff, 120, 60);
-        light2.position.set(0, 8, 20);
+        const light2 = new THREE.PointLight(0xffffff, 300, 150);
+        light2.position.set(0, 20, 50);
         scene.add(light2);
 
-        const floorGeo = new THREE.PlaneGeometry(30, 100);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.3 });
+        const floorGeo = new THREE.PlaneGeometry(200, 200);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.4 });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2;
         scene.add(floor);
 
-        const wallGeo = new THREE.BoxGeometry(0.5, 6, 100);
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.7 });
-        const wallLeft = new THREE.Mesh(wallGeo, wallMat);
-        wallLeft.position.set(-15, 3, 0);
+        
+        const wallGeoSide = new THREE.BoxGeometry(0.5, 6, 200);
+        const wallLeft = new THREE.Mesh(wallGeoSide, wallMat);
+        wallLeft.position.set(-100, 3, 0);
         scene.add(wallLeft);
         collidables.push(wallLeft);
         
-        const wallRight = new THREE.Mesh(wallGeo, wallMat);
-        wallRight.position.set(15, 3, 0);
+        const wallRight = new THREE.Mesh(wallGeoSide, wallMat);
+        wallRight.position.set(100, 3, 0);
         scene.add(wallRight);
         collidables.push(wallRight);
 
-        for(let i = -40; i <= 40; i += 20) {
-            const p1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 1.5), wallMat);
-            p1.position.set(6, 3, i);
+        const wallGeoFrontBack = new THREE.BoxGeometry(200, 6, 0.5);
+        const wallBack = new THREE.Mesh(wallGeoFrontBack, wallMat);
+        wallBack.position.set(0, 3, -100);
+        scene.add(wallBack);
+        collidables.push(wallBack);
+
+        const wallFront = new THREE.Mesh(wallGeoFrontBack, wallMat);
+        wallFront.position.set(0, 3, 100);
+        scene.add(wallFront);
+        collidables.push(wallFront);
+
+        for(let i = -80; i <= 80; i += 40) {
+            if (i === 0) continue;
+            const p1 = new THREE.Mesh(new THREE.BoxGeometry(2, 6, 2), wallMat);
+            p1.position.set(30, 3, i);
             scene.add(p1); collidables.push(p1);
             
-            const p2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 6, 1.5), wallMat);
-            p2.position.set(-6, 3, i);
+            const p2 = new THREE.Mesh(new THREE.BoxGeometry(2, 6, 2), wallMat);
+            p2.position.set(-30, 3, i);
             scene.add(p2); collidables.push(p2);
         }
 
         createPlayer();
         initPeople();
 
-        const onKeyDown = (e) => {
+        window.addEventListener('keydown', (e) => {
             switch (e.code) {
                 case 'KeyW': case 'ArrowUp': moveForward = true; break;
                 case 'KeyA': case 'ArrowLeft': moveLeft = true; break;
                 case 'KeyS': case 'ArrowDown': moveBackward = true; break;
                 case 'KeyD': case 'ArrowRight': moveRight = true; break;
+                case 'Space': 
+                    e.preventDefault(); 
+                    if(isGameActive && playerKnockbackTimer <= 0) fireBeam(); break;
             }
-        };
-        const onKeyUp = (e) => {
+        });
+        window.addEventListener('keyup', (e) => {
             switch (e.code) {
                 case 'KeyW': case 'ArrowUp': moveForward = false; break;
                 case 'KeyA': case 'ArrowLeft': moveLeft = false; break;
                 case 'KeyS': case 'ArrowDown': moveBackward = false; break;
                 case 'KeyD': case 'ArrowRight': moveRight = false; break;
             }
-        };
-        document.addEventListener('keydown', onKeyDown);
-        document.addEventListener('keyup', onKeyUp);
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (!isGameActive || playerKnockbackTimer > 0) return;
+            if (e.target.closest('.panel') || e.target.tagName === 'A') return;
+            if (e.button === 0) {
+                controls.enabled = false;
+                fireBeam();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isGameActive) controls.enabled = true;
+        });
 
         animate();
     }
 
-    function createPlayer() {
-        playerMesh = new THREE.Group();
+    function buildCharaModel(mainColorHex, animsContainer) {
+        const root = new THREE.Group();
+        const mMain = new THREE.MeshStandardMaterial({ color: mainColorHex, roughness: 0.5 });
+
+        const actionPivot = new THREE.Group(); 
+        root.add(actionPivot);
+        const animGroup = new THREE.Group(); 
+        actionPivot.add(animGroup);
+
+        const head = new THREE.Group(); 
+        animGroup.add(head);
         
-        const bodyGeo = new THREE.BoxGeometry(basePlayerRadius * 2, basePlayerHeight, basePlayerRadius * 1.5);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.6 });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.position.y = basePlayerHeight / 2;
-        playerMesh.add(body);
+        const hood = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), mMain);
+        hood.scale.set(1.5, 1.3, 1.1); 
+        head.add(hood);
+        
+        const face = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), mWhite);
+        face.scale.set(1.4, 1.1, 0.65); face.position.set(0, -0.1, 0.6); 
+        head.add(face);
+        
+        const skull = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), mPink);
+        skull.scale.set(1, 0.8, 0.2); skull.position.set(0, 0.65, 1.0); 
+        head.add(skull);
+        
+        const makeEar = (x, rz) => {
+            const g = new THREE.Group();
+            const e = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), mMain);
+            e.scale.set(0.5, 1.1, 0.3); e.position.y = 0.4;
+            const t = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), mMain);
+            t.position.y = 1.5; g.add(e, t); g.position.set(x, 0.65, 0); g.rotation.z = rz;
+            return g;
+        };
+        head.add(makeEar(-0.85, 0.55), makeEar(0.85, -0.55));
+        
+        const makeEye = (x) => {
+            const e = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32), mEye);
+            e.scale.set(0.7, 1.3, 0.1); e.position.set(x, -0.05, 1.12);
+            e.rotation.z = (x > 0 ? -0.1 : 0.1); return e;
+        };
+        head.add(makeEye(-0.5), makeEye(0.5));
+        
+        const nose = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), mPink);
+        nose.position.set(0, -0.32, 1.18); 
+        head.add(nose);
 
-        const headGeo = new THREE.BoxGeometry(0.4, 0.4, 0.4);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.y = basePlayerHeight + 0.2;
-        playerMesh.add(head);
+        const body = new THREE.Group(); 
+        body.position.y = -1.2; 
+        animGroup.add(body);
+        
+        const torso = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), mWhite);
+        torso.scale.set(1, 1.2, 0.8); 
+        body.add(torso);
+        
+        const armL = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mLimb); armL.position.set(-0.8, 0, 0.2);
+        const armR = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mLimb); armR.position.set(0.8, 0, 0.2);
+        const legL = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mLimb); legL.position.set(-0.35, -0.85, 0.1);
+        const legR = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), mLimb); legR.position.set(0.35, -0.85, 0.1);
+        body.add(armL, armR, legL, legR);
+        
+        const collar = new THREE.Group(); collar.position.y = 0.6; body.add(collar);
+        for(let i=0; i<6; i++){
+            const a = (i/6)*Math.PI*2;
+            const cp = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 4), mMain);
+            cp.position.set(Math.cos(a)*0.8, 0, Math.sin(a)*0.5); cp.rotation.set(Math.PI, a, 0); collar.add(cp);
+            const pb = new THREE.Mesh(new THREE.SphereGeometry(0.14, 16, 16), mPink);
+            pb.position.set(Math.cos(a)*0.95, -0.2, Math.sin(a)*0.6); collar.add(pb);
+        }
+        
+        const tail = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 20, Math.PI), mMain);
+        tail.rotation.y = Math.PI/2; tail.position.set(0,-0.3,-0.5); 
+        body.add(tail);
 
-        playerMesh.position.set(0, 0, 30);
+        root.scale.set(0.45, 0.45, 0.45);
+
+        if(animsContainer) {
+            animsContainer.armL = armL; animsContainer.armR = armR;
+            animsContainer.legL = legL; animsContainer.legR = legR;
+            animsContainer.animGroup = animGroup;
+        }
+
+        return root;
+    }
+
+    function createPlayer() {
+        playerMesh = buildCharaModel(0x555555, playerAnims); 
+        playerMesh.position.set(0, 1.1, 0); 
         scene.add(playerMesh);
     }
 
     function initPeople() {
-        const numPeople = 15;
+        const numPeople = 25; 
         for (let i = 0; i < numPeople; i++) {
             const person = createPerson();
             scene.add(person.mesh);
@@ -234,63 +344,50 @@
     }
 
     function createPerson() {
-        const personGroup = new THREE.Group();
+        const anims = { armL: null, armR: null, legL: null, legR: null, animGroup: null };
+        const randomColor = Math.random() * 0xffffff;
+        const charaGroup = buildCharaModel(randomColor, anims);
 
-        const sizeSpread = THREE.MathUtils.randFloat(0.4, 2.2); 
+        const sizeSpread = THREE.MathUtils.randFloat(0.5, 2.3); 
         const w = basePlayerRadius * 2 * sizeSpread;
         const h = basePlayerHeight * sizeSpread;
 
-        const bodyMat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(Math.random() * 0xffffff),
-            roughness: 0.5
-        });
-        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), bodyMat);
-        body.position.y = h / 2;
-        personGroup.add(body);
-
-        const headSize = 0.4 * sizeSpread;
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-        const head = new THREE.Mesh(new THREE.BoxGeometry(headSize, headSize, headSize), headMat);
-        head.position.y = h + (headSize / 2);
-        personGroup.add(head);
-
         const personObject = {
-            mesh: personGroup,
-            radius: (w / 2),
+            mesh: charaGroup,
+            anims: anims,
+            radius: (w * 0.9),
             height: h,
             scaleFactor: sizeSpread,
             velocity: new THREE.Vector3(),
-            timer: 0,
-            lifeTime: THREE.MathUtils.randFloat(7000, 12000),
             isFlying: false, 
             flyVelocity: new THREE.Vector3(),
 
-            reset: function() {
-                this.mesh.position.set(
-                    THREE.MathUtils.randFloat(worldBounds.xMin + 2, worldBounds.xMax - 2),
-                    0,
-                    THREE.MathUtils.randFloat(worldBounds.zMin + 5, worldBounds.zMax - 5)
-                );
-                if(this.mesh.position.distanceTo(playerMesh.position) < 5) {
-                    this.mesh.position.z -= 10;
-                }
-                this.velocity.set((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 5);
-                this.mesh.visible = true;
-                this.timer = Date.now();
-                this.isFlying = false;
-                this.mesh.rotation.set(0, 0, 0);
-                
-                const newSpread = THREE.MathUtils.randFloat(0.4, 2.2);
+            updateScale: function(newSpread) {
                 this.scaleFactor = newSpread;
-                this.mesh.scale.set(newSpread, newSpread, newSpread);
-                this.radius = (basePlayerRadius * newSpread);
+                const finalScale = 0.45 * newSpread;
+                this.mesh.scale.set(finalScale, finalScale, finalScale);
+                this.radius = basePlayerRadius * newSpread * 0.9;
                 this.height = basePlayerHeight * newSpread;
             },
 
-            startFlying: function(knockbackDir, power) {
-                this.isFlying = true;
-                this.visible = true;
-                this.flyVelocity.copy(knockbackDir).multiplyScalar(power).y = power * 0.5;
+            reset: function() {
+                this.mesh.position.set(
+                    THREE.MathUtils.randFloat(worldBounds.xMin + 5, worldBounds.xMax - 5),
+                    1.1 * THREE.MathUtils.randFloat(0.5, 2.0),
+                    THREE.MathUtils.randFloat(worldBounds.zMin + 5, worldBounds.zMax - 5)
+                );
+                this.mesh.position.y = 1.1 * this.scaleFactor;
+                
+                if(this.mesh.position.distanceTo(playerMesh.position) < 8) {
+                    this.mesh.position.z -= 15;
+                }
+                this.velocity.set((Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 4);
+                this.mesh.visible = true;
+                this.isFlying = false;
+                this.mesh.rotation.set(0, 0, 0);
+                
+                const newSpread = THREE.MathUtils.randFloat(0.5, 2.3);
+                this.updateScale(newSpread);
             }
         };
 
@@ -298,47 +395,61 @@
         return personObject;
     }
 
+    function fireBeam() {
+        const beamGeo = new THREE.SphereGeometry(0.25, 16, 16);
+        const beamMat = new THREE.MeshBasicMaterial({ color: 0xff77bb });
+        const beamMesh = new THREE.Mesh(beamGeo, beamMat);
+
+        const dir = new THREE.Vector3(0, 0, 1).applyQuaternion(playerMesh.quaternion).normalize();
+        
+        beamMesh.position.copy(playerMesh.position);
+        beamMesh.position.y += 0.2 * playerScale;
+        
+        scene.add(beamMesh);
+
+        beams.push({
+            mesh: beamMesh,
+            direction: dir,
+            speed: 35.0, 
+            life: 2.0
+        });
+    }
+
     function animate() {
         requestAnimationFrame(animate);
-
         const delta = 0.016;
+        const time = Date.now() * 0.015;
 
         if (isGameActive) {
-            // ★【修正】おじさんに常時重力・物理ベロシティを適用する
-            if (playerMesh.position.y > 0 || playerVelocity.lengthSq() > 0 || playerKnockbackTimer > 0) {
-                // 空中にいる場合は重力を加算
-                if (playerMesh.position.y > 0) {
+            const minGroundY = 1.1 * playerScale;
+            if (playerMesh.position.y > minGroundY || playerVelocity.lengthSq() > 0 || playerKnockbackTimer > 0) {
+                if (playerMesh.position.y > minGroundY) {
                     playerVelocity.y += gravity * delta;
                 }
-
-                // 物理ベロシティでおじさんを移動
                 playerMesh.position.addScaledVector(playerVelocity, delta);
-                
-                // 水平方向の速度を少しずつ減衰（摩擦）
                 playerVelocity.x *= 0.92;
                 playerVelocity.z *= 0.92;
 
-                // 地面（y=0）に着地したときの判定
-                if (playerMesh.position.y <= 0) {
-                    playerMesh.position.y = 0;
-                    playerVelocity.y = 0; // 垂直速度リセット
+                if (playerMesh.position.y <= minGroundY) {
+                    playerMesh.position.y = minGroundY;
+                    playerVelocity.y = 0;
                 }
             }
 
-            // 硬直タイマーの減少
+            let isMoving = false;
+
             if (playerKnockbackTimer > 0) {
                 playerKnockbackTimer -= delta;
             } else {
-                // ノックバック硬直中でなければ、キーボードで通常移動
-                const moveSpeed = 8.0;
+                const moveSpeed = 9.0;
                 const camDirection = new THREE.Vector3();
                 camera.getWorldDirection(camDirection);
                 camDirection.y = 0;
                 camDirection.normalize();
 
                 const camSideways = new THREE.Vector3(-camDirection.z, 0, camDirection.x);
-
                 const moveVector = new THREE.Vector3();
+
                 if (moveForward) moveVector.add(camDirection);
                 if (moveBackward) moveVector.add(camDirection.clone().negate());
                 if (moveRight) moveVector.add(camSideways);
@@ -350,60 +461,126 @@
                     
                     const targetAngle = Math.atan2(moveVector.x, moveVector.z);
                     playerMesh.rotation.y = targetAngle;
+                    isMoving = true;
                 }
             }
 
-            // ステージ外（壁）との衝突判定
+            if (isMoving) {
+                playerAnims.animGroup.position.y = Math.abs(Math.sin(time)) * 0.2;
+                playerAnims.armL.position.z = 0.2 + Math.sin(time) * 0.6;
+                playerAnims.armR.position.z = 0.2 - Math.sin(time) * 0.6;
+                playerAnims.legL.position.z = 0.1 - Math.sin(time) * 0.6;
+                playerAnims.legR.position.z = 0.1 + Math.sin(time) * 0.6;
+            } else {
+                playerAnims.animGroup.position.y *= 0.8;
+                playerAnims.armL.position.z *= 0.8;
+                playerAnims.armR.position.z *= 0.8;
+                playerAnims.legL.position.z *= 0.8;
+                playerAnims.legR.position.z *= 0.8;
+            }
+
+            // ビームの更新
+            for (let i = beams.length - 1; i >= 0; i--) {
+                const b = beams[i];
+                b.life -= delta;
+                b.mesh.position.addScaledVector(b.direction, b.speed * delta);
+
+                let destroyed = false;
+
+                for (let j = 0; j < otherPeople.length; j++) {
+                    const p = otherPeople[j];
+                    if (!p.mesh.visible || p.isFlying) continue;
+
+                    const dist = b.mesh.position.distanceTo(p.mesh.position);
+                    if (dist < p.radius + 0.3) {
+                        let nextScale = p.scaleFactor - 0.25; 
+                        if (nextScale < 0.25) nextScale = 0.25; 
+                        p.updateScale(nextScale);
+                        
+                        p.velocity.addScaledVector(b.direction, 3.0);
+                        destroyed = true;
+                        break;
+                    }
+                }
+
+                if (b.life <= 0 || destroyed) {
+                    scene.remove(b.mesh);
+                    beams.splice(i, 1);
+                }
+            }
+
             const currentRadius = basePlayerRadius * playerScale;
             playerMesh.position.x = Math.max(worldBounds.xMin + currentRadius, Math.min(worldBounds.xMax - currentRadius, playerMesh.position.x));
             playerMesh.position.z = Math.max(worldBounds.zMin + currentRadius, Math.min(worldBounds.zMax - currentRadius, playerMesh.position.z));
 
             // 柱との衝突判定
             collidables.forEach(obj => {
-                if(obj.geometry.type === "BoxGeometry" && obj.position.z !== 0) {
+                if(obj.geometry.type === "BoxGeometry") {
                     const pPos = playerMesh.position;
                     const oPos = obj.position;
-                    const dx = Math.abs(pPos.x - oPos.x);
-                    const dz = Math.abs(pPos.z - oPos.z);
-                    const minDistX = (obj.geometry.parameters.width / 2) + currentRadius;
-                    const minDistZ = (obj.geometry.parameters.depth / 2) + currentRadius;
-                    if(dx < minDistX && dz < minDistZ) {
-                        if(dx/minDistX > dz/minDistZ) {
-                            playerMesh.position.x = oPos.x + (pPos.x > oPos.x ? minDistX : -minDistX);
-                            if(playerKnockbackTimer > 0) playerVelocity.x *= -1;
-                        } else {
-                            playerMesh.position.z = oPos.z + (pPos.z > oPos.z ? minDistZ : -minDistZ);
-                            if(playerKnockbackTimer > 0) playerVelocity.z *= -1;
+                    if (obj.geometry.parameters && obj.geometry.parameters.width < 5) {
+                        const dx = Math.abs(pPos.x - oPos.x);
+                        const dz = Math.abs(pPos.z - oPos.z);
+                        const minDistX = (obj.geometry.parameters.width / 2) + currentRadius;
+                        const minDistZ = (obj.geometry.parameters.depth / 2) + currentRadius;
+                        if(dx < minDistX && dz < minDistZ) {
+                            if(dx/minDistX > dz/minDistZ) {
+                                playerMesh.position.x = oPos.x + (pPos.x > oPos.x ? minDistX : -minDistX);
+                                if(playerKnockbackTimer > 0) playerVelocity.x *= -1;
+                            } else {
+                                playerMesh.position.z = oPos.z + (pPos.z > oPos.z ? minDistZ : -minDistZ);
+                                if(playerKnockbackTimer > 0) playerVelocity.z *= -1;
+                            }
                         }
                     }
                 }
             });
 
-            const now = Date.now();
-
             otherPeople.forEach(p => {
                 if (!p.mesh.visible) return;
 
                 if (p.isFlying) {
+                    // おじさんに吹っ飛ばされている状態
                     p.flyVelocity.y += gravity * delta;
                     p.mesh.position.addScaledVector(p.flyVelocity, delta);
                     p.mesh.rotation.x += delta * 12;
                     p.mesh.rotation.z += delta * 8;
 
-                    if (p.mesh.position.y < -p.height) {
+                    // 【消滅条件①】ぶっ飛んだ状態で外周の壁（境界）に激突するか床下に落ちた時のみリセット（消滅再生成）
+                    if (p.mesh.position.x < worldBounds.xMin || p.mesh.position.x > worldBounds.xMax ||
+                        p.mesh.position.z < worldBounds.zMin || p.mesh.position.z > worldBounds.zMax ||
+                        p.mesh.position.y < -p.height) {
                         p.reset();
                     }
                 } else {
+                    // 通常歩行
                     p.mesh.position.addScaledVector(p.velocity, delta);
+                    p.mesh.position.y = 1.1 * p.scaleFactor;
 
-                    if (p.mesh.position.x < worldBounds.xMin || p.mesh.position.x > worldBounds.xMax) p.velocity.x *= -1;
-                    if (p.mesh.position.z < worldBounds.zMin || p.mesh.position.z > worldBounds.zMax) p.velocity.z *= -1;
-
-                    if (now - p.timer > p.lifeTime) {
-                        p.reset();
+                    if (p.velocity.lengthSq() > 0.01) {
+                        const personAngle = Math.atan2(p.velocity.x, p.velocity.z);
+                        p.mesh.rotation.y = personAngle;
                     }
 
-                    // プレイヤーが硬直（無敵）中でなければ当たり判定を行う
+                    p.anims.animGroup.position.y = Math.abs(Math.sin(time * 1.3)) * 0.2;
+                    p.anims.armL.position.z = 0.2 + Math.sin(time * 1.3) * 0.6;
+                    p.anims.armR.position.z = 0.2 - Math.sin(time * 1.3) * 0.6;
+                    p.anims.legL.position.z = 0.1 - Math.sin(time * 1.3) * 0.6;
+                    p.anims.legR.position.z = 0.1 + Math.sin(time * 1.3) * 0.6;
+
+                    if (p.mesh.position.x < worldBounds.xMin + p.radius) {
+                        p.mesh.position.x = worldBounds.xMin + p.radius; p.velocity.x *= -1;
+                    } else if (p.mesh.position.x > worldBounds.xMax - p.radius) {
+                        p.mesh.position.x = worldBounds.xMax - p.radius; p.velocity.x *= -1;
+                    }
+                    if (p.mesh.position.z < worldBounds.zMin + p.radius) {
+                        p.mesh.position.z = worldBounds.zMin + p.radius; p.velocity.z *= -1;
+                    } else if (p.mesh.position.z > worldBounds.zMax - p.radius) {
+                        p.mesh.position.z = worldBounds.zMax - p.radius; p.velocity.z *= -1;
+                    }
+
+
+                    // おじさんとの接触判定
                     if (playerKnockbackTimer <= 0) {
                         const dist = playerMesh.position.distanceTo(p.mesh.position);
                         const minDist = currentRadius + p.radius;
@@ -412,23 +589,23 @@
                             const impactDir = new THREE.Vector3().subVectors(p.mesh.position, playerMesh.position).normalize();
                             
                             if (currentRadius >= p.radius) {
-                                // 自分と同じ、または小さいキャラ：相手を跳ね飛ばす
+                                // 【消滅条件②】おじさんがぶつかって勝利した時に吹き飛ばす
                                 playerScale += 0.1;
-                                p.startFlying(impactDir, 25.0); 
+                                p.isFlying = true;
+                                p.flyVelocity.copy(impactDir).multiplyScalar(30.0).y = 10.0; 
                             } else {
-                                // 自分より大きいキャラ：おじさんが跳ね飛ばされる！
+                                // 敗北時
                                 playerScale -= 0.15;
                                 if (playerScale < 0.2) playerScale = 0.2; 
 
                                 const knockbackDir = impactDir.negate();
-                                // ★後方に強く弾き、上にもふわりと浮かせる（重力処理でちゃんと着地する）
-                                playerVelocity.set(knockbackDir.x * 22.0, 8.0, knockbackDir.z * 22.0); 
-                                playerKnockbackTimer = 0.5; // 無敵＆ノックバック時間
-
+                                playerVelocity.set(knockbackDir.x * 22.0, 9.0, knockbackDir.z * 22.0); 
+                                playerKnockbackTimer = 0.5;
                                 p.velocity.multiplyScalar(0.1); 
                             }
 
-                            playerMesh.scale.set(playerScale, playerScale, playerScale);
+                            const finalScale = 0.45 * playerScale;
+                            playerMesh.scale.set(finalScale, finalScale, finalScale);
                             sizeMeter.innerText = Math.max(0, playerScale).toFixed(2);
 
                             checkGameEnd();
@@ -437,7 +614,7 @@
                 }
             });
 
-            controls.target.copy(playerMesh.position).add(new THREE.Vector3(0, basePlayerHeight * playerScale, 0));
+            controls.target.copy(playerMesh.position).add(new THREE.Vector3(0, 0.2 * playerScale, 0));
         }
 
         controls.update();
@@ -449,6 +626,7 @@
             isGameActive = false;
             clearScreen.classList.remove('hidden');
             hud.classList.add('hidden');
+            controls.enabled = true;
             return;
         }
         
@@ -464,6 +642,7 @@
             isGameActive = false;
             gameoverScreen.classList.remove('hidden');
             hud.classList.add('hidden');
+            controls.enabled = true;
         }
     }
 
