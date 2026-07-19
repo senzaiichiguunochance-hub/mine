@@ -162,7 +162,7 @@
                 <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0"></i>
                 <div>
                     <span class="block text-red-900 mb-1">【使えません】アドレスの欄が暗号化に対応していません</span>
-                    お使いの環境では通信が開始できません。Webサーバー（HTTPS）を通してページを開してください。
+                    お使いの環境では通信が開始できません。Webサーバー（HTTPS）を通してページを開いてください。
                 </div>
             </div>
         </div>
@@ -181,7 +181,6 @@
                 </div>
             </div>
 
-            <!-- 全体共通設定 -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-orange-50/50 border-2 border-orange-100 rounded-2xl p-4 mb-6 text-xs">
                 <div>
                     <label class="block font-black text-orange-600 mb-1 flex items-center gap-1">
@@ -205,9 +204,7 @@
             </div>
 
             <!-- 10個の部屋リスト -->
-            <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-terminal-scroll" id="rooms-list-container">
-                <!-- JavaScriptで10個生成 -->
-            </div>
+            <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-terminal-scroll" id="rooms-list-container"></div>
         </div>
 
         <div id="panel-stage-compiling" class="view-section hidden-view text-center py-8">
@@ -315,7 +312,7 @@
                 </button>
             </div>
 
-            <!-- 🎁 音楽のプレゼント交換パネルエリア -->
+            <!-- 音楽プレゼント交換パネル -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <div class="bg-white border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm">
                     <div class="flex items-center gap-2 min-w-0">
@@ -333,7 +330,7 @@
                 
                 <div class="bg-white border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm">
                     <div class="flex items-center gap-2 min-w-0">
-                        <span class="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">相手</span>
+                        <span class="bg-purple-100 text-purple-700 ... rounded font-black whitespace-nowrap">相手</span>
                         <button id="peer-music-play-btn" onclick="toggleMusicPlayback('peer')" disabled class="bg-zinc-200 text-zinc-400 p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all">
                             <i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music
                         </button>
@@ -385,12 +382,12 @@
     </div>
 
     <script>
-        // ガードレール：上限500MB
+        // DoS防御用のファイル上限値(500MB)
         const MAX_FILE_SIZE_LIMIT = 500 * 1024 * 1024;
 
         let peerInstance = null;
         let activeDataConnection = null;
-        let sessionSymmetricKey = null; // ECDHから自動算出される共通AES鍵
+        let sessionSymmetricKey = null; 
         let isDuplexSessionUpgraded = false;
         
         let globalClockIntervalId = null;
@@ -413,9 +410,9 @@
         let currentActiveRoomIndex = null;
         let isMusicAlertShown = false; 
 
-        // 鍵交換(ECDH)用のキーペア
         let localEcdhKeyPair = null;
 
+        // 暗号強度の高いランダム文字列を生成
         function generateStrongToken(length = 24) {
             const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
             let result = '';
@@ -426,8 +423,8 @@
             return result;
         }
 
+        // XSSおよびローカル覗き見対策のためsessionStorageで初期化
         function initializeDeviceAndRooms() {
-            // セキュリティのためsessionStorageへ移行
             deviceUuid = sessionStorage.getItem('secure_chat_device_uuid');
             if (!deviceUuid) {
                 deviceUuid = generateStrongToken(16);
@@ -442,7 +439,7 @@
                 const storageKey = `secure_chat_room_secret_${i}`;
                 let savedSecret = sessionStorage.getItem(storageKey);
                 if (!savedSecret) {
-                    savedSecret = generateStrongToken(24); // 4文字から24文字の軍用強度へ引き上げ
+                    savedSecret = generateStrongToken(24); 
                     sessionStorage.setItem(storageKey, savedSecret);
                 }
 
@@ -513,9 +510,7 @@
                 ui('protocol-anomaly-banner').classList.remove('hidden');
             }
             
-            const hash = window.location.hash;
             const urlParams = new URLSearchParams(window.location.search);
-            // URLに鍵(#k=)があるか、またはroomパラメータがある場合は接続シーケンスへ（互換性と鍵交換トリガー）
             if (urlParams.get('room')) {
                 executeIncomingHandshakeSequence();
             } else {
@@ -523,12 +518,12 @@
             }
         }
 
+        // ホスト側の部屋開設処理およびECDH準備
         async function commitBroadcastingTask(roomIndex) {
             try {
                 currentActiveRoomIndex = roomIndex;
                 const secretKey = sessionStorage.getItem(`secure_chat_room_secret_${roomIndex}`) || 'room';
                 
-                // ルームIDの生成（ハッシュ化してURL推測を不可能に）
                 const encoder = new TextEncoder();
                 const idBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(`${deviceUuid}-${secretKey}`));
                 const fullRoomPeerId = Array.from(new Uint8Array(idBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
@@ -539,7 +534,7 @@
                 transitionToView('panel-stage-compiling');
                 ui('compile-progress-bar').style.width = '50%';
 
-                // 鍵交換のためのECDH鍵ペアを生成
+                // 楕円曲線ディフィー・ヘルマン鍵交換の生成
                 localEcdhKeyPair = await crypto.subtle.generateKey(
                     { name: "ECDH", namedCurve: "P-256" },
                     false,
@@ -557,7 +552,6 @@
                     sessionLifeDeadlineTimestamp = Date.now() + (minutes * 60 * 1000);
                     activateGlobalCountdownClock();
 
-                    // ★【本気仕様】URLから暗号鍵Token(#k=)を完全排除！部屋番号のみ共有。
                     const shareUrl = `${window.location.origin}${window.location.pathname}?room=${id}`;
                     ui('display-sharable-url').value = shareUrl;
 
@@ -573,7 +567,7 @@
                     
                     setTimeout(() => {
                         transitionToView('panel-stage-broadcasting');
-                        dispatchDashboardAlert(`部屋 ${roomIndex} を開放しました！鍵交換を待機します。`, 'success');
+                        dispatchDashboardAlert(`部屋 ${roomIndex} を開放しました！鍵交換を待記します。`, 'success');
                     }, 400);
                 });
 
@@ -583,7 +577,7 @@
                         return;
                     }
                     targetPeerIdForCall = conn.peer;
-                    bindPeerDataEvents(conn, true); // ホストとしてバインド
+                    bindPeerDataEvents(conn, true);
                 });
 
                 peerInstance.on('call', (call) => {
@@ -608,6 +602,7 @@
             }
         }
 
+        // ゲスト側の参加処理およびECDH準備
         async function executeIncomingHandshakeSequence() {
             try {
                 transitionToView('panel-stage-compiling');
@@ -619,7 +614,6 @@
                 
                 ui('text-active-room-title').textContent = "招待されたセキュアルーム";
 
-                // ゲスト側もECDHキーペアを生成
                 localEcdhKeyPair = await crypto.subtle.generateKey(
                     { name: "ECDH", namedCurve: "P-256" },
                     false,
@@ -634,7 +628,7 @@
 
                 peerInstance.on('open', () => {
                     const conn = peerInstance.connect(roomId, { reliable: true });
-                    bindPeerDataEvents(conn, false); // ゲストとしてバインド
+                    bindPeerDataEvents(conn, false);
                 });
 
                 peerInstance.on('call', (call) => {
@@ -655,6 +649,7 @@
             }
         }
 
+        // 受信した映像ストリームの遅延アタッチと再生
         function setupRemoteVideoStream(remoteStream) {
             const videoEl = ui('remote-screen-video');
             videoEl.srcObject = remoteStream;
@@ -684,11 +679,11 @@
             dispatchDashboardAlert('相手の画面共有を受信しました。', 'info');
         }
 
+        // P2Pデータ通信チャネルの確立および暗号鍵導出(ECDH鍵交換)
         function bindPeerDataEvents(conn, isHost) {
             activeDataConnection = conn;
             
             conn.on('open', async () => {
-                // 接続直後に、お互いのECDH公開鍵を交換する（生の暗号鍵は決して送らない）
                 const exportedPublicKey = await crypto.subtle.exportKey("spki", localEcdhKeyPair.publicKey);
                 conn.send({
                     protocol: 'v3/key-exchange',
@@ -699,7 +694,7 @@
 
             conn.on('data', async (envelope) => {
                 try {
-                    // 🔑 【鍵交換フェーズ】通信線上で安全に共通鍵を「創り出す」
+                    // 鍵交換プロトコルの検知とAES鍵の算出
                     if (envelope.protocol === 'v3/key-exchange') {
                         const importedPeerPublicKey = await crypto.subtle.importKey(
                             "spki",
@@ -709,7 +704,6 @@
                             []
                         );
 
-                        // 2人の秘密値から、完全に一致するAES鍵を個別に導出（ディフィー・ヘルマン効果）
                         sessionSymmetricKey = await crypto.subtle.deriveKey(
                             { name: "ECDH", public: importedPeerPublicKey },
                             localEcdhKeyPair.privateKey,
@@ -732,8 +726,7 @@
                         return;
                     }
 
-                    // これ以降はAES-GCMで保護されたパケット
-                    if (!sessionSymmetricKey) return; // 鍵交換前は破棄
+                    if (!sessionSymmetricKey) return; 
 
                     const decryptedText = await decryptBytesWithGcm(envelope.payload, envelope.nonce);
                     const data = JSON.parse(decryptedText);
@@ -741,7 +734,6 @@
                     if (data.protocol === 'v2/text-message') {
                         appendTerminalChatNode(data.text, 'inbound');
                     } 
-                    // 🎁 【本気仕様改修】ストリーミング音楽告知の受信
                     else if (data.protocol === 'v3/music-header') {
                         if (data.fileSize > MAX_FILE_SIZE_LIMIT) {
                             dispatchDashboardAlert("上限(500MB)を超えるため音楽の受信を拒否しました。", "error");
@@ -760,7 +752,6 @@
                     else if (data.protocol === 'v2/file-header') {
                         if (data.totalSize > MAX_FILE_SIZE_LIMIT) {
                             dispatchDashboardAlert("上限(500MB)を超えるファイルのため受信を拒否しました。", "error");
-                            // 相手側のチャンネルを閉じさせるためにリセットをかける
                             terminateSessionHard('DoS防御: 巨大ファイルが検知されたため切断しました。');
                             return;
                         }
@@ -778,7 +769,7 @@
                         startTransferSpeedTracking();
                     }
                 } catch (e) {
-                    // 暗号化なしの高速バイナリ転送（チャンク）のキャッチ
+                    // 高速ストリームバイナリ(チャンク)の受信処理
                     if (envelope.protocol === 'v2/file-chunk') {
                         inboundChunkAccumulator.push(envelope.chunk);
                         inboundProcessedBytesCount += envelope.chunk.byteLength;
@@ -804,7 +795,7 @@
             });
         }
 
-        // 🎁 【本気仕様】音楽ファイルのアップロード処理（DataURLを廃止し、細切れバイナリ送信へ）
+        // 音楽ファイルのバイナリチャンク分割送信処理
         async function handleMusicUpload(input) {
             const file = input.files[0];
             if (!file) return;
@@ -818,7 +809,6 @@
             dispatchDashboardAlert("音楽プレゼントを暗号ストリームへ変換中...", "info");
             appendTerminalChatNode(`音楽「${file.name}」の送信を開始しました...`, 'system-broadcast');
 
-            // 1. まず「今から音楽を送るよ」というヘッダーを暗号化して通知
             const headerObj = JSON.stringify({
                 protocol: 'v3/music-header',
                 fileName: file.name,
@@ -832,18 +822,15 @@
             );
             activeDataConnection.send({ payload: encryptedHeader, nonce: nonce });
 
-            // 2. 自分のプレイヤーに仮アタッチして再生可能にする
             const localUrl = URL.createObjectURL(file);
             silentSetupMyMusic(localUrl, file.name);
 
-            // 3. ファイルを細切れ（チャンク）にしてP2P高速送信（メモリに溜め込まない）
             const reader = file.stream().getReader();
+            const chunkSize = 16384;
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
                 
-                // 16KBずつに小分けしてバースト送信
-                const chunkSize = 16384;
                 for (let i = 0; i < value.byteLength; i += chunkSize) {
                     const chunk = value.buffer.slice(i, i + chunkSize);
                     activeDataConnection.send({ protocol: 'v2/file-chunk', chunk: chunk });
@@ -866,7 +853,6 @@
             btn.className = "bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#1d4ed8]";
         }
 
-        // 🎁 【本気仕様】細切れで受け取った音楽の結合＆プレイヤー展開処理（メモリ爆発を防止）
         function executeInboundMusicDecryption() {
             const blob = new Blob(inboundChunkAccumulator, { type: 'audio/mp3' });
             const blobUrl = URL.createObjectURL(blob);
@@ -1082,7 +1068,6 @@
             );
             activeDataConnection.send({ payload: encryptedHeader, nonce: nonce });
 
-            // チャンク分割送信（FileReaderの代わりにStreamを使用しメモリを保護）
             const reader = file.stream().getReader();
             const chunkSize = 16384; 
             
@@ -1102,7 +1087,6 @@
 
         async function executeInboundFileDecryption() {
             try {
-                // 受信側もメモリ大食いさせずBlob化
                 const blob = new Blob(inboundChunkAccumulator, { type: inboundPayloadMetaObj.type });
                 const blobUrl = URL.createObjectURL(blob);
 
