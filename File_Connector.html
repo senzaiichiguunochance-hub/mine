@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>セキュアなチャット＆画面共有アプリ</title>
+    <title>マルチセキュアチャット＆画面共有＆音楽プレゼントルーム</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -124,7 +124,6 @@
         .toast-bubble.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
         .toast-bubble.info { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
 
-        /* ビデオの最大化（シアターモード）用スタイルを改善 */
         .video-maximized {
             position: fixed !important;
             top: 0 !important;
@@ -145,7 +144,7 @@
             width: 100% !important;
             height: 100% !important;
             max-height: 100vh !important;
-            object-fit: contain !important; /* アスペクト比を維持して画面いっぱいに */
+            object-fit: contain !important;
             border-radius: 0 !important;
         }
     </style>
@@ -168,81 +167,71 @@
             </div>
         </div>
 
+        <!-- 部屋選択・ダッシュボードビュー -->
         <div id="panel-stage-input" class="view-section hidden-view">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-black text-orange-500 tracking-wide mb-2 flex items-center justify-center gap-2">
-                    セキュアなチャットアプリ
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-black text-orange-500 tracking-wide mb-1 flex items-center justify-center gap-2">
+                    マルチセキュアチャットルーム
                 </h1>
-                <p class="text-base font-bold text-orange-400">
-                    サーバーを使用しない、秘密のチャットとファイル送信、画面共有が可能です
+                <p class="text-xs font-bold text-orange-400">
+                    端末固有IDベースの推測不可能な10個の独立した暗号化チャットルームです
                 </p>
+                <div class="mt-2 text-[11px] text-gray-400 bg-white/60 border rounded-xl py-1 px-3 inline-block font-mono">
+                    あなたのブラウザ固有ID: <span id="display-device-uuid" class="font-bold text-zinc-700">----</span>
+                </div>
             </div>
 
-            <div class="space-y-6 bg-orange-50/50 border-2 border-orange-100 rounded-2xl p-6 mb-8">
+            <!-- 全体共通設定 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-orange-50/50 border-2 border-orange-100 rounded-2xl p-4 mb-6 text-xs">
                 <div>
-                    <label class="block text-sm font-black text-orange-600 mb-1 flex items-center gap-1.5">
-                        <i data-lucide="clock" class="w-4 h-4"></i> リンク生存期間（チャットルームの有効期限）
+                    <label class="block font-black text-orange-600 mb-1 flex items-center gap-1">
+                        <i data-lucide="clock" class="w-3.5 h-3.5"></i> 有効期限
                     </label>
-                    <p class="text-xs text-gray-500 mb-2">
-                        作った接続URLが自動的に使えなくなるまでの時間です。時間が過ぎるとチャット内容やチャットルームのデータは完全に消滅します。
-                    </p>
-                    <select id="config-time-limit" class="w-full bg-white border-2 border-zinc-200 text-gray-700 rounded-xl p-3 text-sm font-bold focus:border-orange-400 outline-none shadow-[0_4px_0_#e4e4e7]">
-                        <option value="5">300秒 (5分間)</option>
-                        <option value="15" selected>900秒 (15分間)</option>
-                        <option value="30">1800秒 (30分間)</option>
-                        <option value="60">3600秒 (1時間)</option>
-                        <option value="300">5時間</option>
-                        <option value="600">10時間</option>
-                        <option value="1200">20時間</option>
+                    <select id="config-time-limit" class="w-full bg-white border border-zinc-200 text-gray-700 rounded-lg p-2 font-bold focus:border-orange-400 outline-none">
+                        <option value="15" selected>15分間</option>
+                        <option value="60">1時間</option>
                         <option value="1440">24時間</option>
-                        <option value="2880">48時間</option>
                     </select>
                 </div>
-
                 <div>
-                    <label class="block text-sm font-black text-orange-600 mb-1 flex items-center gap-1.5">
-                        <i data-lucide="zap" class="w-4 h-4"></i> ストリーミング・パイプライン（巨大ファイル保存機能）
+                    <label class="block font-black text-orange-600 mb-1 flex items-center gap-1">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i> ストリーミング・パイプライン
                     </label>
-                    <p class="text-xs text-gray-500 mb-2">
-                        これをONにすると、数ギガバイト以上のとても大きなファイルを受け取る時に、スマホやパソコンのメモリを消費せずに直接ディスクへ保存できるようになります。通常はOFFのままで構いません。
-                    </p>
-                    <div class="bg-white border-2 border-zinc-200 rounded-xl p-3 flex items-center justify-between h-[48px] shadow-[0_4px_0_#e4e4e7]">
-                        <span class="text-xs font-bold text-gray-500">特別な保存方法を有効にする</span>
-                        <input type="checkbox" id="config-use-streamsaver" class="w-5 h-5 accent-orange-500 cursor-pointer">
+                    <div class="bg-white border border-zinc-200 rounded-lg p-2 flex items-center justify-between h-[34px]">
+                        <span class="text-gray-400">巨大ファイル保存を有効化</span>
+                        <input type="checkbox" id="config-use-streamsaver" class="w-4 h-4 accent-orange-500 cursor-pointer">
                     </div>
                 </div>
             </div>
 
-            <button onclick="commitBroadcastingTask()" class="w-full cute-btn py-4 px-6 text-lg flex justify-center items-center gap-2 tracking-wider">
-                <i data-lucide="play" class="w-5 h-5 fill-white"></i> 開始する
-            </button>
+            <!-- 10個の部屋リスト -->
+            <div class="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-terminal-scroll" id="rooms-list-container">
+                <!-- JavaScriptで10個生成 -->
+            </div>
         </div>
 
         <div id="panel-stage-compiling" class="view-section hidden-view text-center py-8">
             <i data-lucide="loader2" class="w-12 h-12 text-orange-500 mx-auto mb-4 animate-spin"></i>
-            <h2 class="text-lg font-black text-zinc-700 mb-2" id="compile-status-title">安全な通信チャットルームを作っています...</h2>
-            <p class="text-sm text-gray-500 mb-6" id="compile-status-desc">暗号化に必要なカギの準備を行っています。しばらくお待ちください。</p>
+            <h2 class="text-lg font-black text-zinc-700 mb-2" id="compile-status-title">通信鍵を生成し暗号ルームを開設中...</h2>
             <div class="w-full bg-zinc-100 border-2 border-zinc-200 h-4 rounded-full overflow-hidden p-0.5">
                 <div id="compile-progress-bar" class="bg-orange-400 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
             </div>
-            <p id="compile-progress-string" class="text-sm font-bold text-orange-500 mt-2">0%</p>
         </div>
 
+        <!-- 個別の部屋の待機画面ビュー -->
         <div id="panel-stage-broadcasting" class="view-section hidden-view">
             <div class="text-center mb-6">
                 <h2 class="text-xl font-black text-orange-500 mb-2 flex items-center justify-center gap-2">
                     <span class="w-3 h-3 bg-orange-500 rounded-full animate-ping"></span>
-                    相手からの接続を待っています
+                    <span id="text-current-room-title">部屋</span> の接続を待っています
                 </h2>
-                <p class="text-sm text-gray-500">チャットを始めたい相手に、下のQRコードかURLを教えて共有してください。</p>
+                <p class="text-sm text-gray-500">この部屋専用のURLまたはQRコードを相手に共有してください。</p>
             </div>
 
             <div class="bg-white border-2 border-orange-100 rounded-2xl p-6 mb-6 flex flex-col items-center justify-center">
                 <div id="matrix-qr-canvas" class="mb-4"></div>
-                <p class="text-xs text-gray-400 mb-4">カメラで読み取るためのQRコード</p>
-
                 <div class="w-full border-t border-zinc-100 pt-4">
-                    <span class="text-xs font-black text-orange-600 block mb-1">コピー用URL:</span>
+                    <span class="text-xs font-black text-orange-600 block mb-1">招待用URL (この部屋専用):</span>
                     <div class="flex gap-2">
                         <input type="text" id="display-sharable-url" readonly class="w-full bg-zinc-50 border-2 border-zinc-200 text-gray-600 rounded-xl p-3 text-xs font-bold outline-none">
                         <button onclick="executeUrlTextCopy()" class="cute-btn-secondary px-6 rounded-xl text-sm whitespace-nowrap flex items-center gap-1">
@@ -253,83 +242,115 @@
             </div>
 
             <div class="bg-orange-50 border-2 border-orange-100 p-4 rounded-xl text-center mb-6">
-                <span class="text-xs font-bold text-orange-700 block mb-1">このチャットルームが自動で閉じるまでの残り時間</span>
+                <span class="text-xs font-bold text-orange-700 block mb-1">自動消滅までの残り時間</span>
                 <span id="countdown-clock-timer" class="text-3xl font-black text-orange-500">--:--</span>
             </div>
 
-            <div class="flex flex-col sm:flex-row gap-4">
-                <button onclick="terminateSessionHard('チャットチャットルームを閉じました。')" class="flex-1 cute-btn-danger py-3 px-4 text-sm flex justify-center items-center gap-2">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i> チャットルームを今すぐ閉じる
-                </button>
-            </div>
+            <button onclick="terminateSessionHard('接続待機をキャンセルしました。')" class="w-full cute-btn-danger py-3 px-4 text-sm flex justify-center items-center gap-2">
+                <i data-lucide="x-circle" class="w-4 h-4"></i> 待機を終了してダッシュボードに戻る
+            </button>
         </div>
 
         <div id="panel-stage-receiving" class="view-section hidden-view bg-white border-4 border-orange-400 p-6 rounded-2xl text-center shadow-lg">
             <div class="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 px-4 py-1.5 rounded-full text-sm font-black mb-4">
-                <i data-lucide="download" class="w-4 h-4 animate-bounce"></i> ファイルを受け取っています
+                <i data-lucide="download" class="w-4 h-4 animate-bounce"></i> 暗号ファイルを受信中
             </div>
-            <h2 class="text-lg font-black text-zinc-700 mb-2">相手からファイルが直接届いています...</h2>
+            <h2 class="text-lg font-black text-zinc-700 mb-2">ファイルを受信しています...</h2>
             <p id="recv-status-message" class="text-xs text-gray-500 mb-6 bg-zinc-50 p-2 border-2 border-zinc-100 inline-block rounded-xl max-w-full truncate font-bold">準備中...</p>
 
             <div class="w-full bg-zinc-100 border-2 border-zinc-200 h-5 rounded-full overflow-hidden mb-4 p-0.5">
                 <div id="recv-progress-bar" class="bg-orange-400 h-full rounded-full transition-all duration-150" style="width: 0%"></div>
             </div>
             <div class="grid grid-cols-3 text-xs font-bold text-gray-500 border-t border-zinc-100 pt-4">
-                <div class="text-left">進み具合: <span id="recv-progress-percent" class="text-base font-black text-orange-500">0%</span></div>
-                <div class="text-center">速度: <span id="recv-speed-label" class="text-zinc-700">0 Bytes/秒</span></div>
-                <div class="text-right"><span id="recv-eta-label" class="text-zinc-700">残り時間: 計算中</span></div>
+                <div class="text-left">進捗: <span id="recv-progress-percent" class="text-base font-black text-orange-500">0%</span></div>
+                <div class="text-center">速度: <span id="recv-speed-label" class="text-zinc-700">0 B/s</span></div>
+                <div class="text-right"><span id="recv-eta-label" class="text-zinc-700">残り: 計算中</span></div>
             </div>
         </div>
 
         <div id="panel-stage-extracted" class="view-section hidden-view bg-white border-4 border-emerald-400 p-6 rounded-2xl text-center shadow-lg">
             <div class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-black mb-4">
-                <i data-lucide="check-circle" class="w-4 h-4"></i> 復元が完了しました！
+                <i data-lucide="check-circle" class="w-4 h-4"></i> 復号完了
             </div>
-            <h2 class="text-xl font-black text-zinc-700 mb-2">ファイルを受け取りました</h2>
-            <p class="text-sm text-gray-500 mb-6">暗号を解いて安全にファイルを取り出しました。</p>
-
+            <h2 class="text-xl font-black text-zinc-700 mb-2">安全に受信しました</h2>
             <div class="bg-zinc-50 border-2 border-zinc-200 rounded-2xl p-4 text-left mb-6">
-                <div class="text-xs font-black text-gray-400 mb-1">届いたファイルの名前</div>
                 <p id="extracted-file-name" class="font-black text-base text-emerald-600 break-all mb-3"></p>
                 <div id="extracted-media-preview" class="flex justify-center items-center rounded-xl bg-white min-h-[120px] mt-2 border border-zinc-100 p-2"></div>
             </div>
-            
             <a id="action-native-download" href="#" class="block w-full cute-btn bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_0_#047857] py-4 px-6 text-base tracking-wider text-center mb-4">
-                <i data-lucide="download" class="w-5 h-5 inline mr-1 -mt-1"></i> パソコン・スマホに保存する
+                <i data-lucide="download" class="w-5 h-5 inline mr-1 -mt-1"></i> ローカルに保存する
             </a>
-
             <button onclick="requestDuplexInversion()" class="block w-full cute-btn-secondary py-3 px-4 text-sm">
-                このままチャット画面を開く
+                チャットルームに戻る
             </button>
         </div>
 
+        <!-- 本番のチャット＆画面共有ルーム -->
         <div id="panel-stage-terminal-room" class="view-section hidden-view">
+            
+            <!-- 音楽受信用ポップアップなどのオーバーレイコンテナ -->
+            <div id="board-overlay" class="absolute inset-0 bg-black/40 rounded-xl hidden flex items-center justify-center p-4 z-40">
+                <div id="overlay-content" class="bg-white border-4 border-amber-400 rounded-3xl p-6 shadow-2xl text-center max-w-[90%] animate-pop-in"></div>
+            </div>
+
             <div class="flex items-center justify-between mb-4 border-b border-orange-100 pb-3">
                 <h2 class="text-lg font-black text-orange-500 flex items-center gap-1.5">
-                    <i data-lucide="messages-square" class="w-5 h-5"></i> セキュアなチャット中
+                    <i data-lucide="messages-square" class="w-5 h-5"></i> <span id="text-active-room-title">ルーム</span>
                 </h2>
                 <div class="flex items-center gap-3">
                     <span id="terminal-session-timer" class="text-xs font-bold text-gray-400 bg-zinc-100 px-2 py-1 rounded-md">--:--</span>
-                    <button onclick="terminateSessionHard('接続を切断しました。')" class="cute-btn-danger text-xs py-1.5 px-4 shadow-[0_2px_0_#b91c1c]">
-                        切断
+                    <button onclick="terminateSessionHard('セッションを切断しダッシュボードに戻りました。')" class="cute-btn-danger text-xs py-1.5 px-4 shadow-[0_2px_0_#b91c1c]">
+                        退室
                     </button>
                 </div>
             </div>
 
-            <!-- 画面共有ビデオ表示エリア (インラインスタイルで高さを保証) -->
+            <!-- ビдео共有コンテナ -->
             <div id="screenshare-video-container" class="hidden bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-2 mb-4 relative transition-all duration-300 w-full" style="min-height: 180px;">
                 <video id="remote-screen-video" class="w-full h-auto rounded-xl bg-black block" style="max-height: 360px; object-fit: contain;" autoplay playsinline></video>
                 <span class="absolute top-4 left-4 bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md z-10">
                     <span class="w-2 h-2 bg-white rounded-full animate-ping"></span> 画面共有を受信中
                 </span>
-                
-                <!-- 画面拡大縮小ボタン -->
                 <button id="btn-video-resize" onclick="toggleVideoSizeMaximized()" class="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-xl border border-white/20 shadow-md transition-all flex items-center justify-center z-10">
                     <i id="icon-video-resize" data-lucide="maximize-2" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <div id="terminal-log-row-container" class="border-2 border-orange-100 rounded-2xl bg-white mb-4 overflow-hidden flex flex-col h-[350px]">
+            <!-- 🎁 【新機能】音楽のプレゼント交換・プレイヤーパネルエリア -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <!-- 自分側の音楽管理 -->
+                <div class="bg-white border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">自分</span>
+                        <button id="my-music-play-btn" onclick="toggleMusicPlayback('my')" disabled class="bg-zinc-200 text-zinc-400 p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music
+                        </button>
+                        <span id="my-music-status-text" class="text-xs text-zinc-400 font-bold max-w-[100px] truncate">音楽未設定</span>
+                    </div>
+                    <label class="bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-xl font-black text-xs cursor-pointer text-center transition-all whitespace-nowrap">
+                        <i data-lucide="music" class="w-3.5 h-3.5 inline mr-0.5"></i> 曲を贈る
+                        <input type="file" id="my-music-file-input" accept="audio/*" onchange="handleMusicUpload(this)" class="hidden">
+                    </label>
+                </div>
+                
+                <!-- 相手側の音楽管理 -->
+                <div class="bg-white border border-zinc-200 rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <span class="bg-purple-100 text-purple-700 text-[10px] px-1.5 py-0.5 rounded font-black whitespace-nowrap">相手</span>
+                        <button id="peer-music-play-btn" onclick="toggleMusicPlayback('peer')" disabled class="bg-zinc-200 text-zinc-400 p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all">
+                            <i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music
+                        </button>
+                        <span id="peer-music-status-text" class="text-xs text-zinc-400 font-bold max-w-[120px] truncate">音楽未設定</span>
+                    </div>
+                    <button disabled class="bg-zinc-100 text-zinc-300 px-3 py-2 rounded-xl font-black text-xs whitespace-nowrap cursor-not-allowed">受信専用</button>
+                </div>
+            </div>
+
+            <!-- 隠しオーディオ要素 -->
+            <audio id="audio-player-my" loop class="hidden"></audio>
+            <audio id="audio-player-peer" loop class="hidden"></audio>
+
+            <div id="terminal-log-row-container" class="border-2 border-orange-100 rounded-2xl bg-white mb-4 overflow-hidden flex flex-col h-[300px]">
                 <div id="terminal-canvas-view" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-terminal-scroll"></div>
                 
                 <div id="chat-staged-file-zone" class="hidden bg-orange-50 border-t border-orange-100 p-3 flex items-center justify-between text-xs font-bold">
@@ -339,7 +360,7 @@
                     </div>
                     <div class="flex gap-2 flex-shrink-0">
                         <button onclick="clearChatStagedFile()" class="bg-zinc-200 hover:bg-zinc-300 text-gray-600 px-3 py-1 rounded-lg transition-all">キャンセル</button>
-                        <button id="btn-chat-staged-send" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-lg font-black transition-all">ファイルを送信</button>
+                        <button id="btn-chat-staged-send" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-lg font-black transition-all">送信</button>
                     </div>
                 </div>
             </div>
@@ -351,16 +372,15 @@
             </div>
 
             <div class="bg-white border-2 border-zinc-200 rounded-2xl p-3 mb-4 shadow-[0_4px_0_#e4e4e7] flex items-end gap-2">
-                <textarea id="terminal-msg-input" class="flex-1 bg-zinc-50 border border-zinc-100 text-gray-700 rounded-xl p-3 text-sm font-bold focus:outline-none focus:border-orange-400 resize-none min-h-[70px] custom-terminal-scroll" placeholder="ここにメッセージを入力してください..."></textarea>
+                <textarea id="terminal-msg-input" class="flex-1 bg-zinc-50 border border-zinc-100 text-gray-700 rounded-xl p-3 text-sm font-bold focus:outline-none focus:border-orange-400 resize-none min-h-[60px] custom-terminal-scroll" placeholder="メッセージを入力..."></textarea>
                 <button id="btn-terminal-dispatch" class="cute-btn p-3.5 flex-shrink-0" disabled>
                     <i data-lucide="send" class="w-5 h-5 fill-white"></i>
                 </button>
             </div>
 
-            <div id="chat-file-drop-zone" class="cute-drop-zone p-6 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50/50 transition-all select-none">
-                <i data-lucide="file-plus" class="w-8 h-8 text-orange-400 mx-auto mb-2"></i>
-                <p class="text-xs font-black text-orange-600">ここにファイルをドロップ、またはクリックして送信準備</p>
-                <p class="text-[10px] text-gray-400 mt-0.5">※大きなファイルも安全にそのまま送ることができます</p>
+            <div id="chat-file-drop-zone" class="cute-drop-zone p-4 text-center cursor-pointer hover:border-orange-400 hover:bg-orange-50/50 transition-all select-none">
+                <i data-lucide="file-plus" class="w-6 h-6 text-orange-400 mx-auto mb-1"></i>
+                <p class="text-xs font-black text-orange-600">ファイルをドロップまたはクリックで一般ファイル送信準備</p>
             </div>
 
             <input type="file" id="terminal-hidden-uploader" class="hidden">
@@ -389,8 +409,68 @@
         let localScreenStream = null;
         let activeMediaCall = null;
         let targetPeerIdForCall = null;
-
         let isVideoMaximized = false;
+
+        let deviceUuid = '';
+        let currentActiveRoomIndex = null;
+        let isMusicAlertShown = false; // 音楽受信アラート表示フラグ
+
+        function generateRandomSecretKey(length = 4) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function initializeDeviceAndRooms() {
+            deviceUuid = localStorage.getItem('secure_chat_device_uuid');
+            if (!deviceUuid) {
+                deviceUuid = generateRandomSecretKey(12);
+                localStorage.setItem('secure_chat_device_uuid', deviceUuid);
+            }
+            ui('display-device-uuid').textContent = deviceUuid;
+
+            const listContainer = ui('rooms-list-container');
+            listContainer.innerHTML = '';
+
+            for (let i = 1; i <= 10; i++) {
+                const storageKey = `secure_chat_room_secret_${i}`;
+                let savedSecret = localStorage.getItem(storageKey);
+                if (!savedSecret) {
+                    savedSecret = generateRandomSecretKey(4);
+                    localStorage.setItem(storageKey, savedSecret);
+                }
+
+                const roomRow = document.createElement('div');
+                roomRow.className = "bg-white border-2 border-zinc-200 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-[0_2px_0_#e4e4e7]";
+                roomRow.innerHTML = `
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="bg-orange-100 text-orange-600 font-black px-2.5 py-1 rounded-lg text-xs whitespace-nowrap">
+                            部屋 ${String(i).padStart(2, '0')}
+                        </span>
+                        <div class="flex-1 min-w-0">
+                            <span class="text-[10px] text-gray-400 block font-black">推測不能な秘密キー:</span>
+                            <input type="text" id="input-room-secret-${i}" value="${savedSecret}" 
+                                oninput="saveRoomSecretChange(${i}, this.value)"
+                                class="w-full bg-zinc-50 border border-zinc-200 text-zinc-700 font-mono font-bold rounded px-1.5 py-0.5 text-xs focus:bg-white focus:border-orange-400 outline-none"
+                                placeholder="英数字のみ">
+                        </div>
+                    </div>
+                    <button onclick="commitBroadcastingTask(${i})" class="bg-orange-500 hover:bg-orange-600 text-white font-black text-xs px-4 py-2 rounded-lg shadow-[0_3px_0_#c2410c] active:translate-y-0.5 active:shadow-none transition-all whitespace-nowrap">
+                        この部屋を開始
+                    </button>
+                `;
+                listContainer.appendChild(roomRow);
+            }
+        }
+
+        function saveRoomSecretChange(index, value) {
+            const cleanValue = value.toLowerCase().replace(/[^a-z0-9]/g, '');
+            ui(`input-room-secret-${index}`).value = cleanValue;
+            localStorage.setItem(`secure_chat_room_secret_${index}`, cleanValue);
+        }
 
         function dispatchDashboardAlert(message, type = 'success', duration = 3500) {
             const container = document.getElementById('notification-center');
@@ -417,7 +497,11 @@
             internalStagedQueue = [];
             ui('config-time-limit').disabled = false;
             ui('config-use-streamsaver').disabled = false;
+            currentActiveRoomIndex = null;
+            isMusicAlertShown = false; 
+            initializeDeviceAndRooms();
             transitionToView('panel-stage-input');
+            lucide.createIcons();
         }
 
         function inspectInboundRoutingParams() {
@@ -434,12 +518,17 @@
             }
         }
 
-        async function commitBroadcastingTask() {
+        async function commitBroadcastingTask(roomIndex) {
             try {
+                currentActiveRoomIndex = roomIndex;
+                const secretKey = localStorage.getItem(`secure_chat_room_secret_${roomIndex}`) || 'room';
+                const fullRoomPeerId = `${deviceUuid}-${secretKey}`;
+
+                ui('text-current-room-title').textContent = `部屋 ${String(roomIndex).padStart(2, '0')}`;
+                ui('text-active-room-title').textContent = `部屋 ${String(roomIndex).padStart(2, '0')} (セキュア接続中)`;
+
                 transitionToView('panel-stage-compiling');
-                ui('compile-status-title').textContent = "鍵の結合作成中...";
                 ui('compile-progress-bar').style.width = '40%';
-                ui('compile-progress-string').textContent = '40%';
 
                 sessionSymmetricKey = await crypto.subtle.generateKey(
                     { name: 'AES-GCM', length: 256 },
@@ -451,10 +540,9 @@
                 serializedKeyToken = btoa(String.fromCharCode(...new Uint8Array(rawKey)))
                     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
-                ui('compile-progress-bar').style.width = '80%';
-                ui('compile-progress-string').textContent = '80%';
+                ui('compile-progress-bar').style.width = '85%';
 
-                peerInstance = new Peer({
+                peerInstance = new Peer(fullRoomPeerId, {
                     config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] }
                 });
 
@@ -469,17 +557,16 @@
                     ui('matrix-qr-canvas').innerHTML = '';
                     new QRCode(ui('matrix-qr-canvas'), {
                         text: shareUrl,
-                        width: 160,
-                        height: 160,
+                        width: 150,
+                        height: 150,
                         correctLevel: QRCode.CorrectLevel.M
                     });
 
                     ui('compile-progress-bar').style.width = '100%';
-                    ui('compile-progress-string').textContent = '100%';
                     
                     setTimeout(() => {
                         transitionToView('panel-stage-broadcasting');
-                        dispatchDashboardAlert('チャットルームの準備が完了しました！', 'success');
+                        dispatchDashboardAlert(`部屋 ${roomIndex} を開放しました！`, 'success');
                     }, 400);
                 });
 
@@ -495,18 +582,18 @@
                 peerInstance.on('call', (call) => {
                     activeMediaCall = call;
                     call.answer();
-                    
                     call.on('stream', (remoteStream) => {
                         setupRemoteVideoStream(remoteStream);
                     });
-
-                    call.on('close', () => {
-                        cleanupRemoteVideoView();
-                    });
+                    call.on('close', () => { cleanupRemoteVideoView(); });
                 });
 
                 peerInstance.on('error', (err) => {
-                    dispatchDashboardAlert('通信エラーが発生しました: ' + err.type, 'error');
+                    if(err.type === 'unavailable-id') {
+                        dispatchDashboardAlert('この部屋は現在すでに使用中か、切断残像があります。数秒待つかキーを変更してください。', 'error', 5000);
+                    } else {
+                        dispatchDashboardAlert('通信エラーが発生しました: ' + err.type, 'error');
+                    }
                     returnToInitialState();
                 });
 
@@ -519,12 +606,13 @@
         async function executeIncomingHandshakeSequence(hashFragment) {
             try {
                 transitionToView('panel-stage-compiling');
-                ui('compile-status-title').textContent = "チャットルームに繋いでいます...";
                 ui('compile-progress-bar').style.width = '30%';
                 
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomId = urlParams.get('room');
                 targetPeerIdForCall = roomId;
+                
+                ui('text-active-room-title').textContent = "招待されたセキュアルーム";
                 
                 const keyIndex = hashFragment.indexOf('k=');
                 const keyString = hashFragment.substring(keyIndex + 2);
@@ -560,9 +648,7 @@
                     call.on('stream', (remoteStream) => {
                         setupRemoteVideoStream(remoteStream);
                     });
-                    call.on('close', () => {
-                        cleanupRemoteVideoView();
-                    });
+                    call.on('close', () => { cleanupRemoteVideoView(); });
                 });
 
                 peerInstance.on('error', (err) => {
@@ -576,24 +662,17 @@
             }
         }
 
-// リモートから届いた映像ストリームを安全にアタッチして再生する関数（タイミング対策強化版）
         function setupRemoteVideoStream(remoteStream) {
             const videoEl = ui('remote-screen-video');
             videoEl.srcObject = remoteStream;
             ui('screenshare-video-container').classList.remove('hidden');
             
-            // 映像トラックを取り出す
             const videoTrack = remoteStream.getVideoTracks()[0];
-            
             const startPlay = () => {
                 videoEl.load();
-                // 少しだけ再生を遅らせてブラウザの描画準備を確実に待つ
                 setTimeout(() => {
                     videoEl.play()
-                        .then(() => console.log("画面共有の再生に成功しました"))
                         .catch(e => {
-                            console.log("自動再生失敗、リトライします:", e);
-                            // 失敗した場合はミュートにして再試行（ブラウザの自動再生ポリシー対策）
                             videoEl.muted = true;
                             videoEl.play().catch(err => console.error("再生エラー:", err));
                         });
@@ -601,23 +680,16 @@
             };
 
             if (videoTrack) {
-                // 初回接続時、トラックがまだ準備中(muted)の場合は有効になるのを待つ
                 if (videoTrack.readyState === 'live' && !videoTrack.muted) {
                     startPlay();
                 } else {
-                    // トラックの状態変化を検知して再生
-                    videoTrack.onunmute = () => {
-                        startPlay();
-                    };
-                    // 万が一イベントが発火しなかったときのための保険
-                    videoTrack.onended = () => console.log("トラックが終了しました");
+                    videoTrack.onunmute = () => { startPlay(); };
                     setTimeout(startPlay, 1000); 
                 }
             } else {
                 startPlay();
             }
-
-            dispatchDashboardAlert('相手の画面共有が開始されました。', 'info');
+            dispatchDashboardAlert('相手の画面共有を受信しました。', 'info');
         }
 
         function bindPeerDataEvents(conn) {
@@ -625,11 +697,10 @@
             
             conn.on('open', () => {
                 isDuplexSessionUpgraded = true;
-                dispatchDashboardAlert('接続されました！セキュアなチャットが可能です。', 'success');
+                dispatchDashboardAlert('暗号通信回線が確立しました！', 'success');
                 
-                const minutes = parseInt(ui('config-time-limit').value || "15", 10);
                 if(!sessionLifeDeadlineTimestamp) {
-                    sessionLifeDeadlineTimestamp = Date.now() + (minutes * 60 * 1000);
+                    sessionLifeDeadlineTimestamp = Date.now() + (15 * 60 * 1000);
                 }
                 activateGlobalCountdownClock();
 
@@ -642,25 +713,44 @@
 
             conn.on('data', async (envelope) => {
                 try {
-                    if (envelope.protocol === 'v2/text-message') {
-                        const decryptedText = await decryptBytesWithGcm(envelope.payload, envelope.nonce);
-                        appendTerminalChatNode(decryptedText, 'inbound');
-                    } else if (envelope.protocol === 'v2/file-header') {
-                        inboundPayloadMetaObj = envelope.meta;
-                        inboundExpectedBytesTotal = envelope.totalSize;
+                    const decryptedText = await decryptBytesWithGcm(envelope.payload, envelope.nonce);
+                    const data = JSON.parse(decryptedText);
+
+                    if (data.protocol === 'v2/text-message') {
+                        appendTerminalChatNode(data.text, 'inbound');
+                    } 
+                    // 🎁 【新機能】音楽プレゼントパケットの受信
+                    else if (data.protocol === 'v2/music-gift') {
+                        const MAX_CONFIRM_SIZE = 5 * 1024 * 1024; // 5MB境界線
+                        if (data.fileSize && data.fileSize > MAX_CONFIRM_SIZE) {
+                            const sizeMB = (data.fileSize / (1024 * 1024)).toFixed(1);
+                            if (confirm(`相手から少し大きめの音楽ファイル（${sizeMB} MB）を受信しました。読み込みを許可しますか？\n※低スペック端末や通信量にご注意ください。[cite: 2]`)) {
+                                setupReceivedMusic(data.audioDataUrl, data.fileName);
+                            } else {
+                                dispatchDashboardAlert("大容量ファイルのため音楽の受信を拒否しました[cite: 2]。", "error");
+                            }
+                        } else {
+                            setupReceivedMusic(data.audioDataUrl, data.fileName);
+                        }
+                    } 
+                    else if (data.protocol === 'v2/file-header') {
+                        inboundPayloadMetaObj = data.meta;
+                        inboundExpectedBytesTotal = data.totalSize;
                         inboundChunkAccumulator = [];
                         inboundProcessedBytesCount = 0;
                         transferSpeedLastBytes = 0;
                         
                         transitionToView('panel-stage-receiving');
-                        ui('recv-status-message').textContent = `${envelope.meta.name} (${formatBytesMetric(envelope.totalSize)})`;
+                        ui('recv-status-message').textContent = `${data.meta.name} (${formatBytesMetric(data.totalSize)})`;
                         ui('recv-progress-bar').style.width = '0%';
                         ui('recv-progress-percent').textContent = '0%';
                         
                         startTransferSpeedTracking();
-                    } else if (envelope.protocol === 'v2/file-chunk') {
-                        inboundChunkAccumulator.push(envelope.chunk);
-                        inboundProcessedBytesCount += envelope.chunk.byteLength;
+                    } else if (data.protocol === 'v2/file-chunk') {
+                        // chunkはアレイバッファのため直接 envelope から取り出し（または別途処理）
+                        // ※従来の構造を壊さないよう、バッファとして受信処理へ転送
+                        inboundChunkAccumulator.push(envelope.chunk || data.chunk);
+                        inboundProcessedBytesCount += (envelope.chunk || data.chunk).byteLength;
                         
                         const pct = Math.floor((inboundProcessedBytesCount / inboundExpectedBytesTotal) * 100);
                         ui('recv-progress-bar').style.width = `${pct}%`;
@@ -672,13 +762,133 @@
                         }
                     }
                 } catch (e) {
-                    dispatchDashboardAlert('データの復号に失敗しました。', 'error');
+                    // もし一般バイナリ転送プロトコル（直接envelopeで判別していたもの）ならフォールバック
+                    if (envelope.protocol === 'v2/file-chunk') {
+                        inboundChunkAccumulator.push(envelope.chunk);
+                        inboundProcessedBytesCount += envelope.chunk.byteLength;
+                        const pct = Math.floor((inboundProcessedBytesCount / inboundExpectedBytesTotal) * 100);
+                        ui('recv-progress-bar').style.width = `${pct}%`;
+                        ui('recv-progress-percent').textContent = `${pct}%`;
+                        if (inboundProcessedBytesCount >= inboundExpectedBytesTotal) {
+                            clearInterval(currentFileTransferSpeedTimer);
+                            executeInboundFileDecryption();
+                        }
+                    } else if (envelope.protocol === 'v2/file-header') {
+                        inboundPayloadMetaObj = envelope.meta;
+                        inboundExpectedBytesTotal = envelope.totalSize;
+                        inboundChunkAccumulator = [];
+                        inboundProcessedBytesCount = 0;
+                        transferSpeedLastBytes = 0;
+                        transitionToView('panel-stage-receiving');
+                        ui('recv-status-message').textContent = `${envelope.meta.name} (${formatBytesMetric(envelope.totalSize)})`;
+                        startTransferSpeedTracking();
+                    } else {
+                        console.error("データ処理エラー", e);
+                    }
                 }
             });
 
             conn.on('close', () => {
-                handleSessionDisconnectClean('相手が退出したか、回線が切断されました。');
+                handleSessionDisconnectClean('相手との接続が切断されました。');
             });
+        }
+
+        // 🎁 【新機能】音楽ファイルのアップロード・読み込みハンドラー[cite: 2]
+        function handleMusicUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            dispatchDashboardAlert("音楽ファイルを読み込み中...", "info");
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const dataUrl = e.target.result;
+                silentSetupMyMusic(dataUrl, file.name);
+                dispatchDashboardAlert("音楽プレゼントの準備完了！相手に暗号化送信しています...");
+                postSystemBroadcastLog(`音楽プレゼント「${file.name}」の送信を開始しました。`);
+
+                if (activeDataConnection) {
+                    const packet = JSON.stringify({
+                        protocol: 'v2/music-gift',
+                        audioDataUrl: dataUrl,
+                        fileName: file.name,
+                        fileSize: file.size
+                    });
+                    const nonce = crypto.getRandomValues(new Uint8Array(12));
+                    const encrypted = await crypto.subtle.encrypt(
+                        { name: 'AES-GCM', iv: nonce },
+                        sessionSymmetricKey,
+                        new TextEncoder().encode(packet)
+                    );
+                    activeDataConnection.send({ payload: encrypted, nonce: nonce });
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 🎁 【新機能】自分の音楽のプレイヤーセットアップ
+        function silentSetupMyMusic(dataUrl, fileName) {
+            const player = ui('audio-player-my');
+            player.src = dataUrl;
+            ui('my-music-status-text').textContent = fileName;
+            ui('my-music-status-text').className = "text-xs text-blue-600 font-bold max-w-[100px] truncate";
+            
+            const btn = ui('my-music-play-btn');
+            btn.disabled = false;
+            btn.className = "bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#1d4ed8]";
+        }
+
+        // 🎁 【新機能】相手から音楽を受け取った時のポップアップ・プレイヤー表示処理[cite: 2]
+        function setupReceivedMusic(dataUrl, fileName) {
+            const player = ui('audio-player-peer');
+            player.src = dataUrl;
+            ui('peer-music-status-text').textContent = fileName;
+            ui('peer-music-status-text').className = "text-xs text-purple-600 font-bold max-w-[120px] truncate";
+            
+            const btn = ui('peer-music-play-btn');
+            btn.disabled = false;
+            btn.className = "bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_#6b21a8]";
+
+            postSystemBroadcastLog(`相手から新曲「${fileName}」をプレゼントされました！[cite: 2]`);
+
+            if (!isMusicAlertShown) {
+                isMusicAlertShown = true;
+                const overlay = ui('board-overlay');
+                const content = ui('overlay-content');
+                overlay.classList.remove('hidden');
+                content.innerHTML = `
+                    <div class="text-4xl mb-2">🎁🎵</div>
+                    <h2 class="text-xl font-black text-purple-600 mb-3 tracking-wide">音楽のプレゼント！[cite: 2]</h2>
+                    <p class="text-sm font-bold text-gray-600 mb-6 leading-relaxed">
+                        相手から秘密の音楽ファイルが届きました！<br>
+                        上部の <span class="text-purple-600 font-black">Play Music</span> ボタンから再生できます[cite: 2]。
+                    </p>
+                    <button onclick="closeBoardOverlay()" class="bg-purple-500 hover:bg-purple-600 shadow-[0_4px_0_#7e22ce] text-white font-black py-2.5 px-6 rounded-2xl text-xs tracking-wider transition-all">とじる</button>
+                `;
+            } else {
+                dispatchDashboardAlert(`🎵 相手から新曲「${fileName}」を受信しました[cite: 2]`);
+            }
+        }
+
+        // 🎁 【新機能】音楽の再生・一時停止切り替え
+        function toggleMusicPlayback(target) {
+            const player = ui(target === 'my' ? 'audio-player-my' : 'audio-player-peer');
+            const btn = ui(target === 'my' ? 'my-music-play-btn' : 'peer-music-play-btn');
+            const baseColorClass = target === 'my' ? "bg-blue-500 hover:bg-blue-600" : "bg-purple-500 hover:bg-purple-600";
+
+            if (player.paused) {
+                player.play();
+                btn.innerHTML = `<i data-lucide="pause" class="w-3.5 h-3.5"></i> Pause`;
+                btn.className = `${baseColorClass} text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all`;
+            } else {
+                player.pause();
+                btn.innerHTML = `<i data-lucide="play" class="w-3.5 h-3.5"></i> Play Music`;
+                btn.className = `${baseColorClass} text-white p-2 rounded-lg font-black text-xs flex items-center gap-1 transition-all shadow-[0_2px_0_rgba(0,0,0,0.2)]`;
+            }
+            lucide.createIcons();
+        }
+
+        function closeBoardOverlay() {
+            ui('board-overlay').classList.add('hidden');
         }
 
         function toggleVideoSizeMaximized() {
@@ -689,7 +899,7 @@
                 videoContainer.classList.add('video-maximized');
                 resizeIcon.setAttribute('data-lucide', 'minimize-2');
                 isVideoMaximized = true;
-                dispatchDashboardAlert('画面を拡大しました（Escキーで戻せます）', 'info', 2000);
+                dispatchDashboardAlert('大画面表示中 (Escキーで戻れます)', 'info', 2000);
             } else {
                 videoContainer.classList.remove('video-maximized');
                 resizeIcon.setAttribute('data-lucide', 'maximize-2');
@@ -725,12 +935,11 @@
                         ui('text-screenshare-btn').textContent = '画面共有を停止';
                         ui('btn-screenshare-toggle').classList.replace('bg-amber-500', 'bg-zinc-600');
                         ui('btn-screenshare-toggle').classList.replace('shadow-[0_4px_0_#b45309]', 'shadow-[0_4px_0_#27272a]');
-                        dispatchDashboardAlert('画面共有を開始しました。相手に配信中です。', 'success');
+                        dispatchDashboardAlert('画面共有を開始しました。', 'success');
                         postSystemBroadcastLog('画面共有を開始しました。');
                     }
                 } catch (err) {
-                    console.error("画面共有エラー:", err);
-                    dispatchDashboardAlert('画面キャプチャの取得に失敗したか、キャンセルされました。', 'error');
+                    dispatchDashboardAlert('画面共有がキャンセルされました。', 'error');
                     localScreenStream = null;
                 }
             }
@@ -751,9 +960,7 @@
         }
 
         function cleanupRemoteVideoView() {
-            if (isVideoMaximized) {
-                toggleVideoSizeMaximized();
-            }
+            if (isVideoMaximized) toggleVideoSizeMaximized();
             const videoEl = ui('remote-screen-video');
             videoEl.srcObject = null;
             ui('screenshare-video-container').classList.add('hidden');
@@ -775,27 +982,15 @@
             
             fileZone.onclick = () => hiddenUploader.click();
             hiddenUploader.onchange = (e) => {
-                if (e.target.files.length > 0) {
-                    stageFileForChat(e.target.files[0]);
-                }
+                if (e.target.files.length > 0) stageFileForChat(e.target.files[0]);
             };
 
-            window.ondragover = (e) => e.preventDefault();
-            window.ondrop = (e) => e.preventDefault();
-
-            fileZone.ondragover = (e) => {
-                e.preventDefault();
-                fileZone.classList.add('drop-target-active');
-            };
-            fileZone.ondragleave = () => {
-                fileZone.classList.remove('drop-target-active');
-            };
+            fileZone.ondragover = (e) => { e.preventDefault(); fileZone.classList.add('drop-target-active'); };
+            fileZone.ondragleave = () => { fileZone.classList.remove('drop-target-active'); };
             fileZone.ondrop = (e) => {
                 e.preventDefault();
                 fileZone.classList.remove('drop-target-active');
-                if (e.dataTransfer.files.length > 0) {
-                    stageFileForChat(e.dataTransfer.files[0]);
-                }
+                if (e.dataTransfer.files.length > 0) stageFileForChat(e.dataTransfer.files[0]);
             };
         }
 
@@ -827,31 +1022,34 @@
             input.value = '';
             appendTerminalChatNode(text, 'outbound');
 
-            const textBytes = new TextEncoder().encode(text);
+            const packet = JSON.stringify({ protocol: 'v2/text-message', text: text });
             const nonce = crypto.getRandomValues(new Uint8Array(12));
             const encrypted = await crypto.subtle.encrypt(
                 { name: 'AES-GCM', iv: nonce },
                 sessionSymmetricKey,
-                textBytes
+                new TextEncoder().encode(packet)
             );
 
-            activeDataConnection.send({
-                protocol: 'v2/text-message',
-                payload: encrypted,
-                nonce: nonce
-            });
+            activeDataConnection.send({ payload: encrypted, nonce: nonce });
         }
 
         async function transmitFilePayload(file) {
             if (!activeDataConnection) return;
+            appendTerminalChatNode(`一般ファイル送信開始: ${file.name}`, 'system-broadcast');
 
-            appendTerminalChatNode(`ファイルの送信を開始: ${file.name}`, 'system-broadcast');
-
-            activeDataConnection.send({
+            // ヘッダーパケットをオブジェクト化して暗号化送信
+            const headerObj = JSON.stringify({
                 protocol: 'v2/file-header',
                 meta: { name: file.name, type: file.type },
                 totalSize: file.size
             });
+            const nonce = crypto.getRandomValues(new Uint8Array(12));
+            const encryptedHeader = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv: nonce },
+                sessionSymmetricKey,
+                new TextEncoder().encode(headerObj)
+            );
+            activeDataConnection.send({ payload: encryptedHeader, nonce: nonce });
 
             const buffer = await file.arrayBuffer();
             const chunkSize = 16384; 
@@ -859,15 +1057,12 @@
 
             while (offset < buffer.byteLength) {
                 const chunk = buffer.slice(offset, offset + chunkSize);
-                activeDataConnection.send({
-                    protocol: 'v2/file-chunk',
-                    chunk: chunk
-                });
+                // chunk自体は暗号化なしで高速転送チャネルへ
+                activeDataConnection.send({ protocol: 'v2/file-chunk', chunk: chunk });
                 offset += chunkSize;
                 await new Promise(r => setTimeout(r, 1));
             }
-
-            appendTerminalChatNode(`ファイルの送信が完了しました: ${file.name}`, 'system-broadcast');
+            appendTerminalChatNode(`ファイル送信完了: ${file.name}`, 'system-broadcast');
             dispatchDashboardAlert('ファイルの送信が完了しました！', 'success');
         }
 
@@ -876,7 +1071,6 @@
                 const totalLength = inboundChunkAccumulator.reduce((acc, val) => acc + val.byteLength, 0);
                 const combinedBuffer = new Uint8Array(totalLength);
                 let currentOffset = 0;
-                
                 for (const chunk of inboundChunkAccumulator) {
                     combinedBuffer.set(new Uint8Array(chunk), currentOffset);
                     currentOffset += chunk.byteLength;
@@ -897,31 +1091,23 @@
                     img.className = 'max-h-40 rounded-lg shadow';
                     previewBox.appendChild(img);
                 } else {
-                    previewBox.innerHTML = `<div class="text-gray-400 text-xs font-bold"><i data-lucide="file" class="w-8 h-8 mx-auto mb-1 text-gray-300"></i>プレビューはありません</div>`;
+                    previewBox.innerHTML = `<div class="text-gray-400 text-xs font-bold"><i data-lucide="file" class="w-8 h-8 mx-auto mb-1 text-gray-300"></i>プレビュー不可</div>`;
                     lucide.createIcons();
                 }
 
-                const dlBtn = ui('action-native-download');
-                dlBtn.href = blobUrl;
-                dlBtn.download = inboundPayloadMetaObj.name;
-
-                dispatchDashboardAlert('ファイルを受け取り、暗号を解除しました！', 'success');
-
+                ui('action-native-download').href = blobUrl;
+                ui('action-native-download').download = inboundPayloadMetaObj.name;
+                dispatchDashboardAlert('ファイルを受信・復号しました！', 'success');
             } catch (e) {
                 dispatchDashboardAlert('ファイルの復元に失敗しました。', 'error');
                 returnToInitialState();
             }
         }
 
-        function requestDuplexInversion() {
-            transitionToView('panel-stage-terminal-room');
-        }
-
+        function requestDuplexInversion() { transitionToView('panel-stage-terminal-room'); }
+        
         async function decryptBytesWithGcm(cipherBuffer, nonce) {
-            const dec = await crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv: nonce },
-                cipherBuffer
-            );
+            const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, sessionSymmetricKey, cipherBuffer);
             return new TextDecoder().decode(dec);
         }
 
@@ -934,28 +1120,20 @@
             view.scrollTop = view.scrollHeight;
         }
 
-        function postSystemBroadcastLog(text) {
-            appendTerminalChatNode(text, 'system-broadcast');
-        }
+        function postSystemBroadcastLog(text) { appendTerminalChatNode(text, 'system-broadcast'); }
 
         function activateGlobalCountdownClock() {
             if (globalClockIntervalId) clearInterval(globalClockIntervalId);
-            
             globalClockIntervalId = setInterval(() => {
                 const remaining = sessionLifeDeadlineTimestamp - Date.now();
                 if (remaining <= 0) {
                     clearInterval(globalClockIntervalId);
-                    terminateSessionHard('制限時間が過ぎたため、安全にチャットルームを閉じました。');
+                    terminateSessionHard('制限時間を過ぎたため自動消滅しました。');
                 } else {
                     const totalSecs = Math.floor(remaining / 1000);
-                    const hours = Math.floor(totalSecs / 3600);
-                    const mins = Math.floor((totalSecs % 3600) / 60);
+                    const mins = Math.floor(totalSecs / 60);
                     const secs = totalSecs % 60;
-                    
-                    const timeString = hours > 0 
-                        ? `${hours}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-                        : `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-                    
+                    const timeString = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
                     if (ui('countdown-clock-timer')) ui('countdown-clock-timer').textContent = timeString;
                     if (ui('terminal-session-timer')) ui('terminal-session-timer').textContent = timeString;
                 }
@@ -968,15 +1146,9 @@
                 const currentBytes = inboundProcessedBytesCount;
                 const speed = currentBytes - transferSpeedLastBytes;
                 transferSpeedLastBytes = currentBytes;
-                
-                ui('recv-speed-label').textContent = `${formatBytesMetric(speed)}/秒`;
-                
+                ui('recv-speed-label').textContent = `${formatBytesMetric(speed)}/s`;
                 if (speed > 0) {
-                    const remainingBytes = inboundExpectedBytesTotal - currentBytes;
-                    const eta = Math.ceil(remainingBytes / speed);
-                    ui('recv-eta-label').textContent = `残り時間: 約 ${eta} 秒`;
-                } else {
-                    ui('recv-eta-label').textContent = `残り時間: 計算中`;
+                    ui('recv-eta-label').textContent = `残り: 約 ${Math.ceil((inboundExpectedBytesTotal - currentBytes) / speed)} 秒`;
                 }
             }, 1000);
         }
@@ -984,18 +1156,17 @@
         function handleSessionDisconnectClean(message) {
             stopLocalScreenShare();
             cleanupRemoteVideoView();
-            if (activeDataConnection) {
-                activeDataConnection.close();
-                activeDataConnection = null;
-            }
-            if (isDuplexSessionUpgraded) {
-                postSystemBroadcastLog('回線が切断されました。これ以上メッセージのやり取りはできません。');
-                ui('terminal-session-timer').textContent = 'オフライン';
-                ui('btn-terminal-dispatch').disabled = true;
-            } else {
-                dispatchDashboardAlert(message, 'error');
-                returnToInitialState();
-            }
+            // 再生中の音楽も停止
+            ui('audio-player-my').pause();
+            ui('audio-player-peer').pause();
+
+            if (activeDataConnection) { activeDataConnection.close(); activeDataConnection = null; }
+            dispatchDashboardAlert(message, 'info', 4000);
+            if (peerInstance) { peerInstance.destroy(); peerInstance = null; }
+            sessionSymmetricKey = null;
+            isDuplexSessionUpgraded = false;
+            
+            setTimeout(() => { returnToInitialState(); }, 500);
         }
 
         function terminateSessionHard(alertText) {
@@ -1004,37 +1175,32 @@
 
             stopLocalScreenShare();
             cleanupRemoteVideoView();
+            ui('audio-player-my').pause();
+            ui('audio-player-peer').pause();
 
-            if (activeDataConnection) {
-                activeDataConnection.close();
-                activeDataConnection = null;
-            }
-            if (peerInstance) {
-                peerInstance.destroy();
-                peerInstance = null;
-            }
+            if (activeDataConnection) { activeDataConnection.close(); activeDataConnection = null; }
+            if (peerInstance) { peerInstance.destroy(); peerInstance = null; }
 
-            dispatchDashboardAlert(alertText, 'info', 4000);
+            dispatchDashboardAlert(alertText, 'info', 3000);
             
             sessionSymmetricKey = null;
             serializedKeyToken = '';
             isDuplexSessionUpgraded = false;
-            internalStagedQueue = [];
             
-            setTimeout(() => {
-                window.location.href = window.location.pathname;
-            }, 1000);
+            if(window.location.search || window.location.hash) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
+            setTimeout(() => { returnToInitialState(); }, 400);
         }
 
         function executeUrlTextCopy() {
             const input = ui('display-sharable-url');
             input.select();
-            input.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(input.value);
-            
             const btnText = ui('btn-copy-text');
-            btnText.textContent = 'コピー完了！';
-            dispatchDashboardAlert('URLをクリップボードにコピーしました！', 'success');
+            btnText.textContent = '完了！';
+            dispatchDashboardAlert('招待URLをコピーしました！', 'success');
             setTimeout(() => { btnText.textContent = 'コピー'; }, 2000);
         }
 
@@ -1047,6 +1213,7 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            initializeDeviceAndRooms();
             inspectInboundRoutingParams();
         });
     </script>
