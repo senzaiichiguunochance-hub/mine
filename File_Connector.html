@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>セキュアなチャットアプリ</title>
+    <title>セキュアなチャット＆画面共有アプリ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -35,6 +35,7 @@
             border-radius: 24px;
             box-shadow: 0 20px 40px rgba(180,150,120,0.15);
             border: 4px solid var(--border-color);
+            transition: all 0.3s ease;
         }
         
         .cute-btn {
@@ -122,6 +123,31 @@
         .toast-bubble.success { border-color: #10b981; background: #ecfdf5; color: #065f46; }
         .toast-bubble.error { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
         .toast-bubble.info { border-color: #3b82f6; background: #eff6ff; color: #1e40af; }
+
+        /* ビデオの最大化（シアターモード）用スタイルを改善 */
+        .video-maximized {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #000000 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .video-maximized video {
+            width: 100% !important;
+            height: 100% !important;
+            max-height: 100vh !important;
+            object-fit: contain !important; /* アスペクト比を維持して画面いっぱいに */
+            border-radius: 0 !important;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 md:p-8">
@@ -130,7 +156,7 @@
 
     <div id="notification-center"></div>
 
-    <div class="w-full max-w-3xl cute-card p-6 md:p-8">
+    <div id="main-app-card" class="w-full max-w-3xl cute-card p-6 md:p-8">
         
         <div id="protocol-anomaly-banner" class="hidden bg-red-50 border-2 border-red-200 text-red-700 p-4 mb-6 rounded-2xl text-sm font-bold">
             <div class="flex items-start gap-2">
@@ -148,7 +174,7 @@
                     セキュアなチャットアプリ
                 </h1>
                 <p class="text-base font-bold text-orange-400">
-                    サーバーを使用しない、秘密のチャットとファイル送信が可能です
+                    サーバーを使用しない、秘密のチャットとファイル送信、画面共有が可能です
                 </p>
             </div>
 
@@ -290,6 +316,19 @@
                 </div>
             </div>
 
+            <!-- 画面共有ビデオ表示エリア (インラインスタイルで高さを保証) -->
+            <div id="screenshare-video-container" class="hidden bg-zinc-900 border-2 border-zinc-800 rounded-2xl p-2 mb-4 relative transition-all duration-300 w-full" style="min-height: 180px;">
+                <video id="remote-screen-video" class="w-full h-auto rounded-xl bg-black block" style="max-height: 360px; object-fit: contain;" autoplay playsinline></video>
+                <span class="absolute top-4 left-4 bg-orange-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md z-10">
+                    <span class="w-2 h-2 bg-white rounded-full animate-ping"></span> 画面共有を受信中
+                </span>
+                
+                <!-- 画面拡大縮小ボタン -->
+                <button id="btn-video-resize" onclick="toggleVideoSizeMaximized()" class="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-xl border border-white/20 shadow-md transition-all flex items-center justify-center z-10">
+                    <i id="icon-video-resize" data-lucide="maximize-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+
             <div id="terminal-log-row-container" class="border-2 border-orange-100 rounded-2xl bg-white mb-4 overflow-hidden flex flex-col h-[350px]">
                 <div id="terminal-canvas-view" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-terminal-scroll"></div>
                 
@@ -303,6 +342,12 @@
                         <button id="btn-chat-staged-send" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1 rounded-lg font-black transition-all">ファイルを送信</button>
                     </div>
                 </div>
+            </div>
+
+            <div class="flex gap-2 mb-4">
+                <button id="btn-screenshare-toggle" onclick="toggleScreenShare()" class="flex-1 bg-amber-500 text-white py-3 px-4 rounded-xl font-black text-xs shadow-[0_4px_0_#b45309] active:translate-y-1 active:shadow-none transition-all flex justify-center items-center gap-1.5">
+                    <i data-lucide="monitor" class="w-4 h-4"></i> <span id="text-screenshare-btn">画面共有を開始</span>
+                </button>
             </div>
 
             <div class="bg-white border-2 border-zinc-200 rounded-2xl p-3 mb-4 shadow-[0_4px_0_#e4e4e7] flex items-end gap-2">
@@ -340,6 +385,12 @@
         let inboundPayloadMetaObj = null;
         let currentFileTransferSpeedTimer = null;
         let transferSpeedLastBytes = 0;
+
+        let localScreenStream = null;
+        let activeMediaCall = null;
+        let targetPeerIdForCall = null;
+
+        let isVideoMaximized = false;
 
         function dispatchDashboardAlert(message, type = 'success', duration = 3500) {
             const container = document.getElementById('notification-center');
@@ -437,7 +488,21 @@
                         conn.close();
                         return;
                     }
+                    targetPeerIdForCall = conn.peer;
                     bindPeerDataEvents(conn);
+                });
+
+                peerInstance.on('call', (call) => {
+                    activeMediaCall = call;
+                    call.answer();
+                    
+                    call.on('stream', (remoteStream) => {
+                        setupRemoteVideoStream(remoteStream);
+                    });
+
+                    call.on('close', () => {
+                        cleanupRemoteVideoView();
+                    });
                 });
 
                 peerInstance.on('error', (err) => {
@@ -459,6 +524,7 @@
                 
                 const urlParams = new URLSearchParams(window.location.search);
                 const roomId = urlParams.get('room');
+                targetPeerIdForCall = roomId;
                 
                 const keyIndex = hashFragment.indexOf('k=');
                 const keyString = hashFragment.substring(keyIndex + 2);
@@ -488,6 +554,17 @@
                     bindPeerDataEvents(conn);
                 });
 
+                peerInstance.on('call', (call) => {
+                    activeMediaCall = call;
+                    call.answer();
+                    call.on('stream', (remoteStream) => {
+                        setupRemoteVideoStream(remoteStream);
+                    });
+                    call.on('close', () => {
+                        cleanupRemoteVideoView();
+                    });
+                });
+
                 peerInstance.on('error', (err) => {
                     dispatchDashboardAlert('接続に失敗しました。', 'error');
                     window.location.href = window.location.pathname;
@@ -497,6 +574,50 @@
                 dispatchDashboardAlert('暗号カギの読み込みに失敗しました。', 'error');
                 window.location.href = window.location.pathname;
             }
+        }
+
+// リモートから届いた映像ストリームを安全にアタッチして再生する関数（タイミング対策強化版）
+        function setupRemoteVideoStream(remoteStream) {
+            const videoEl = ui('remote-screen-video');
+            videoEl.srcObject = remoteStream;
+            ui('screenshare-video-container').classList.remove('hidden');
+            
+            // 映像トラックを取り出す
+            const videoTrack = remoteStream.getVideoTracks()[0];
+            
+            const startPlay = () => {
+                videoEl.load();
+                // 少しだけ再生を遅らせてブラウザの描画準備を確実に待つ
+                setTimeout(() => {
+                    videoEl.play()
+                        .then(() => console.log("画面共有の再生に成功しました"))
+                        .catch(e => {
+                            console.log("自動再生失敗、リトライします:", e);
+                            // 失敗した場合はミュートにして再試行（ブラウザの自動再生ポリシー対策）
+                            videoEl.muted = true;
+                            videoEl.play().catch(err => console.error("再生エラー:", err));
+                        });
+                }, 200);
+            };
+
+            if (videoTrack) {
+                // 初回接続時、トラックがまだ準備中(muted)の場合は有効になるのを待つ
+                if (videoTrack.readyState === 'live' && !videoTrack.muted) {
+                    startPlay();
+                } else {
+                    // トラックの状態変化を検知して再生
+                    videoTrack.onunmute = () => {
+                        startPlay();
+                    };
+                    // 万が一イベントが発火しなかったときのための保険
+                    videoTrack.onended = () => console.log("トラックが終了しました");
+                    setTimeout(startPlay, 1000); 
+                }
+            } else {
+                startPlay();
+            }
+
+            dispatchDashboardAlert('相手の画面共有が開始されました。', 'info');
         }
 
         function bindPeerDataEvents(conn) {
@@ -558,6 +679,85 @@
             conn.on('close', () => {
                 handleSessionDisconnectClean('相手が退出したか、回線が切断されました。');
             });
+        }
+
+        function toggleVideoSizeMaximized() {
+            const videoContainer = ui('screenshare-video-container');
+            const resizeIcon = ui('icon-video-resize');
+            
+            if (!isVideoMaximized) {
+                videoContainer.classList.add('video-maximized');
+                resizeIcon.setAttribute('data-lucide', 'minimize-2');
+                isVideoMaximized = true;
+                dispatchDashboardAlert('画面を拡大しました（Escキーで戻せます）', 'info', 2000);
+            } else {
+                videoContainer.classList.remove('video-maximized');
+                resizeIcon.setAttribute('data-lucide', 'maximize-2');
+                isVideoMaximized = false;
+            }
+            lucide.createIcons();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isVideoMaximized) {
+                toggleVideoSizeMaximized();
+            }
+        });
+
+        async function toggleScreenShare() {
+            if (localScreenStream) {
+                stopLocalScreenShare();
+                postSystemBroadcastLog('画面共有を終了しました。');
+            } else {
+                try {
+                    localScreenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { cursor: "always" },
+                        audio: false
+                    });
+
+                    localScreenStream.getVideoTracks()[0].onended = () => {
+                        stopLocalScreenShare();
+                        postSystemBroadcastLog('画面共有を終了しました。');
+                    };
+
+                    if (peerInstance && targetPeerIdForCall) {
+                        activeMediaCall = peerInstance.call(targetPeerIdForCall, localScreenStream);
+                        ui('text-screenshare-btn').textContent = '画面共有を停止';
+                        ui('btn-screenshare-toggle').classList.replace('bg-amber-500', 'bg-zinc-600');
+                        ui('btn-screenshare-toggle').classList.replace('shadow-[0_4px_0_#b45309]', 'shadow-[0_4px_0_#27272a]');
+                        dispatchDashboardAlert('画面共有を開始しました。相手に配信中です。', 'success');
+                        postSystemBroadcastLog('画面共有を開始しました。');
+                    }
+                } catch (err) {
+                    console.error("画面共有エラー:", err);
+                    dispatchDashboardAlert('画面キャプチャの取得に失敗したか、キャンセルされました。', 'error');
+                    localScreenStream = null;
+                }
+            }
+        }
+
+        function stopLocalScreenShare() {
+            if (localScreenStream) {
+                localScreenStream.getTracks().forEach(track => track.stop());
+                localScreenStream = null;
+            }
+            if (activeMediaCall) {
+                activeMediaCall.close();
+                activeMediaCall = null;
+            }
+            ui('text-screenshare-btn').textContent = '画面共有を開始';
+            ui('btn-screenshare-toggle').classList.replace('bg-zinc-600', 'bg-amber-500');
+            ui('btn-screenshare-toggle').classList.replace('shadow-[0_4px_0_#27272a]', 'shadow-[0_4px_0_#b45309]');
+        }
+
+        function cleanupRemoteVideoView() {
+            if (isVideoMaximized) {
+                toggleVideoSizeMaximized();
+            }
+            const videoEl = ui('remote-screen-video');
+            videoEl.srcObject = null;
+            ui('screenshare-video-container').classList.add('hidden');
+            dispatchDashboardAlert('相手の画面共有が終了しました。', 'info');
         }
 
         function setupChatRoomInteractions() {
@@ -720,7 +920,6 @@
         async function decryptBytesWithGcm(cipherBuffer, nonce) {
             const dec = await crypto.subtle.decrypt(
                 { name: 'AES-GCM', iv: nonce },
-                sessionSymmetricKey,
                 cipherBuffer
             );
             return new TextDecoder().decode(dec);
@@ -783,6 +982,8 @@
         }
 
         function handleSessionDisconnectClean(message) {
+            stopLocalScreenShare();
+            cleanupRemoteVideoView();
             if (activeDataConnection) {
                 activeDataConnection.close();
                 activeDataConnection = null;
@@ -800,6 +1001,9 @@
         function terminateSessionHard(alertText) {
             clearInterval(globalClockIntervalId);
             if (currentFileTransferSpeedTimer) clearInterval(currentFileTransferSpeedTimer);
+
+            stopLocalScreenShare();
+            cleanupRemoteVideoView();
 
             if (activeDataConnection) {
                 activeDataConnection.close();
