@@ -4,78 +4,144 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>世界各国データ ランキング (World Country Statistics)</title>
+  
+  <!-- ポップなフォントの読み込み -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&family=Noto+Sans+JP:wght@700;900&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS & Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 15px; background-color: #f8f9fa; color: #333; }
-    h1 { text-align: center; margin-bottom: 20px; font-size: 1.8rem; }
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+    }
     
-    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-    .tab-btn { padding: 10px 20px; font-size: 1rem; border: none; background: #e0e0e0; cursor: pointer; border-radius: 5px; transition: background 0.2s; }
-    .tab-btn.active { background: #007bff; color: white; font-weight: bold; }
+    /* math.html 特有の立体ボタンスタイル (drum-pad) */
+    .drum-pad {
+      transition: all 0.1s ease;
+      box-shadow: 0 6px 0 #d6d3d1, 0 10px 20px rgba(0,0,0,0.06);
+    }
+    .drum-pad:active:not(:disabled) {
+      transform: translateY(6px);
+      box-shadow: 0 0px 0 #d6d3d1, 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .btn-orange {
+      box-shadow: 0 6px 0 #c2410c, 0 10px 20px rgba(0,0,0,0.06);
+    }
+    .btn-orange:active:not(:disabled) {
+      transform: translateY(6px);
+      box-shadow: 0 0px 0 #c2410c, 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .btn-amber {
+      box-shadow: 0 6px 0 #b45309, 0 10px 20px rgba(0,0,0,0.06);
+    }
+    .btn-amber:active:not(:disabled) {
+      transform: translateY(6px);
+      box-shadow: 0 0px 0 #b45309, 0 2px 4px rgba(0,0,0,0.05);
+    }
 
-    .tab-content { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: relative; min-height: 400px; }
-    .tab-content.active { display: block; }
-
-    .chart-scroll-container { width: 100%; max-height: 75vh; overflow-y: auto; position: relative; border: 1px solid #eee; }
-    .chart-box { position: relative; width: 100%; }
-
-    .loading-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; text-align: center; }
-    .game-box { background: #eef6ff; border: 2px dashed #007bff; padding: 20px; border-radius: 12px; width: 280px; margin-top: 15px; }
-    .game-btn { font-size: 2rem; padding: 15px 30px; background: #ffc107; border: none; border-radius: 50px; cursor: pointer; user-select: none; transition: transform 0.1s; }
-    .game-btn:active { transform: scale(0.92); }
-    .score { font-size: 1.2rem; font-weight: bold; margin-top: 10px; color: #007bff; }
+    /* カスタムスクロールバー */
+    .chart-scroll-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    .chart-scroll-container::-webkit-scrollbar-track {
+      background: #fff7ed;
+      border-radius: 8px;
+    }
+    .chart-scroll-container::-webkit-scrollbar-thumb {
+      background: #fdba74;
+      border-radius: 8px;
+    }
   </style>
 </head>
-<body>
+<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-4 sm:p-8 select-none">
 
-  <h1>世界各国データ 全件ランキング / World Country Statistics</h1>
+  <!-- メニューにもどるボタン (math.html仕様) -->
+  <a href="menu.html" class="absolute top-3 right-3 text-xs color-[#71716a] bg-white/90 px-3.5 py-1.5 rounded-full z-50 border-2 border-zinc-200 font-bold shadow-sm hover:bg-white transition-all">
+    メニューにもどる
+  </a>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('pop', event)">人口 / Population</button>
-    <button class="tab-btn" onclick="switchTab('area', event)">国土の広さ / Area</button>
-    <button class="tab-btn" onclick="switchTab('density', event)">人口密度 / Density</button>
-  </div>
+  <!-- メインカードコンテナ -->
+  <div id="main-container" class="p-5 sm:p-8 bg-white/95 rounded-3xl shadow-[0_20px_40px_rgba(180,150,120,0.2)] border-4 border-orange-200 max-w-4xl w-full my-4 transition-all duration-300">
+    
+    <!-- ヘッダー -->
+    <header class="text-center mb-6">
+      <h1 class="text-2xl sm:text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
+        世界各国データ 全件ランキング
+      </h1>
+      <p class="text-xs text-orange-400 font-bold tracking-widest">World Country Statistics</p>
+    </header>
 
-  <div id="tab-pop" class="tab-content active">
-    <div id="loading-pop" class="loading-overlay">
-      <p>世界の「国」の人口データを取得中... / Loading Population Data...</p>
-      <div class="game-box">
-        <p style="margin:0 0 10px 0; font-size:0.9rem;">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
-        <button class="game-btn" onclick="addScore()">🪙</button>
-        <div class="score">Score: <span class="score-num">0</span></div>
+    <!-- タブ切り替えボタン -->
+    <div class="flex justify-center gap-2 sm:gap-3 mb-6">
+      <button class="tab-btn active drum-pad btn-orange bg-orange-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('pop', event)">
+        人口 / Population
+      </button>
+      <button class="tab-btn drum-pad bg-stone-200 text-stone-600 hover:bg-stone-300 font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('area', event)">
+        国土の広さ / Area
+      </button>
+      <button class="tab-btn drum-pad bg-stone-200 text-stone-600 hover:bg-stone-300 font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('density', event)">
+        人口密度 / Density
+      </button>
+    </div>
+
+    <!-- [1] 人口タブ -->
+    <div id="tab-pop" class="tab-content">
+      <div id="loading-pop" class="flex flex-col items-center justify-center h-80 text-center">
+        <p class="text-xs font-bold text-orange-500 mb-2">世界の「国」の人口データを取得中...（初回は2,3分かかります） / Loading Population Data...</p>
+        
+        <!-- ミニゲームボックス -->
+        <div class="bg-orange-50/80 border-2 border-dashed border-orange-300 p-5 rounded-2xl w-72 mt-2 shadow-inner">
+          <p class="text-xs font-bold text-stone-600 mb-2">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
+          <button class="game-btn btn-amber bg-amber-400 text-3xl p-3 rounded-full cursor-pointer transition-transform my-2 border-2 border-amber-300" onclick="addScore()">🪙</button>
+          <div class="text-sm font-black text-orange-500 mt-2">Score: <span class="score-num">0</span></div>
+        </div>
+      </div>
+      
+      <div class="chart-scroll-container w-full max-h-[65vh] overflow-y-auto border-2 border-orange-100 rounded-2xl bg-stone-50/50 p-2" id="scroll-pop">
+        <div class="chart-box w-full relative" id="box-pop"><canvas id="popChart"></canvas></div>
       </div>
     </div>
-    <div class="chart-scroll-container" id="scroll-pop">
-      <div class="chart-box" id="box-pop"><canvas id="popChart"></canvas></div>
-    </div>
-  </div>
 
-  <div id="tab-area" class="tab-content">
-    <div id="loading-area" class="loading-overlay">
-      <p>世界の「国」の国土データを取得中... / Loading Area Data...</p>
-      <div class="game-box">
-        <p style="margin:0 0 10px 0; font-size:0.9rem;">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
-        <button class="game-btn" onclick="addScore()">🪙</button>
-        <div class="score">Score: <span class="score-num">0</span></div>
+    <!-- [2] 国土の広さタブ -->
+    <div id="tab-area" class="tab-content hidden">
+      <div id="loading-area" class="flex flex-col items-center justify-center h-80 text-center">
+        <p class="text-xs font-bold text-orange-500 mb-2">世界の「国」の国土データを取得中...（初回は2,3分かかります） / Loading Area Data...</p>
+        
+        <!-- ミニゲームボックス -->
+        <div class="bg-orange-50/80 border-2 border-dashed border-orange-300 p-5 rounded-2xl w-72 mt-2 shadow-inner">
+          <p class="text-xs font-bold text-stone-600 mb-2">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
+          <button class="game-btn btn-amber bg-amber-400 text-3xl p-3 rounded-full cursor-pointer transition-transform my-2 border-2 border-amber-300" onclick="addScore()">🪙</button>
+          <div class="text-sm font-black text-orange-500 mt-2">Score: <span class="score-num">0</span></div>
+        </div>
+      </div>
+      
+      <div class="chart-scroll-container w-full max-h-[65vh] overflow-y-auto border-2 border-orange-100 rounded-2xl bg-stone-50/50 p-2" id="scroll-area">
+        <div class="chart-box w-full relative" id="box-area"><canvas id="areaChart"></canvas></div>
       </div>
     </div>
-    <div class="chart-scroll-container" id="scroll-area">
-      <div class="chart-box" id="box-area"><canvas id="areaChart"></canvas></div>
-    </div>
-  </div>
 
-  <div id="tab-density" class="tab-content">
-    <div id="loading-density" class="loading-overlay">
-      <p>人口密度を計算中... / Calculating Density...</p>
-      <div class="game-box">
-        <p style="margin:0 0 10px 0; font-size:0.9rem;">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
-        <button class="game-btn" onclick="addScore()">🪙</button>
-        <div class="score">Score: <span class="score-num">0</span></div>
+    <!-- [3] 人口密度タブ -->
+    <div id="tab-density" class="tab-content hidden">
+      <div id="loading-density" class="flex flex-col items-center justify-center h-80 text-center">
+        <p class="text-xs font-bold text-orange-500 mb-2">人口密度を計算中...（初回は2,3分かかります） / Calculating Density...</p>
+        
+        <!-- ミニゲームボックス -->
+        <div class="bg-orange-50/80 border-2 border-dashed border-orange-300 p-5 rounded-2xl w-72 mt-2 shadow-inner">
+          <p class="text-xs font-bold text-stone-600 mb-2">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
+          <button class="game-btn btn-amber bg-amber-400 text-3xl p-3 rounded-full cursor-pointer transition-transform my-2 border-2 border-amber-300" onclick="addScore()">🪙</button>
+          <div class="text-sm font-black text-orange-500 mt-2">Score: <span class="score-num">0</span></div>
+        </div>
+      </div>
+      
+      <div class="chart-scroll-container w-full max-h-[65vh] overflow-y-auto border-2 border-orange-100 rounded-2xl bg-stone-50/50 p-2" id="scroll-density">
+        <div class="chart-box w-full relative" id="box-density"><canvas id="densityChart"></canvas></div>
       </div>
     </div>
-    <div class="chart-scroll-container" id="scroll-density">
-      <div class="chart-box" id="box-density"><canvas id="densityChart"></canvas></div>
-    </div>
+
   </div>
 
   <script>
@@ -91,7 +157,7 @@
 
     const regionNamesJp = new Intl.DisplayNames(['ja'], { type: 'region' });
 
-    // --- 1. 国マスターデータの初期化（2桁・3桁どちらのコードでも照合できるように保持） ---
+    // --- 1. 国マスターデータの初期化 ---
     async function initCountryMaster() {
       if (countryMaster) return countryMaster;
 
@@ -101,7 +167,6 @@
       countryMaster = new Map();
 
       data[1].forEach(c => {
-        // Aggregates(地域区分) を除外し、純粋な国のみ抽出
         if (c.region && c.region.value !== "Aggregates") {
           let jpName = null;
           try {
@@ -112,7 +177,6 @@
             ? `${jpName} (${c.name})` 
             : c.name;
 
-          // 2文字コード(例: JP) と 3文字コード(例: JPN) の両方で検索できるように登録
           if (c.id) countryMaster.set(c.id.toUpperCase(), displayName);
           if (c.iso2Code) countryMaster.set(c.iso2Code.toUpperCase(), displayName);
         }
@@ -121,21 +185,25 @@
       return countryMaster;
     }
 
-    // --- 2. タブ切り替え ---
+    // --- 2. タブ切り替え（見た目クラスのスタイル制御） ---
     function switchTab(tabName, evt) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active', 'btn-orange', 'bg-orange-500', 'text-white');
+        btn.classList.add('bg-stone-200', 'text-stone-600');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
       
       if (evt && evt.target) {
-        evt.target.classList.add('active');
+        evt.target.classList.add('active', 'btn-orange', 'bg-orange-500', 'text-white');
+        evt.target.classList.remove('bg-stone-200', 'text-stone-600');
       }
-      document.getElementById(`tab-${tabName}`).classList.add('active');
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
     }
 
     // --- 3. グラフ生成機能 ---
     function createFullChart(canvasId, boxId, label, labels, data, unit, color) {
       const box = document.getElementById(boxId);
-      const computedHeight = Math.max(500, labels.length * 25);
+      const computedHeight = Math.max(500, labels.length * 28);
       box.style.height = `${computedHeight}px`;
 
       const ctx = document.getElementById(canvasId).getContext('2d');
@@ -147,7 +215,8 @@
             label: label,
             data: data,
             backgroundColor: color,
-            borderWidth: 1
+            borderRadius: 6,
+            borderWidth: 0
           }]
         },
         options: {
@@ -160,6 +229,16 @@
                 label: (ctx) => `${label}: ${Number(ctx.raw).toLocaleString()} ${unit}`
               }
             }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f3f4f6' },
+              ticks: { font: { family: "'M PLUS Rounded 1c', sans-serif", weight: 'bold' } }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { family: "'M PLUS Rounded 1c', sans-serif", weight: 'bold' } }
+            }
           }
         }
       });
@@ -171,7 +250,6 @@
     async function fetchPopulation() {
       try {
         const master = await initCountryMaster();
-        // 過去数年分のうち、最新の値が存在するデータ（数値を保持）を取得
         const res = await fetch('https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=1000&date=2022');
         const raw = await res.json();
         
@@ -179,7 +257,6 @@
         if (raw && raw[1]) {
           raw[1].forEach(item => {
             const countryId = item.country.id ? item.country.id.toUpperCase() : '';
-            // 数値（value）が存在し、国マスターに含まれる場合のみ抽出
             if (item.value && master.has(countryId)) {
               list.push({
                 id: countryId,
@@ -190,19 +267,18 @@
           });
         }
 
-        // 重複を除外して降順ソート
         const unique = Array.from(new Map(list.map(m => [m.id, m])).values());
         unique.sort((a, b) => b.value - a.value);
 
         globalPopData = unique;
 
         document.getElementById('loading-pop').style.display = 'none';
-        createFullChart('popChart', 'box-pop', '人口 / Population', unique.map(d => d.name), unique.map(d => d.value), '人', 'rgba(54, 162, 235, 0.7)');
+        createFullChart('popChart', 'box-pop', '人口 / Population', unique.map(d => d.name), unique.map(d => d.value), '人', 'rgba(249, 115, 22, 0.85)');
 
         checkAndBuildDensity();
       } catch (err) {
         console.error('人口取得エラー:', err);
-        document.getElementById('loading-pop').innerHTML = '人口データの読み込みに失敗しました。';
+        document.getElementById('loading-pop').innerHTML = '<p class="text-red-500 font-bold">人口データの読み込みに失敗しました。</p>';
       }
     }
 
@@ -233,12 +309,12 @@
         globalAreaData = unique;
 
         document.getElementById('loading-area').style.display = 'none';
-        createFullChart('areaChart', 'box-area', '面積 / Area', unique.map(d => d.name), unique.map(d => d.value), 'km²', 'rgba(75, 192, 192, 0.7)');
+        createFullChart('areaChart', 'box-area', '面積 / Area', unique.map(d => d.name), unique.map(d => d.value), 'km²', 'rgba(20, 184, 166, 0.85)');
 
         checkAndBuildDensity();
       } catch (err) {
         console.error('面積取得エラー:', err);
-        document.getElementById('loading-area').innerHTML = '面積データの読み込みに失敗しました。';
+        document.getElementById('loading-area').innerHTML = '<p class="text-red-500 font-bold">面積データの読み込みに失敗しました。</p>';
       }
     }
 
@@ -263,7 +339,7 @@
       densityList.sort((a, b) => b.value - a.value);
 
       document.getElementById('loading-density').style.display = 'none';
-      createFullChart('densityChart', 'box-density', '人口密度 / Density', densityList.map(d => d.name), densityList.map(d => d.value), '人/km²', 'rgba(255, 99, 132, 0.7)');
+      createFullChart('densityChart', 'box-density', '人口密度 / Density', densityList.map(d => d.name), densityList.map(d => d.value), '人/km²', 'rgba(244, 63, 94, 0.85)');
     }
 
     // アプリ開始
