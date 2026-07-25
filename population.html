@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>世界各国データ ランキング (World Country Statistics)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 15px; background-color: #f8f9fa; color: #333; }
+    h1 { text-align: center; margin-bottom: 20px; font-size: 1.8rem; }
+    
+    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .tab-btn { padding: 10px 20px; font-size: 1rem; border: none; background: #e0e0e0; cursor: pointer; border-radius: 5px; transition: background 0.2s; }
+    .tab-btn.active { background: #007bff; color: white; font-weight: bold; }
+
+    .tab-content { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: relative; min-height: 400px; }
+    .tab-content.active { display: block; }
+
+    .chart-scroll-container { width: 100%; max-height: 75vh; overflow-y: auto; position: relative; border: 1px solid #eee; }
+    .chart-box { position: relative; width: 100%; }
+
+    .loading-overlay { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; text-align: center; }
+    .game-box { background: #eef6ff; border: 2px dashed #007bff; padding: 20px; border-radius: 12px; width: 280px; margin-top: 15px; }
+    .game-btn { font-size: 2rem; padding: 15px 30px; background: #ffc107; border: none; border-radius: 50px; cursor: pointer; user-select: none; transition: transform 0.1s; }
+    .game-btn:active { transform: scale(0.92); }
+    .score { font-size: 1.2rem; font-weight: bold; margin-top: 10px; color: #007bff; }
+  </style>
+</head>
+<body>
+
+  <h1>世界各国データ 全件ランキング / World Country Statistics</h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pop', event)">人口 / Population</button>
+    <button class="tab-btn" onclick="switchTab('area', event)">国土の広さ / Area</button>
+    <button class="tab-btn" onclick="switchTab('density', event)">人口密度 / Density</button>
+  </div>
+
+  <div id="tab-pop" class="tab-content active">
+    <div id="loading-pop" class="loading-overlay">
+      <p>世界の「国」の人口データを取得中... / Loading Population Data...</p>
+      <div class="game-box">
+        <p style="margin:0 0 10px 0; font-size:0.9rem;">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
+        <button class="game-btn" onclick="addScore()">🪙</button>
+        <div class="score">Score: <span class="score-num">0</span></div>
+      </div>
+    </div>
+    <div class="chart-scroll-container" id="scroll-pop">
+      <div class="chart-box" id="box-pop"><canvas id="popChart"></canvas></div>
+    </div>
+  </div>
+
+  <div id="tab-area" class="tab-content">
+    <div id="loading-area" class="loading-overlay">
+      <p>世界の「国」の国土データを取得中... / Loading Area Data...</p>
+      <div class="game-box">
+        <p style="margin:0 0 10px 0; font-size:0.9rem;">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
+        <button class="game-btn" onclick="addScore()">🪙</button>
+        <div class="score">Score: <span class="score-num">0</span></div>
+      </div>
+    </div>
+    <div class="chart-scroll-container" id="scroll-area">
+      <div class="chart-box" id="box-area"><canvas id="areaChart"></canvas></div>
+    </div>
+  </div>
+
+  <div id="tab-density" class="tab-content">
+    <div id="loading-density" class="loading-overlay">
+      <p>人口密度を計算中... / Calculating Density...</p>
+      <div class="game-box">
+        <p style="margin:0 0 10px 0; font-size:0.9rem;">ロード待ちミニゲーム：連打！<br>Mini-Game: Click Fast!</p>
+        <button class="game-btn" onclick="addScore()">🪙</button>
+        <div class="score">Score: <span class="score-num">0</span></div>
+      </div>
+    </div>
+    <div class="chart-scroll-container" id="scroll-density">
+      <div class="chart-box" id="box-density"><canvas id="densityChart"></canvas></div>
+    </div>
+  </div>
+
+  <script>
+    let globalScore = 0;
+    let countryMaster = null; // キー: ID(3桁/2桁), 値: 表示用国名
+    let globalPopData = null;
+    let globalAreaData = null;
+
+    function addScore() {
+      globalScore++;
+      document.querySelectorAll('.score-num').forEach(el => el.textContent = globalScore);
+    }
+
+    const regionNamesJp = new Intl.DisplayNames(['ja'], { type: 'region' });
+
+    // --- 1. 国マスターデータの初期化（2桁・3桁どちらのコードでも照合できるように保持） ---
+    async function initCountryMaster() {
+      if (countryMaster) return countryMaster;
+
+      const res = await fetch('https://api.worldbank.org/v2/country?format=json&per_page=400');
+      const data = await res.json();
+      
+      countryMaster = new Map();
+
+      data[1].forEach(c => {
+        // Aggregates(地域区分) を除外し、純粋な国のみ抽出
+        if (c.region && c.region.value !== "Aggregates") {
+          let jpName = null;
+          try {
+            jpName = regionNamesJp.of(c.iso2Code) || regionNamesJp.of(c.id);
+          } catch (e) {}
+
+          const displayName = (jpName && jpName !== c.iso2Code && jpName !== c.id) 
+            ? `${jpName} (${c.name})` 
+            : c.name;
+
+          // 2文字コード(例: JP) と 3文字コード(例: JPN) の両方で検索できるように登録
+          if (c.id) countryMaster.set(c.id.toUpperCase(), displayName);
+          if (c.iso2Code) countryMaster.set(c.iso2Code.toUpperCase(), displayName);
+        }
+      });
+
+      return countryMaster;
+    }
+
+    // --- 2. タブ切り替え ---
+    function switchTab(tabName, evt) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      if (evt && evt.target) {
+        evt.target.classList.add('active');
+      }
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // --- 3. グラフ生成機能 ---
+    function createFullChart(canvasId, boxId, label, labels, data, unit, color) {
+      const box = document.getElementById(boxId);
+      const computedHeight = Math.max(500, labels.length * 25);
+      box.style.height = `${computedHeight}px`;
+
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: label,
+            data: data,
+            backgroundColor: color,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${label}: ${Number(ctx.raw).toLocaleString()} ${unit}`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // --- 4. 非同期読み込み処理 ---
+
+    // [A] 人口データ
+    async function fetchPopulation() {
+      try {
+        const master = await initCountryMaster();
+        // 過去数年分のうち、最新の値が存在するデータ（数値を保持）を取得
+        const res = await fetch('https://api.worldbank.org/v2/country/all/indicator/SP.POP.TOTL?format=json&per_page=1000&date=2022');
+        const raw = await res.json();
+        
+        const list = [];
+        if (raw && raw[1]) {
+          raw[1].forEach(item => {
+            const countryId = item.country.id ? item.country.id.toUpperCase() : '';
+            // 数値（value）が存在し、国マスターに含まれる場合のみ抽出
+            if (item.value && master.has(countryId)) {
+              list.push({
+                id: countryId,
+                name: master.get(countryId),
+                value: Number(item.value)
+              });
+            }
+          });
+        }
+
+        // 重複を除外して降順ソート
+        const unique = Array.from(new Map(list.map(m => [m.id, m])).values());
+        unique.sort((a, b) => b.value - a.value);
+
+        globalPopData = unique;
+
+        document.getElementById('loading-pop').style.display = 'none';
+        createFullChart('popChart', 'box-pop', '人口 / Population', unique.map(d => d.name), unique.map(d => d.value), '人', 'rgba(54, 162, 235, 0.7)');
+
+        checkAndBuildDensity();
+      } catch (err) {
+        console.error('人口取得エラー:', err);
+        document.getElementById('loading-pop').innerHTML = '人口データの読み込みに失敗しました。';
+      }
+    }
+
+    // [B] 国土面積データ
+    async function fetchArea() {
+      try {
+        const master = await initCountryMaster();
+        const res = await fetch('https://api.worldbank.org/v2/country/all/indicator/AG.SRF.TOTL.K2?format=json&per_page=1000&date=2021:2022');
+        const raw = await res.json();
+
+        const list = [];
+        if (raw && raw[1]) {
+          raw[1].forEach(item => {
+            const countryId = item.country.id ? item.country.id.toUpperCase() : '';
+            if (item.value && master.has(countryId)) {
+              list.push({
+                id: countryId,
+                name: master.get(countryId),
+                value: Number(item.value)
+              });
+            }
+          });
+        }
+
+        const unique = Array.from(new Map(list.map(m => [m.id, m])).values());
+        unique.sort((a, b) => b.value - a.value);
+
+        globalAreaData = unique;
+
+        document.getElementById('loading-area').style.display = 'none';
+        createFullChart('areaChart', 'box-area', '面積 / Area', unique.map(d => d.name), unique.map(d => d.value), 'km²', 'rgba(75, 192, 192, 0.7)');
+
+        checkAndBuildDensity();
+      } catch (err) {
+        console.error('面積取得エラー:', err);
+        document.getElementById('loading-area').innerHTML = '面積データの読み込みに失敗しました。';
+      }
+    }
+
+    // [C] 人口密度計算
+    function checkAndBuildDensity() {
+      if (!globalPopData || !globalAreaData) return;
+
+      const areaMap = new Map(globalAreaData.map(d => [d.id, d.value]));
+      const densityList = [];
+
+      globalPopData.forEach(p => {
+        const area = areaMap.get(p.id);
+        if (area && area > 0) {
+          const density = p.value / area;
+          densityList.push({
+            name: p.name,
+            value: Math.round(density * 10) / 10
+          });
+        }
+      });
+
+      densityList.sort((a, b) => b.value - a.value);
+
+      document.getElementById('loading-density').style.display = 'none';
+      createFullChart('densityChart', 'box-density', '人口密度 / Density', densityList.map(d => d.name), densityList.map(d => d.value), '人/km²', 'rgba(255, 99, 132, 0.7)');
+    }
+
+    // アプリ開始
+    fetchPopulation();
+    fetchArea();
+  </script>
+</body>
+</html>
