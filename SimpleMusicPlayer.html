@@ -9,7 +9,6 @@
       --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
       --card-bg: rgba(255, 255, 255, 0.95);
       --primary: #f97316;
-      --primary-hover: #ea580c;
       --text: #44403c;
     }
 
@@ -63,16 +62,9 @@
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 
     .btn-drum {
-      background: var(--primary);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px;
-      font-size: 11px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 3px 0 #c2410c;
-      display: flex; align-items: center; justify-content: center; width: 100%;
+      background: var(--primary); color: white; border: none; border-radius: 8px;
+      padding: 8px; font-size: 11px; font-weight: bold; cursor: pointer;
+      box-shadow: 0 3px 0 #c2410c; display: flex; align-items: center; justify-content: center; width: 100%;
     }
     .btn-drum:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
 
@@ -82,82 +74,54 @@
     }
 
     .drop-zone {
-      border: 1px dashed #fdba74;
-      border-radius: 8px;
-      padding: 6px;
-      font-size: 10px;
-      font-weight: bold;
-      color: #a8a29e;
-      text-align: center;
-      background: rgba(255,247,237,0.5);
-      display: flex; align-items: center; justify-content: center;
+      border: 1px dashed #fdba74; border-radius: 8px; padding: 6px;
+      font-size: 10px; font-weight: bold; color: #a8a29e; text-align: center;
+      background: rgba(255,247,237,0.5); display: flex; align-items: center; justify-content: center;
     }
 
     .status-text { text-align: center; font-size: 10px; font-weight: bold; color: #a8a29e; margin-bottom: 12px; }
 
     .display-pad {
-      background: #292524;
-      color: #f5f5f4;
-      padding: 14px;
-      border-radius: 16px;
-      text-align: center;
-      margin-bottom: 12px;
+      background: #292524; color: #f5f5f4; padding: 14px;
+      border-radius: 16px; text-align: center; margin-bottom: 12px;
     }
 
     .track-title {
-      font-size: 0.95rem;
-      font-weight: bold;
-      color: #fde047;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      margin-bottom: 8px;
+      font-size: 0.95rem; font-weight: bold; color: #fde047;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;
     }
 
     input[type=range] {
-      width: 100%;
-      height: 6px;
-      background: #44403c;
-      border-radius: 999px;
-      outline: none;
-      -webkit-appearance: none;
-      touch-action: none;
+      width: 100%; height: 8px; background: #44403c; border-radius: 999px;
+      outline: none; -webkit-appearance: none; touch-action: none; cursor: pointer;
     }
     input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 18px; height: 18px;
-      border-radius: 50%;
-      background: #fb923c;
-      cursor: pointer;
+      -webkit-appearance: none; width: 20px; height: 20px;
+      border-radius: 50%; background: #fb923c; cursor: pointer;
     }
 
     .time-display {
-      font-size: 1.25rem;
-      font-weight: bold;
-      color: #fb923c;
-      font-family: monospace;
-      margin-top: 6px;
+      font-size: 1.25rem; font-weight: bold; color: #fb923c;
+      font-family: monospace; margin-top: 6px;
     }
 
     .controls-main { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
     .btn-secondary {
-      background: white; border: 1px solid #e7e5e4;
-      color: #44403c; font-size: 12px; font-weight: bold;
-      padding: 10px; border-radius: 12px; cursor: pointer; flex: 1; max-width: 90px;
-      box-shadow: 0 3px 0 #d6d3d1;
+      background: white; border: 1px solid #e7e5e4; color: #44403c;
+      font-size: 12px; font-weight: bold; padding: 10px; border-radius: 12px;
+      cursor: pointer; flex: 1; max-width: 90px; box-shadow: 0 3px 0 #d6d3d1;
     }
     .btn-secondary:active { transform: translateY(2px); box-shadow: 0 1px 0 #d6d3d1; }
 
     .btn-play {
-      background: var(--primary); color: white; border: none;
-      font-size: 14px; font-weight: bold; padding: 10px; border-radius: 12px;
-      cursor: pointer; flex: 2; max-width: 160px; box-shadow: 0 3px 0 #c2410c;
+      background: var(--primary); color: white; border: none; font-size: 14px;
+      font-weight: bold; padding: 10px; border-radius: 12px; cursor: pointer;
+      flex: 2; max-width: 160px; box-shadow: 0 3px 0 #c2410c;
     }
     .btn-play:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
 
     .box-sub {
-      background: rgba(255,247,237,0.7);
-      padding: 10px; border-radius: 12px;
+      background: rgba(255,247,237,0.7); padding: 10px; border-radius: 12px;
       border: 1px solid #ffedd5; margin-bottom: 12px;
     }
     .box-title { font-size: 11px; font-weight: bold; color: var(--primary); margin-bottom: 6px; }
@@ -176,9 +140,7 @@
       cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       border: 1px solid #e7e5e4; background: white; color: #57534e; margin-bottom: 4px;
     }
-    .playlist-item.active {
-      background: var(--primary); color: white; border-color: #ea580c;
-    }
+    .playlist-item.active { background: var(--primary); color: white; border-color: #ea580c; }
   </style>
 </head>
 <body>
@@ -237,7 +199,7 @@
   </div>
 </div>
 
-<audio id="audioPlayer"></audio>
+<audio id="audioPlayer" preload="auto"></audio>
 
 <script>
   const DB_NAME = 'AudioAppCacheDB';
@@ -280,6 +242,7 @@
   let fileList = [];
   let currentIndex = -1;
   let isUserSeeking = false;
+  let lastSaveTime = 0; // ★ 最終保存時刻の記録用
 
   const audio = document.getElementById('audioPlayer');
   const folderInput = document.getElementById('folderInput');
@@ -318,7 +281,6 @@
     loadTrack(targetIdx, savedTime);
   }
 
-  // 軽量化したスライダーイベント
   seekSlider.addEventListener('input', () => {
     isUserSeeking = true;
     if (audio.duration) {
@@ -327,13 +289,18 @@
     }
   });
 
-  seekSlider.addEventListener('change', () => {
+  const commitSeek = () => {
+    if (!isUserSeeking) return;
     if (audio.duration) {
       audio.currentTime = (seekSlider.value / 100) * audio.duration;
     }
     isUserSeeking = false;
-    saveCurrentState();
-  });
+    saveCurrentState(true); // ★ 手動操作時は強制保存
+  };
+
+  seekSlider.addEventListener('change', commitSeek);
+  seekSlider.addEventListener('touchend', commitSeek);
+  seekSlider.addEventListener('mouseup', commitSeek);
 
   folderInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
@@ -376,7 +343,6 @@
     audio.src = URL.createObjectURL(item.file);
     trackTitle.textContent = item.name;
     
-    // プレイリストのハイライト更新
     const items = playlistEl.children;
     for(let i=0; i<items.length; i++) {
       items[i].classList.toggle('active', i === currentIndex);
@@ -410,7 +376,7 @@
     } else {
       audio.pause();
       playPauseBtn.textContent = '▶ 再生';
-      saveCurrentState(); // 一時停止時に保存
+      saveCurrentState(true);
     }
   });
 
@@ -432,13 +398,20 @@
     if (!audio.src || isNaN(audio.duration)) return;
     let targetTime = audio.currentTime + seconds;
     audio.currentTime = Math.max(0, Math.min(targetTime, audio.duration));
+    saveCurrentState(true);
   }
 
-  // 高速化した timeupdate（保存処理を除去）
+  // ★ 1秒間に何度も走る timeupdate の中で「5秒以上たった時だけ」保存を実行
   audio.addEventListener('timeupdate', () => {
     if (!isUserSeeking && audio.duration) {
       seekSlider.value = (audio.currentTime / audio.duration) * 100;
       timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+      
+      const now = Date.now();
+      if (now - lastSaveTime > 5000) { // 5000ms = 5秒
+        saveCurrentState();
+        lastSaveTime = now;
+      }
     }
   });
 
@@ -451,17 +424,16 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  // 必要なタイミングでのみ保存
-  function saveCurrentState() {
+  function saveCurrentState(force = false) {
     if (currentIndex >= 0 && fileList[currentIndex]) {
       localStorage.setItem('audio_last_file', fileList[currentIndex].name);
       localStorage.setItem('audio_last_time', audio.currentTime);
+      if (force) lastSaveTime = Date.now();
     }
   }
 
-  // ページを閉じる・バックグラウンドに移動した時に保存
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveCurrentState();
+    if (document.visibilityState === 'hidden') saveCurrentState(true);
   });
 </script>
 
