@@ -55,28 +55,30 @@
     <h1 class="text-2xl sm:text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
       オーディオプレーヤー
     </h1>
-    <p class="text-xs text-orange-400 font-bold tracking-widest">お気に入りの音楽・音声ファイルを再生</p>
   </header>
 
-  <!-- フォルダ選択部分 -->
-  <div class="bg-orange-50/60 p-4 rounded-2xl border-2 border-orange-100 mb-3 flex items-center justify-between gap-3 flex-wrap">
-    <div class="file-input-wrapper">
-      <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-3 px-5 rounded-xl cursor-pointer transition-colors shadow-[0_4px_0_#c2410c] inline-flex items-center gap-2">
-        📁 フォルダを選択
-      </span>
-      <input type="file" id="folderInput" webkitdirectory directory multiple>
+  <!-- フォルダ選択 ＆ ドラッグ＆ドロップ 共通エリア（横並び） -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+    <!-- フォルダ選択ボタン -->
+    <div class="bg-orange-50/60 p-3.5 rounded-2xl border-2 border-orange-100 flex flex-col justify-between gap-2">
+      <div class="file-input-wrapper w-full">
+        <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition-colors shadow-[0_4px_0_#c2410c] inline-flex items-center justify-center gap-2 w-full">
+          📁 フォルダを選択
+        </span>
+        <input type="file" id="folderInput" webkitdirectory directory multiple>
+      </div>
+      <span id="folderStatus" class="text-[11px] font-bold text-stone-500 truncate text-center">フォルダ未選択</span>
     </div>
-    <span id="folderStatus" class="text-xs font-bold text-stone-500 truncate max-w-xs">フォルダが選択されていません</span>
+
+    <!-- ドラッグ＆ドロップゾーン -->
+    <div id="dropZone" class="border-2 border-dashed border-orange-200 hover:border-orange-400 rounded-2xl p-3 text-center text-xs font-bold text-stone-400 bg-orange-50/30 transition-colors flex items-center justify-center">
+      ここにフォルダをドラッグ＆ドロップ
+    </div>
   </div>
 
   <!-- 安心メッセージ -->
-  <div class="text-[11px] font-bold text-stone-400 mb-3 px-1 leading-relaxed">
-    🔒 ※「アップロード」と表示される場合でも、データはブラウザ内のみで処理され、外部サーバーへ送信されることはありません。
-  </div>
-
-  <!-- ドラッグ＆ドロップゾーン -->
-  <div id="dropZone" class="border-2 border-dashed border-orange-200 hover:border-orange-400 rounded-2xl p-3 text-center text-xs font-bold text-stone-400 mb-6 bg-orange-50/30 transition-colors">
-    ここに音声フォルダをドラッグ＆ドロップして読み込むこともできます
+  <div class="text-[11px] font-bold text-stone-400 mb-5 px-1 leading-relaxed">
+    🔒 ※「アップロード」と表示されますが外部へ送信されません。
   </div>
 
   <!-- 曲情報・再生時間表示（ブラック液晶表示） -->
@@ -108,11 +110,9 @@
       <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-15">-15秒</button>
       <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-10">-10秒</button>
       <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-5">-5秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-3">-3秒</button>
     </div>
     <!-- 早送り -->
     <div class="flex justify-center gap-1.5 flex-wrap">
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="3">+3秒</button>
       <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="5">+5秒</button>
       <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="10">+10秒</button>
       <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="15">+15秒</button>
@@ -123,7 +123,7 @@
   <!-- プレイリスト -->
   <div class="bg-orange-50/60 rounded-2xl border-2 border-orange-100 p-3">
     <div class="text-xs font-bold text-orange-500 mb-2 px-1">★ プレイリスト</div>
-    <div class="max-h-[200px] overflow-y-auto pr-1">
+    <div id="playlistContainer" class="max-h-[220px] overflow-y-auto pr-1">
       <ul id="playlist" class="space-y-1.5"></ul>
     </div>
   </div>
@@ -193,9 +193,9 @@
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   const playlistEl = document.getElementById('playlist');
+  const playlistContainer = document.getElementById('playlistContainer');
 
   window.addEventListener('DOMContentLoaded', async () => {
-    // シークボタンのイベントバインド
     document.querySelectorAll('.seek-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const seconds = parseFloat(btn.dataset.seconds);
@@ -203,19 +203,17 @@
       });
     });
 
-    // 以前の保存状態を復元
     const cachedFiles = await loadFilesFromCache();
     const savedFolderName = localStorage.getItem('music_player_folder_name');
 
     if (cachedFiles.length > 0) {
       fileList = cachedFiles.map(item => ({ name: item.name, file: item.blob }));
-      folderStatus.textContent = savedFolderName ? `読み込み済み: ${savedFolderName}` : "キャッシュからファイルを復元しました";
+      folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "キャッシュを復元しました";
       sortAndRenderPlaylist();
       restoreLastState();
     }
   });
 
-  // フォルダ選択時
   folderInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -227,7 +225,6 @@
     await processFiles(files, folderName);
   });
 
-  // ドラッグ＆ドロップ処理
   dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
     dropZone.classList.add('border-orange-400', 'bg-orange-100/50');
@@ -253,7 +250,7 @@
       }
     }
     if (files.length > 0) {
-      folderStatus.textContent = "ドロップされたフォルダを読み込みました";
+      folderStatus.textContent = "ドロップフォルダを読み込みました";
       await processFiles(files, "ドロップフォルダ");
     }
   });
@@ -278,17 +275,13 @@
       return;
     }
 
-    // 自然順（1, 2, 10順）ソート
     const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
     filteredFiles.sort((a, b) => collator.compare(a.name, b.name));
 
     fileList = filteredFiles.map(f => ({ name: f.name, file: f }));
     sortAndRenderPlaylist();
 
-    // キャッシュ保存
     await saveFilesToCache(filteredFiles, folderName);
-
-    // 0秒位置・停止状態で初期ロード
     loadAndPlayTrack(0, 0, false);
   }
 
@@ -339,6 +332,7 @@
     }
   }
 
+  // プレイリストのハイライト変更＆【先頭表示スクロール】
   function updatePlaylistHighlight() {
     const items = playlistEl.querySelectorAll('li');
     items.forEach((item, i) => {
@@ -349,8 +343,14 @@
           : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
       }`;
     });
+
+    // 再生中の項目をリストの【一番上】に自動スクロール表示
     if (items[currentIndex]) {
-      items[currentIndex].scrollIntoView({ block: 'nearest' });
+      const activeItem = items[currentIndex];
+      playlistContainer.scrollTo({
+        top: activeItem.offsetTop - playlistEl.offsetTop,
+        behavior: 'smooth'
+      });
     }
   }
 
