@@ -14,10 +14,10 @@
     }
     .drum-pad {
       transition: all 0.1s ease;
-      box-shadow: 0 6px 0 #d6d3d1, 0 10px 20px rgba(0,0,0,0.06);
+      box-shadow: 0 4px 0 #d6d3d1, 0 6px 12px rgba(0,0,0,0.06);
     }
     .drum-pad:active:not(:disabled) {
-      transform: translateY(6px);
+      transform: translateY(4px);
       box-shadow: 0 0px 0 #d6d3d1, 0 2px 4px rgba(0,0,0,0.05);
     }
     .file-input-wrapper {
@@ -49,13 +49,14 @@
       -webkit-appearance: none;
       appearance: none;
       background: transparent;
+      touch-action: none;
     }
     input[type=range]:focus {
       outline: none;
     }
     input[type=range]::-webkit-slider-runnable-track {
       width: 100%;
-      height: 8px;
+      height: 6px;
       cursor: pointer;
       background: #44403c;
       border-radius: 9999px;
@@ -67,102 +68,95 @@
       background: #fb923c;
       cursor: pointer;
       -webkit-appearance: none;
-      margin-top: -5px;
+      margin-top: -6px;
       box-shadow: 0 0 4px rgba(0,0,0,0.5);
-      transition: transform 0.1s ease, background-color 0.1s ease;
-    }
-    input[type=range]::-webkit-slider-thumb:hover {
-      background: #f97316;
-      transform: scale(1.15);
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-4 sm:p-8 select-none">
+<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-3 sm:p-6 select-none">
 
-<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 9999px; z-index: 1000; border: 2px solid #e4e4e7; font-weight: bold;">メニューに戻る</a>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 11px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 9999px; z-index: 1000; border: 1.5px solid #e4e4e7; font-weight: bold;">メニューに戻る</a>
 
-<div id="main-container" class="p-6 sm:p-8 bg-white/95 rounded-3xl shadow-[0_20px_40px_rgba(180,150,120,0.2)] border-4 border-orange-200 max-w-2xl w-full mt-4 mb-4 transition-all duration-300">
+<div id="main-container" class="p-4 sm:p-6 bg-white/95 rounded-3xl shadow-[0_15px_30px_rgba(180,150,120,0.15)] border-3 border-orange-200 max-w-xl w-full my-2 transition-all duration-300">
   
-  <header class="text-center mb-6">
-    <h1 class="text-2xl sm:text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
+  <header class="text-center mb-3">
+    <h1 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
       オーディオプレーヤー
     </h1>
   </header>
 
-  <!-- フォルダ選択 ＆ ドラッグ＆ドロップ 共通エリア（横並び） -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+  <!-- フォルダ選択 ＆ ドラッグ＆ドロップ 共通エリア（小型化） -->
+  <div class="grid grid-cols-2 gap-2 mb-2">
     <!-- フォルダ選択ボタン -->
-    <div class="bg-orange-50/60 p-3.5 rounded-2xl border-2 border-orange-100 flex flex-col justify-between gap-2">
+    <div class="bg-orange-50/60 p-2 rounded-xl border border-orange-100 flex flex-col justify-center items-center gap-1">
       <div class="file-input-wrapper w-full">
-        <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-3 px-4 rounded-xl cursor-pointer transition-colors shadow-[0_4px_0_#c2410c] inline-flex items-center justify-center gap-2 w-full">
-          📁 フォルダを選択
+        <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold py-1.5 px-2 rounded-lg cursor-pointer transition-colors shadow-[0_2px_0_#c2410c] inline-flex items-center justify-center gap-1 w-full">
+          📁 フォルダ選択
         </span>
         <input type="file" id="folderInput" webkitdirectory directory multiple>
       </div>
-      <span id="folderStatus" class="text-[11px] font-bold text-stone-500 truncate text-center">フォルダ未選択</span>
+      <span id="folderStatus" class="text-[10px] font-bold text-stone-500 truncate w-full text-center">未選択</span>
     </div>
 
     <!-- ドラッグ＆ドロップゾーン -->
-    <div id="dropZone" class="border-2 border-dashed border-orange-200 hover:border-orange-400 rounded-2xl p-3 text-center text-xs font-bold text-stone-400 bg-orange-50/30 transition-colors flex items-center justify-center">
-      ここにフォルダをドラッグ＆ドロップ
+    <div id="dropZone" class="border border-dashed border-orange-200 hover:border-orange-400 rounded-xl p-2 text-center text-[10px] font-bold text-stone-400 bg-orange-50/30 transition-colors flex items-center justify-center leading-tight">
+      ここにフォルダをドロップ
     </div>
   </div>
 
-  <!-- 安心メッセージ -->
-  <div class="text-[11px] font-bold text-stone-400 mb-5 px-1 leading-relaxed">
-    🔒 ※「アップロード」と表示される場合でも、データはブラウザ内のみで処理され、外部サーバーへ送信されることはありません。
+  <!-- 安心メッセージ（短縮版） -->
+  <div class="text-[10px] font-bold text-stone-400 mb-3 text-center">
+    🔒 ※データは外部送信されずブラウザ内でのみ安全に処理されます。
   </div>
 
-  <!-- 曲情報・再生時間表示（ブラック液晶表示） -->
-  <div id="display-pad" class="bg-stone-800 text-stone-100 p-6 rounded-2xl border-4 border-stone-950 text-center shadow-inner relative overflow-hidden mb-6">
-    <div class="absolute top-2 left-3 text-[10px] font-bold tracking-widest text-stone-500">REPRODUCING</div>
-    <div id="trackTitle" class="text-lg sm:text-xl font-bold tracking-wide my-3 text-yellow-300 truncate px-2">トラックが選択されていません</div>
+  <!-- 曲情報・再生時間表示（コンパクト化） -->
+  <div id="display-pad" class="bg-stone-800 text-stone-100 p-3.5 sm:p-5 rounded-2xl border-3 border-stone-950 text-center shadow-inner relative overflow-hidden mb-3">
+    <div class="absolute top-1.5 left-2.5 text-[9px] font-bold tracking-widest text-stone-500">REPRODUCING</div>
+    <div id="trackTitle" class="text-base sm:text-lg font-bold tracking-wide my-1.5 text-yellow-300 truncate px-1">トラックが選択されていません</div>
     
     <!-- シークスライダー -->
-    <div class="px-2 my-2">
+    <div class="px-1 my-1">
       <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" class="w-full cursor-pointer">
     </div>
 
-    <div id="timeDisplay" class="text-2xl sm:text-3xl font-bold tracking-wider text-orange-400 font-mono">00:00:00 / 00:00:00</div>
+    <div id="timeDisplay" class="text-xl sm:text-2xl font-bold tracking-wider text-orange-400 font-mono">00:00:00 / 00:00:00</div>
   </div>
 
   <!-- メイン操作（前へ・再生/停止・次へ） -->
-  <div class="flex justify-center gap-3 mb-6">
-    <button id="prevBtn" class="drum-pad bg-white border-2 border-stone-200 hover:bg-stone-50 text-stone-700 text-sm font-bold py-3.5 px-6 rounded-2xl cursor-pointer flex-1 max-w-[120px]">
+  <div class="flex justify-center gap-2 mb-3">
+    <button id="prevBtn" class="drum-pad bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer flex-1 max-w-[90px]">
       ⏮ 前へ
     </button>
-    <button id="playPauseBtn" class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-base font-bold py-3.5 px-8 rounded-2xl cursor-pointer flex-2 max-w-[200px] text-center shadow-[0_6px_0_#c2410c]">
+    <button id="playPauseBtn" class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold py-2.5 px-6 rounded-xl cursor-pointer flex-2 max-w-[160px] text-center shadow-[0_4px_0_#c2410c]">
       ▶ 再生
     </button>
-    <button id="nextBtn" class="drum-pad bg-white border-2 border-stone-200 hover:bg-stone-50 text-stone-700 text-sm font-bold py-3.5 px-6 rounded-2xl cursor-pointer flex-1 max-w-[120px]">
+    <button id="nextBtn" class="drum-pad bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer flex-1 max-w-[90px]">
       次へ ⏭
     </button>
   </div>
 
   <!-- スキップ操作 -->
-  <div class="bg-orange-50/60 p-4 rounded-2xl border-2 border-orange-100 flex flex-col gap-2.5 mb-6">
-    <span class="text-xs font-bold text-orange-500">★ スキップコントロール</span>
-    <!-- 巻き戻し -->
-    <div class="flex justify-center gap-1.5 flex-wrap">
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-30">-30秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-15">-15秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-10">-10秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-5">-5秒</button>
+  <div class="bg-orange-50/60 p-2.5 rounded-xl border border-orange-100 flex flex-col gap-1.5 mb-3">
+    <span class="text-[11px] font-bold text-orange-500 px-0.5">★ スキップコントロール</span>
+    <div class="flex justify-center gap-1 flex-wrap">
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-30">-30秒</button>
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-15">-15秒</button>
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-10">-10秒</button>
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-5">-5秒</button>
     </div>
-    <!-- 早送り -->
-    <div class="flex justify-center gap-1.5 flex-wrap">
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="5">+5秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="10">+10秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="15">+15秒</button>
-      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="30">+30秒</button>
+    <div class="flex justify-center gap-1 flex-wrap">
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="5">+5秒</button>
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="10">+10秒</button>
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="15">+15秒</button>
+      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="30">+30秒</button>
     </div>
   </div>
 
   <!-- プレイリスト -->
-  <div class="bg-orange-50/60 rounded-2xl border-2 border-orange-100 p-3">
-    <div class="text-xs font-bold text-orange-500 mb-2 px-1">★ プレイリスト</div>
-    <div id="playlistContainer" class="max-h-[220px] overflow-y-auto pr-1">
-      <ul id="playlist" class="space-y-1.5"></ul>
+  <div class="bg-orange-50/60 rounded-xl border border-orange-100 p-2.5">
+    <div class="text-[11px] font-bold text-orange-500 mb-1.5 px-0.5">★ プレイリスト</div>
+    <div id="playlistContainer" class="max-h-[160px] overflow-y-auto pr-1">
+      <ul id="playlist" class="space-y-1"></ul>
     </div>
   </div>
 
@@ -171,7 +165,6 @@
 <audio id="audioPlayer"></audio>
 
 <script>
-  // IndexedDBによるファイル＆状態のキャッシュ保存
   const DB_NAME = 'MusicPlayerCache';
   const DB_VERSION = 1;
   const STORE_FILES = 'audioFiles';
@@ -216,13 +209,11 @@
     });
   }
 
-  // アプリケーション状態
   let fileList = [];
   let currentIndex = -1;
-  let isUserSeeking = false; // スライダー操作中フラグ
-  let seekDebounceTimer = null; // 連打用タイマー
+  let isUserSeeking = false;
+  let saveTimer = null;
 
-  // HTML要素
   const audio = document.getElementById('audioPlayer');
   const folderInput = document.getElementById('folderInput');
   const folderStatus = document.getElementById('folderStatus');
@@ -249,13 +240,12 @@
 
     if (cachedFiles.length > 0) {
       fileList = cachedFiles.map(item => ({ name: item.name, file: item.blob }));
-      folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "キャッシュを復元しました";
+      folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "復元完了";
       sortAndRenderPlaylist();
       restoreLastState();
     }
   });
 
-  // スライダー操作（ドラッグ開始〜終了の制御）
   seekSlider.addEventListener('input', () => {
     isUserSeeking = true;
     if (audio.duration) {
@@ -269,7 +259,7 @@
       audio.currentTime = (seekSlider.value / 100) * audio.duration;
     }
     isUserSeeking = false;
-    saveState();
+    debouncedSaveState();
   });
 
   folderInput.addEventListener('change', async (e) => {
@@ -308,7 +298,7 @@
       }
     }
     if (files.length > 0) {
-      folderStatus.textContent = "ドロップフォルダを読み込みました";
+      folderStatus.textContent = "ドロップフォルダ";
       await processFiles(files, "ドロップフォルダ");
     }
   });
@@ -353,7 +343,7 @@
     fileList.forEach((item, index) => {
       const li = document.createElement('li');
       const isActive = index === currentIndex;
-      li.className = `p-2.5 rounded-xl text-xs font-bold cursor-pointer truncate transition-all border-2 ${
+      li.className = `p-2 rounded-lg text-[11px] font-bold cursor-pointer truncate transition-all border ${
         isActive 
           ? 'bg-orange-500 text-white border-orange-600 shadow-sm' 
           : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
@@ -377,13 +367,13 @@
     trackTitle.textContent = item.name;
     seekSlider.value = 0;
     updatePlaylistHighlight();
-    saveState();
+    debouncedSaveState();
   }
 
   async function loadAndPlayTrack(index, seekTime = 0, autoPlay = false) {
     await loadTrack(index, seekTime);
     if (autoPlay) {
-      audio.play();
+      audio.play().catch(() => {});
       playPauseBtn.textContent = '⏸ 一時停止';
     } else {
       audio.pause();
@@ -395,7 +385,7 @@
     const items = playlistEl.querySelectorAll('li');
     items.forEach((item, i) => {
       const isActive = i === currentIndex;
-      item.className = `p-2.5 rounded-xl text-xs font-bold cursor-pointer truncate transition-all border-2 ${
+      item.className = `p-2 rounded-lg text-[11px] font-bold cursor-pointer truncate transition-all border ${
         isActive 
           ? 'bg-orange-500 text-white border-orange-600 shadow-sm' 
           : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
@@ -418,7 +408,7 @@
     }
 
     if (audio.paused) {
-      audio.play();
+      audio.play().catch(() => {});
       playPauseBtn.textContent = '⏸ 一時停止';
     } else {
       audio.pause();
@@ -445,11 +435,10 @@
       loadAndPlayTrack(currentIndex + 1, 0, true);
     } else {
       playPauseBtn.textContent = '▶ 再生';
-      saveState();
+      debouncedSaveState();
     }
   });
 
-  // 連打対応付きのシーク関数（デバウンス制御）
   function seekSeconds(seconds) {
     if (!audio.src || isNaN(audio.duration)) return;
 
@@ -458,12 +447,7 @@
     if (targetTime > audio.duration) targetTime = audio.duration;
 
     audio.currentTime = targetTime;
-
-    // 連打時の保存処理の負荷を軽減
-    clearTimeout(seekDebounceTimer);
-    seekDebounceTimer = setTimeout(() => {
-      saveState();
-    }, 200);
+    debouncedSaveState();
   }
 
   audio.addEventListener('timeupdate', () => {
@@ -471,7 +455,7 @@
       seekSlider.value = (audio.currentTime / audio.duration) * 100;
     }
     timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
-    saveState();
+    debouncedSaveState();
   });
 
   function formatTime(seconds) {
@@ -484,11 +468,15 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  function saveState() {
-    if (currentIndex >= 0) {
-      localStorage.setItem('music_player_last_index', currentIndex);
-      localStorage.setItem('music_player_last_time', audio.currentTime);
-    }
+  function debouncedSaveState() {
+    if (saveTimer) return;
+    saveTimer = setTimeout(() => {
+      saveTimer = null;
+      if (currentIndex >= 0) {
+        localStorage.setItem('music_player_last_index', currentIndex);
+        localStorage.setItem('music_player_last_time', audio.currentTime);
+      }
+    }, 1000);
   }
 
   function restoreLastState() {
