@@ -122,6 +122,18 @@
     }
     .btn-seek:active { transform: translateY(2px); box-shadow: 0 0 0; }
 
+    /* 再生速度ボタン用のスタイル */
+    .btn-speed {
+      background: white; border: 1px solid #e7e5e4; color: #57534e;
+      font-size: 11px; font-weight: bold; padding: 6px 0; border-radius: 8px;
+      flex: 1; cursor: pointer; box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-speed:active { transform: translateY(2px); box-shadow: 0 0 0; }
+    .btn-speed.active {
+      background: var(--primary); color: white; border-color: #ea580c;
+      box-shadow: 0 2px 0 #c2410c;
+    }
+
     .playlist-box { max-height: 140px; overflow-y: auto; }
     .playlist-item {
       padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold;
@@ -168,6 +180,18 @@
       <button class="btn-seek" data-seconds="10">+10秒</button>
       <button class="btn-seek" data-seconds="15">+15秒</button>
       <button class="btn-seek" data-seconds="30">+30秒</button>
+    </div>
+  </div>
+
+  <!-- プレイリストの直上に配置した再生速度エリア -->
+  <div class="box-sub">
+    <div class="box-title">★ 再生速度</div>
+    <div class="flex-wrap">
+      <button class="btn-speed" data-speed="1.0">1.0x</button>
+      <button class="btn-speed" data-speed="1.5">1.5x</button>
+      <button class="btn-speed" data-speed="2.0">2.0x</button>
+      <button class="btn-speed" data-speed="2.5">2.5x</button>
+      <button class="btn-speed" data-speed="3.0">3.0x</button>
     </div>
   </div>
 
@@ -219,8 +243,8 @@
   let isUserSeeking = false;
   let currentObjectUrl = null;
   let dirHandle = null;
+  let currentSpeed = 1.0;
   
-  // ★ 重要: F5直後の誤保存を防ぐ超強力なロックフラグ
   let allowSave = false;
 
   const audio = document.getElementById('audioPlayer');
@@ -233,10 +257,24 @@
   const playPauseBtn = document.getElementById('playPauseBtn');
   const playlistEl = document.getElementById('playlist');
 
-  // F5押下直後：文字表示だけ行い、保存データは一切上書きさせない
   window.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.btn-seek').forEach(btn => {
       btn.addEventListener('click', () => seekSeconds(parseFloat(btn.dataset.seconds)));
+    });
+
+    // 保存されている再生速度の復元（初期値は1.0x）
+    const savedSpeed = parseFloat(localStorage.getItem('audio_last_speed') || 1.0);
+    setPlaybackSpeed(savedSpeed);
+
+    // スピードボタンのイベント定義
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed);
+        setPlaybackSpeed(speed);
+        if (allowSave) {
+          localStorage.setItem('audio_last_speed', speed);
+        }
+      });
     });
 
     dirHandle = await getFolderHandle();
@@ -253,7 +291,17 @@
     }
   });
 
-  // フォルダ変更ボタン
+  // 再生速度を設定・適用する関数
+  function setPlaybackSpeed(speed) {
+    currentSpeed = speed;
+    audio.playbackRate = speed;
+    
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      const btnSpeed = parseFloat(btn.dataset.speed);
+      btn.classList.toggle('active', btnSpeed === speed);
+    });
+  }
+
   selectFolderBtn.addEventListener('click', () => {
     if ('showDirectoryPicker' in window && window.isSecureContext) {
       window.showDirectoryPicker().then(async (handle) => {
@@ -286,12 +334,11 @@
       getFile: async () => f
     }));
 
+    renderPlaylist();
     restoreLastStateAndPlay(true);
   });
 
-  // 「再生」ボタンを押した時
   playPauseBtn.addEventListener('click', async () => {
-    // すでにロード完了していて再生中の場合 -> 一時停止
     if (fileList.length > 0 && !audio.paused) {
       audio.pause();
       playPauseBtn.textContent = '▶ 再生';
@@ -299,7 +346,6 @@
       return;
     }
 
-    // すでにロード完了していて停止中の場合 -> 再生
     if (fileList.length > 0 && audio.paused) {
       try {
         await audio.play();
@@ -308,7 +354,6 @@
       return;
     }
 
-    // F5後などで未ロードの場合 -> フォルダを読み込んで完全に復元
     if (!dirHandle) {
       dirHandle = await getFolderHandle();
     }
@@ -329,7 +374,6 @@
     }
   });
 
-  // 1. フォルダ内スキャン
   async function initDirectoryAndRestore(handle, autoPlay = false) {
     folderStatus.textContent = `読み込み中: ${handle.name}...`;
     const validExts = ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'];
@@ -354,15 +398,15 @@
 
     fileList = files;
     folderStatus.textContent = `選択中: ${handle.name} (${fileList.length}曲)`;
+    
+    // プレイリストを表示
     renderPlaylist();
 
-    // 最後にすべてを復元
     await restoreLastStateAndPlay(autoPlay);
   }
 
-  // 2. 「曲」と「秒数」の最終復元処理
   async function restoreLastStateAndPlay(autoPlay = false) {
-    allowSave = false; // 復元完了まで保存を強制ブロック
+    allowSave = false;
 
     const savedName = localStorage.getItem('audio_last_file');
     const savedTime = parseFloat(localStorage.getItem('audio_last_time') || 0);
@@ -375,7 +419,6 @@
 
     await loadTrack(targetIdx);
 
-    // 保存されている秒数に確実にジャンプさせる
     if (savedTime > 0) {
       audio.currentTime = savedTime;
     }
@@ -383,7 +426,6 @@
     timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
     if (audio.duration) seekSlider.value = (audio.currentTime / audio.duration) * 100;
 
-    // ★ 復元がすべて完了したのでここで初めて保存許可を出す
     allowSave = true;
 
     if (autoPlay) {
@@ -422,6 +464,10 @@
     
     currentObjectUrl = URL.createObjectURL(file);
     audio.src = currentObjectUrl;
+    
+    // 曲が変わっても選択中の速度を維持する
+    audio.playbackRate = currentSpeed;
+    
     trackTitle.textContent = fileEntry.name;
 
     const items = playlistEl.children;
@@ -513,13 +559,12 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  // 保存処理のガード
   function saveState() {
-    // ロックフラグ(allowSave)がfalseの時は、どれだけイベントが走っても絶対に書き換えない
     if (!allowSave || currentIndex < 0 || !fileList[currentIndex]) return;
     
     localStorage.setItem('audio_last_file', fileList[currentIndex].name);
     localStorage.setItem('audio_last_time', audio.currentTime);
+    localStorage.setItem('audio_last_speed', currentSpeed);
   }
 </script>
 
