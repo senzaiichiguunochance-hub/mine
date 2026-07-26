@@ -4,170 +4,249 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>オーディオプレーヤー</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --primary: #f97316;
+      --primary-hover: #ea580c;
+      --text: #44403c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+      font-family: sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      user-select: none;
+      -webkit-user-select: none;
     }
-    .drum-pad {
-      transition: all 0.1s ease;
-      box-shadow: 0 4px 0 #d6d3d1, 0 6px 12px rgba(0,0,0,0.06);
-    }
-    .drum-pad:active:not(:disabled) {
-      transform: translateY(4px);
-      box-shadow: 0 0px 0 #d6d3d1, 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .file-input-wrapper {
-      position: relative;
-      overflow: hidden;
-      display: inline-block;
-    }
-    .file-input-wrapper input[type=file] {
-      font-size: 100px;
+
+    .menu-btn {
       position: absolute;
-      left: 0;
-      top: 0;
-      opacity: 0;
+      top: 10px; right: 10px;
+      font-size: 11px; color: #71716a;
+      text-decoration: none;
+      background: rgba(255,255,255,0.9);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1.5px solid #e4e4e7;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .container {
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 2px solid #fed7aa;
+      box-shadow: 0 10px 25px rgba(180,150,120,0.15);
+      padding: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+
+    .btn-drum {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 11px;
+      font-weight: bold;
       cursor: pointer;
+      box-shadow: 0 3px 0 #c2410c;
+      display: flex; align-items: center; justify-content: center; width: 100%;
     }
-    ::-webkit-scrollbar {
-      width: 6px;
+    .btn-drum:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
+
+    .file-wrapper { position: relative; overflow: hidden; width: 100%; }
+    .file-wrapper input[type=file] {
+      position: absolute; top:0; left:0; opacity:0; font-size:100px; cursor:pointer;
     }
-    ::-webkit-scrollbar-track {
-      background: #fff7ed;
+
+    .drop-zone {
+      border: 1px dashed #fdba74;
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #a8a29e;
+      text-align: center;
+      background: rgba(255,247,237,0.5);
+      display: flex; align-items: center; justify-content: center;
     }
-    ::-webkit-scrollbar-thumb {
-      background: #fdba74;
-      border-radius: 9999px;
+
+    .status-text { text-align: center; font-size: 10px; font-weight: bold; color: #a8a29e; margin-bottom: 12px; }
+
+    .display-pad {
+      background: #292524;
+      color: #f5f5f4;
+      padding: 14px;
+      border-radius: 16px;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .track-title {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #fde047;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 8px;
     }
 
     input[type=range] {
-      -webkit-appearance: none;
-      appearance: none;
-      background: transparent;
-      touch-action: none;
-    }
-    input[type=range]:focus {
-      outline: none;
-    }
-    input[type=range]::-webkit-slider-runnable-track {
       width: 100%;
       height: 6px;
-      cursor: pointer;
       background: #44403c;
-      border-radius: 9999px;
+      border-radius: 999px;
+      outline: none;
+      -webkit-appearance: none;
+      touch-action: none;
     }
     input[type=range]::-webkit-slider-thumb {
-      height: 18px;
-      width: 18px;
+      -webkit-appearance: none;
+      width: 18px; height: 18px;
       border-radius: 50%;
       background: #fb923c;
       cursor: pointer;
-      -webkit-appearance: none;
-      margin-top: -6px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    }
+
+    .time-display {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #fb923c;
+      font-family: monospace;
+      margin-top: 6px;
+    }
+
+    .controls-main { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+    .btn-secondary {
+      background: white; border: 1px solid #e7e5e4;
+      color: #44403c; font-size: 12px; font-weight: bold;
+      padding: 10px; border-radius: 12px; cursor: pointer; flex: 1; max-width: 90px;
+      box-shadow: 0 3px 0 #d6d3d1;
+    }
+    .btn-secondary:active { transform: translateY(2px); box-shadow: 0 1px 0 #d6d3d1; }
+
+    .btn-play {
+      background: var(--primary); color: white; border: none;
+      font-size: 14px; font-weight: bold; padding: 10px; border-radius: 12px;
+      cursor: pointer; flex: 2; max-width: 160px; box-shadow: 0 3px 0 #c2410c;
+    }
+    .btn-play:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
+
+    .box-sub {
+      background: rgba(255,247,237,0.7);
+      padding: 10px; border-radius: 12px;
+      border: 1px solid #ffedd5; margin-bottom: 12px;
+    }
+    .box-title { font-size: 11px; font-weight: bold; color: var(--primary); margin-bottom: 6px; }
+
+    .flex-wrap { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 4px; }
+    .btn-seek {
+      background: white; border: 1px solid #e7e5e4; color: #57534e;
+      font-size: 11px; font-weight: bold; padding: 6px 0; border-radius: 8px;
+      flex: 1; min-width: 55px; cursor: pointer; box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-seek:active { transform: translateY(2px); box-shadow: 0 0 0; }
+
+    .playlist-box { max-height: 140px; overflow-y: auto; }
+    .playlist-item {
+      padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border: 1px solid #e7e5e4; background: white; color: #57534e; margin-bottom: 4px;
+    }
+    .playlist-item.active {
+      background: var(--primary); color: white; border-color: #ea580c;
     }
   </style>
 </head>
-<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-3 sm:p-6 select-none">
+<body>
 
-<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 11px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 9999px; z-index: 1000; border: 1.5px solid #e4e4e7; font-weight: bold;">メニューに戻る</a>
+<a href="menu.html" class="menu-btn">メニューに戻る</a>
 
-<div id="main-container" class="p-4 sm:p-6 bg-white/95 rounded-3xl shadow-[0_15px_30px_rgba(180,150,120,0.15)] border-3 border-orange-200 max-w-xl w-full my-2 transition-all duration-300">
-  
-  <header class="text-center mb-3">
-    <h1 class="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
-      オーディオプレーヤー
-    </h1>
-  </header>
+<div class="container">
+  <h1>オーディオプレーヤー</h1>
 
-  <div class="grid grid-cols-2 gap-2 mb-2">
-    <div class="bg-orange-50/60 p-2 rounded-xl border border-orange-100 flex flex-col justify-center items-center gap-1">
-      <div class="file-input-wrapper w-full">
-        <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold py-1.5 px-2 rounded-lg cursor-pointer transition-colors shadow-[0_2px_0_#c2410c] inline-flex items-center justify-center gap-1 w-full">
-          📁 フォルダ選択
-        </span>
+  <div class="grid-2">
+    <div style="text-align:center;">
+      <div class="file-wrapper">
+        <button class="btn-drum">📁 フォルダ選択</button>
         <input type="file" id="folderInput" webkitdirectory directory multiple>
       </div>
-      <span id="folderStatus" class="text-[10px] font-bold text-stone-500 truncate w-full text-center">未選択</span>
+      <div id="folderStatus" style="font-size:10px; font-weight:bold; color:#78716c; margin-top:4px;">未選択</div>
     </div>
-
-    <div id="dropZone" class="border border-dashed border-orange-200 hover:border-orange-400 rounded-xl p-2 text-center text-[10px] font-bold text-stone-400 bg-orange-50/30 transition-colors flex items-center justify-center leading-tight">
-      ここにフォルダをドロップ
-    </div>
+    <div id="dropZone" class="drop-zone">ここにフォルダをドロップ</div>
   </div>
 
-  <div class="text-[10px] font-bold text-stone-400 mb-3 text-center">
-    🔒 ※データは外部送信されずブラウザ内でのみ安全に処理されます。
+  <div class="status-text">🔒 ※データはブラウザ内でのみ安全に処理されます</div>
+
+  <div class="display-pad">
+    <div id="trackTitle" class="track-title">トラックが選択されていません</div>
+    <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1">
+    <div id="timeDisplay" class="time-display">00:00:00 / 00:00:00</div>
   </div>
 
-  <div id="display-pad" class="bg-stone-800 text-stone-100 p-3.5 sm:p-5 rounded-2xl border-3 border-stone-950 text-center shadow-inner relative overflow-hidden mb-3">
-    <div class="absolute top-1.5 left-2.5 text-[9px] font-bold tracking-widest text-stone-500">REPRODUCING</div>
-    <div id="trackTitle" class="text-base sm:text-lg font-bold tracking-wide my-1.5 text-yellow-300 truncate px-1">トラックが選択されていません</div>
-    
-    <div class="px-1 my-1">
-      <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" class="w-full cursor-pointer">
+  <div class="controls-main">
+    <button id="prevBtn" class="btn-secondary">⏮ 前へ</button>
+    <button id="playPauseBtn" class="btn-play">▶ 再生</button>
+    <button id="nextBtn" class="btn-secondary">次へ ⏭</button>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ スキップコントロール</div>
+    <div class="flex-wrap">
+      <button class="btn-seek" data-seconds="-30">-30秒</button>
+      <button class="btn-seek" data-seconds="-15">-15秒</button>
+      <button class="btn-seek" data-seconds="-10">-10秒</button>
+      <button class="btn-seek" data-seconds="-5">-5秒</button>
     </div>
-
-    <div id="timeDisplay" class="text-xl sm:text-2xl font-bold tracking-wider text-orange-400 font-mono">00:00:00 / 00:00:00</div>
-  </div>
-
-  <div class="flex justify-center gap-2 mb-3">
-    <button id="prevBtn" class="drum-pad bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer flex-1 max-w-[90px]">
-      ⏮ 前へ
-    </button>
-    <button id="playPauseBtn" class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold py-2.5 px-6 rounded-xl cursor-pointer flex-2 max-w-[160px] text-center shadow-[0_4px_0_#c2410c]">
-      ▶ 再生
-    </button>
-    <button id="nextBtn" class="drum-pad bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer flex-1 max-w-[90px]">
-      次へ ⏭
-    </button>
-  </div>
-
-  <div class="bg-orange-50/60 p-2.5 rounded-xl border border-orange-100 flex flex-col gap-1.5 mb-3">
-    <span class="text-[11px] font-bold text-orange-500 px-0.5">★ スキップコントロール</span>
-    <div class="flex justify-center gap-1 flex-wrap">
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-30">-30秒</button>
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-15">-15秒</button>
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-10">-10秒</button>
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="-5">-5秒</button>
-    </div>
-    <div class="flex justify-center gap-1 flex-wrap">
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="5">+5秒</button>
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="10">+10秒</button>
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="15">+15秒</button>
-      <button class="seek-btn drum-pad bg-white border border-stone-200 text-stone-600 text-[11px] font-bold py-1.5 px-1 rounded-lg flex-1 min-w-[55px]" data-seconds="30">+30秒</button>
+    <div class="flex-wrap">
+      <button class="btn-seek" data-seconds="5">+5秒</button>
+      <button class="btn-seek" data-seconds="10">+10秒</button>
+      <button class="btn-seek" data-seconds="15">+15秒</button>
+      <button class="btn-seek" data-seconds="30">+30秒</button>
     </div>
   </div>
 
-  <div class="bg-orange-50/60 rounded-xl border border-orange-100 p-2.5">
-    <div class="text-[11px] font-bold text-orange-500 mb-1.5 px-0.5">★ プレイリスト</div>
-    <div id="playlistContainer" class="max-h-[160px] overflow-y-auto pr-1">
-      <ul id="playlist" class="space-y-1"></ul>
+  <div class="box-sub">
+    <div class="box-title">★ プレイリスト</div>
+    <div class="playlist-box">
+      <div id="playlist"></div>
     </div>
   </div>
-
 </div>
 
 <audio id="audioPlayer"></audio>
 
 <script>
-  // IndexedDB 管理
   const DB_NAME = 'AudioAppCacheDB';
   const STORE_NAME = 'audioFiles';
 
   function openDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-        }
-      };
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
@@ -179,14 +258,11 @@
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       await new Promise(r => { store.clear().onsuccess = r; });
-
       for (let i = 0; i < files.length; i++) {
         store.put({ id: i, name: files[i].name, blob: files[i] });
       }
       localStorage.setItem('audio_folder_name', folderName);
-    } catch (e) {
-      console.warn("DB保存失敗:", e);
-    }
+    } catch (e) {}
   }
 
   async function loadFromDB() {
@@ -198,33 +274,24 @@
         req.onsuccess = () => resolve(req.result || []);
         req.onerror = () => resolve([]);
       });
-    } catch (e) {
-      return [];
-    }
+    } catch (e) { return []; }
   }
 
   let fileList = [];
   let currentIndex = -1;
   let isUserSeeking = false;
-  let isSeekLocked = false;
-  let saveTimer = null;
 
   const audio = document.getElementById('audioPlayer');
   const folderInput = document.getElementById('folderInput');
   const folderStatus = document.getElementById('folderStatus');
-  const dropZone = document.getElementById('dropZone');
   const trackTitle = document.getElementById('trackTitle');
   const timeDisplay = document.getElementById('timeDisplay');
   const seekSlider = document.getElementById('seekSlider');
   const playPauseBtn = document.getElementById('playPauseBtn');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
   const playlistEl = document.getElementById('playlist');
-  const playlistContainer = document.getElementById('playlistContainer');
 
-  // 初期ロード＆自動復元
   window.addEventListener('DOMContentLoaded', async () => {
-    document.querySelectorAll('.seek-btn').forEach(btn => {
+    document.querySelectorAll('.btn-seek').forEach(btn => {
       btn.addEventListener('click', () => seekSeconds(parseFloat(btn.dataset.seconds)));
     });
 
@@ -234,8 +301,7 @@
     if (cached.length > 0) {
       fileList = cached.map(item => ({ name: item.name, file: item.blob }));
       folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "復元完了";
-      
-      sortAndRenderPlaylist();
+      renderPlaylist();
       restoreSavedTrack();
     }
   });
@@ -249,10 +315,10 @@
       const idx = fileList.findIndex(f => f.name === savedName);
       if (idx !== -1) targetIdx = idx;
     }
-
     loadTrack(targetIdx, savedTime);
   }
 
+  // 軽量化したスライダーイベント
   seekSlider.addEventListener('input', () => {
     isUserSeeking = true;
     if (audio.duration) {
@@ -272,112 +338,55 @@
   folderInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
-
-    const firstPath = files[0].webkitRelativePath;
-    const folderName = firstPath ? firstPath.split('/')[0] : "選択フォルダ";
+    const folderName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : "選択フォルダ";
     folderStatus.textContent = `選択中: ${folderName}`;
-
     await processFiles(files, folderName);
   });
 
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('border-orange-400', 'bg-orange-100/50');
-  });
-
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('border-orange-400', 'bg-orange-100/50');
-  });
-
-  dropZone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('border-orange-400', 'bg-orange-100/50');
-
-    const items = e.dataTransfer.items;
-    const files = [];
-
-    if (items) {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i].webkitGetAsEntry();
-        if (item) await scanFiles(item, files);
-      }
-    }
-    if (files.length > 0) {
-      folderStatus.textContent = "ドロップフォルダ";
-      await processFiles(files, "ドロップフォルダ");
-    }
-  });
-
-  async function scanFiles(entry, fileArray) {
-    if (entry.isFile) {
-      const file = await new Promise(r => entry.file(r));
-      if (isAudioFile(file.name)) fileArray.push(file);
-    } else if (entry.isDirectory) {
-      const dirReader = entry.createReader();
-      const entries = await new Promise(r => dirReader.readEntries(r));
-      for (const child of entries) await scanFiles(child, fileArray);
-    }
-  }
-
   async function processFiles(rawFiles, folderName) {
-    const filteredFiles = rawFiles.filter(f => isAudioFile(f.name));
-    if (filteredFiles.length === 0) {
-      alert("選択されたフォルダ内に再生可能な音声ファイルが見つかりませんでした。");
-      return;
-    }
+    const filteredFiles = rawFiles.filter(f => ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'].includes(f.name.split('.').pop().toLowerCase()));
+    if (filteredFiles.length === 0) return;
 
     const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
     filteredFiles.sort((a, b) => collator.compare(a.name, b.name));
 
     fileList = filteredFiles.map(f => ({ name: f.name, file: f }));
-    sortAndRenderPlaylist();
-
+    renderPlaylist();
     await saveToDB(filteredFiles, folderName);
-    loadAndPlayTrack(0, 0, false);
+    loadTrack(0, 0);
   }
 
-  function isAudioFile(filename) {
-    const ext = filename.split('.').pop().toLowerCase();
-    return ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'].includes(ext);
-  }
-
-  function sortAndRenderPlaylist() {
+  function renderPlaylist() {
     playlistEl.innerHTML = '';
     fileList.forEach((item, index) => {
-      const li = document.createElement('li');
-      const isActive = index === currentIndex;
-      li.className = `p-2 rounded-lg text-[11px] font-bold cursor-pointer truncate transition-all border ${
-        isActive 
-          ? 'bg-orange-500 text-white border-orange-600 shadow-sm' 
-          : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
-      }`;
-      li.textContent = `${index + 1}. ${item.name}`;
-      li.addEventListener('click', () => loadAndPlayTrack(index, 0, true));
-      playlistEl.appendChild(li);
+      const div = document.createElement('div');
+      div.className = `playlist-item ${index === currentIndex ? 'active' : ''}`;
+      div.textContent = `${index + 1}. ${item.name}`;
+      div.addEventListener('click', () => loadAndPlayTrack(index, 0, true));
+      playlistEl.appendChild(div);
     });
   }
 
   function loadTrack(index, seekTime = 0) {
     if (index < 0 || index >= fileList.length) return;
-
     currentIndex = index;
     const item = fileList[currentIndex];
 
     if (audio.src) URL.revokeObjectURL(audio.src);
     audio.src = URL.createObjectURL(item.file);
-    
     trackTitle.textContent = item.name;
-    updatePlaylistHighlight();
+    
+    // プレイリストのハイライト更新
+    const items = playlistEl.children;
+    for(let i=0; i<items.length; i++) {
+      items[i].classList.toggle('active', i === currentIndex);
+    }
 
     audio.onloadedmetadata = () => {
       audio.currentTime = seekTime;
       timeDisplay.textContent = `${formatTime(seekTime)} / ${formatTime(audio.duration || 0)}`;
-      if (audio.duration) {
-        seekSlider.value = (seekTime / audio.duration) * 100;
-      }
+      if (audio.duration) seekSlider.value = (seekTime / audio.duration) * 100;
     };
-
-    saveCurrentState();
   }
 
   async function loadAndPlayTrack(index, seekTime = 0, autoPlay = false) {
@@ -386,96 +395,51 @@
       try {
         await audio.play();
         playPauseBtn.textContent = '⏸ 一時停止';
-      } catch (e) {
-        playPauseBtn.textContent = '▶ 再生';
-      }
+      } catch (e) {}
     } else {
       audio.pause();
       playPauseBtn.textContent = '▶ 再生';
-    }
-  }
-
-  function updatePlaylistHighlight() {
-    const items = playlistEl.querySelectorAll('li');
-    items.forEach((item, i) => {
-      const isActive = i === currentIndex;
-      item.className = `p-2 rounded-lg text-[11px] font-bold cursor-pointer truncate transition-all border ${
-        isActive 
-          ? 'bg-orange-500 text-white border-orange-600 shadow-sm' 
-          : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
-      }`;
-    });
-
-    if (items[currentIndex]) {
-      const activeItem = items[currentIndex];
-      playlistContainer.scrollTo({
-        top: activeItem.offsetTop - playlistEl.offsetTop,
-        behavior: 'smooth'
-      });
     }
   }
 
   playPauseBtn.addEventListener('click', async () => {
     if (fileList.length === 0) return;
-
     if (audio.paused) {
-      try {
-        await audio.play();
-        playPauseBtn.textContent = '⏸ 一時停止';
-      } catch (e) {
-        console.error(e);
-      }
+      await audio.play();
+      playPauseBtn.textContent = '⏸ 一時停止';
     } else {
       audio.pause();
       playPauseBtn.textContent = '▶ 再生';
+      saveCurrentState(); // 一時停止時に保存
     }
   });
 
-  prevBtn.addEventListener('click', () => {
-    if (currentIndex > 0) {
-      loadAndPlayTrack(currentIndex - 1, 0, !audio.paused);
-    } else {
-      audio.currentTime = 0;
-    }
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (currentIndex > 0) loadAndPlayTrack(currentIndex - 1, 0, !audio.paused);
+    else audio.currentTime = 0;
   });
 
-  nextBtn.addEventListener('click', () => {
-    if (currentIndex < fileList.length - 1) {
-      loadAndPlayTrack(currentIndex + 1, 0, !audio.paused);
-    }
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (currentIndex < fileList.length - 1) loadAndPlayTrack(currentIndex + 1, 0, !audio.paused);
   });
 
   audio.addEventListener('ended', () => {
-    if (currentIndex < fileList.length - 1) {
-      loadAndPlayTrack(currentIndex + 1, 0, true);
-    } else {
-      playPauseBtn.textContent = '▶ 再生';
-      saveCurrentState();
-    }
+    if (currentIndex < fileList.length - 1) loadAndPlayTrack(currentIndex + 1, 0, true);
+    else playPauseBtn.textContent = '▶ 再生';
   });
 
   function seekSeconds(seconds) {
     if (!audio.src || isNaN(audio.duration)) return;
-    if (isSeekLocked) return;
-
     let targetTime = audio.currentTime + seconds;
-    if (targetTime < 0) targetTime = 0;
-    if (targetTime > audio.duration) targetTime = audio.duration;
-
-    audio.currentTime = targetTime;
-    
-    isSeekLocked = true;
-    setTimeout(() => { isSeekLocked = false; }, 150);
-
-    saveCurrentState();
+    audio.currentTime = Math.max(0, Math.min(targetTime, audio.duration));
   }
 
+  // 高速化した timeupdate（保存処理を除去）
   audio.addEventListener('timeupdate', () => {
     if (!isUserSeeking && audio.duration) {
       seekSlider.value = (audio.currentTime / audio.duration) * 100;
+      timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
     }
-    timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
-    saveCurrentState();
   });
 
   function formatTime(seconds) {
@@ -483,21 +447,22 @@
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-
-    const pad = num => String(num).padStart(2, '0');
+    const pad = n => String(n).padStart(2, '0');
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
+  // 必要なタイミングでのみ保存
   function saveCurrentState() {
-    if (saveTimer) return;
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-      if (currentIndex >= 0 && fileList[currentIndex]) {
-        localStorage.setItem('audio_last_file', fileList[currentIndex].name);
-        localStorage.setItem('audio_last_time', audio.currentTime);
-      }
-    }, 500);
+    if (currentIndex >= 0 && fileList[currentIndex]) {
+      localStorage.setItem('audio_last_file', fileList[currentIndex].name);
+      localStorage.setItem('audio_last_time', audio.currentTime);
+    }
   }
+
+  // ページを閉じる・バックグラウンドに移動した時に保存
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveCurrentState();
+  });
 </script>
 
 </body>
