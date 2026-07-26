@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オーディオプレーヤー</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@700;900&family=M+PLUS+Rounded+1c:wght@700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+    }
+    .drum-pad {
+      transition: all 0.1s ease;
+      box-shadow: 0 6px 0 #d6d3d1, 0 10px 20px rgba(0,0,0,0.06);
+    }
+    .drum-pad:active:not(:disabled) {
+      transform: translateY(6px);
+      box-shadow: 0 0px 0 #d6d3d1, 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+    .file-input-wrapper input[type=file] {
+      font-size: 100px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #fff7ed;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #fdba74;
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-4 sm:p-8 select-none">
+
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #71716a; text-decoration: none; background: rgba(255,255,255,0.9); padding: 6px 14px; border-radius: 9999px; z-index: 1000; border: 2px solid #e4e4e7; font-weight: bold;">メニューに戻る</a>
+
+<div id="main-container" class="p-6 sm:p-8 bg-white/95 rounded-3xl shadow-[0_20px_40px_rgba(180,150,120,0.2)] border-4 border-orange-200 max-w-2xl w-full mt-4 mb-4 transition-all duration-300">
+  
+  <header class="text-center mb-6">
+    <h1 class="text-2xl sm:text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
+      オーディオプレーヤー
+    </h1>
+    <p class="text-xs text-orange-400 font-bold tracking-widest">お気に入りの音楽・音声ファイルを再生</p>
+  </header>
+
+  <!-- フォルダ選択部分 -->
+  <div class="bg-orange-50/60 p-4 rounded-2xl border-2 border-orange-100 mb-3 flex items-center justify-between gap-3 flex-wrap">
+    <div class="file-input-wrapper">
+      <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-3 px-5 rounded-xl cursor-pointer transition-colors shadow-[0_4px_0_#c2410c] inline-flex items-center gap-2">
+        📁 フォルダを選択
+      </span>
+      <input type="file" id="folderInput" webkitdirectory directory multiple>
+    </div>
+    <span id="folderStatus" class="text-xs font-bold text-stone-500 truncate max-w-xs">フォルダが選択されていません</span>
+  </div>
+
+  <!-- 安心メッセージ -->
+  <div class="text-[11px] font-bold text-stone-400 mb-3 px-1 leading-relaxed">
+    🔒 ※「アップロード」と表示される場合でも、データはブラウザ内のみで処理され、外部サーバーへ送信されることはありません。
+  </div>
+
+  <!-- ドラッグ＆ドロップゾーン -->
+  <div id="dropZone" class="border-2 border-dashed border-orange-200 hover:border-orange-400 rounded-2xl p-3 text-center text-xs font-bold text-stone-400 mb-6 bg-orange-50/30 transition-colors">
+    ここに音声フォルダをドラッグ＆ドロップして読み込むこともできます
+  </div>
+
+  <!-- 曲情報・再生時間表示（ブラック液晶表示） -->
+  <div id="display-pad" class="bg-stone-800 text-stone-100 p-6 rounded-2xl border-4 border-stone-950 text-center shadow-inner relative overflow-hidden mb-6">
+    <div class="absolute top-2 left-3 text-[10px] font-bold tracking-widest text-stone-500">REPRODUCING</div>
+    <div id="trackTitle" class="text-lg sm:text-xl font-bold tracking-wide my-3 text-yellow-300 truncate px-2">トラックが選択されていません</div>
+    <div id="timeDisplay" class="text-2xl sm:text-3xl font-bold tracking-wider text-orange-400 font-mono">00:00:00 / 00:00:00</div>
+  </div>
+
+  <!-- メイン操作（前へ・再生/停止・次へ） -->
+  <div class="flex justify-center gap-3 mb-6">
+    <button id="prevBtn" class="drum-pad bg-white border-2 border-stone-200 hover:bg-stone-50 text-stone-700 text-sm font-bold py-3.5 px-6 rounded-2xl cursor-pointer flex-1 max-w-[120px]">
+      ⏮ 前へ
+    </button>
+    <button id="playPauseBtn" class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-base font-bold py-3.5 px-8 rounded-2xl cursor-pointer flex-2 max-w-[200px] text-center shadow-[0_6px_0_#c2410c]">
+      ▶ 再生
+    </button>
+    <button id="nextBtn" class="drum-pad bg-white border-2 border-stone-200 hover:bg-stone-50 text-stone-700 text-sm font-bold py-3.5 px-6 rounded-2xl cursor-pointer flex-1 max-w-[120px]">
+      次へ ⏭
+    </button>
+  </div>
+
+  <!-- スキップ操作 -->
+  <div class="bg-orange-50/60 p-4 rounded-2xl border-2 border-orange-100 flex flex-col gap-2.5 mb-6">
+    <span class="text-xs font-bold text-orange-500">★ スキップコントロール</span>
+    <!-- 巻き戻し -->
+    <div class="flex justify-center gap-1.5 flex-wrap">
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-30">-30秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-15">-15秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-10">-10秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-5">-5秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="-3">-3秒</button>
+    </div>
+    <!-- 早送り -->
+    <div class="flex justify-center gap-1.5 flex-wrap">
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="3">+3秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="5">+5秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="10">+10秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="15">+15秒</button>
+      <button class="seek-btn drum-pad bg-white border-2 border-stone-200 text-stone-600 text-xs font-bold py-2 px-3 rounded-xl flex-1 min-w-[70px]" data-seconds="30">+30秒</button>
+    </div>
+  </div>
+
+  <!-- プレイリスト -->
+  <div class="bg-orange-50/60 rounded-2xl border-2 border-orange-100 p-3">
+    <div class="text-xs font-bold text-orange-500 mb-2 px-1">★ プレイリスト</div>
+    <div class="max-h-[200px] overflow-y-auto pr-1">
+      <ul id="playlist" class="space-y-1.5"></ul>
+    </div>
+  </div>
+
+</div>
+
+<audio id="audioPlayer"></audio>
+
+<script>
+  // IndexedDBによるファイル＆状態のキャッシュ保存
+  const DB_NAME = 'MusicPlayerCache';
+  const DB_VERSION = 1;
+  const STORE_FILES = 'audioFiles';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE_FILES)) {
+          db.createObjectStore(STORE_FILES, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function saveFilesToCache(files, folderName) {
+    const db = await openDB();
+    const tx = db.transaction(STORE_FILES, 'readwrite');
+    const store = tx.objectStore(STORE_FILES);
+    await new Promise(resolve => {
+      const clearReq = store.clear();
+      clearReq.onsuccess = resolve;
+    });
+
+    for (let i = 0; i < files.length; i++) {
+      store.put({ id: i, name: files[i].name, blob: files[i] });
+    }
+    localStorage.setItem('music_player_folder_name', folderName);
+  }
+
+  async function loadFilesFromCache() {
+    const db = await openDB();
+    const tx = db.transaction(STORE_FILES, 'readonly');
+    const store = tx.objectStore(STORE_FILES);
+    return new Promise(resolve => {
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  }
+
+  // アプリケーション状態
+  let fileList = [];
+  let currentIndex = -1;
+
+  // HTML要素
+  const audio = document.getElementById('audioPlayer');
+  const folderInput = document.getElementById('folderInput');
+  const folderStatus = document.getElementById('folderStatus');
+  const dropZone = document.getElementById('dropZone');
+  const trackTitle = document.getElementById('trackTitle');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const playlistEl = document.getElementById('playlist');
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    // シークボタンのイベントバインド
+    document.querySelectorAll('.seek-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const seconds = parseFloat(btn.dataset.seconds);
+        seekSeconds(seconds);
+      });
+    });
+
+    // 以前の保存状態を復元
+    const cachedFiles = await loadFilesFromCache();
+    const savedFolderName = localStorage.getItem('music_player_folder_name');
+
+    if (cachedFiles.length > 0) {
+      fileList = cachedFiles.map(item => ({ name: item.name, file: item.blob }));
+      folderStatus.textContent = savedFolderName ? `読み込み済み: ${savedFolderName}` : "キャッシュからファイルを復元しました";
+      sortAndRenderPlaylist();
+      restoreLastState();
+    }
+  });
+
+  // フォルダ選択時
+  folderInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    const firstPath = files[0].webkitRelativePath;
+    const folderName = firstPath ? firstPath.split('/')[0] : "選択フォルダ";
+    folderStatus.textContent = `選択中: ${folderName}`;
+
+    await processFiles(files, folderName);
+  });
+
+  // ドラッグ＆ドロップ処理
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('border-orange-400', 'bg-orange-100/50');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('border-orange-400', 'bg-orange-100/50');
+  });
+
+  dropZone.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('border-orange-400', 'bg-orange-100/50');
+
+    const items = e.dataTransfer.items;
+    const files = [];
+
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i].webkitGetAsEntry();
+        if (item) {
+          await scanFiles(item, files);
+        }
+      }
+    }
+    if (files.length > 0) {
+      folderStatus.textContent = "ドロップされたフォルダを読み込みました";
+      await processFiles(files, "ドロップフォルダ");
+    }
+  });
+
+  async function scanFiles(entry, fileArray) {
+    if (entry.isFile) {
+      const file = await new Promise(resolve => entry.file(resolve));
+      if (isAudioFile(file.name)) fileArray.push(file);
+    } else if (entry.isDirectory) {
+      const dirReader = entry.createReader();
+      const entries = await new Promise(resolve => dirReader.readEntries(resolve));
+      for (const childEntry of entries) {
+        await scanFiles(childEntry, fileArray);
+      }
+    }
+  }
+
+  async function processFiles(rawFiles, folderName) {
+    const filteredFiles = rawFiles.filter(f => isAudioFile(f.name));
+    if (filteredFiles.length === 0) {
+      alert("選択されたフォルダ内に再生可能な音声ファイルが見つかりませんでした。");
+      return;
+    }
+
+    // 自然順（1, 2, 10順）ソート
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    filteredFiles.sort((a, b) => collator.compare(a.name, b.name));
+
+    fileList = filteredFiles.map(f => ({ name: f.name, file: f }));
+    sortAndRenderPlaylist();
+
+    // キャッシュ保存
+    await saveFilesToCache(filteredFiles, folderName);
+
+    // 0秒位置・停止状態で初期ロード
+    loadAndPlayTrack(0, 0, false);
+  }
+
+  function isAudioFile(filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    return ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'].includes(ext);
+  }
+
+  function sortAndRenderPlaylist() {
+    playlistEl.innerHTML = '';
+    fileList.forEach((item, index) => {
+      const li = document.createElement('li');
+      const isActive = index === currentIndex;
+      li.className = `p-2.5 rounded-xl text-xs font-bold cursor-pointer truncate transition-all border-2 ${
+        isActive 
+          ? 'bg-orange-500 text-white border-orange-600 shadow-sm' 
+          : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
+      }`;
+      li.textContent = `${index + 1}. ${item.name}`;
+      li.addEventListener('click', () => loadAndPlayTrack(index, 0, true));
+      playlistEl.appendChild(li);
+    });
+  }
+
+  async function loadTrack(index, seekTime = 0) {
+    if (index < 0 || index >= fileList.length) return;
+
+    currentIndex = index;
+    const item = fileList[currentIndex];
+
+    if (audio.src) URL.revokeObjectURL(audio.src);
+    audio.src = URL.createObjectURL(item.file);
+    audio.currentTime = seekTime;
+
+    trackTitle.textContent = item.name;
+    updatePlaylistHighlight();
+    saveState();
+  }
+
+  async function loadAndPlayTrack(index, seekTime = 0, autoPlay = false) {
+    await loadTrack(index, seekTime);
+    if (autoPlay) {
+      audio.play();
+      playPauseBtn.textContent = '⏸ 一時停止';
+    } else {
+      audio.pause();
+      playPauseBtn.textContent = '▶ 再生';
+    }
+  }
+
+  function updatePlaylistHighlight() {
+    const items = playlistEl.querySelectorAll('li');
+    items.forEach((item, i) => {
+      const isActive = i === currentIndex;
+      item.className = `p-2.5 rounded-xl text-xs font-bold cursor-pointer truncate transition-all border-2 ${
+        isActive 
+          ? 'bg-orange-500 text-white border-orange-600 shadow-sm' 
+          : 'bg-white text-stone-600 border-stone-200 hover:border-orange-300'
+      }`;
+    });
+    if (items[currentIndex]) {
+      items[currentIndex].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  playPauseBtn.addEventListener('click', () => {
+    if (!audio.src && fileList.length > 0) {
+      loadAndPlayTrack(0, 0, true);
+      return;
+    }
+
+    if (audio.paused) {
+      audio.play();
+      playPauseBtn.textContent = '⏸ 一時停止';
+    } else {
+      audio.pause();
+      playPauseBtn.textContent = '▶ 再生';
+    }
+  });
+
+  prevBtn.addEventListener('click', () => {
+    if (currentIndex > 0) {
+      loadAndPlayTrack(currentIndex - 1, 0, !audio.paused);
+    } else {
+      audio.currentTime = 0;
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentIndex < fileList.length - 1) {
+      loadAndPlayTrack(currentIndex + 1, 0, !audio.paused);
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    if (currentIndex < fileList.length - 1) {
+      loadAndPlayTrack(currentIndex + 1, 0, true);
+    } else {
+      playPauseBtn.textContent = '▶ 再生';
+      saveState();
+    }
+  });
+
+  function seekSeconds(seconds) {
+    if (!audio.src) return;
+
+    let targetTime = audio.currentTime + seconds;
+
+    if (seconds < 0) {
+      if (targetTime < 0) targetTime = 0;
+      audio.currentTime = targetTime;
+    } else {
+      if (targetTime <= audio.duration) {
+        audio.currentTime = targetTime;
+      }
+    }
+    saveState();
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
+    saveState();
+  });
+
+  function formatTime(seconds) {
+    if (isNaN(seconds)) return "00:00:00";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+
+    const pad = num => String(num).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function saveState() {
+    if (currentIndex >= 0) {
+      localStorage.setItem('music_player_last_index', currentIndex);
+      localStorage.setItem('music_player_last_time', audio.currentTime);
+    }
+  }
+
+  function restoreLastState() {
+    const savedIndex = localStorage.getItem('music_player_last_index');
+    const savedTime = localStorage.getItem('music_player_last_time');
+
+    let indexToLoad = 0;
+    let timeToSeek = 0;
+
+    if (savedIndex !== null && fileList[savedIndex]) {
+      indexToLoad = parseInt(savedIndex, 10);
+    }
+    if (savedTime !== null) {
+      timeToSeek = parseFloat(savedTime);
+    }
+
+    loadAndPlayTrack(indexToLoad, timeToSeek, false);
+  }
+</script>
+
+</body>
+</html>
