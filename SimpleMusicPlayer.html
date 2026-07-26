@@ -155,9 +155,58 @@
 <audio id="audioPlayer"></audio>
 
 <script>
+  // IndexedDB 管理
+  const DB_NAME = 'AudioAppCacheDB';
+  const STORE_NAME = 'audioFiles';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function saveToDB(files, folderName) {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      await new Promise(r => { store.clear().onsuccess = r; });
+
+      for (let i = 0; i < files.length; i++) {
+        store.put({ id: i, name: files[i].name, blob: files[i] });
+      }
+      localStorage.setItem('audio_folder_name', folderName);
+    } catch (e) {
+      console.warn("DB保存失敗:", e);
+    }
+  }
+
+  async function loadFromDB() {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      return await new Promise(resolve => {
+        const req = tx.objectStore(STORE_NAME).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
   let fileList = [];
   let currentIndex = -1;
   let isUserSeeking = false;
+  let isSeekLocked = false;
   let saveTimer = null;
 
   const audio = document.getElementById('audioPlayer');
@@ -173,27 +222,35 @@
   const playlistEl = document.getElementById('playlist');
   const playlistContainer = document.getElementById('playlistContainer');
 
-  // 画面ロード時に「保存していた曲名と時間」を復元表示
-  window.addEventListener('DOMContentLoaded', () => {
+  // 初期ロード＆自動復元
+  window.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.seek-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const seconds = parseFloat(btn.dataset.seconds);
-        seekSeconds(seconds);
-      });
+      btn.addEventListener('click', () => seekSeconds(parseFloat(btn.dataset.seconds)));
     });
 
-    restoreInitialUI();
+    const cached = await loadFromDB();
+    const savedFolderName = localStorage.getItem('audio_folder_name');
+
+    if (cached.length > 0) {
+      fileList = cached.map(item => ({ name: item.name, file: item.blob }));
+      folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "復元完了";
+      
+      sortAndRenderPlaylist();
+      restoreSavedTrack();
+    }
   });
 
-  function restoreInitialUI() {
-    const savedFileName = localStorage.getItem('music_player_last_file');
-    const savedTime = parseFloat(localStorage.getItem('music_player_last_time') || 0);
+  function restoreSavedTrack() {
+    const savedName = localStorage.getItem('audio_last_file');
+    const savedTime = parseFloat(localStorage.getItem('audio_last_time') || 0);
 
-    if (savedFileName) {
-      trackTitle.textContent = savedFileName;
-      timeDisplay.textContent = `${formatTime(savedTime)} / --:--:--`;
-      folderStatus.textContent = `フォルダを再選択してください`;
+    let targetIdx = 0;
+    if (savedName) {
+      const idx = fileList.findIndex(f => f.name === savedName);
+      if (idx !== -1) targetIdx = idx;
     }
+
+    loadTrack(targetIdx, savedTime);
   }
 
   seekSlider.addEventListener('input', () => {
@@ -209,7 +266,7 @@
       audio.currentTime = (seekSlider.value / 100) * audio.duration;
     }
     isUserSeeking = false;
-    debouncedSaveState();
+    saveCurrentState();
   });
 
   folderInput.addEventListener('change', async (e) => {
@@ -220,7 +277,7 @@
     const folderName = firstPath ? firstPath.split('/')[0] : "選択フォルダ";
     folderStatus.textContent = `選択中: ${folderName}`;
 
-    await processFiles(files);
+    await processFiles(files, folderName);
   });
 
   dropZone.addEventListener('dragover', (e) => {
@@ -242,31 +299,27 @@
     if (items) {
       for (let i = 0; i < items.length; i++) {
         const item = items[i].webkitGetAsEntry();
-        if (item) {
-          await scanFiles(item, files);
-        }
+        if (item) await scanFiles(item, files);
       }
     }
     if (files.length > 0) {
       folderStatus.textContent = "ドロップフォルダ";
-      await processFiles(files);
+      await processFiles(files, "ドロップフォルダ");
     }
   });
 
   async function scanFiles(entry, fileArray) {
     if (entry.isFile) {
-      const file = await new Promise(resolve => entry.file(resolve));
+      const file = await new Promise(r => entry.file(r));
       if (isAudioFile(file.name)) fileArray.push(file);
     } else if (entry.isDirectory) {
       const dirReader = entry.createReader();
-      const entries = await new Promise(resolve => dirReader.readEntries(resolve));
-      for (const childEntry of entries) {
-        await scanFiles(childEntry, fileArray);
-      }
+      const entries = await new Promise(r => dirReader.readEntries(r));
+      for (const child of entries) await scanFiles(child, fileArray);
     }
   }
 
-  async function processFiles(rawFiles) {
+  async function processFiles(rawFiles, folderName) {
     const filteredFiles = rawFiles.filter(f => isAudioFile(f.name));
     if (filteredFiles.length === 0) {
       alert("選択されたフォルダ内に再生可能な音声ファイルが見つかりませんでした。");
@@ -277,25 +330,10 @@
     filteredFiles.sort((a, b) => collator.compare(a.name, b.name));
 
     fileList = filteredFiles.map(f => ({ name: f.name, file: f }));
-
-    // 保存されていた「前回聴いていた曲名と再生位置」を取得
-    const savedFileName = localStorage.getItem('music_player_last_file');
-    const savedTime = parseFloat(localStorage.getItem('music_player_last_time') || 0);
-
-    let targetIndex = 0;
-    let targetTime = 0;
-
-    if (savedFileName) {
-      const matchIndex = fileList.findIndex(item => item.name === savedFileName);
-      if (matchIndex !== -1) {
-        targetIndex = matchIndex;
-        targetTime = savedTime; // 前回の秒数を復元
-      }
-    }
-
     sortAndRenderPlaylist();
-    // フォルダ読み込み時に保存位置をそのまま復元（自動再生はしない）
-    await loadAndPlayTrack(targetIndex, targetTime, false);
+
+    await saveToDB(filteredFiles, folderName);
+    loadAndPlayTrack(0, 0, false);
   }
 
   function isAudioFile(filename) {
@@ -319,7 +357,7 @@
     });
   }
 
-  async function loadTrack(index, seekTime = 0) {
+  function loadTrack(index, seekTime = 0) {
     if (index < 0 || index >= fileList.length) return;
 
     currentIndex = index;
@@ -328,21 +366,22 @@
     if (audio.src) URL.revokeObjectURL(audio.src);
     audio.src = URL.createObjectURL(item.file);
     
-    // メタデータ読み込み後に確実に秒数をセット
-    await new Promise(resolve => {
-      audio.onloadedmetadata = () => {
-        audio.currentTime = seekTime;
-        resolve();
-      };
-    });
-
     trackTitle.textContent = item.name;
     updatePlaylistHighlight();
-    debouncedSaveState();
+
+    audio.onloadedmetadata = () => {
+      audio.currentTime = seekTime;
+      timeDisplay.textContent = `${formatTime(seekTime)} / ${formatTime(audio.duration || 0)}`;
+      if (audio.duration) {
+        seekSlider.value = (seekTime / audio.duration) * 100;
+      }
+    };
+
+    saveCurrentState();
   }
 
   async function loadAndPlayTrack(index, seekTime = 0, autoPlay = false) {
-    await loadTrack(index, seekTime);
+    loadTrack(index, seekTime);
     if (autoPlay) {
       try {
         await audio.play();
@@ -377,10 +416,7 @@
   }
 
   playPauseBtn.addEventListener('click', async () => {
-    if (fileList.length === 0) {
-      alert("「📁 フォルダ選択」から音源のあるフォルダを選択してください。");
-      return;
-    }
+    if (fileList.length === 0) return;
 
     if (audio.paused) {
       try {
@@ -414,19 +450,24 @@
       loadAndPlayTrack(currentIndex + 1, 0, true);
     } else {
       playPauseBtn.textContent = '▶ 再生';
-      debouncedSaveState();
+      saveCurrentState();
     }
   });
 
   function seekSeconds(seconds) {
     if (!audio.src || isNaN(audio.duration)) return;
+    if (isSeekLocked) return;
 
     let targetTime = audio.currentTime + seconds;
     if (targetTime < 0) targetTime = 0;
     if (targetTime > audio.duration) targetTime = audio.duration;
 
     audio.currentTime = targetTime;
-    debouncedSaveState();
+    
+    isSeekLocked = true;
+    setTimeout(() => { isSeekLocked = false; }, 150);
+
+    saveCurrentState();
   }
 
   audio.addEventListener('timeupdate', () => {
@@ -434,7 +475,7 @@
       seekSlider.value = (audio.currentTime / audio.duration) * 100;
     }
     timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
-    debouncedSaveState();
+    saveCurrentState();
   });
 
   function formatTime(seconds) {
@@ -447,15 +488,15 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  function debouncedSaveState() {
+  function saveCurrentState() {
     if (saveTimer) return;
     saveTimer = setTimeout(() => {
       saveTimer = null;
       if (currentIndex >= 0 && fileList[currentIndex]) {
-        localStorage.setItem('music_player_last_file', fileList[currentIndex].name);
-        localStorage.setItem('music_player_last_time', audio.currentTime);
+        localStorage.setItem('audio_last_file', fileList[currentIndex].name);
+        localStorage.setItem('audio_last_time', audio.currentTime);
       }
-    }, 1000);
+    }, 500);
   }
 </script>
 
