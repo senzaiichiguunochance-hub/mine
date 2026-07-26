@@ -43,6 +43,38 @@
       background: #fdba74;
       border-radius: 9999px;
     }
+
+    /* カスタムスライダーのスタイル */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+    }
+    input[type=range]:focus {
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      cursor: pointer;
+      background: #44403c;
+      border-radius: 9999px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #fb923c;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -5px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.5);
+      transition: transform 0.1s ease, background-color 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      background: #f97316;
+      transform: scale(1.15);
+    }
   </style>
 </head>
 <body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-4 sm:p-8 select-none">
@@ -78,13 +110,19 @@
 
   <!-- 安心メッセージ -->
   <div class="text-[11px] font-bold text-stone-400 mb-5 px-1 leading-relaxed">
-    🔒 ※「アップロード」と表示されますが外部へ送信されません。
+    🔒 ※「アップロード」と表示される場合でも、データはブラウザ内のみで処理され、外部サーバーへ送信されることはありません。
   </div>
 
   <!-- 曲情報・再生時間表示（ブラック液晶表示） -->
   <div id="display-pad" class="bg-stone-800 text-stone-100 p-6 rounded-2xl border-4 border-stone-950 text-center shadow-inner relative overflow-hidden mb-6">
     <div class="absolute top-2 left-3 text-[10px] font-bold tracking-widest text-stone-500">REPRODUCING</div>
     <div id="trackTitle" class="text-lg sm:text-xl font-bold tracking-wide my-3 text-yellow-300 truncate px-2">トラックが選択されていません</div>
+    
+    <!-- シークスライダー -->
+    <div class="px-2 my-2">
+      <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" class="w-full cursor-pointer">
+    </div>
+
     <div id="timeDisplay" class="text-2xl sm:text-3xl font-bold tracking-wider text-orange-400 font-mono">00:00:00 / 00:00:00</div>
   </div>
 
@@ -181,6 +219,8 @@
   // アプリケーション状態
   let fileList = [];
   let currentIndex = -1;
+  let isUserSeeking = false; // スライダー操作中フラグ
+  let seekDebounceTimer = null; // 連打用タイマー
 
   // HTML要素
   const audio = document.getElementById('audioPlayer');
@@ -189,6 +229,7 @@
   const dropZone = document.getElementById('dropZone');
   const trackTitle = document.getElementById('trackTitle');
   const timeDisplay = document.getElementById('timeDisplay');
+  const seekSlider = document.getElementById('seekSlider');
   const playPauseBtn = document.getElementById('playPauseBtn');
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
@@ -212,6 +253,23 @@
       sortAndRenderPlaylist();
       restoreLastState();
     }
+  });
+
+  // スライダー操作（ドラッグ開始〜終了の制御）
+  seekSlider.addEventListener('input', () => {
+    isUserSeeking = true;
+    if (audio.duration) {
+      const targetTime = (seekSlider.value / 100) * audio.duration;
+      timeDisplay.textContent = `${formatTime(targetTime)} / ${formatTime(audio.duration)}`;
+    }
+  });
+
+  seekSlider.addEventListener('change', () => {
+    if (audio.duration) {
+      audio.currentTime = (seekSlider.value / 100) * audio.duration;
+    }
+    isUserSeeking = false;
+    saveState();
   });
 
   folderInput.addEventListener('change', async (e) => {
@@ -317,6 +375,7 @@
     audio.currentTime = seekTime;
 
     trackTitle.textContent = item.name;
+    seekSlider.value = 0;
     updatePlaylistHighlight();
     saveState();
   }
@@ -332,7 +391,6 @@
     }
   }
 
-  // プレイリストのハイライト変更＆【先頭表示スクロール】
   function updatePlaylistHighlight() {
     const items = playlistEl.querySelectorAll('li');
     items.forEach((item, i) => {
@@ -344,7 +402,6 @@
       }`;
     });
 
-    // 再生中の項目をリストの【一番上】に自動スクロール表示
     if (items[currentIndex]) {
       const activeItem = items[currentIndex];
       playlistContainer.scrollTo({
@@ -392,23 +449,27 @@
     }
   });
 
+  // 連打対応付きのシーク関数（デバウンス制御）
   function seekSeconds(seconds) {
-    if (!audio.src) return;
+    if (!audio.src || isNaN(audio.duration)) return;
 
     let targetTime = audio.currentTime + seconds;
+    if (targetTime < 0) targetTime = 0;
+    if (targetTime > audio.duration) targetTime = audio.duration;
 
-    if (seconds < 0) {
-      if (targetTime < 0) targetTime = 0;
-      audio.currentTime = targetTime;
-    } else {
-      if (targetTime <= audio.duration) {
-        audio.currentTime = targetTime;
-      }
-    }
-    saveState();
+    audio.currentTime = targetTime;
+
+    // 連打時の保存処理の負荷を軽減
+    clearTimeout(seekDebounceTimer);
+    seekDebounceTimer = setTimeout(() => {
+      saveState();
+    }, 200);
   }
 
   audio.addEventListener('timeupdate', () => {
+    if (!isUserSeeking && audio.duration) {
+      seekSlider.value = (audio.currentTime / audio.duration) * 100;
+    }
     timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
     saveState();
   });
