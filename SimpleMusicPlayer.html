@@ -206,7 +206,7 @@
 <script>
   const DB_NAME = 'FolderHandleDB';
   const STORE_NAME = 'handles';
-  const STORAGE_PREFIX = 'AudioPlayer_'; // 他のアプリケーションとのストレージ競合を防止
+  const STORAGE_PREFIX = 'AudioPlayer_';
 
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -222,7 +222,7 @@
       const db = await openDB();
       const tx = db.transaction(STORE_NAME, 'readwrite');
       tx.objectStore(STORE_NAME).put(handle, 'last_folder');
-      tx.oncomplete = () => db.close(); // DBセッションを閉じる処理を追加
+      tx.oncomplete = () => db.close();
     } catch(e) {
       console.error('IndexedDB save error:', e);
     }
@@ -237,7 +237,7 @@
         req.onsuccess = () => resolve(req.result || null);
         req.onerror = () => resolve(null);
       });
-      db.close(); // DBセッションを閉じる処理を追加
+      db.close();
       return handle;
     } catch(e) {
       console.error('IndexedDB load error:', e);
@@ -252,7 +252,7 @@
   let dirHandle = null;
   let currentSpeed = 1.0;
   let allowSave = false;
-  let lastSaveTime = 0; // localStorage書き込み頻度調整用
+  let lastSaveTime = 0;
 
   const audio = document.getElementById('audioPlayer');
   const selectFolderBtn = document.getElementById('selectFolderBtn');
@@ -296,15 +296,17 @@
     }
   });
 
-  // メモリ解放処理（ブラウザ終了・ページ遷移時）
+  // ページ離脱・終了時のメモリおよびメディアデコーダーの完全解放処理
   window.addEventListener('beforeunload', () => {
     saveState(true);
     if (currentObjectUrl) {
       URL.revokeObjectURL(currentObjectUrl);
     }
+    audio.removeAttribute('src');
+    audio.load();
   });
 
-  // キーボードショートカット操作（スペースキーで再生/一時停止、左右矢印で10秒スキップ）
+  // キーボードショートカット
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
     if (e.code === 'Space') {
@@ -350,7 +352,7 @@
     const validExts = ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'];
     const validFiles = files.filter(f => {
       const ext = f.name.split('.').pop().toLowerCase();
-      return validExts.includes(ext) || f.type.startsWith('audio/');
+      return validExts.includes(ext);
     });
 
     if (validFiles.length === 0) {
@@ -578,17 +580,12 @@
     saveState(true);
   }
 
-  // 再生時間の定期更新（保存処理は5秒間隔に制御してブラウザ負荷を軽減）
+  // timeupdateでの間引き保存
   audio.addEventListener('timeupdate', () => {
     if (!isUserSeeking && audio.duration) {
       seekSlider.value = (audio.currentTime / audio.duration) * 100;
       timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
-      
-      const now = Date.now();
-      if (now - lastSaveTime > 5000) {
-        saveState();
-        lastSaveTime = now;
-      }
+      saveState(false); // 通常更新はスロットル制御を通す
     }
   });
 
@@ -601,13 +598,18 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
-  // 設定保存関数（force=trueで即時保存）
+  // 設定保存関数（force=trueで即時書き込み、falseで5秒間隔制御）
   function saveState(force = false) {
     if (!allowSave || currentIndex < 0 || !fileList[currentIndex]) return;
     
+    const now = Date.now();
+    if (!force && now - lastSaveTime < 5000) return;
+
     localStorage.setItem(STORAGE_PREFIX + 'last_file', fileList[currentIndex].name);
     localStorage.setItem(STORAGE_PREFIX + 'last_time', audio.currentTime);
     localStorage.setItem(STORAGE_PREFIX + 'last_speed', currentSpeed);
+    
+    lastSaveTime = now;
   }
 </script>
 
