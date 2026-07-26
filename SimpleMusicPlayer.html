@@ -44,7 +44,6 @@
       border-radius: 9999px;
     }
 
-    /* カスタムスライダーのスタイル */
     input[type=range] {
       -webkit-appearance: none;
       appearance: none;
@@ -85,9 +84,8 @@
     </h1>
   </header>
 
-  <!-- フォルダ選択 ＆ ドラッグ＆ドロップ 共通エリア（小型化） -->
+  <!-- フォルダ選択 ＆ ドラッグ＆ドロップ 共通エリア -->
   <div class="grid grid-cols-2 gap-2 mb-2">
-    <!-- フォルダ選択ボタン -->
     <div class="bg-orange-50/60 p-2 rounded-xl border border-orange-100 flex flex-col justify-center items-center gap-1">
       <div class="file-input-wrapper w-full">
         <span class="drum-pad bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold py-1.5 px-2 rounded-lg cursor-pointer transition-colors shadow-[0_2px_0_#c2410c] inline-flex items-center justify-center gap-1 w-full">
@@ -98,23 +96,20 @@
       <span id="folderStatus" class="text-[10px] font-bold text-stone-500 truncate w-full text-center">未選択</span>
     </div>
 
-    <!-- ドラッグ＆ドロップゾーン -->
     <div id="dropZone" class="border border-dashed border-orange-200 hover:border-orange-400 rounded-xl p-2 text-center text-[10px] font-bold text-stone-400 bg-orange-50/30 transition-colors flex items-center justify-center leading-tight">
       ここにフォルダをドロップ
     </div>
   </div>
 
-  <!-- 安心メッセージ（短縮版） -->
   <div class="text-[10px] font-bold text-stone-400 mb-3 text-center">
     🔒 ※データは外部送信されずブラウザ内でのみ安全に処理されます。
   </div>
 
-  <!-- 曲情報・再生時間表示（コンパクト化） -->
+  <!-- 曲情報・再生時間表示 -->
   <div id="display-pad" class="bg-stone-800 text-stone-100 p-3.5 sm:p-5 rounded-2xl border-3 border-stone-950 text-center shadow-inner relative overflow-hidden mb-3">
     <div class="absolute top-1.5 left-2.5 text-[9px] font-bold tracking-widest text-stone-500">REPRODUCING</div>
     <div id="trackTitle" class="text-base sm:text-lg font-bold tracking-wide my-1.5 text-yellow-300 truncate px-1">トラックが選択されていません</div>
     
-    <!-- シークスライダー -->
     <div class="px-1 my-1">
       <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" class="w-full cursor-pointer">
     </div>
@@ -122,7 +117,7 @@
     <div id="timeDisplay" class="text-xl sm:text-2xl font-bold tracking-wider text-orange-400 font-mono">00:00:00 / 00:00:00</div>
   </div>
 
-  <!-- メイン操作（前へ・再生/停止・次へ） -->
+  <!-- メイン操作 -->
   <div class="flex justify-center gap-2 mb-3">
     <button id="prevBtn" class="drum-pad bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-bold py-2.5 px-3 rounded-xl cursor-pointer flex-1 max-w-[90px]">
       ⏮ 前へ
@@ -165,17 +160,18 @@
 <audio id="audioPlayer"></audio>
 
 <script>
-  const DB_NAME = 'MusicPlayerCache';
+  // --- IndexedDB DB設定 ---
+  const DB_NAME = 'AudioPlayerCacheDB';
   const DB_VERSION = 1;
-  const STORE_FILES = 'audioFiles';
+  const STORE_NAME = 'audioStore';
 
   function openDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
-        if (!db.objectStoreNames.contains(STORE_FILES)) {
-          db.createObjectStore(STORE_FILES, { keyPath: 'id' });
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -183,10 +179,10 @@
     });
   }
 
-  async function saveFilesToCache(files, folderName) {
+  async function saveFilesToDB(files, folderName) {
     const db = await openDB();
-    const tx = db.transaction(STORE_FILES, 'readwrite');
-    const store = tx.objectStore(STORE_FILES);
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
     await new Promise(resolve => {
       const clearReq = store.clear();
       clearReq.onsuccess = resolve;
@@ -195,20 +191,25 @@
     for (let i = 0; i < files.length; i++) {
       store.put({ id: i, name: files[i].name, blob: files[i] });
     }
-    localStorage.setItem('music_player_folder_name', folderName);
+    localStorage.setItem('audio_folder_name', folderName);
   }
 
-  async function loadFilesFromCache() {
-    const db = await openDB();
-    const tx = db.transaction(STORE_FILES, 'readonly');
-    const store = tx.objectStore(STORE_FILES);
-    return new Promise(resolve => {
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => resolve([]);
-    });
+  async function loadFilesFromDB() {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      return new Promise(resolve => {
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    } catch (e) {
+      return [];
+    }
   }
 
+  // --- 変数定義 ---
   let fileList = [];
   let currentIndex = -1;
   let isUserSeeking = false;
@@ -227,6 +228,7 @@
   const playlistEl = document.getElementById('playlist');
   const playlistContainer = document.getElementById('playlistContainer');
 
+  // --- 画面読み込み時（F5復元含む） ---
   window.addEventListener('DOMContentLoaded', async () => {
     document.querySelectorAll('.seek-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -235,12 +237,14 @@
       });
     });
 
-    const cachedFiles = await loadFilesFromCache();
-    const savedFolderName = localStorage.getItem('music_player_folder_name');
+    // DBから音声ファイルを復元
+    const cachedData = await loadFilesFromDB();
+    const savedFolderName = localStorage.getItem('audio_folder_name');
 
-    if (cachedFiles.length > 0) {
-      fileList = cachedFiles.map(item => ({ name: item.name, file: item.blob }));
-      folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "復元完了";
+    if (cachedData.length > 0) {
+      fileList = cachedData.map(item => ({ name: item.name, file: item.blob }));
+      folderStatus.textContent = savedFolderName ? `選択中: ${savedFolderName}` : "選択中";
+      
       sortAndRenderPlaylist();
       restoreLastState();
     }
@@ -329,7 +333,8 @@
     fileList = filteredFiles.map(f => ({ name: f.name, file: f }));
     sortAndRenderPlaylist();
 
-    await saveFilesToCache(filteredFiles, folderName);
+    // 音声ファイルをブラウザDBへ退避（F5対策）
+    await saveFilesToDB(filteredFiles, folderName);
     loadAndPlayTrack(0, 0, false);
   }
 
@@ -373,8 +378,12 @@
   async function loadAndPlayTrack(index, seekTime = 0, autoPlay = false) {
     await loadTrack(index, seekTime);
     if (autoPlay) {
-      audio.play().catch(() => {});
-      playPauseBtn.textContent = '⏸ 一時停止';
+      try {
+        await audio.play();
+        playPauseBtn.textContent = '⏸ 一時停止';
+      } catch (e) {
+        playPauseBtn.textContent = '▶ 再生';
+      }
     } else {
       audio.pause();
       playPauseBtn.textContent = '▶ 再生';
@@ -401,15 +410,21 @@
     }
   }
 
-  playPauseBtn.addEventListener('click', () => {
-    if (!audio.src && fileList.length > 0) {
-      loadAndPlayTrack(0, 0, true);
+  playPauseBtn.addEventListener('click', async () => {
+    if (fileList.length === 0) return;
+
+    if (!audio.src) {
+      restoreLastState();
       return;
     }
 
     if (audio.paused) {
-      audio.play().catch(() => {});
-      playPauseBtn.textContent = '⏸ 一時停止';
+      try {
+        await audio.play();
+        playPauseBtn.textContent = '⏸ 一時停止';
+      } catch (e) {
+        console.error(e);
+      }
     } else {
       audio.pause();
       playPauseBtn.textContent = '▶ 再生';
@@ -472,16 +487,16 @@
     if (saveTimer) return;
     saveTimer = setTimeout(() => {
       saveTimer = null;
-      if (currentIndex >= 0) {
-        localStorage.setItem('music_player_last_index', currentIndex);
-        localStorage.setItem('music_player_last_time', audio.currentTime);
+      if (currentIndex >= 0 && fileList[currentIndex]) {
+        localStorage.setItem('audio_last_index', currentIndex);
+        localStorage.setItem('audio_last_time', audio.currentTime);
       }
     }, 1000);
   }
 
   function restoreLastState() {
-    const savedIndex = localStorage.getItem('music_player_last_index');
-    const savedTime = localStorage.getItem('music_player_last_time');
+    const savedIndex = localStorage.getItem('audio_last_index');
+    const savedTime = localStorage.getItem('audio_last_time');
 
     let indexToLoad = 0;
     let timeToSeek = 0;
