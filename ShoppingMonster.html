@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>無限バカ買い＆全キャンセル・ストレス発散サイト</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #ff4757;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .dashboard {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .stat-box h2 {
+            font-size: 14px;
+            color: #a4b0be;
+            margin: 0 0 5px 0;
+        }
+        .stat-box p {
+            font-size: 22px;
+            color: #2ed573;
+            margin: 0;
+            font-weight: bold;
+        }
+        .shop-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .item-card {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .item-card h3 {
+            font-size: 16px;
+            margin: 0 0 10px 0;
+        }
+        .item-card p {
+            color: #ffa502;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        button {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #ff6b81;
+        }
+        .action-section {
+            text-align: center;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .cancel-btn {
+            background: #2f3542;
+            font-size: 18px;
+            padding: 15px 30px;
+            color: #ff4757;
+            border: 2px solid #ff4757;
+            margin-top: 10px;
+        }
+        .cancel-btn:hover {
+            background: #ff4757;
+            color: white;
+        }
+        .log-area {
+            margin-top: 20px;
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            height: 120px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+            color: #7bed9f;
+        }
+    </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+<div class="container">
+    <header>
+        <h1>🛒 無限バカ買い＆全キャンセル・シミュレーター</h1>
+        <p>現実の被害額0円！思う存分カートに突っ込んで全キャンセルしよう！</p>
+    </header>
+
+    <div class="dashboard">
+        <div class="stat-box">
+            <h2>生成アカウント数</h2>
+            <p id="account-count">1</p>
+        </div>
+        <div class="stat-box">
+            <h2>架空の注文総額</h2>
+            <p id="total-amount">0 円</p>
+        </div>
+    </div>
+
+    <div class="shop-section">
+        <div class="item-card">
+            <h3>激レア・全巻フィギュアセット</h3>
+            <p>150,000円</p>
+            <button onclick="addItem(150000, '激レア・全巻フィギュアセット')">カートにぶち込む</button>
+        </div>
+        <div class="item-card">
+            <h3>特大アクリルスタンド（推し）</h3>
+            <p>8,500円</p>
+            <button onclick="addItem(8500, '特大アクリルスタンド')">カートにぶち込む</button>
+        </div>
+        <div class="item-card">
+            <h3>謎の限定コラボグッズ 100個セット</h3>
+            <p>1,200,000円</p>
+            <button onclick="addItem(1200000, '限定コラボグッズ100個')">カートにぶち込む</button>
+        </div>
+        <div class="item-card">
+            <h3>島まるごと買い取り権利</h3>
+            <p>4,300,000,000円</p>
+            <button onclick="addItem(4300000000, '島まるごと権利')">カートにぶち込む</button>
+        </div>
+    </div>
+
+    <div class="action-section">
+        <button onclick="addAccount()" style="background: #3742fa; margin-bottom: 10px;">👤 新規アカウントを適当に量産する (+10アカウント)</button>
+        <br>
+        <button class="cancel-btn" onclick="cancelAll()">💥 【全キャンセル発動】すべてを無かったことにする</button>
+    </div>
+
+    <div class="log-area" id="log">
+        [システム起動完了] ストレス発散の準備ができました。アイテムをカートに入れてください。<br>
+    </div>
+</div>
+
+<script>
+    let totalAmount = 0;
+    let accounts = 1;
+
+    function formatNumber(num) {
+        return num.toLocaleString() + ' 円';
+    }
+
+    function addLog(text) {
+        const logArea = document.getElementById('log');
+        logArea.innerHTML += text + '<br>';
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function addItem(price, name) {
+        totalAmount += price;
+        document.getElementById('total-amount').innerText = formatNumber(totalAmount);
+        addLog(`[注文] アカウント${Math.floor(Math.random() * accounts) + 1}番が「${name}」を発注しました。`);
+    }
+
+    function addAccount() {
+        accounts += 10;
+        document.getElementById('account-count').innerText = accounts;
+        addLog(`[アカウント] 自動生成により、総アカウント数が ${accounts} 個になりました。`);
+    }
+
+    function cancelAll() {
+        if (totalAmount === 0) {
+            addLog(`[警告] カートが空です。まずは買い物をしてください！`);
+            return;
+        }
+        addLog(`<span style="color:#ff4757; font-weight:bold;">[全キャンセル成功] ${formatNumber(totalAmount)}分の注文をすべて無断キャンセルしました！スッキリ！！！</span>`);
+        totalAmount = 0;
+        document.getElementById('total-amount').innerText = formatNumber(totalAmount);
+    }
+</script>
+
+</body>
+</html>
