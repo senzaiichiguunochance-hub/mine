@@ -43,7 +43,7 @@
         }
 
         #controls {
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -73,6 +73,55 @@
         .step-btn:active {
             transform: translateY(3px);
             box-shadow: none;
+        }
+
+        .step-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reset-btn {
+            background: var(--secondary-color);
+            box-shadow: 0 3px 0 #5fa9d6;
+        }
+
+        .reset-btn:hover {
+            box-shadow: 0 2px 0 #5fa9d6;
+        }
+
+        #stepCounter {
+            font-weight: 700;
+            color: var(--font-color);
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            background: #ffffff;
+            padding: 6px 18px;
+            border-radius: 15px;
+            box-shadow: 0 3px 0 #ffe0ea;
+        }
+
+        #legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid #00000022;
         }
 
         canvas {
@@ -125,8 +174,8 @@
 <body>
     <a href="menu.html" class="menu-btn">メニューに戻る</a>
 
+    <h1>ラングトンの蟻（複数匹バージョン）🐜✨</h1>
 
-    <h1>ラングトンの蟻（ランダム移動）🐜✨</h1>
     <div id="controls">
         <button type="button" class="step-btn" data-steps="1">1ステップ進む</button>
         <button type="button" class="step-btn" data-steps="10">10ステップ進む</button>
@@ -134,18 +183,28 @@
         <button type="button" class="step-btn" data-steps="1000">1000ステップ進む</button>
         <button type="button" class="step-btn" data-steps="10000">10000ステップ進む</button>
         <button type="button" class="step-btn" data-steps="100000">100000ステップ進む</button>
+        <button type="button" id="resetBtn" class="step-btn reset-btn">🔄 リセット</button>
     </div>
+
+    <div id="stepCounter">総ステップ数: 0</div>
+
+    <div id="legend"></div>
+
     <canvas id="antCanvas"></canvas>
 
     <script>
         const canvas = document.getElementById('antCanvas');
         const ctx = canvas.getContext('2d');
+        const stepCounterEl = document.getElementById('stepCounter');
+        const legendEl = document.getElementById('legend');
+        const resetBtn = document.getElementById('resetBtn');
+        const stepButtons = document.querySelectorAll('.step-btn[data-steps]');
 
         // --- 設定 ---
         const GRID_WIDTH = 201; // グリッドの幅（奇数が中央配置に便利）
         const GRID_HEIGHT = 201; // グリッドの高さ
         let CELL_SIZE = 4;     // 1マスのピクセルサイズ (動的に変更)
-        const STEPS_PER_CLICK = 1000;
+        const CHUNK_SIZE = 2000; // 1フレームあたりに処理するステップ数
 
         const WHITE = 0;
         const BLACK = 1;
@@ -154,6 +213,7 @@
         let grid;
         let ants = []; // 複数の蟻を保持する配列
         let totalSteps = 0;
+        let isRunning = false; // 実行中フラグ（連打防止）
 
         // --- 蟻の向き (0:上, 1:右, 2:下, 3:左) ---
         const UP = 0;
@@ -161,32 +221,55 @@
         const DOWN = 2;
         const LEFT = 3;
 
+        // 蟻ごとの色（見分けがつくように）
+        const ANT_COLORS = ['#ff1493', '#1e90ff', '#32cd32'];
+
         // 初期化関数
         function init() {
-            // Canvasをレスポンシブに
-            const containerWidth = window.innerWidth * 0.95;
-            const size = Math.floor(Math.min(containerWidth, 804)); // 最大804px
-            canvas.width = size;
-            canvas.height = size;
-            CELL_SIZE = size / GRID_WIDTH;
+            resizeCanvas();
 
             // グリッドを白(0)で初期化
             grid = Array(GRID_HEIGHT).fill(0).map(() => Array(GRID_WIDTH).fill(WHITE));
 
             // 3匹の蟻をランダムな位置と向きで初期化
-            const antColors = ['#FFFFFF', '#FFFFFF', '#FFFFFF']; // 蟻ごとの色を白に統一
             ants = [];
             for (let i = 0; i < 3; i++) {
                 ants.push({
                     x: Math.floor(Math.random() * GRID_WIDTH),
                     y: Math.floor(Math.random() * GRID_HEIGHT),
                     dir: Math.floor(Math.random() * 4), // ランダムな初期向き
-                    color: antColors[i]
+                    color: ANT_COLORS[i]
                 });
             }
-            
+
             totalSteps = 0;
+            updateCounter();
+            updateLegend();
             draw();
+        }
+
+        // キャンバスサイズを計算・設定
+        function resizeCanvas() {
+            const containerWidth = window.innerWidth * 0.95;
+            const size = Math.floor(Math.min(containerWidth, 804)); // 最大804px
+            canvas.width = size;
+            canvas.height = size;
+            CELL_SIZE = size / GRID_WIDTH;
+        }
+
+        // ステップ数表示を更新
+        function updateCounter() {
+            stepCounterEl.textContent = `総ステップ数: ${totalSteps.toLocaleString()}`;
+        }
+
+        // 蟻の色の凡例を表示
+        function updateLegend() {
+            legendEl.innerHTML = ants.map((ant, i) => `
+                <span class="legend-item">
+                    <span class="legend-dot" style="background:${ant.color}"></span>
+                    蟻${i + 1}
+                </span>
+            `).join('');
         }
 
         // 描画関数
@@ -203,11 +286,10 @@
                 }
             }
 
-            // 蟻を描画
+            // 蟻を描画（それぞれの色で）
             ants.forEach(ant => {
-                // 蟻がグリッドの範囲内にいる場合のみ描画
                 if (ant.x >= 0 && ant.x < GRID_WIDTH && ant.y >= 0 && ant.y < GRID_HEIGHT) {
-                    ctx.fillStyle = '#ff1493'; // ディープピンク
+                    ctx.fillStyle = ant.color;
                     ctx.fillRect(ant.x * CELL_SIZE, ant.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                 }
             });
@@ -246,18 +328,65 @@
             ant.y = (ant.y + GRID_HEIGHT) % GRID_HEIGHT;
         }
 
+        // ボタンの有効/無効を切り替え
+        function setButtonsEnabled(enabled) {
+            stepButtons.forEach(btn => btn.disabled = !enabled);
+            resetBtn.disabled = !enabled;
+        }
+
+        // 指定ステップ数を、フリーズしないようにチャンクに分けて実行
+        function runSteps(totalToRun) {
+            if (isRunning) return;
+            isRunning = true;
+            setButtonsEnabled(false);
+
+            let remaining = totalToRun;
+
+            function frame() {
+                const thisChunk = Math.min(CHUNK_SIZE, remaining);
+                for (let i = 0; i < thisChunk; i++) {
+                    ants.forEach(step);
+                }
+                remaining -= thisChunk;
+                totalSteps += thisChunk;
+
+                draw();
+                updateCounter();
+
+                if (remaining > 0) {
+                    requestAnimationFrame(frame);
+                } else {
+                    isRunning = false;
+                    setButtonsEnabled(true);
+                }
+            }
+
+            requestAnimationFrame(frame);
+        }
+
         // ボタンのクリックイベント
-        document.querySelectorAll('.step-btn').forEach(button => {
+        stepButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const steps = parseInt(button.getAttribute('data-steps'));
-                for (let i = 0; i < steps; i++) {
-                    ants.forEach(ant => {
-                        step(ant);
-                    });
-                }
-                totalSteps += steps;
-                draw();
+                runSteps(steps);
             });
+        });
+
+        // リセットボタン
+        resetBtn.addEventListener('click', () => {
+            if (isRunning) return;
+            init();
+        });
+
+        // ウィンドウリサイズに対応
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (isRunning) return; // 実行中はリサイズ処理をスキップ
+                resizeCanvas();
+                draw();
+            }, 150);
         });
 
         // 実行開始
