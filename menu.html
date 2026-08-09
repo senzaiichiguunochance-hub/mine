@@ -16,10 +16,12 @@
     <meta property="og:image" content="https://senzaiichiguunochance-hub.github.io/mine/images/ogp.jpg"> <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
 
-    <style>
-        /* Google Fontsから、丸みのあるフォントをインポート */
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap');
+    <!-- Google Fonts（@importより先読みできるlink方式に変更） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
 
+    <style>
         /* カラー変数の定義（ポップなパステルカラー） */
         :root {
             --bg-color: #faf6ee; /* 背景色（少しクリームがかった白） */
@@ -153,6 +155,18 @@
             box-shadow: 7px 7px 0px var(--border-color);
         }
 
+        /* キーボード操作時のフォーカス表示（アクセシビリティ対応） */
+        .menu-item:focus-within {
+            transform: translate(-3px, -3px);
+            box-shadow: 7px 7px 0px var(--border-color);
+            outline: 3px solid #1a1a29;
+            outline-offset: 2px;
+        }
+
+        .menu-item a:focus-visible {
+            outline: none;
+        }
+
         .menu-item a {
             display: block;
             padding: 24px 20px;
@@ -199,6 +213,114 @@
             background: linear-gradient(135deg, #9bf6ff 0%, #bdb2ff 100%);
         }
 
+        /* スクリーンリーダー専用（見た目には表示しないラベル） */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* 検索ボックス */
+        .search-wrap {
+            margin-bottom: 24px;
+        }
+
+        #search-input {
+            width: 100%;
+            max-width: 480px;
+            font-family: inherit;
+            font-size: 1.05rem;
+            font-weight: 600;
+            padding: 14px 20px;
+            border: 4px solid var(--border-color);
+            border-radius: 99px;
+            box-shadow: 6px 6px 0px var(--border-color);
+            outline: none;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            color: var(--text-color);
+        }
+
+        #search-input:focus-visible {
+            box-shadow: 6px 6px 0px var(--border-color), 0 0 0 3px var(--color-map);
+        }
+
+        #search-count {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0.7;
+        }
+
+        /* カテゴリへのジャンプナビ */
+        .category-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+
+        .category-nav a {
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-color);
+            padding: 8px 18px;
+            border: 3px solid var(--border-color);
+            border-radius: 99px;
+            box-shadow: 3px 3px 0px var(--border-color);
+            background: #ffffff;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .category-nav a:hover,
+        .category-nav a:focus-visible {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px var(--border-color);
+        }
+
+        .category-nav a[data-cat="edu"] { background-color: var(--color-edu); }
+        .category-nav a[data-cat="map"] { background-color: var(--color-map); }
+        .category-nav a[data-cat="sys"] { background-color: var(--color-sys); }
+        .category-nav a[data-cat="sim"] { background-color: var(--color-sim); }
+        .category-nav a[data-cat="game"] { background-color: var(--color-game); }
+
+        /* セクション見出しへのアンカー位置調整（固定ヘッダーはないが余白を確保） */
+        section {
+            scroll-margin-top: 20px;
+        }
+
+        /* 検索で非該当のアイテムを隠す */
+        .menu-item.is-hidden {
+            display: none;
+        }
+
+        /* 該当なしメッセージ */
+        .no-results {
+            text-align: center;
+            font-weight: 700;
+            opacity: 0.6;
+            padding: 20px;
+            display: none;
+        }
+
+        /* フッター */
+        .site-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0.6;
+            font-weight: 600;
+        }
+
         /* --- モバイル対応（スマホ）のレスポンシブデザイン --- */
         @media (max-width: 768px) {
             body {
@@ -238,6 +360,14 @@
                 padding: 18px 12px;
                 font-size: 1rem;
             }
+            #search-input {
+                font-size: 0.95rem;
+                padding: 12px 16px;
+            }
+            .category-nav a {
+                font-size: 0.85rem;
+                padding: 6px 14px;
+            }
         }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
@@ -252,8 +382,24 @@
             <h1>自作アプリケーション メインメニュー</h1>
         </header>
 
+        <div class="search-wrap">
+            <label for="search-input" class="visually-hidden">アプリを検索</label>
+            <input type="search" id="search-input" placeholder="🔍 アプリ名で検索…" autocomplete="off">
+            <span id="search-count" aria-live="polite"></span>
+        </div>
+
+        <nav class="category-nav" aria-label="カテゴリへのジャンプ">
+            <a href="#section-edu" data-cat="edu">教育</a>
+            <a href="#section-map" data-cat="map">地図</a>
+            <a href="#section-sys" data-cat="sys">システム</a>
+            <a href="#section-sim" data-cat="sim">シミュレーション</a>
+            <a href="#section-game" data-cat="game">ゲーム</a>
+        </nav>
+
+        <p class="no-results" id="no-results">該当するアプリが見つかりませんでした。</p>
+
         <main>
-            <section class="section-edu">
+            <section class="section-edu" id="section-edu">
                 <div class="header">
                     <h2>教育</h2>
                 </div>
@@ -261,20 +407,20 @@
                     <!-- vanilla-tilt.jsを使うための「data-tilt」属性 -->
                     <div class="menu-item" data-tilt><a href="FlashMentalArithmetic.html">フラッシュ暗算</a></div>
                     <div class="menu-item" data-tilt><a href="genso.html">元素記号学習マスター</a></div>
-                    <div class="menu-item" data-tilt><a href="kabu\index.html">紙芝居（おおきなかぶ）</a></div>
+                    <div class="menu-item" data-tilt><a href="kabu/index.html">紙芝居（おおきなかぶ）</a></div>
                     <div class="menu-item" data-tilt><a href="physics.html">推論された物理法則と結果</a></div>
                     <div class="menu-item" data-tilt><a href="Japan47Quiz.html">47都道府県クイズ</a></div>
                     <div class="menu-item" data-tilt><a href="CountryGuessingQuiz.html">国当てクイズ</a></div>
-                    <div class="menu-item" data-tilt><a href="nurie\nurie.html">こすって塗り絵</a></div>
-                    <div class="menu-item" data-tilt><a href="JhsEng\Jhs1Eng.html">中学1年生 英単語クイズ</a></div>
-                    <div class="menu-item" data-tilt><a href="JhsEng\Jhs2Eng.html">中学2年生 英単語クイズ</a></div>
-                    <div class="menu-item" data-tilt><a href="JhsEng\Jhs3Eng.html">中学3年生 英単語クイズ</a></div>
+                    <div class="menu-item" data-tilt><a href="nurie/nurie.html">こすって塗り絵</a></div>
+                    <div class="menu-item" data-tilt><a href="JhsEng/Jhs1Eng.html">中学1年生 英単語クイズ</a></div>
+                    <div class="menu-item" data-tilt><a href="JhsEng/Jhs2Eng.html">中学2年生 英単語クイズ</a></div>
+                    <div class="menu-item" data-tilt><a href="JhsEng/Jhs3Eng.html">中学3年生 英単語クイズ</a></div>
                     <div class="menu-item" data-tilt><a href="math.html">さんすうトレーニング</a></div>
                     <div class="menu-item" data-tilt><a href="MorsePlayer.html">モールス信号プレイヤー</a></div>
                 </div>
             </section>
 
-            <section class="section-map">
+            <section class="section-map" id="section-map">
                 <div class="header">
                     <h2>地図</h2>
                 </div>
@@ -295,7 +441,7 @@
                 </div>
             </section>
 
-            <section class="section-sys">
+            <section class="section-sys" id="section-sys">
                 <div class="header">
                     <h2>システム</h2>
                 </div>
@@ -324,7 +470,7 @@
                 </div>
             </section>
 
-            <section class="section-sim">
+            <section class="section-sim" id="section-sim">
                 <div class="header">
                     <h2>シミュレーション</h2>
                 </div>
@@ -352,7 +498,7 @@
                     <div class="menu-item" data-tilt><a href="slot_counter.html">スロットカウンター</a></div>
                     <div class="menu-item" data-tilt><a href="Vibration.html">スマホバイブレーションAPI</a></div>
                     <div class="menu-item" data-tilt><a href="ApiNasa.html">NASAのAPIダッシュボード</a></div>
-                    <div class="menu-item" data-tilt><a href="HtmTtechnology2025\index.html">HTMLの技術2025</a></div>
+                    <div class="menu-item" data-tilt><a href="HtmTtechnology2025/index.html">HTMLの技術2025</a></div>
                     <div class="menu-item" data-tilt><a href="https://7xe9ysusk8kc7gfpsliaye.streamlit.app/">YouTubeガチャ</a></div>
                     <div class="menu-item" data-tilt><a href="https://cx9drvyalmhrph35gzdvmx.streamlit.app/">Loto6 予想</a></div>
                     <div class="menu-item" data-tilt><a href="ApiDashbord.html">APIダッシュボード</a></div>
@@ -363,7 +509,7 @@
             </section>
 
 
-            <section class="section-game">
+            <section class="section-game" id="section-game">
                 <div class="header">
                     <h2>ゲーム</h2>
                 </div>
@@ -378,22 +524,27 @@
                     <div class="menu-item" data-tilt><a href="GrowingBall.html">成長するボール</a></div>
                     <div class="menu-item" data-tilt><a href="FallingBall.html">落下するボール</a></div>
                     <div class="menu-item" data-tilt><a href="3D_space.html">3D空間</a></div>
-                    <div class="menu-item" data-tilt><a href="DungeonStation\index.html">ダンジョンステーション</a></div>
+                    <div class="menu-item" data-tilt><a href="DungeonStation/index.html">ダンジョンステーション</a></div>
                     <div class="menu-item" data-tilt><a href="slot_machine.html">パチスロシミュレーター</a></div>
-                    <div class="menu-item" data-tilt><a href="sokoban\index2.html">倉庫番3D</a></div>
-                    <div class="menu-item" data-tilt><a href="sokoban\index.html">倉庫番2D</a></div>
+                    <div class="menu-item" data-tilt><a href="sokoban/index2.html">倉庫番3D</a></div>
+                    <div class="menu-item" data-tilt><a href="sokoban/index.html">倉庫番2D</a></div>
                     <div class="menu-item" data-tilt><a href="othello.html">オセロ</a></div>
                     <div class="menu-item" data-tilt><a href="whack_a_mole.html">もぐらたたき</a></div>
                     <div class="menu-item" data-tilt><a href="shooter_prototype.html">シューティング</a></div>
                 </div>
             </section>
         </main>
+
+        <footer class="site-footer">
+            <p>© 2026 自作アプリ＆ゲーム集</p>
+        </footer>
     </div>
 
     <!-- カードをマウスに合わせて3D風に傾けるライブラリ「vanilla-tilt.js」の読み込み -->
-    <script type="text/javascript" src="https://unpkg.com/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/vanilla-tilt@1.7.2/dist/vanilla-tilt.min.js" defer></script>
     
     <script>
+      window.addEventListener('DOMContentLoaded', function () {
         // 背景を漂う光（オーブ）のマウス追従アニメーション
         document.addEventListener('mousemove', (e) => {
             const orb1 = document.getElementById('orb1');
@@ -417,6 +568,44 @@
             glare: true,      /* 光沢エフェクト */
             "max-glare": 0.5,  /* 最大光沢 */
         });
+
+        // 検索・絞り込み機能
+        (function () {
+            const input = document.getElementById('search-input');
+            const countEl = document.getElementById('search-count');
+            const noResultsEl = document.getElementById('no-results');
+            const items = Array.from(document.querySelectorAll('.menu-item'));
+            const sections = Array.from(document.querySelectorAll('main > section'));
+
+            function applyFilter() {
+                const query = input.value.trim().toLowerCase();
+                let visibleCount = 0;
+
+                items.forEach((item) => {
+                    const text = item.textContent.toLowerCase();
+                    const match = query === '' || text.includes(query);
+                    item.classList.toggle('is-hidden', !match);
+                    if (match) visibleCount++;
+                });
+
+                // 該当アイテムが0件のセクションごと非表示にする
+                sections.forEach((section) => {
+                    const hasVisible = section.querySelectorAll('.menu-item:not(.is-hidden)').length > 0;
+                    section.style.display = hasVisible ? '' : 'none';
+                });
+
+                if (query === '') {
+                    countEl.textContent = '';
+                } else {
+                    countEl.textContent = `${visibleCount} 件ヒットしました`;
+                }
+
+                noResultsEl.style.display = (query !== '' && visibleCount === 0) ? 'block' : 'none';
+            }
+
+            input.addEventListener('input', applyFilter);
+        })();
+      });
     </script>
 </body>
 </html>
