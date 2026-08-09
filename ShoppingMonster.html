@@ -3,27 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>無限バカ買い＆全キャンセル・ストレス発散サイト</title>
+    <title>無限バカ買い＆全キャンセル・ストレス発散サイト DX</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #1a1a2e;
+            background: radial-gradient(circle at 50% 0%, #22224a 0%, #1a1a2e 60%, #100f1e 100%);
             color: #fff;
             margin: 0;
             padding: 20px;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
         .container {
-            max-width: 800px;
+            max-width: 820px;
             margin: 0 auto;
+            position: relative;
         }
         header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         h1 {
             color: #ff4757;
-            font-size: 24px;
+            font-size: 26px;
             margin-bottom: 5px;
+            text-shadow: 0 0 12px rgba(255,71,87,0.6);
+        }
+        .subtitle { color: #a4b0be; font-size: 13px; }
+        .rank-banner {
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            color: #ffd32a;
+            margin-bottom: 16px;
+            min-height: 20px;
+            transition: transform 0.2s;
         }
         .dashboard {
             background: #16213e;
@@ -34,17 +49,26 @@
             text-align: center;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        .stat-box h2 {
-            font-size: 14px;
-            color: #a4b0be;
-            margin: 0 0 5px 0;
+        .stat-box h2 { font-size: 13px; color: #a4b0be; margin: 0 0 5px 0; }
+        .stat-box p { font-size: 21px; color: #2ed573; margin: 0; font-weight: bold; }
+        .rage-wrap {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 12px 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .stat-box p {
-            font-size: 22px;
-            color: #2ed573;
-            margin: 0;
-            font-weight: bold;
+        .rage-label { display: flex; justify-content: space-between; font-size: 12px; color: #a4b0be; margin-bottom: 6px; }
+        .rage-bar-bg { background: #0f3460; border-radius: 20px; height: 18px; overflow: hidden; }
+        .rage-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 20px;
+            background: linear-gradient(90deg, #2ed573, #ffd32a, #ff4757);
+            transition: width 0.4s ease;
         }
         .shop-section {
             display: grid;
@@ -57,16 +81,14 @@
             padding: 15px;
             border-radius: 8px;
             text-align: center;
+            transition: transform 0.15s;
+            position: relative;
         }
-        .item-card h3 {
-            font-size: 16px;
-            margin: 0 0 10px 0;
-        }
-        .item-card p {
-            color: #ffa502;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
+        .item-card:hover { transform: translateY(-3px) scale(1.02); }
+        .item-card h3 { font-size: 15px; margin: 0 0 4px 0; }
+        .item-emoji { font-size: 28px; }
+        .item-card .desc { font-size: 11px; color: #7bed9f; margin-bottom: 8px; min-height: 14px; }
+        .item-card p.price { color: #ffa502; font-weight: bold; margin-bottom: 10px; }
         button {
             background: #ff4757;
             color: white;
@@ -77,9 +99,7 @@
             font-weight: bold;
             transition: 0.2s;
         }
-        button:hover {
-            background: #ff6b81;
-        }
+        button:hover { background: #ff6b81; transform: scale(1.05); }
         .action-section {
             text-align: center;
             background: #16213e;
@@ -94,20 +114,37 @@
             border: 2px solid #ff4757;
             margin-top: 10px;
         }
-        .cancel-btn:hover {
-            background: #ff4757;
-            color: white;
-        }
+        .cancel-btn:hover { background: #ff4757; color: white; }
         .log-area {
             margin-top: 20px;
             background: #0f3460;
             padding: 15px;
             border-radius: 8px;
-            height: 120px;
+            height: 150px;
             overflow-y: auto;
             font-family: monospace;
             font-size: 13px;
             color: #7bed9f;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 4px); }
+            40% { transform: translate(8px, -4px); }
+            60% { transform: translate(-6px, -2px); }
+            80% { transform: translate(6px, 3px); }
+        }
+        .shake { animation: shake 0.5s; }
+        .confetti-piece {
+            position: fixed;
+            top: -10px;
+            width: 10px;
+            height: 10px;
+            opacity: 0.9;
+            z-index: 999;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
         }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
@@ -115,11 +152,13 @@
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-<div class="container">
+<div class="container" id="container">
     <header>
-        <h1>🛒 無限バカ買い＆全キャンセル・シミュレーター</h1>
-        <p>現実の被害額0円！思う存分カートに突っ込んで全キャンセルしよう！</p>
+        <h1>🛒 無限バカ買い＆全キャンセル・シミュレーター DX</h1>
+        <p class="subtitle">現実の被害額0円！思う存分カートに突っ込んで全キャンセルしよう！</p>
     </header>
+
+    <div class="rank-banner" id="rank-banner">称号：まだ何も買っていない一般人</div>
 
     <div class="dashboard">
         <div class="stat-box">
@@ -130,30 +169,18 @@
             <h2>架空の注文総額</h2>
             <p id="total-amount">0 円</p>
         </div>
+        <div class="stat-box">
+            <h2>カート投入回数</h2>
+            <p id="order-count">0</p>
+        </div>
     </div>
 
-    <div class="shop-section">
-        <div class="item-card">
-            <h3>激レア・全巻フィギュアセット</h3>
-            <p>150,000円</p>
-            <button onclick="addItem(150000, '激レア・全巻フィギュアセット')">カートにぶち込む</button>
-        </div>
-        <div class="item-card">
-            <h3>特大アクリルスタンド（推し）</h3>
-            <p>8,500円</p>
-            <button onclick="addItem(8500, '特大アクリルスタンド')">カートにぶち込む</button>
-        </div>
-        <div class="item-card">
-            <h3>謎の限定コラボグッズ 100個セット</h3>
-            <p>1,200,000円</p>
-            <button onclick="addItem(1200000, '限定コラボグッズ100個')">カートにぶち込む</button>
-        </div>
-        <div class="item-card">
-            <h3>島まるごと買い取り権利</h3>
-            <p>4,300,000,000円</p>
-            <button onclick="addItem(4300000000, '島まるごと権利')">カートにぶち込む</button>
-        </div>
+    <div class="rage-wrap">
+        <div class="rage-label"><span>店長の血圧メーター</span><span id="rage-percent">0%</span></div>
+        <div class="rage-bar-bg"><div class="rage-bar-fill" id="rage-bar"></div></div>
     </div>
+
+    <div class="shop-section" id="shop-section"></div>
 
     <div class="action-section">
         <button onclick="addAccount()" style="background: #3742fa; margin-bottom: 10px;">👤 新規アカウントを適当に量産する (+10アカウント)</button>
@@ -169,10 +196,42 @@
 <script>
     let totalAmount = 0;
     let accounts = 1;
+    let orderCount = 0;
 
-    function formatNumber(num) {
-        return num.toLocaleString() + ' 円';
-    }
+    const items = [
+        { name: '激レア・全巻フィギュアセット', price: 150000, emoji: '🎎', desc: '棚に入りきらない自信あり' },
+        { name: '特大アクリルスタンド（推し）', price: 8500, emoji: '🖼️', desc: '玄関を塞ぐサイズ' },
+        { name: '謎の限定コラボグッズ100個', price: 1200000, emoji: '📦', desc: '中身は誰も知らない' },
+        { name: '島まるごと買い取り権利', price: 4300000000, emoji: '🏝️', desc: '住所は"太平洋のどこか"' },
+        { name: '推しが使ってそうな椅子', price: 980000, emoji: '🪑', desc: '座り心地は未確認' },
+        { name: '謝罪用の高級たい焼き1000匹', price: 250000, emoji: '🐟', desc: '誰にも謝る予定はない' },
+        { name: '宇宙から見えるサイズの看板', price: 8800000000, emoji: '🛰️', desc: 'NASAから苦情の可能性' },
+        { name: '一生分のタピオカ引換券', price: 3600000, emoji: '🧋', desc: '歯にストローが刺さる呪い付き' },
+        { name: '実物大ティラノサウルス骨格', price: 620000000, emoji: '🦖', desc: 'リビングに置いても余裕(嘘)' },
+        { name: '限定版・月の土地権利書', price: 99000000000, emoji: '🌕', desc: '所有権は誰にも証明できない' }
+    ];
+
+    const orderComments = [
+        'が「勢い」だけで発注しました。',
+        'が深夜テンションで決済しました。',
+        'が「明日の自分に任せた」と発注しました。',
+        'が謎の使命感で購入しました。',
+        'が「もう後戻りできない」と発注しました。',
+        'が特に理由もなく発注しました。',
+        'が推し活の名の下に爆買いしました。'
+    ];
+
+    const cancelComments = [
+        'すべてを無かったことにしました！スッキリ！！！',
+        '記憶ごと消し去りました！最高の気分！！！',
+        '「そんな注文知りません」を貫き通しました！',
+        '無かったことにして、心も軽くなりました！',
+        '店長の胃薬が2錠追加されました…が、こちらはスッキリ！'
+    ];
+
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function formatNumber(num) { return num.toLocaleString() + ' 円'; }
 
     function addLog(text) {
         const logArea = document.getElementById('log');
@@ -180,27 +239,98 @@
         logArea.scrollTop = logArea.scrollHeight;
     }
 
-    function addItem(price, name) {
-        totalAmount += price;
+    function renderShop() {
+        const section = document.getElementById('shop-section');
+        section.innerHTML = items.map((item, i) => `
+            <div class="item-card">
+                <div class="item-emoji">${item.emoji}</div>
+                <h3>${item.name}</h3>
+                <div class="desc">${item.desc}</div>
+                <p class="price">${formatNumber(item.price)}</p>
+                <button onclick="addItem(${i})">カートにぶち込む</button>
+            </div>
+        `).join('');
+    }
+
+    function updateRank() {
+        const banner = document.getElementById('rank-banner');
+        let title;
+        if (totalAmount === 0) title = '称号：まだ何も買っていない一般人';
+        else if (totalAmount < 100000) title = '称号：見習いバカ買い師';
+        else if (totalAmount < 2000000) title = '称号：カート焼き討ち隊員';
+        else if (totalAmount < 100000000) title = '称号：散財マイスター';
+        else if (totalAmount < 5000000000) title = '称号：経済圏を揺るがす者';
+        else title = '称号：もはや通貨の概念を破壊した男/女';
+        banner.textContent = title;
+    }
+
+    function updateRage() {
+        const pct = Math.min(100, Math.round(Math.log10(totalAmount + 1) / Math.log10(100000000000) * 100));
+        document.getElementById('rage-bar').style.width = pct + '%';
+        document.getElementById('rage-percent').textContent = pct + '%';
+        if (pct >= 100) {
+            addLog('<span style="color:#ff4757; font-weight:bold;">[警告] 店長の血圧メーターが振り切れました！！</span>');
+            shakeScreen();
+        }
+    }
+
+    function shakeScreen() {
+        const el = document.getElementById('container');
+        el.classList.remove('shake');
+        void el.offsetWidth;
+        el.classList.add('shake');
+    }
+
+    function launchConfetti() {
+        const colors = ['#ff4757', '#ffa502', '#2ed573', '#3742fa', '#ffd32a', '#7bed9f'];
+        for (let i = 0; i < 60; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + 'vw';
+            piece.style.background = pick(colors);
+            piece.style.width = piece.style.height = (6 + Math.random() * 8) + 'px';
+            piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            const duration = 1.5 + Math.random() * 1.5;
+            piece.style.animation = `fall ${duration}s ease-in forwards`;
+            document.body.appendChild(piece);
+            setTimeout(() => piece.remove(), duration * 1000 + 100);
+        }
+    }
+
+    function addItem(index) {
+        const item = items[index];
+        totalAmount += item.price;
+        orderCount += 1;
         document.getElementById('total-amount').innerText = formatNumber(totalAmount);
-        addLog(`[注文] アカウント${Math.floor(Math.random() * accounts) + 1}番が「${name}」を発注しました。`);
+        document.getElementById('order-count').innerText = orderCount;
+        addLog(`[注文] アカウント${Math.floor(Math.random() * accounts) + 1}番${pick(orderComments).replace('発注', `「${item.name}」を発注`)}`);
+        updateRank();
+        updateRage();
     }
 
     function addAccount() {
         accounts += 10;
         document.getElementById('account-count').innerText = accounts;
-        addLog(`[アカウント] 自動生成により、総アカウント数が ${accounts} 個になりました。`);
+        addLog(`[アカウント] 自動生成により、総アカウント数が ${accounts} 個になりました。（電話番号は聞かれていません）`);
     }
 
     function cancelAll() {
         if (totalAmount === 0) {
-            addLog(`[警告] カートが空です。まずは買い物をしてください！`);
+            addLog('[警告] カートが空です。まずは景気よく買い物をしてください！');
             return;
         }
-        addLog(`<span style="color:#ff4757; font-weight:bold;">[全キャンセル成功] ${formatNumber(totalAmount)}分の注文をすべて無断キャンセルしました！スッキリ！！！</span>`);
+        addLog(`<span style="color:#ff4757; font-weight:bold;">[全キャンセル成功] ${formatNumber(totalAmount)}分の注文を${pick(cancelComments)}</span>`);
         totalAmount = 0;
+        orderCount = 0;
         document.getElementById('total-amount').innerText = formatNumber(totalAmount);
+        document.getElementById('order-count').innerText = orderCount;
+        updateRank();
+        updateRage();
+        launchConfetti();
+        shakeScreen();
     }
+
+    renderShop();
 </script>
 
 </body>
