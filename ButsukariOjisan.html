@@ -76,11 +76,12 @@
 <div id="ui-layer">
     <div id="start-menu" class="panel">
         <div id="game-title">かわちいぶつかりおじさん</div>
-        <div id="version">walkingChara Pure Square v2026.08.11 Graphics Update</div>
+        <div id="version">walkingChara Pure Square v2026.08.11 AI Behavior Update</div>
         <p style="text-align:left; font-size:14px; color:#ccc; line-height:1.5;">
             自分より小さい人にぶつかって、おじさんの態度を大きくしろ！
             大きい人へおじさんビームを当てて小さくしてしてみよう。
-            初期の2倍のサイズで勝利！最弱サイズで敗北！
+            初期の2倍のサイズで勝利！最弱サイズで敗北！<br>
+            <span style="color:#ff99cc;">※大きい人はゆっくり近づいてくる。小さい人はビームを受けると逃げ出す。3発当てると1秒ひるむが、その後1秒は無敵になる。</span>
         </p>
         <button id="start-btn">ゲーム開始</button>
     </div>
@@ -158,6 +159,7 @@
     const gameoverScreen = document.getElementById('gameover-screen');
 
     const SIZE_MIN = 0.2, SIZE_MAX = 2.0;
+    const BIG_CHARA_THRESHOLD = 1.4; // これ以上のサイズは「大きいキャラ」としてゆっくり近づいてくる
     function updateSizeHud() {
         const clamped = Math.max(0, playerScale);
         sizeMeter.innerText = clamped.toFixed(2);
@@ -365,9 +367,10 @@
         animate();
     }
 
-    function buildCharaModel(mainColorHex, animsContainer) {
+    function buildCharaModel(mainColorHex, animsContainer, matsContainer) {
         const root = new THREE.Group();
         const mMain = new THREE.MeshStandardMaterial({ color: mainColorHex, roughness: 0.55 });
+        if (matsContainer) matsContainer.main = mMain;
 
         const actionPivot = new THREE.Group(); 
         root.add(actionPivot);
@@ -475,8 +478,9 @@
 
     function createPerson() {
         const anims = { armL: null, armR: null, legL: null, legR: null, animGroup: null };
+        const mats = { main: null };
         const randomColor = Math.random() * 0xffffff;
-        const charaGroup = buildCharaModel(randomColor, anims);
+        const charaGroup = buildCharaModel(randomColor, anims, mats);
 
         const sizeSpread = THREE.MathUtils.randFloat(0.5, 2.3); 
         const w = basePlayerRadius * 2 * sizeSpread;
@@ -485,6 +489,7 @@
         const personObject = {
             mesh: charaGroup,
             anims: anims,
+            mainMat: mats.main,
             radius: (w * 0.9),
             height: h,
             scaleFactor: sizeSpread,
@@ -492,6 +497,11 @@
             isFlying: false, 
             flyVelocity: new THREE.Vector3(),
             squashTimer: 0,
+            // --- ビーム被弾AI用ステート ---
+            hitCount: 0,        // 無敵中でない被弾数（3発で停止）
+            stunTimer: 0,       // >0の間は完全に停止（動けない）
+            invincibleTimer: 0, // >0の間はビームを受けても何も起きない（無敵）。停止時間+猶予時間
+            fleeTimer: 0,       // >0の間は自分より大きいおじさんから逃げるように移動する
 
             updateScale: function(newSpread) {
                 this.scaleFactor = newSpread;
@@ -516,6 +526,11 @@
                 this.mesh.visible = true;
                 this.isFlying = false;
                 this.squashTimer = 0;
+                this.hitCount = 0;
+                this.stunTimer = 0;
+                this.invincibleTimer = 0;
+                this.fleeTimer = 0;
+                if (this.mainMat) this.mainMat.emissive.setRGB(0, 0, 0);
                 this.anims.animGroup.scale.set(1, 1, 1);
                 this.mesh.rotation.set(0, 0, 0);
                 
@@ -676,6 +691,13 @@
 
                     const dist = b.mesh.position.distanceTo(p.mesh.position);
                     if (dist < p.radius + 0.3) {
+                        if (p.invincibleTimer > 0) {
+                            // 無敵状態：停止中＋停止後1秒はビームを受けても何も起こらない（永久停止ロック防止）
+                            spawnHitParticles(b.mesh.position, 0xffffff, 4);
+                            destroyed = true;
+                            break;
+                        }
+
                         let nextScale = p.scaleFactor - 0.25; 
                         if (nextScale < 0.25) nextScale = 0.25; 
                         p.updateScale(nextScale);
@@ -683,6 +705,20 @@
                         p.velocity.addScaledVector(b.direction, 3.0);
                         p.squashTimer = SQUASH_DURATION;
                         spawnHitParticles(b.mesh.position, 0xff77bb, 8);
+
+                        // 3発被弾で1秒停止。停止後1秒は無敵（3発当てても再び止まらない）
+                        p.hitCount++;
+                        if (p.hitCount >= 3) {
+                            p.hitCount = 0;
+                            p.stunTimer = 1.0;
+                            p.invincibleTimer = 2.0;
+                        }
+
+                        // 小さくなったキャラはおじさんから逃げ出す
+                        if (p.scaleFactor < BIG_CHARA_THRESHOLD) {
+                            p.fleeTimer = 1.5;
+                        }
+
                         destroyed = true;
                         break;
                     }
@@ -752,6 +788,42 @@
                         p.reset();
                     }
                 } else {
+                    // 被弾AIタイマーの更新
+                    if (p.invincibleTimer > 0) p.invincibleTimer -= delta;
+                    if (p.fleeTimer > 0) p.fleeTimer -= delta;
+
+                    if (p.stunTimer > 0) {
+                        // 3発被弾後の停止中：完全に動きを止める
+                        p.stunTimer -= delta;
+                        p.velocity.set(0, 0, 0);
+                    } else if (p.fleeTimer > 0) {
+                        // 小さいキャラ：ビームを受けた直後はおじさんから遠ざかる
+                        const awayDir = new THREE.Vector3().subVectors(p.mesh.position, playerMesh.position);
+                        awayDir.y = 0;
+                        if (awayDir.lengthSq() > 0.0001) {
+                            awayDir.normalize();
+                            p.velocity.lerp(awayDir.multiplyScalar(6.0), 0.12);
+                        }
+                    } else if (p.scaleFactor >= BIG_CHARA_THRESHOLD) {
+                        // 大きいキャラ：おじさんへゆっくり近づく
+                        const toPlayer = new THREE.Vector3().subVectors(playerMesh.position, p.mesh.position);
+                        toPlayer.y = 0;
+                        if (toPlayer.lengthSq() > 0.0001) {
+                            toPlayer.normalize();
+                            p.velocity.lerp(toPlayer.multiplyScalar(1.8), 0.03);
+                        }
+                    }
+
+                    // 無敵中はふわっと白く発光させて分かりやすくする
+                    if (p.mainMat) {
+                        if (p.invincibleTimer > 0) {
+                            const flash = (Math.sin(time * 6) + 1) * 0.5 * 0.7;
+                            p.mainMat.emissive.setRGB(flash, flash, flash);
+                        } else if (p.mainMat.emissive.r !== 0) {
+                            p.mainMat.emissive.setRGB(0, 0, 0);
+                        }
+                    }
+
                     // 通常歩行
                     p.mesh.position.addScaledVector(p.velocity, delta);
                     p.mesh.position.y = 1.1 * p.scaleFactor;
@@ -761,11 +833,15 @@
                         p.mesh.rotation.y = personAngle;
                     }
 
-                    p.anims.animGroup.position.y = Math.abs(Math.sin(time * 1.3)) * 0.2;
-                    p.anims.armL.position.z = 0.2 + Math.sin(time * 1.3) * 0.6;
-                    p.anims.armR.position.z = 0.2 - Math.sin(time * 1.3) * 0.6;
-                    p.anims.legL.position.z = 0.1 - Math.sin(time * 1.3) * 0.6;
-                    p.anims.legR.position.z = 0.1 + Math.sin(time * 1.3) * 0.6;
+                    if (p.stunTimer <= 0) {
+                        p.anims.animGroup.position.y = Math.abs(Math.sin(time * 1.3)) * 0.2;
+                        p.anims.armL.position.z = 0.2 + Math.sin(time * 1.3) * 0.6;
+                        p.anims.armR.position.z = 0.2 - Math.sin(time * 1.3) * 0.6;
+                        p.anims.legL.position.z = 0.1 - Math.sin(time * 1.3) * 0.6;
+                        p.anims.legR.position.z = 0.1 + Math.sin(time * 1.3) * 0.6;
+                    } else {
+                        p.anims.animGroup.position.y *= 0.8;
+                    }
 
                     if (p.squashTimer > 0) {
                         p.squashTimer -= delta;
