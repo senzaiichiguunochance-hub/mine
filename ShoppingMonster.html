@@ -9,11 +9,11 @@
 <style>
     * { box-sizing: border-box; }
     html, body {
-        font-family: 'Yusei Magic', 'Helvetica Neue', Arial, sans-serif;
+        height: 100%;
         margin: 0;
         padding: 0;
-        min-height: 100vh;
-        overflow-x: hidden;
+        overflow: hidden; /* no page-level scroll, no horizontal scroll anywhere */
+        font-family: 'Yusei Magic', 'Helvetica Neue', Arial, sans-serif;
         color: #fff;
         background: linear-gradient(-45deg, #1a1a2e, #3d1a4a, #1a2e4a, #2a1a4a);
         background-size: 400% 400%;
@@ -24,154 +24,222 @@
         50% { background-position: 100% 50%; }
         100% { background-position: 0% 50%; }
     }
-    body { padding: 20px; }
+
+    /* ---------- app shell: header (fixed) / main (scrolls) / footer (fixed) ---------- */
+    .app-shell {
+        height: 100vh;
+        max-width: 860px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* ---------- header ---------- */
+    .app-header { flex: 0 0 auto; }
     .ticker-wrap {
-        position: sticky;
-        top: 0;
-        z-index: 500;
         background: #ff2e63;
-        border-bottom: 3px dashed #ffe66d;
-        padding: 6px 0;
+        border-bottom: 2px dashed #ffe66d;
+        padding: 3px 0;
         overflow: hidden;
         white-space: nowrap;
-        margin: -20px -20px 20px -20px;
     }
     .ticker {
         display: inline-block;
         padding-left: 100%;
         font-family: 'Kaisei Decol', serif;
         font-weight: 700;
-        font-size: 14px;
+        font-size: 11px;
         color: #fff059;
         animation: ticker 18s linear infinite;
     }
-    @keyframes ticker {
-        0% { transform: translateX(0); }
-        100% { transform: translateX(-100%); }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 4px 10px 0 10px;
     }
-    .container { max-width: 860px; margin: 0 auto; position: relative; }
-    header { text-align: center; margin-bottom: 12px; }
+    .title-text { min-width: 0; }
     h1 {
         font-family: 'Kaisei Decol', serif;
-        font-size: 30px;
-        margin-bottom: 6px;
+        font-size: 16px;
+        line-height: 1.2;
+        margin: 0;
         background: linear-gradient(90deg, #ff4757, #ffa502, #ffe66d, #2ed573, #3742fa, #ff4757);
         background-size: 300% 100%;
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
         animation: rainbow 5s linear infinite;
-        text-shadow: 2px 2px 0 rgba(0,0,0,0.35);
-        transform: rotate(-1deg);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     @keyframes rainbow { to { background-position: 300% 0; } }
-    .subtitle { color: #ffd9e0; font-size: 13px; }
+    .subtitle { color: #ffd9e0; font-size: 9px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-link {
+        flex: 0 0 auto;
+        font-size: 11px;
+        color: #1a1a2e;
+        text-decoration: none;
+        background: #ffe66d;
+        padding: 4px 8px;
+        border-radius: 12px;
+        border: 2px solid #1a1a2e;
+        white-space: nowrap;
+    }
+
+    .rank-row { display: flex; justify-content: center; padding: 4px 10px 0 10px; }
     .rank-banner {
-        text-align: center;
-        font-size: 16px;
+        font-size: 12px;
         font-weight: bold;
         color: #1a1a2e;
         background: #ffe66d;
-        padding: 6px 18px;
-        border-radius: 30px;
-        border: 3px solid #1a1a2e;
-        margin: 0 auto 16px auto;
-        width: fit-content;
-        box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+        padding: 2px 12px;
+        border-radius: 20px;
+        border: 2px solid #1a1a2e;
+        box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .danger-face { font-size: 26px; vertical-align: middle; margin-right: 6px; }
+    .danger-face { font-size: 14px; vertical-align: middle; margin-right: 4px; }
+
     .dashboard {
-        background: #16213e;
-        padding: 20px;
-        border-radius: 16px;
         display: flex;
         justify-content: space-around;
         text-align: center;
-        margin-bottom: 18px;
-        border: 3px solid #3742fa;
-        box-shadow: 0 6px 0 rgba(0,0,0,0.35);
         flex-wrap: wrap;
-        gap: 10px;
-    }
-    .stat-box h2 { font-size: 12px; color: #a4b0be; margin: 0 0 5px 0; }
-    .stat-box p { font-size: 20px; color: #2ed573; margin: 0; font-weight: bold; }
-    .rage-wrap {
+        gap: 4px 10px;
+        padding: 6px 10px;
+        margin: 4px 10px 0 10px;
         background: #16213e;
-        border-radius: 16px;
-        padding: 12px 18px;
-        margin-bottom: 18px;
-        border: 3px solid #ff4757;
-        box-shadow: 0 6px 0 rgba(0,0,0,0.35);
+        border-radius: 10px;
+        border: 2px solid #3742fa;
     }
-    .rage-label { display: flex; justify-content: space-between; font-size: 12px; color: #a4b0be; margin-bottom: 6px; }
-    .rage-bar-bg { background: #0f3460; border-radius: 20px; height: 20px; overflow: hidden; border: 2px solid #000; }
+    .stat-box { min-width: 56px; }
+    .stat-box h2 { font-size: 9px; color: #a4b0be; margin: 0; font-weight: normal; }
+    .stat-box p { font-size: 14px; color: #2ed573; margin: 0; font-weight: bold; }
+
+    .rage-wrap {
+        padding: 5px 10px;
+        margin: 4px 10px 6px 10px;
+        background: #16213e;
+        border-radius: 10px;
+        border: 2px solid #ff4757;
+    }
+    .rage-label { display: flex; justify-content: space-between; font-size: 9px; color: #a4b0be; margin-bottom: 3px; }
+    .rage-bar-bg { background: #0f3460; border-radius: 10px; height: 8px; overflow: hidden; border: 1px solid #000; }
     .rage-bar-fill {
-        height: 100%; width: 0%; border-radius: 20px;
+        height: 100%; width: 0%; border-radius: 10px;
         background: linear-gradient(90deg, #2ed573, #ffd32a, #ff4757);
         transition: width 0.4s ease;
     }
-    .toolbar { text-align: center; margin-bottom: 14px; }
+
+    /* ---------- main: the only scrollable region ---------- */
+    .app-main {
+        flex: 1 1 auto;
+        min-height: 0;         /* required so flex child can actually scroll */
+        overflow-y: auto;
+        overflow-x: hidden;    /* never allow sideways scroll */
+        padding: 8px 10px 14px 10px;
+    }
+
+    .toolbar { text-align: center; margin-bottom: 8px; }
     .toolbar button {
         background: #3742fa; border: 2px solid #1a1a2e; color: #fff;
-        border-radius: 20px; padding: 6px 14px; font-weight: bold; cursor: pointer; font-size: 12px;
+        border-radius: 20px; padding: 4px 12px; font-weight: bold; cursor: pointer; font-size: 11px;
     }
-    .badge-wrap {
-        display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-        margin-bottom: 18px; min-height: 20px;
-    }
+    .badge-wrap { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 12px; min-height: 18px; }
     .badge {
         background: #0f3460; border: 2px solid #ffd32a; border-radius: 20px;
-        padding: 4px 10px; font-size: 12px; opacity: 0.25; filter: grayscale(1); transition: 0.3s;
+        padding: 3px 9px; font-size: 11px; opacity: 0.25; filter: grayscale(1); transition: 0.3s;
+        max-width: 100%;
     }
     .badge.unlocked { opacity: 1; filter: none; transform: scale(1.05); }
+
     .shop-section {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-        gap: 15px; margin-bottom: 20px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
     }
     .item-card {
-        background: #0f3460; padding: 15px; border-radius: 14px; text-align: center;
+        background: #0f3460; padding: 13px; border-radius: 14px; text-align: center;
         transition: transform 0.15s; position: relative; border: 3px solid #222b52;
+        max-width: 100%;
     }
-    .item-card:nth-child(odd) { transform: rotate(-1.2deg); }
-    .item-card:nth-child(even) { transform: rotate(1.2deg); }
-    .item-card:hover { transform: translateY(-4px) scale(1.05) rotate(0deg); border-color: #ffd32a; }
-    .item-card h3 { font-size: 14px; margin: 0 0 4px 0; }
-    .item-emoji { font-size: 32px; }
-    .item-card .desc { font-size: 11px; color: #7bed9f; margin-bottom: 8px; min-height: 14px; }
-    .item-card p.price { color: #ffa502; font-weight: bold; margin-bottom: 10px; }
+    .item-card:nth-child(odd) { transform: rotate(-1deg); }
+    .item-card:nth-child(even) { transform: rotate(1deg); }
+    .item-card:hover { transform: translateY(-3px) scale(1.03) rotate(0deg); border-color: #ffd32a; }
+    .item-card h3 { font-size: 13px; margin: 0 0 4px 0; }
+    .item-emoji { font-size: 28px; }
+    .item-card .desc { font-size: 10px; color: #7bed9f; margin-bottom: 6px; min-height: 13px; }
+    .item-card p.price { color: #ffa502; font-weight: bold; margin-bottom: 8px; font-size: 13px; }
+
     button {
-        background: #ff4757; color: white; border: 2px solid #1a1a2e; padding: 8px 15px;
+        background: #ff4757; color: white; border: 2px solid #1a1a2e; padding: 7px 14px;
         border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.15s;
-        box-shadow: 3px 3px 0 rgba(0,0,0,0.4);
+        box-shadow: 3px 3px 0 rgba(0,0,0,0.4); font-size: 12px;
     }
     button:hover { background: #ff6b81; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 rgba(0,0,0,0.4); }
     button:active { transform: translate(2px, 2px); box-shadow: 0 0 0 rgba(0,0,0,0.4); }
-    .action-section { text-align: center; background: #16213e; padding: 20px; border-radius: 16px; border: 3px solid #2ed573; }
+
+    /* ---------- footer ---------- */
+    .app-footer {
+        flex: 0 0 auto;
+        background: #16213e;
+        border-top: 3px solid #2ed573;
+        padding: 6px 10px;
+    }
+    .footer-actions {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: nowrap;
+        margin-bottom: 4px;
+    }
+    .footer-actions button { font-size: 11px; padding: 6px 10px; white-space: nowrap; }
     .cancel-btn {
-        background: #2f3542; font-size: 18px; padding: 15px 30px; color: #ff4757;
-        border: 3px solid #ff4757; margin-top: 10px; border-radius: 30px;
+        background: #2f3542; color: #ff4757; border: 2px solid #ff4757;
+        font-size: 13px; padding: 8px 16px; border-radius: 20px; flex: 1 1 auto; max-width: 260px;
     }
     .cancel-btn:hover { background: #ff4757; color: white; }
+    .account-btn { background: #3742fa; }
+
     .log-area {
-        margin-top: 20px; background: #0f3460; padding: 15px; border-radius: 12px;
-        height: 150px; overflow-y: auto; font-family: monospace; font-size: 13px;
-        color: #7bed9f; border: 2px solid #222b52;
+        background: #0f3460;
+        border-radius: 8px;
+        border: 2px solid #222b52;
+        height: 54px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        font-family: monospace;
+        font-size: 10px;
+        color: #7bed9f;
+        padding: 5px 8px;
     }
+
+    /* ---------- effects (unchanged) ---------- */
     @keyframes shake {
         0%, 100% { transform: translate(0, 0) rotate(0); }
-        20% { transform: translate(-8px, 4px) rotate(-1deg); }
-        40% { transform: translate(8px, -4px) rotate(1deg); }
-        60% { transform: translate(-6px, -2px) rotate(-1deg); }
-        80% { transform: translate(6px, 3px) rotate(1deg); }
+        20% { transform: translate(-6px, 3px) rotate(-1deg); }
+        40% { transform: translate(6px, -3px) rotate(1deg); }
+        60% { transform: translate(-5px, -2px) rotate(-1deg); }
+        80% { transform: translate(5px, 2px) rotate(1deg); }
     }
     .shake { animation: shake 0.5s; }
     .confetti-piece { position: fixed; top: -10px; width: 10px; height: 10px; opacity: 0.9; z-index: 999; pointer-events: none; }
     @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; } }
-    .money-piece { position: fixed; top: -40px; font-size: 26px; z-index: 998; pointer-events: none; animation: moneyfall linear forwards; }
+    .money-piece { position: fixed; top: -40px; font-size: 24px; z-index: 998; pointer-events: none; animation: moneyfall linear forwards; }
     @keyframes moneyfall { to { transform: translateY(110vh) rotate(360deg); } }
     .burst {
         position: fixed; z-index: 1000; font-family: 'Kaisei Decol', serif; font-weight: 700;
-        font-size: 34px; color: #ffe66d; -webkit-text-stroke: 2px #1a1a2e;
+        font-size: 30px; color: #ffe66d; -webkit-text-stroke: 2px #1a1a2e;
         pointer-events: none; animation: burstPop 0.7s ease-out forwards;
     }
     @keyframes burstPop {
@@ -181,53 +249,70 @@
     }
     .flash-overlay { position: fixed; inset: 0; background: #ff4757; opacity: 0; pointer-events: none; z-index: 900; transition: opacity 0.15s; }
     .flash-overlay.on { opacity: 0.35; }
+
+    /* small screens: keep everything compact, never widen past viewport */
+    @media (max-width: 420px) {
+        h1 { font-size: 14px; }
+        .stat-box { min-width: 48px; }
+        .stat-box p { font-size: 12px; }
+    }
 </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
-<div class="ticker-wrap"><div class="ticker" id="ticker">📢 速報：本日も世界のどこかで無意味な散財が発生している模様……</div></div>
 <div class="flash-overlay" id="flash"></div>
 
-<div class="container" id="container">
-    <header>
-        <h1>🛒 無限バカ買い＆全キャンセル・シミュレーター DX MAX</h1>
-        <p class="subtitle">現実の被害額0円！思う存分カートに突っ込んで全キャンセルしよう！</p>
+<div class="app-shell" id="container">
+
+    <header class="app-header">
+        <div class="ticker-wrap"><div class="ticker" id="ticker">📢 速報：本日も世界のどこかで無意味な散財が発生している模様……</div></div>
+
+        <div class="title-row">
+            <div class="title-text">
+                <h1>🛒 無限バカ買い＆全キャンセル・シミュレーター DX MAX</h1>
+                <p class="subtitle">現実の被害額0円！思う存分カートに突っ込んで全キャンセルしよう！</p>
+            </div>
+            <a href="menu.html" class="menu-link">メニュー</a>
+        </div>
+
+        <div class="rank-row">
+            <div class="rank-banner" id="rank-banner"><span class="danger-face" id="danger-face">😐</span>称号：まだ何も買っていない一般人</div>
+        </div>
+
+        <div class="dashboard">
+            <div class="stat-box"><h2>アカウント</h2><p id="account-count">1</p></div>
+            <div class="stat-box"><h2>注文総額</h2><p id="total-amount">0 円</p></div>
+            <div class="stat-box"><h2>投入回数</h2><p id="order-count">0</p></div>
+            <div class="stat-box"><h2>コンボ</h2><p id="combo-count">0</p></div>
+            <div class="stat-box"><h2>全キャンセル</h2><p id="cancel-count">0</p></div>
+        </div>
+
+        <div class="rage-wrap">
+            <div class="rage-label"><span>店長の血圧メーター</span><span id="rage-percent">0%</span></div>
+            <div class="rage-bar-bg"><div class="rage-bar-fill" id="rage-bar"></div></div>
+        </div>
     </header>
 
-    <div class="rank-banner" id="rank-banner"><span class="danger-face" id="danger-face">😐</span>称号：まだ何も買っていない一般人</div>
+    <main class="app-main">
+        <div class="toolbar">
+            <button onclick="toggleSound()" id="sound-toggle">🔊 効果音：ON</button>
+        </div>
 
-    <div class="dashboard">
-        <div class="stat-box"><h2>生成アカウント数</h2><p id="account-count">1</p></div>
-        <div class="stat-box"><h2>架空の注文総額</h2><p id="total-amount">0 円</p></div>
-        <div class="stat-box"><h2>カート投入回数</h2><p id="order-count">0</p></div>
-        <div class="stat-box"><h2>連続コンボ</h2><p id="combo-count">0</p></div>
-        <div class="stat-box"><h2>全キャンセル回数</h2><p id="cancel-count">0</p></div>
-    </div>
+        <div class="badge-wrap" id="badge-wrap"></div>
 
-    <div class="rage-wrap">
-        <div class="rage-label"><span>店長の血圧メーター</span><span id="rage-percent">0%</span></div>
-        <div class="rage-bar-bg"><div class="rage-bar-fill" id="rage-bar"></div></div>
-    </div>
+        <div class="shop-section" id="shop-section"></div>
+    </main>
 
-    <div class="toolbar">
-        <button onclick="toggleSound()" id="sound-toggle">🔊 効果音：ON</button>
-    </div>
+    <footer class="app-footer">
+        <div class="footer-actions">
+            <button class="account-btn" onclick="addAccount()">👤 アカウント量産 (+10)</button>
+            <button class="cancel-btn" onclick="cancelAll()">💥 全キャンセル発動</button>
+        </div>
+        <div class="log-area" id="log">
+            [システム起動完了] ストレス発散の準備ができました。アイテムをカートに入れてください。<br>
+        </div>
+    </footer>
 
-    <div class="badge-wrap" id="badge-wrap"></div>
-
-    <div class="shop-section" id="shop-section"></div>
-
-    <div class="action-section">
-        <button onclick="addAccount()" style="background: #3742fa; margin-bottom: 10px;">👤 新規アカウントを適当に量産する (+10アカウント)</button>
-        <br>
-        <button class="cancel-btn" onclick="cancelAll()">💥 【全キャンセル発動】すべてを無かったことにする</button>
-    </div>
-
-    <div class="log-area" id="log">
-        [システム起動完了] ストレス発散の準備ができました。アイテムをカートに入れてください。<br>
-    </div>
 </div>
 
 <script>
