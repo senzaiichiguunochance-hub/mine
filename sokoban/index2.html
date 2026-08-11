@@ -9,7 +9,7 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             margin: 0; padding: 0; overflow: hidden;
-            background: #c1c19d; font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: #a3d8f0; font-family: 'M PLUS Rounded 1c', sans-serif;
             touch-action: none; overscroll-behavior: none;
             width: 100%; height: 100%;
         }
@@ -236,8 +236,8 @@
 
     // --- ここからレンダリング／演出まわり ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xc1c19d);
-    scene.fog = new THREE.FogExp2(0xc1c19d, 0.018);
+    scene.background = new THREE.Color(0xa3d8f0);
+    scene.fog = new THREE.FogExp2(0xa3d8f0, 0.015);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -363,11 +363,13 @@
         goalMeshes.forEach(g => scene.remove(g));
         tiles = []; boxMeshes = {}; goalMeshes = [];
 
-        const floorMatA = new THREE.MeshStandardMaterial({ color: 0x16213e, roughness: 0.85 });
-        const floorMatB = new THREE.MeshStandardMaterial({ color: 0x1a2748, roughness: 0.85 });
-        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f3460, roughness: 0.7, metalness: 0.15 });
-        const boxMat = new THREE.MeshStandardMaterial({ color: 0xf9a826, roughness: 0.5, metalness: 0.1 });
-        const edgeMat = new THREE.LineBasicMaterial({ color: 0x0a1830, transparent: true, opacity: 0.35 });
+        // 床と壁が同系の暗いネイビーで見分けにくかったため、パレットを一新。
+        // 床＝明るいグリーンの市松模様、壁＝濃い暖色の木/石調で境界をはっきりさせる
+        const floorMatA = new THREE.MeshStandardMaterial({ color: 0x6fc47c, roughness: 0.8 });
+        const floorMatB = new THREE.MeshStandardMaterial({ color: 0x59ab68, roughness: 0.8 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x7a4a2b, roughness: 0.75, metalness: 0.05 });
+        const boxMat = new THREE.MeshStandardMaterial({ color: 0xffa726, roughness: 0.45, metalness: 0.1 });
+        const edgeMat = new THREE.LineBasicMaterial({ color: 0x1c1008, transparent: true, opacity: 0.4 });
 
         level.forEach((row, y) => row.forEach((tile, x) => {
             const px = x * 2, pz = y * 2;
@@ -388,7 +390,7 @@
             }
 
             if (originalLevel[y][x] === TILE.GOAL) {
-                const g = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.55, 32), new THREE.MeshBasicMaterial({ color: 0xf9a826, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+                const g = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.55, 32), new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
                 g.rotation.x = -Math.PI / 2; g.position.set(px, -0.97, pz);
                 g.userData.baseY = -0.97;
                 scene.add(g); tiles.push(g); goalMeshes.push(g);
