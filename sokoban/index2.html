@@ -198,12 +198,16 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
     else renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    // ACESFilmicは見た目が優しくなる代わりに色が薄く眠く見えやすいため、
+    // 彩度・コントラストがそのまま出るNoToneMappingに変更（色相・配色は変更なし）
+    renderer.toneMapping = THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1.0;
     document.body.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0xfff3d6, 0x2b3a55, 0.7));
-    const sun = new THREE.DirectionalLight(0xfff0d8, 1.1);
+    // 環境光(フィルライト)が強いと色が全体的に白っぽく薄まって見えるため弱め、
+    // 主光源(sun)を少し強くしてメリハリ・立体感を出す（色相バランスは維持）
+    scene.add(new THREE.HemisphereLight(0xfff3d6, 0x2b3a55, 0.45));
+    const sun = new THREE.DirectionalLight(0xfff0d8, 1.3);
     sun.position.set(-10, 26, 14);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
