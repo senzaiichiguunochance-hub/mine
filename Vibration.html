@@ -1,148 +1,472 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スマホ振動テスト</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            background-color: #c1c19d;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        h1 { margin-bottom: 30px; font-size: 24px; }
-        
-        /* ボタンのスタイル */
-        .btn-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        button {
-            background: #333;
-            color: #fff;
-            border: 2px solid #555;
-            padding: 20px;
-            font-size: 18px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
-            /* スマホでタップしたときの青いハイライトを消す */
-            -webkit-tap-highlight-color: transparent;
-        }
-        button:active {
-            transform: scale(0.95);
-        }
-
-        /* 各ボタンの色分け */
-        #btn-short { background: #007bff; border-color: #0056b3; }
-        #btn-long { background: #28a745; border-color: #1e7e34; }
-        #btn-rhythm { background: #ffc107; border-color: #d39e00; color: #333; }
-        #btn-stop { background: #dc3545; border-color: #bd2130; margin-top: 20px; }
-
-        /* 振動中に画面を揺らすアニメーション */
-        @keyframes shake {
-            0% { transform: translate(1px, 1px) rotate(0deg); }
-            10% { transform: translate(-1px, -2px) rotate(-1deg); }
-            20% { transform: translate(-3px, 0px) rotate(1deg); }
-            30% { transform: translate(3px, 2px) rotate(0deg); }
-            40% { transform: translate(1px, -1px) rotate(1deg); }
-            50% { transform: translate(-1px, 2px) rotate(-1deg); }
-            60% { transform: translate(-3px, 1px) rotate(0deg); }
-            70% { transform: translate(3px, 1px) rotate(-1deg); }
-            80% { transform: translate(-1px, -1px) rotate(1deg); }
-            90% { transform: translate(1px, 2px) rotate(0deg); }
-            100% { transform: translate(1px, -2px) rotate(-1deg); }
-        }
-        .shaking {
-            animation: shake 0.5s;
-            animation-iteration-count: infinite;
-        }
-        
-        #status {
-            margin-top: 20px;
-            height: 20px;
-            color: #aaa;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>バイブレーション ラボ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<style>
+  :root{
+    --bg: #fff3e6;
+    --bg-soft: #ffffff;
+    --surface: #ffffff;
+    --surface-hi: #fdeef8;
+    --border: rgba(43,35,64,0.12);
+    --text: #2b2340;
+    --muted: #786f92;
+    --muted-2: #a79fc0;
+
+    --c-notify: #3b6bff;
+    --c-notify-dim: rgba(59,107,255,0.12);
+    --c-emotion: #ff2d87;
+    --c-emotion-dim: rgba(255,45,135,0.12);
+    --c-utility: #00c896;
+    --c-utility-dim: rgba(0,200,150,0.12);
+
+    --shadow-pop: 5px 5px 0 rgba(43,35,64,0.08);
+    --radius: 18px;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(ellipse 700px 420px at 8% -8%, rgba(59,107,255,0.16), transparent 60%),
+      radial-gradient(ellipse 700px 420px at 100% 5%, rgba(255,45,135,0.14), transparent 55%),
+      radial-gradient(ellipse 600px 500px at 50% 100%, rgba(0,200,150,0.14), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans JP", sans-serif;
+    padding: 20px 16px 110px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  a.back{
+    position: fixed;
+    top: 16px; right: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 999px;
+    z-index: 1000;
+    box-shadow: 2px 2px 0 rgba(43,35,64,0.06);
+  }
+  a.back:hover{ color: var(--text); border-color: var(--c-notify); }
+
+  .wrap{ width:100%; max-width: 640px; }
+
+  header{ padding: 44px 4px 20px; text-align:left; }
+  header .eyebrow{
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    color: var(--muted-2);
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  h1{
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 900;
+    font-size: clamp(26px, 6vw, 34px);
+    margin: 0 0 8px;
+    letter-spacing: 0.01em;
+    background: linear-gradient(100deg, var(--c-notify) 0%, var(--c-emotion) 55%, var(--c-utility) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    width: fit-content;
+  }
+  header p{
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ---- 未対応バナー ---- */
+  #unsupported{
+    display:none;
+    background: var(--c-emotion-dim);
+    border: 1.5px solid rgba(255,45,135,0.35);
+    color: #b8195e;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin: 0 0 18px;
+  }
+
+  /* ---- 波形ビジュアライザ（signature element） ---- */
+  .visualizer{
+    background: var(--bg-soft);
+    border: 2px solid var(--text);
+    border-radius: var(--radius);
+    padding: 22px 18px 16px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow-pop);
+  }
+  .viz-top{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .viz-status{
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    transition: color .2s;
+  }
+  .viz-status.idle{ color: var(--muted); }
+  .viz-label{ font-size: 11px; color: var(--muted-2); letter-spacing: .08em; }
+
+  .bars{
+    display:flex;
+    align-items:center;
+    gap: 4px;
+    height: 64px;
+    padding: 0 2px;
+  }
+  .bar{
+    flex: 1 1 auto;
+    min-width: 3px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--surface-hi);
+    transition: height .12s ease, background .12s ease, box-shadow .12s ease;
+  }
+  .bar.rest{ background: transparent; }
+  .bar.lit{
+    height: 56px;
+    background: linear-gradient(180deg, var(--c-emotion), var(--c-notify));
+    box-shadow: 0 0 10px rgba(255,45,135,0.35);
+  }
+
+  /* ---- タブ ---- */
+  .tabs{
+    display:flex;
+    gap: 8px;
+    overflow-x:auto;
+    padding-bottom: 4px;
+    margin-bottom: 18px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar{ display:none; }
+  .tab{
+    flex: 0 0 auto;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 2px 2px 0 rgba(43,35,64,0.05);
+  }
+  .tab[aria-selected="true"]{
+    color: var(--bg);
+    background: var(--text);
+    border-color: var(--text);
+  }
+  .tab:focus-visible, button:focus-visible, .card:focus-visible{
+    outline: 2px solid var(--c-notify);
+    outline-offset: 2px;
+  }
+
+  /* ---- カードグリッド ---- */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 420px){
+    .grid{ grid-template-columns: 1fr 1fr; gap: 10px; }
+  }
+
+  .card{
+    text-align:left;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--cat-color, var(--muted-2));
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    cursor:pointer;
+    color: inherit;
+    font-family: inherit;
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+    box-shadow: 3px 3px 0 rgba(43,35,64,0.06);
+    transition: transform .12s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease;
+  }
+  .card:active{ transform: scale(0.96); }
+  .card.playing{
+    background: var(--cat-dim, var(--surface));
+    border-color: var(--cat-color, var(--border));
+    box-shadow: 3px 3px 0 var(--cat-color, rgba(43,35,64,0.06));
+  }
+  .card-icon{ font-size: 22px; line-height:1; }
+  .card-name{
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 14.5px;
+  }
+  .card-desc{
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.5;
+    min-height: 32px;
+  }
+  .card-dots{ display:flex; gap: 3px; margin-top: 2px; }
+  .dot{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border);
+  }
+  .dot.on{ background: var(--cat-color, var(--text)); }
+
+  /* ---- 停止ボタン（固定） ---- */
+  .stop-dock{
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display:flex;
+    justify-content:center;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, transparent, var(--bg) 40%);
+    pointer-events:none;
+    z-index: 900;
+  }
+  #btn-stop{
+    pointer-events:auto;
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    font-weight: 700;
+    font-size: 14.5px;
+    color: #fff;
+    background: var(--text);
+    border: 1.5px solid var(--text);
+    padding: 13px 30px;
+    border-radius: 999px;
+    cursor:pointer;
+    box-shadow: 0 8px 20px rgba(43,35,64,0.25);
+  }
+  #btn-stop:active{ transform: scale(0.96); }
+  #btn-stop.active{
+    color: #fff;
+    background: var(--c-emotion);
+    border-color: var(--c-emotion);
+    box-shadow: 0 8px 20px rgba(255,45,135,0.4);
+  }
+
+  @keyframes shake {
+    0% { transform: translate(0,0) rotate(0deg); }
+    25% { transform: translate(-1px,1px) rotate(-0.3deg); }
+    50% { transform: translate(1px,-1px) rotate(0.3deg); }
+    75% { transform: translate(-1px,-1px) rotate(-0.2deg); }
+    100% { transform: translate(1px,1px) rotate(0.2deg); }
+  }
+  body.shaking .wrap{ animation: shake 0.18s infinite; }
+
+  @media (prefers-reduced-motion: reduce){
+    body.shaking .wrap{ animation:none; }
+    .bar{ transition: none; }
+    .card{ transition: none; }
+  }
+</style>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<a class="back" href="menu.html">メニューに戻る</a>
 
+<div class="wrap">
+  <header>
+    <p class="eyebrow">VIBRATION API PLAYGROUND</p>
+    <h1>📳 バイブレーション ラボ</h1>
+    <p>タップすると端末が振動します。通知・感情表現・実用ツールの3ジャンル、全12パターン。</p>
+  </header>
 
-    <h1>📳 バイブレーション API</h1>
+  <div id="unsupported">
+    ⚠️ この端末（またはブラウザ）はバイブレーションに対応していません。<br>
+    ※iPhoneは非対応です。※PCでは動作しません。ボタンの動作は見た目のみ確認できます。
+  </div>
 
-    <div class="btn-container">
-        <button id="btn-short">⚡ 短くブッ！ (200ms)</button>
-        <button id="btn-long">📞 長くブーーーン (1秒)</button>
-        <button id="btn-rhythm">💓 ドクン・ドクン (鼓動)</button>
-        <button id="btn-stop">🛑 停止</button>
+  <div class="visualizer">
+    <div class="viz-top">
+      <span class="viz-status idle" id="viz-status">待機中</span>
+      <span class="viz-label">WAVEFORM</span>
     </div>
+    <div class="bars" id="bars"></div>
+  </div>
 
-    <div id="status">待機中...</div>
+  <div class="tabs" role="tablist" id="tabs">
+    <button class="tab" role="tab" aria-selected="true" data-cat="all">すべて</button>
+    <button class="tab" role="tab" aria-selected="false" data-cat="notify">🔔 通知</button>
+    <button class="tab" role="tab" aria-selected="false" data-cat="emotion">💓 感情</button>
+    <button class="tab" role="tab" aria-selected="false" data-cat="utility">🛠 実用</button>
+  </div>
 
-    <script>
-        // バイブレーション機能があるかチェック
-        if (!window.navigator.vibrate) {
-            alert("この端末（またはブラウザ）はバイブレーションに対応していません。\n※iPhoneは非対応です。\n※PCは動きません。");
-            document.getElementById('status').textContent = "⚠️ 非対応の端末です";
-        }
+  <div class="grid" id="grid"></div>
+</div>
 
-        const body = document.body;
-        const status = document.getElementById('status');
+<div class="stop-dock">
+  <button id="btn-stop">🛑 停止する</button>
+</div>
 
-        // 振動させる関数
-        function vibratePhone(pattern, message) {
-            // navigator.vibrate(ミリ秒) または ([ミリ秒, 休み, ミリ秒...])
-            window.navigator.vibrate(pattern);
-            
-            status.textContent = message;
-            
-            // 画面も揺らす演出
-            body.classList.add('shaking');
-            
-            // 振動時間の目安が終わったら画面の揺れを止める（簡易的処理）
-            let duration = Array.isArray(pattern) ? pattern.reduce((a,b)=>a+b, 0) : pattern;
-            if (duration > 0) {
-                setTimeout(() => {
-                    body.classList.remove('shaking');
-                    status.textContent = "待機中...";
-                }, duration);
-            }
-        }
+<script>
+(function(){
+  const CATS = {
+    notify:  { label:'通知',  color:'var(--c-notify)',  dim:'var(--c-notify-dim)'  },
+    emotion: { label:'感情',  color:'var(--c-emotion)', dim:'var(--c-emotion-dim)' },
+    utility: { label:'実用',  color:'var(--c-utility)', dim:'var(--c-utility-dim)' },
+  };
 
-        document.getElementById('btn-short').addEventListener('click', () => {
-            // 200ミリ秒振動
-            vibratePhone(200, "振動中: 短");
-        });
+  const PATTERNS = [
+    { key:'call',      name:'着信',           icon:'📞', cat:'notify',  pattern:[800,400,800,400,800,400], desc:'電話がかかってきたような長い振動の繰り返し' },
+    { key:'message',   name:'メッセージ',     icon:'💬', cat:'notify',  pattern:[70,50,70],                desc:'コツコツと2回、短くノック' },
+    { key:'alarm',     name:'アラーム',       icon:'⏰', cat:'notify',  pattern:[300,120,300,120,300,120,300], desc:'力強い振動を連続で鳴らす' },
+    { key:'countdown', name:'カウントダウン', icon:'🔢', cat:'notify',  pattern:[100,300,100,300,400,300,600], desc:'3・2・1で振動がだんだん長くなる' },
 
-        document.getElementById('btn-long').addEventListener('click', () => {
-            // 1000ミリ秒(1秒)振動
-            vibratePhone(1000, "振動中: 長");
-        });
+    { key:'heartbeat', name:'鼓動',       icon:'💓', cat:'emotion', pattern:[100,100,100,500,100,100,100,500], desc:'ドクン・ドクンという心臓の鼓動' },
+    { key:'laugh',     name:'笑い',       icon:'😆', cat:'emotion', pattern:[50,30,80,20,40,30,100,50,60],     desc:'不規則な小刻みの振動でクスクス笑い' },
+    { key:'nervous',   name:'ドキドキ',   icon:'😳', cat:'emotion', pattern:[300,200,250,150,200,100,150,80,100,60], desc:'徐々に速くなっていく緊張の高鳴り' },
+    { key:'surprise',  name:'ビックリ',   icon:'😲', cat:'emotion', pattern:[600],                             desc:'一発だけ強めのインパクト' },
 
-        document.getElementById('btn-rhythm').addEventListener('click', () => {
-            // パターン: [振動, 休み, 振動, 休み...]
-            // ドクン(100)、休み(100)、ドクン(100)、長い休み(500)...
-            vibratePhone([100, 100, 100, 500, 100, 100, 100, 500], "振動中: リズム");
-        });
+    { key:'short',    name:'短くブッ',       icon:'⚡',  cat:'utility', pattern:[200],  desc:'200msだけの短い振動' },
+    { key:'long',     name:'長くブーン',     icon:'📳',  cat:'utility', pattern:[1000], desc:'1秒間、長く鳴らし続ける' },
+    { key:'pomodoro', name:'ポモドーロ終了', icon:'🍅',  cat:'utility', pattern:[400,150,400,150,400], desc:'集中タイムの終わりを知らせる3連振動' },
+    { key:'double',   name:'ダブルタップ',   icon:'👆',  cat:'utility', pattern:[120,80,120], desc:'確認用にコンッコンッと2回振動' },
+  ];
 
-        document.getElementById('btn-stop').addEventListener('click', () => {
-            // 0を指定すると停止する
-            window.navigator.vibrate(0);
-            body.classList.remove('shaking');
-            status.textContent = "停止しました";
-        });
+  const gridEl = document.getElementById('grid');
+  const barsEl = document.getElementById('bars');
+  const vizStatus = document.getElementById('viz-status');
+  const stopBtn = document.getElementById('btn-stop');
+  const tabsEl = document.getElementById('tabs');
+  const unsupportedEl = document.getElementById('unsupported');
 
-    </script>
+  const supported = !!(window.navigator && window.navigator.vibrate);
+  if (!supported) unsupportedEl.style.display = 'block';
+
+  let timers = [];
+  let currentKey = null;
+
+  function clearTimers(){
+    timers.forEach(t => clearTimeout(t));
+    timers = [];
+  }
+
+  function buildBars(pattern){
+    barsEl.innerHTML = '';
+    const total = pattern.reduce((a,b)=>a+b,0) || 1;
+    pattern.forEach((ms, i) => {
+      const bar = document.createElement('div');
+      const isOn = i % 2 === 0;
+      bar.className = 'bar' + (isOn ? '' : ' rest');
+      const weight = Math.max(ms / total, 0.03);
+      bar.style.flexGrow = weight * 100;
+      barsEl.appendChild(bar);
+    });
+    return Array.from(barsEl.children);
+  }
+
+  function playPattern(item){
+    clearTimers();
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'));
+    const card = gridEl.querySelector(`[data-key="${item.key}"]`);
+    if (card) card.classList.add('playing');
+
+    currentKey = item.key;
+    if (supported) window.navigator.vibrate(item.pattern);
+
+    vizStatus.textContent = `再生中: ${item.name}`;
+    vizStatus.classList.remove('idle');
+    document.body.classList.add('shaking');
+    stopBtn.classList.add('active');
+
+    const bars = buildBars(item.pattern);
+    let elapsed = 0;
+    item.pattern.forEach((ms, i) => {
+      const isOn = i % 2 === 0;
+      const t = setTimeout(() => {
+        bars.forEach(b => b.classList.remove('lit'));
+        if (isOn) bars[i].classList.add('lit');
+      }, elapsed);
+      timers.push(t);
+      elapsed += ms;
+    });
+
+    const endTimer = setTimeout(() => finishPlaying(), elapsed);
+    timers.push(endTimer);
+  }
+
+  function finishPlaying(){
+    clearTimers();
+    document.body.classList.remove('shaking');
+    stopBtn.classList.remove('active');
+    vizStatus.textContent = '待機中';
+    vizStatus.classList.add('idle');
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'));
+    barsEl.querySelectorAll('.bar').forEach(b => b.classList.remove('lit'));
+    currentKey = null;
+  }
+
+  function stopAll(){
+    if (supported) window.navigator.vibrate(0);
+    finishPlaying();
+  }
+
+  function intensityDots(pattern){
+    const onTotal = pattern.filter((_,i)=>i%2===0).reduce((a,b)=>a+b,0);
+    const level = Math.min(5, Math.max(1, Math.round(onTotal / 300)));
+    let html = '';
+    for (let i=1;i<=5;i++){
+      html += `<span class="dot${i<=level?' on':''}"></span>`;
+    }
+    return html;
+  }
+
+  function renderGrid(filter){
+    gridEl.innerHTML = '';
+    PATTERNS
+      .filter(p => filter === 'all' || p.cat === filter)
+      .forEach(item => {
+        const cat = CATS[item.cat];
+        const card = document.createElement('button');
+        card.className = 'card';
+        card.dataset.key = item.key;
+        card.style.setProperty('--cat-color', cat.color);
+        card.style.setProperty('--cat-dim', cat.dim);
+        card.innerHTML = `
+          <span class="card-icon">${item.icon}</span>
+          <span class="card-name">${item.name}</span>
+          <span class="card-desc">${item.desc}</span>
+          <span class="card-dots">${intensityDots(item.pattern)}</span>
+        `;
+        card.addEventListener('click', () => playPattern(item));
+        gridEl.appendChild(card);
+      });
+  }
+
+  tabsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    tabsEl.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+    renderGrid(btn.dataset.cat);
+  });
+
+  stopBtn.addEventListener('click', stopAll);
+
+  renderGrid('all');
+})();
+</script>
 </body>
 </html>
