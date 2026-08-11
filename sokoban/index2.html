@@ -2,31 +2,111 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>3D倉庫番</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap');
-        body { margin: 0; overflow: hidden; background: #c1c19d; font-family: 'M PLUS Rounded 1c', sans-serif; touch-action: none; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0; padding: 0; overflow: hidden;
+            background: #c1c19d; font-family: 'M PLUS Rounded 1c', sans-serif;
+            touch-action: none; overscroll-behavior: none;
+            width: 100%; height: 100%;
+        }
         canvas { display: block; }
-        #ui { position: absolute; top: 15px; width: 100%; text-align: center; z-index: 100; pointer-events: none; }
-        h1 { color: #e94560; font-size: 24px; text-shadow: 0 0 10px rgba(0,0,0,0.3); margin: 0 0 10px 0; }
-        .btn { background: #e94560; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; cursor: pointer; pointer-events: auto; }
-        #touch-controls { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; z-index: 100; }
-        .row { display: flex; gap: 10px; }
-        .t-btn { width: 60px; height: 60px; background: rgba(15, 52, 96, 0.9); color: white; border: 2px solid #e94560; border-radius: 15px; font-size: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        #ui {
+            position: fixed; top: 0; left: 0; right: 0;
+            padding-top: calc(10px + env(safe-area-inset-top));
+            text-align: center; z-index: 100; pointer-events: none;
+        }
+        h1 {
+            color: #e94560; font-size: clamp(18px, 5vw, 26px);
+            text-shadow: 0 0 10px rgba(0,0,0,0.3); margin: 0 0 6px 0;
+        }
+        #hud {
+            display: flex; justify-content: center; gap: 14px;
+            font-size: clamp(12px, 3.2vw, 15px); color: #16213e; font-weight: bold;
+            margin-bottom: 8px;
+        }
+        #hud span b { color: #e94560; }
+        #btn-row { display: flex; justify-content: center; gap: 8px; pointer-events: auto; }
+        .btn {
+            background: #e94560; color: white; border: none;
+            padding: 8px 14px; border-radius: 10px; font-weight: bold; cursor: pointer;
+            font-family: inherit; font-size: clamp(11px, 3vw, 14px);
+            box-shadow: 0 3px 0 #b8324a; pointer-events: auto;
+        }
+        .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #b8324a; }
+        .btn.secondary { background: #0f3460; box-shadow: 0 3px 0 #0a2140; }
+        .btn.secondary:active { box-shadow: 0 1px 0 #0a2140; }
+
+        a.menu-link {
+            position: fixed; top: calc(12px + env(safe-area-inset-top));
+            right: calc(12px + env(safe-area-inset-right));
+            font-size: 13px; color: white; text-decoration: none; z-index: 100;
+            background: rgba(15,52,96,0.7); padding: 6px 10px; border-radius: 8px;
+        }
+
+        #touch-controls {
+            position: fixed; bottom: calc(16px + env(safe-area-inset-bottom));
+            left: 50%; transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 6px; z-index: 100;
+        }
+        .row { display: flex; gap: 8px; }
+        .t-btn {
+            width: min(15vw, 58px); height: min(15vw, 58px);
+            background: rgba(15, 52, 96, 0.9); color: white; border: 2px solid #e94560;
+            border-radius: 14px; font-size: clamp(18px, 5vw, 24px);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; user-select: none;
+        }
+        .t-btn:active { background: rgba(233, 69, 96, 0.9); }
+        .t-btn.ghost { background: rgba(15, 52, 96, 0.55); border-color: rgba(233,69,96,0.6); font-size: clamp(16px,4.2vw,20px); }
+
+        #win-overlay {
+            position: fixed; inset: 0; z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(15, 20, 30, 0); pointer-events: none;
+            transition: background 0.35s ease;
+        }
+        #win-overlay.show { background: rgba(15, 20, 30, 0.55); pointer-events: auto; }
+        #win-card {
+            background: #fffaf0; border-radius: 20px; padding: 26px 34px; text-align: center;
+            transform: scale(0.7); opacity: 0; transition: all 0.35s cubic-bezier(.34,1.56,.64,1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        }
+        #win-overlay.show #win-card { transform: scale(1); opacity: 1; }
+        #win-card h2 { color: #e94560; margin: 0 0 6px 0; font-size: 24px; }
+        #win-card p { color: #0f3460; margin: 0; font-size: 14px; }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-    <a href="..\menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: white; text-decoration: none;">メニューに戻る</a>
+    <a class="menu-link" href="..\menu.html">メニューに戻る</a>
 
 <div id="ui">
     <h1>3D倉庫番</h1>
-    <button class="btn" id="reset-button">新しいステージ</button>
+    <div id="hud">
+        <span>ステージ <b id="stage-count">1</b></span>
+        <span>歩数 <b id="move-count">0</b></span>
+        <span>最高 <b id="best-count">1</b></span>
+    </div>
+    <div id="btn-row">
+        <button class="btn" id="new-stage-btn">新しいステージ</button>
+        <button class="btn secondary" id="retry-btn">やり直す</button>
+    </div>
+</div>
+
+<div id="win-overlay">
+    <div id="win-card">
+        <h2 id="win-title">ステージクリア！</h2>
+        <p id="win-sub">次のステージへ進みます…</p>
+    </div>
 </div>
 
 <div id="touch-controls">
-    <div class="row"><div class="t-btn" id="up">▲</div></div>
+    <div class="row"><div class="t-btn ghost" id="undo">↺</div><div class="t-btn" id="up">▲</div></div>
     <div class="row">
         <div class="t-btn" id="left">◀</div>
         <div class="t-btn" id="down">▼</div>
@@ -41,9 +121,9 @@
 <script type="module">
     import * as THREE from 'three';
 
-    // --- 【提供元 script.js のロジック】 ---
+    // --- 【提供元 script.js のマップ生成ロジック：変更なし】 ---
     const TILE = { FLOOR: 0, WALL: 1, PLAYER: 2, BOX: 3, GOAL: 4, BOX_ON_GOAL: 5, PLAYER_ON_GOAL: 6 };
-    let level, originalLevel, playerPos;
+    let level, originalLevel, initialLevel, playerPos, initialPlayerPos;
     const GRID_SIZE = 2;
 
     function isSolvable(testLevel) {
@@ -81,52 +161,119 @@
         return false;
     }
 
-    function generateLevel() {
-        const w = 10, h = 8, bNum = 3;
-        while(true) {
+    // 変更点：箱の数(bNum)だけをステージ進行に応じて緩やかに増やせるよう引数化。
+    // 盤面サイズ(w,h)や探索アルゴリズム自体は元のまま。安全のため箱数の上限は5個に抑制し、
+    // 世代の計算コスト（BFSの状態爆発）が大きくなりすぎないようにしている。
+    function generateLevel(stage = 1) {
+        const w = 10, h = 8;
+        const bNum = Math.min(3 + Math.floor((stage - 1) / 3), 5);
+        while (true) {
             let nl = Array.from({length: h}, () => Array(w).fill(TILE.WALL));
             let cells = [];
-            for(let y=1; y<h-1; y++) for(let x=1; x<w-1; x++) if(Math.random()>0.3) { nl[y][x]=TILE.FLOOR; cells.push({x,y}); }
-            if(cells.length < bNum*2+1) continue;
-            let s = cells.sort(() => Math.random()-0.5);
-            for(let i=0; i<bNum; i++) nl[s[i].y][s[i].x] = TILE.GOAL;
-            for(let i=bNum; i<bNum*2; i++) nl[s[i].y][s[i].x] = TILE.BOX;
-            let p = s[bNum*2]; nl[p.y][p.x] = TILE.PLAYER;
-            if(isSolvable(nl)) {
-                level = nl; playerPos = p;
-                originalLevel = nl.map(row => row.map(t => (t===TILE.BOX||t===TILE.PLAYER)?TILE.FLOOR:t));
+            for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) if (Math.random() > 0.3) { nl[y][x] = TILE.FLOOR; cells.push({x, y}); }
+            if (cells.length < bNum * 2 + 1) continue;
+            let s = cells.sort(() => Math.random() - 0.5);
+            for (let i = 0; i < bNum; i++) nl[s[i].y][s[i].x] = TILE.GOAL;
+            for (let i = bNum; i < bNum * 2; i++) nl[s[i].y][s[i].x] = TILE.BOX;
+            let p = s[bNum * 2]; nl[p.y][p.x] = TILE.PLAYER;
+            if (isSolvable(nl)) {
+                level = nl; playerPos = { x: p.x, y: p.y }; initialPlayerPos = { x: p.x, y: p.y };
+                initialLevel = nl.map(row => row.slice());
+                originalLevel = nl.map(row => row.map(t => (t === TILE.BOX || t === TILE.PLAYER) ? TILE.FLOOR : t));
                 return;
             }
         }
     }
 
-    const scene = new THREE.Scene(); scene.background = new THREE.Color(0xc1c19d);
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    // --- ここからレンダリング／演出まわり ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xc1c19d);
+    scene.fog = new THREE.FogExp2(0xc1c19d, 0.018);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+    else renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     document.body.appendChild(renderer.domElement);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8), new THREE.DirectionalLight(0xffffff, 0.6));
 
-    let chara = {}; 
-    let boxMeshes = {}, tiles = [];
+    scene.add(new THREE.HemisphereLight(0xfff3d6, 0x2b3a55, 0.7));
+    const sun = new THREE.DirectionalLight(0xfff0d8, 1.1);
+    sun.position.set(-10, 26, 14);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(1024, 1024);
+    sun.shadow.camera.left = -22; sun.shadow.camera.right = 22;
+    sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
+    sun.shadow.camera.near = 1; sun.shadow.camera.far = 60;
+    sun.shadow.bias = -0.0015;
+    scene.add(sun);
+
+    const clock = new THREE.Clock();
+    let chara = {};
+    let boxMeshes = {}, tiles = [], goalMeshes = [];
+    let shadowBlob;
+
+    // 画面サイズ・向きに合わせてカメラ距離を自動調整し、盤面全体が画角に収まるようにする
+    function fitCameraToLevel() {
+        if (!level) return;
+        const w = level[0].length, h = level.length;
+        const centerX = (w - 1) * GRID_SIZE / 2;
+        const centerZ = (h - 1) * GRID_SIZE / 2;
+        const dir = new THREE.Vector3(0, 18, 14).normalize();
+
+        const vFov = camera.fov * Math.PI / 180;
+        const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+
+        const halfW = (w * GRID_SIZE) / 2 + 2.5;
+        const halfH = (h * GRID_SIZE) / 2 + 2.5;
+
+        const distV = halfH / Math.tan(vFov / 2);
+        const distH = halfW / Math.tan(hFov / 2);
+        const dist = Math.max(distV, distH) * 1.35;
+
+        const target = new THREE.Vector3(centerX, 0, centerZ);
+        camera.position.copy(target).add(dir.multiplyScalar(dist));
+        camera.lookAt(target);
+    }
+
+    function onResize() {
+        const w = window.innerWidth, h = window.innerHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        fitCameraToLevel();
+    }
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', () => setTimeout(onResize, 200));
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
 
     function createWalkingChara() {
         const root = new THREE.Group();
         const pivot = new THREE.Group(); root.add(pivot);
         const anim = new THREE.Group(); pivot.add(anim);
 
-        const mat = { 
-            main: new THREE.MeshStandardMaterial({ color: 0xe94560 }), 
-            white: new THREE.MeshStandardMaterial({ color: 0xffffff }),
-            limb: new THREE.MeshStandardMaterial({ color: 0xf3f4f6 }),
-            pink: new THREE.MeshStandardMaterial({ color: 0xff77bb })
+        const mat = {
+            main: new THREE.MeshStandardMaterial({ color: 0xe94560, roughness: 0.55, metalness: 0.05 }),
+            white: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }),
+            limb: new THREE.MeshStandardMaterial({ color: 0xf3f4f6, roughness: 0.6 }),
+            pink: new THREE.MeshStandardMaterial({ color: 0xff77bb, roughness: 0.5 })
         };
 
         const head = new THREE.Group(); anim.add(head);
         const hood = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 32), mat.main); hood.scale.set(1.5, 1.3, 1.1); head.add(hood);
         const face = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), mat.white); face.scale.set(1.4, 1.1, 0.65); face.position.set(0, -0.1, 0.6); head.add(face);
-        
+
+        // ほっぺ（可愛さ強化）
+        const cheekGeo = new THREE.CircleGeometry(0.14, 16);
+        const cheekMat = new THREE.MeshBasicMaterial({ color: 0xff9db8, transparent: true, opacity: 0.7 });
+        const cheekL = new THREE.Mesh(cheekGeo, cheekMat); cheekL.position.set(-0.42, -0.28, 0.93); face.add(cheekL);
+        const cheekR = new THREE.Mesh(cheekGeo, cheekMat); cheekR.position.set(0.42, -0.28, 0.93); face.add(cheekR);
+
         const makeEar = (x, rz) => {
             const g = new THREE.Group();
             const e = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), mat.main); e.scale.set(0.5, 1.1, 0.3); e.position.y = 0.4;
@@ -136,7 +283,7 @@
 
         const body = new THREE.Group(); body.position.y = -1.2; anim.add(body);
         const torso = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), mat.white); torso.scale.set(1, 1.2, 0.8); body.add(torso);
-        
+
         const limbs = {
             armL: new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mat.limb),
             armR: new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), mat.limb),
@@ -148,7 +295,9 @@
         Object.values(limbs).forEach(l => body.add(l));
 
         const tail = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.07, 8, 20, Math.PI), mat.main);
-        tail.rotation.y = Math.PI/2; tail.position.set(0, -0.3, -0.5); body.add(tail);
+        tail.rotation.y = Math.PI / 2; tail.position.set(0, -0.3, -0.5); body.add(tail);
+
+        root.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
 
         root.scale.set(0.4, 0.4, 0.4);
         chara = { root, pivot, anim, limbs };
@@ -156,84 +305,230 @@
     }
 
     function sync() {
-        tiles.forEach(t => scene.remove(t)); Object.values(boxMeshes).forEach(b => scene.remove(b));
-        tiles = []; boxMeshes = {};
+        tiles.forEach(t => scene.remove(t));
+        Object.values(boxMeshes).forEach(b => scene.remove(b));
+        goalMeshes.forEach(g => scene.remove(g));
+        tiles = []; boxMeshes = {}; goalMeshes = [];
+
+        const floorMatA = new THREE.MeshStandardMaterial({ color: 0x16213e, roughness: 0.85 });
+        const floorMatB = new THREE.MeshStandardMaterial({ color: 0x1a2748, roughness: 0.85 });
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x0f3460, roughness: 0.7, metalness: 0.15 });
+        const boxMat = new THREE.MeshStandardMaterial({ color: 0xf9a826, roughness: 0.5, metalness: 0.1 });
+        const edgeMat = new THREE.LineBasicMaterial({ color: 0x0a1830, transparent: true, opacity: 0.35 });
+
         level.forEach((row, y) => row.forEach((tile, x) => {
-            const px = x*2, pz = y*2;
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(2,2), new THREE.MeshStandardMaterial({color: 0x16213e}));
-            floor.rotation.x = -Math.PI/2; floor.position.set(px, -1, pz); scene.add(floor); tiles.push(floor);
-            if(tile === TILE.WALL) {
-                const wall = new THREE.Mesh(new THREE.BoxGeometry(2, 1.8, 2), new THREE.MeshStandardMaterial({color: 0x0f3460}));
-                wall.position.set(px, -0.1, pz); scene.add(wall); tiles.push(wall);
+            const px = x * 2, pz = y * 2;
+            const checker = (x + y) % 2 === 0 ? floorMatA : floorMatB;
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), checker);
+            floor.rotation.x = -Math.PI / 2; floor.position.set(px, -1, pz);
+            floor.receiveShadow = true;
+            scene.add(floor); tiles.push(floor);
+
+            if (tile === TILE.WALL) {
+                const wallGeo = new THREE.BoxGeometry(2, 1.8, 2);
+                const wall = new THREE.Mesh(wallGeo, wallMat);
+                wall.position.set(px, -0.1, pz);
+                wall.castShadow = true; wall.receiveShadow = true;
+                scene.add(wall); tiles.push(wall);
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(wallGeo), edgeMat);
+                edges.position.copy(wall.position); scene.add(edges); tiles.push(edges);
             }
-            if(originalLevel[y][x] === TILE.GOAL) {
-                const g = new THREE.Mesh(new THREE.CircleGeometry(0.6, 32), new THREE.MeshBasicMaterial({color: 0xf9a826, transparent: true, opacity: 0.4}));
-                g.rotation.x = -Math.PI/2; g.position.set(px, -0.98, pz); scene.add(g); tiles.push(g);
+
+            if (originalLevel[y][x] === TILE.GOAL) {
+                const g = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.55, 32), new THREE.MeshBasicMaterial({ color: 0xf9a826, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+                g.rotation.x = -Math.PI / 2; g.position.set(px, -0.97, pz);
+                g.userData.baseY = -0.97;
+                scene.add(g); tiles.push(g); goalMeshes.push(g);
             }
-            if(tile === TILE.BOX) {
-                const box = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.3, 1.3), new THREE.MeshStandardMaterial({color: 0xf9a826}));
-                box.position.set(px, -0.35, pz); scene.add(box); boxMeshes[`${x},${y}`] = box;
+
+            if (tile === TILE.BOX) {
+                const boxGeo = new THREE.BoxGeometry(1.3, 1.3, 1.3);
+                const box = new THREE.Mesh(boxGeo, boxMat);
+                box.position.set(px, -0.35, pz);
+                box.castShadow = true; box.receiveShadow = true;
+                scene.add(box);
+                const edges = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), edgeMat);
+                box.add(edges);
+                boxMeshes[`${x},${y}`] = box;
             }
         }));
-        if(!chara.root) scene.add(createWalkingChara());
-        chara.root.position.set(playerPos.x*2, -0.1, playerPos.y*2);
-        camera.position.set(10, 18, 22); camera.lookAt(10, 0, 8);
+
+        if (!chara.root) scene.add(createWalkingChara());
+        if (!shadowBlob) {
+            shadowBlob = new THREE.Mesh(
+                new THREE.CircleGeometry(0.75, 24),
+                new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28 })
+            );
+            shadowBlob.rotation.x = -Math.PI / 2;
+            scene.add(shadowBlob);
+        }
+        chara.root.position.set(playerPos.x * 2, -0.1, playerPos.y * 2);
+        shadowBlob.position.set(playerPos.x * 2, -0.99, playerPos.y * 2);
+
+        fitCameraToLevel();
     }
 
+    // --- 状態管理（連続プレイ用） ---
+    let stage = 1;
+    let moveCount = 0;
+    let history = [];
     let isMoving = false;
+    let bestStage = Number(localStorage.getItem('sokoban3d_best_stage') || 1);
+
+    function updateHUD() {
+        document.getElementById('stage-count').textContent = stage;
+        document.getElementById('move-count').textContent = moveCount;
+        document.getElementById('best-count').textContent = bestStage;
+    }
+
+    function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
     function move(dx, dy) {
-        if(isMoving) return;
+        if (isMoving) return;
         const nx = playerPos.x + dx, ny = playerPos.y + dy;
         const target = level[ny][nx];
-        if(target === TILE.WALL) return;
-        if(target === TILE.BOX) {
+        if (target === TILE.WALL) return;
+
+        let boxRecord = null;
+        if (target === TILE.BOX) {
             const ax = nx + dx, ay = ny + dy;
-            if(level[ay][ax] === TILE.WALL || level[ay][ax] === TILE.BOX) return;
+            if (level[ay][ax] === TILE.WALL || level[ay][ax] === TILE.BOX) return;
             level[ay][ax] = TILE.BOX; level[ny][nx] = TILE.FLOOR;
             const b = boxMeshes[`${nx},${ny}`]; boxMeshes[`${ax},${ay}`] = b; delete boxMeshes[`${nx},${ny}`];
-            b.position.set(ax*2, -0.35, ay*2);
+            b.position.set(ax * 2, -0.35, ay * 2);
+            boxRecord = { from: { x: nx, y: ny }, to: { x: ax, y: ay } };
+            vibrate(15);
         }
-        playerPos = {x: nx, y: ny}; isMoving = true;
-        const start = chara.root.position.clone(), end = new THREE.Vector3(nx*2, -0.1, ny*2);
+
+        history.push({ player: { x: playerPos.x, y: playerPos.y }, box: boxRecord });
+        moveCount++; updateHUD();
+
+        playerPos = { x: nx, y: ny }; isMoving = true;
+        const start = chara.root.position.clone(), end = new THREE.Vector3(nx * 2, -0.1, ny * 2);
         chara.root.lookAt(end.x, -0.1, end.z);
         let p = 0;
         const step = () => {
             p += 0.12; chara.root.position.lerpVectors(start, end, Math.min(p, 1));
+            shadowBlob.position.set(chara.root.position.x, -0.99, chara.root.position.z);
             const t = p * Math.PI;
             chara.anim.position.y = Math.abs(Math.sin(t)) * 0.5;
-            chara.pivot.rotation.z = Math.sin(t*2) * 0.1; // お尻の振り
-            chara.limbs.armL.position.z = 0.2 + Math.sin(t*2)*0.6;
-            chara.limbs.armR.position.z = 0.2 - Math.sin(t*2)*0.6;
-            chara.limbs.legL.position.z = 0.1 - Math.sin(t*2)*0.6;
-            chara.limbs.legR.position.z = 0.1 + Math.sin(t*2)*0.6;
-            if(p < 1) requestAnimationFrame(step);
+            chara.pivot.rotation.z = Math.sin(t * 2) * 0.1;
+            chara.limbs.armL.position.z = 0.2 + Math.sin(t * 2) * 0.6;
+            chara.limbs.armR.position.z = 0.2 - Math.sin(t * 2) * 0.6;
+            chara.limbs.legL.position.z = 0.1 - Math.sin(t * 2) * 0.6;
+            chara.limbs.legR.position.z = 0.1 + Math.sin(t * 2) * 0.6;
+            if (p < 1) requestAnimationFrame(step);
             else { isMoving = false; checkWin(); }
         };
         step();
     }
 
+    function undo() {
+        if (isMoving || history.length === 0) return;
+        const rec = history.pop();
+        if (rec.box) {
+            level[rec.box.to.y][rec.box.to.x] = TILE.FLOOR;
+            level[rec.box.from.y][rec.box.from.x] = TILE.BOX;
+            const b = boxMeshes[`${rec.box.to.x},${rec.box.to.y}`];
+            boxMeshes[`${rec.box.from.x},${rec.box.from.y}`] = b;
+            delete boxMeshes[`${rec.box.to.x},${rec.box.to.y}`];
+            b.position.set(rec.box.from.x * 2, -0.35, rec.box.from.y * 2);
+        }
+        playerPos = rec.player;
+        chara.root.position.set(playerPos.x * 2, -0.1, playerPos.y * 2);
+        shadowBlob.position.set(playerPos.x * 2, -0.99, playerPos.y * 2);
+        moveCount = Math.max(0, moveCount - 1);
+        updateHUD();
+    }
+
     function checkWin() {
         let win = true;
         originalLevel.forEach((row, y) => row.forEach((t, x) => {
-            if(t === TILE.GOAL && level[y][x] !== TILE.BOX) win = false;
+            if (t === TILE.GOAL && level[y][x] !== TILE.BOX) win = false;
         }));
-        if(win) { setTimeout(() => { alert("完璧です！"); start(); }, 100); }
+        if (win) {
+            vibrate([20, 40, 20]);
+            if (stage > bestStage) { bestStage = stage; localStorage.setItem('sokoban3d_best_stage', String(bestStage)); }
+            const overlay = document.getElementById('win-overlay');
+            document.getElementById('win-title').textContent = `ステージ${stage}クリア！`;
+            document.getElementById('win-sub').textContent = `${moveCount}手でクリア。次のステージへ…`;
+            overlay.classList.add('show');
+            setTimeout(() => {
+                overlay.classList.remove('show');
+                stage++;
+                startStage(true);
+            }, 1400);
+        }
     }
 
-    function start() { generateLevel(); sync(); }
-    document.getElementById('reset-button').onclick = start;
-    ['up','down','left','right'].forEach(id => {
+    function startStage(regenerate) {
+        if (regenerate) generateLevel(stage);
+        history = []; moveCount = 0; updateHUD(); sync();
+    }
+
+    function retryStage() {
+        level = initialLevel.map(row => row.slice());
+        playerPos = { x: initialPlayerPos.x, y: initialPlayerPos.y };
+        history = []; moveCount = 0; updateHUD(); sync();
+    }
+
+    function newGame() {
+        stage = 1; startStage(true);
+    }
+
+    // --- 入力まわり ---
+    document.getElementById('new-stage-btn').onclick = () => { stage++; startStage(true); };
+    document.getElementById('retry-btn').onclick = retryStage;
+    document.getElementById('undo').onclick = undo;
+    ['up', 'down', 'left', 'right'].forEach(id => {
         document.getElementById(id).onclick = () => {
-            const d = {up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]}[id];
+            const d = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[id];
             move(d[0], d[1]);
         };
     });
     window.addEventListener('keydown', e => {
-        if(e.key === 'ArrowUp') move(0,-1); if(e.key === 'ArrowDown') move(0,1);
-        if(e.key === 'ArrowLeft') move(-1,0); if(e.key === 'ArrowRight') move(1,0);
+        if (e.key === 'ArrowUp') move(0, -1);
+        if (e.key === 'ArrowDown') move(0, 1);
+        if (e.key === 'ArrowLeft') move(-1, 0);
+        if (e.key === 'ArrowRight') move(1, 0);
+        if (e.key === 'z' || e.key === 'u') undo();
+        if (e.key === 'r') retryStage();
     });
-    function loop() { requestAnimationFrame(loop); renderer.render(scene, camera); }
-    start(); loop();
+
+    // スワイプ操作（スマホでの操作性向上）
+    let touchStart = null;
+    window.addEventListener('touchstart', e => {
+        if (e.target.closest('#touch-controls') || e.target.closest('#btn-row')) return;
+        const t = e.changedTouches[0];
+        touchStart = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
+    window.addEventListener('touchend', e => {
+        if (!touchStart) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - touchStart.x, dy = t.clientY - touchStart.y;
+        touchStart = null;
+        const absX = Math.abs(dx), absY = Math.abs(dy);
+        if (Math.max(absX, absY) < 30) return;
+        if (absX > absY) move(dx > 0 ? 1 : -1, 0);
+        else move(0, dy > 0 ? 1 : -1);
+    }, { passive: true });
+
+    function loop() {
+        requestAnimationFrame(loop);
+        const t = clock.getElapsedTime();
+        goalMeshes.forEach((g, i) => {
+            const s = 1 + Math.sin(t * 2 + i) * 0.08;
+            g.scale.set(s, s, 1);
+        });
+        if (!isMoving && chara.root) {
+            chara.root.position.y = -0.1 + Math.sin(t * 2) * 0.025;
+        }
+        renderer.render(scene, camera);
+    }
+
+    updateHUD();
+    startStage(true);
+    loop();
 </script>
 </body>
 </html>
