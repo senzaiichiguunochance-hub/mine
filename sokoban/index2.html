@@ -164,7 +164,7 @@
 </div>
 
 <script type="importmap">
-    { "imports": { "three": "https://unpkg.com/three@0.150.1/build/three.module.js" } }
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
 
 <script type="module">
@@ -245,8 +245,9 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
-    else renderer.outputEncoding = THREE.sRGBEncoding;
+    // 色空間の指定はoutputColorSpaceに一本化（古いoutputEncoding方式との混在が
+    // スマホのブラウザで色が二重補正されて薄く見える原因になっていたため）
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     // ACESFilmicは見た目が優しくなる代わりに色が薄く眠く見えやすいため、
     // 彩度・コントラストがそのまま出るNoToneMappingに変更（色相・配色は変更なし）
     renderer.toneMapping = THREE.NoToneMapping;
@@ -292,6 +293,11 @@
         const target = new THREE.Vector3(centerX, 0, centerZ);
         camera.position.copy(target).add(dir.multiplyScalar(dist));
         camera.lookAt(target);
+
+        // 縦長のスマホ画面はカメラがPCより大きく後退するため、フォグ濃度が
+        // 固定値だと画面全体が霧色でほぼ覆われて色が薄く見えてしまう。
+        // カメラ距離に応じてフォグ濃度を逆算し、見た目の霧の掛かり具合を一定に保つ
+        if (scene.fog) scene.fog.density = 0.36 / dist;
     }
 
     function onResize() {
