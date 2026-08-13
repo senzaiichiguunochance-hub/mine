@@ -4,113 +4,381 @@
 <meta charset="UTF-8">
 <title>🌸 桜の花びら掃除</title>
 <style>
-  body { margin:0; background:#0a2a0a; overflow:hidden; font-family:sans-serif; touch-action:none; }
-  canvas { display:block; }
-  #ui {
-    position: absolute; top: 10px; left: 10px; color: #ff99cc; 
-    font-family: sans-serif; text-shadow: 0 0 8px #ff99cc;
-    z-index: 10; pointer-events: none;
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; overflow: hidden; touch-action: none;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+    background: #1a0f2e;
   }
-  #info { font-size: 19px; margin-top: 8px; }
+  canvas { display: block; }
+
+  #ui {
+    position: absolute; top: 14px; left: 14px; color: #fff0f5;
+    z-index: 10; pointer-events: none; user-select: none;
+  }
+  #ui h1 {
+    margin: 0 0 6px 0; font-size: 20px; letter-spacing: 2px;
+    text-shadow: 0 0 10px #ff8fc1, 0 2px 4px rgba(0,0,0,0.5);
+  }
+  #stageLabel {
+    font-size: 14px; color: #ffe1ee; margin-bottom: 4px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  #info { font-size: 15px; margin-top: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  #barWrap {
+    width: 180px; height: 10px; margin-top: 6px;
+    background: rgba(255,255,255,0.2); border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.4); overflow: hidden;
+  }
+  #barFill { height: 100%; width: 0%; background: linear-gradient(90deg,#ff9ecb,#ffd3e6); transition: width 0.2s; }
+  #timerWrap { font-size: 14px; margin-top: 6px; color: #cdeaff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+  #timerVal.low { color: #ff6b6b; }
+
+  a.menuBtn {
+    position: absolute; top: 16px; right: 16px; font-size: 14px; color: #4a2a3a;
+    text-decoration: none; background: rgba(255,240,246,0.85); padding: 6px 14px;
+    border-radius: 20px; z-index: 1000; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    font-family: sans-serif;
+  }
+
+  .overlay {
+    position: absolute; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at center, rgba(40,15,40,0.55), rgba(15,5,20,0.85));
+    opacity: 0; pointer-events: none; transition: opacity 0.4s;
+  }
+  .overlay.show { opacity: 1; pointer-events: auto; }
+
+  .scroll {
+    background: linear-gradient(#fdf6ea, #f7ecd8);
+    border: 3px solid #b0793f;
+    border-radius: 10px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(255,180,220,0.5), inset 0 0 20px rgba(176,121,63,0.15);
+    max-width: 340px;
+    transform: scaleY(0.2);
+    transition: transform 0.5s cubic-bezier(.2,1.4,.4,1);
+  }
+  .overlay.show .scroll { transform: scaleY(1); }
+
+  .scroll h2 { margin: 0 0 10px 0; font-size: 24px; color: #7a3b52; letter-spacing: 2px; }
+  .scroll p { margin: 6px 0; font-size: 15px; color: #5a4632; line-height: 1.6; }
+  .scroll .big { font-size: 34px; margin: 10px 0; }
+
+  .btn {
+    margin-top: 16px; display: inline-block; font-family: sans-serif;
+    background: linear-gradient(#ff9ecb, #ff7fb5); color: #fff; border: none;
+    padding: 10px 26px; border-radius: 24px; font-size: 15px; font-weight: bold;
+    cursor: pointer; box-shadow: 0 3px 8px rgba(255,120,180,0.5);
+    letter-spacing: 1px;
+  }
+  .btn:active { transform: translateY(1px); }
 </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
+<a href="menu.html" class="menuBtn">メニューに戻る</a>
 
 <div id="ui">
   <h1>🌸 桜の花びら掃除</h1>
-  <div id="info">総数: <span id="total">1000</span>　回収: <span id="collected">0</span></div>
+  <div id="stageLabel">ステージ 1 / 5</div>
+  <div id="info">花びら: <span id="collected">0</span> / <span id="goal">0</span></div>
+  <div id="barWrap"><div id="barFill"></div></div>
+  <div id="timerWrap">のこり時間: <span id="timerVal">30</span> 秒</div>
 </div>
 
 <canvas id="c"></canvas>
+
+<div id="introOverlay" class="overlay">
+  <div class="scroll">
+    <h2 id="introTitle">だい1幕</h2>
+    <p id="introDesc">花びらを集めて 排出ゾーンへ送ろう</p>
+    <div class="big">🌸</div>
+    <button class="btn" id="introBtn">はじめる</button>
+  </div>
+</div>
+
+<div id="clearOverlay" class="overlay">
+  <div class="scroll">
+    <h2>✨ ステージ クリア ✨</h2>
+    <div class="big">🎐</div>
+    <p id="clearDesc"></p>
+    <button class="btn" id="clearBtn">つぎへ</button>
+  </div>
+</div>
+
+<div id="overOverlay" class="overlay">
+  <div class="scroll">
+    <h2>力及ばず…</h2>
+    <div class="big">🍂</div>
+    <p id="overDesc">時間切れです</p>
+    <button class="btn" id="overBtn">もう一度</button>
+  </div>
+</div>
+
+<div id="finishOverlay" class="overlay">
+  <div class="scroll">
+    <h2>🌸 千秋楽 🌸</h2>
+    <div class="big">🎉</div>
+    <p>すべてのステージをクリアしました。<br>お見事な庭師ぶりでした。</p>
+    <button class="btn" id="finishBtn">はじめから</button>
+  </div>
+</div>
 
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let w, h;
-
-function resize() {
-  w = canvas.width = window.innerWidth;
-  h = canvas.height = window.innerHeight;
-}
+function resize() { w = canvas.width = innerWidth; h = canvas.height = innerHeight; }
 resize();
 window.addEventListener('resize', resize);
 
-const particles = [];
+/* ---------- ステージ設定 ---------- */
+const STAGES = [
+  { petals: 40,  time: 30, wind: 0.000, leaves: 0,  goalRatio: 0.80, label: 'だい1幕・春のはじまり' },
+  { petals: 60,  time: 32, wind: 0.020, leaves: 4,  goalRatio: 0.80, label: 'だい2幕・そよ風' },
+  { petals: 80,  time: 34, wind: 0.038, leaves: 8,  goalRatio: 0.85, label: 'だい3幕・花吹雪' },
+  { petals: 105, time: 38, wind: 0.052, leaves: 12, goalRatio: 0.85, label: 'だい4幕・嵐の予感' },
+  { petals: 135, time: 42, wind: 0.068, leaves: 16, goalRatio: 0.90, label: 'だい5幕・千本桜' },
+];
+
+let stageIndex = 0;
+let gameState = 'intro'; // intro | playing | clear | over | finish
+let timeLeft = 0;
+let timerHandle = null;
+let goalCount = 0;
 let collectedCount = 0;
-const totalPetals = 1000;
+let windPhase = 0;
 
-let mouseX = w/2, mouseY = h/2;
+const particles = []; // 花びら
+const leaves = [];    // 落ち葉(おじゃま)
+
+let mouseX = 0, mouseY = 0;
+let zoneCenter = { x: 0, y: 0 };
 const releaseRadius = 95;
-let explosionActive = 0; 
+let explosionActive = 0;
+let hoverTimer = 0;
+const SWITCH_THRESHOLD = 10;
 
-// テキスト切り替え用のタイマー
-let hoverTimer = 0; 
-const SWITCH_THRESHOLD = 10; // 0.5秒 (60fpsの場合)
+function setZone() { zoneCenter.x = w * 0.5; zoneCenter.y = h * 0.18; mouseX = w/2; mouseY = h/2; }
+setZone();
+window.addEventListener('resize', setZone);
 
-class Particle {
+/* ---------- 花びら形状(和風・かわいい) ---------- */
+function petalPath(s) {
+  ctx.beginPath();
+  ctx.moveTo(0, s);
+  ctx.bezierCurveTo(s*0.95, s*0.35, s*0.62, -s*0.55, s*0.14, -s*0.92);
+  ctx.quadraticCurveTo(0, -s*0.72, -s*0.14, -s*0.92);
+  ctx.bezierCurveTo(-s*0.62, -s*0.55, -s*0.95, s*0.35, 0, s);
+  ctx.closePath();
+}
+
+class Petal {
   constructor() { this.reset(true); }
-  reset(isInitial = false) {
-    this.x = Math.random() * w;
-    this.y = isInitial ? Math.random() * h : -20;
-    this.vx = (Math.random()-0.5) * 2.5;
-    this.vy = (Math.random()-0.5) * 2 + 0.6;
-    this.size = Math.random() * 7 + 5;
-    this.hue = [320, 330, 340, 355][Math.floor(Math.random()*4)];
-    this.alpha = Math.random() * 0.4 + 0.78;
+  reset(initial=false) {
+    this.x = Math.random()*w;
+    this.y = initial ? Math.random()*h : -20;
+    this.vx = (Math.random()-0.5)*2.2;
+    this.vy = (Math.random()-0.5)*1.6 + 0.6;
+    this.size = Math.random()*6 + 6;
+    const palette = [
+      ['#ffd7e6','#ff9ecb'], ['#ffe3ee','#ffb0d6'],
+      ['#ffc9dc','#ff85b8'], ['#fff0f6','#ffc2dd']
+    ];
+    this.colors = palette[Math.floor(Math.random()*palette.length)];
+    this.alpha = Math.random()*0.3 + 0.8;
+    this.rotation = Math.random()*Math.PI*2;
+    this.rotSpeed = (Math.random()-0.5)*0.06;
     this.collected = false;
+    this.sparkle = 0;
   }
-
-  update(mx, my) {
+  update(mx, my, wind) {
     if (this.collected) return;
-
     if (explosionActive <= 0) {
-      const dx = mx - this.x;
-      const dy = my - this.y;
-      const distSq = dx*dx + dy*dy;
-      if (distSq < 200*200) {
-        const dist = Math.sqrt(distSq) || 1;
-        const force = (1 - dist/200) * 1.15;
-        this.vx += (dx/dist) * force * 0.9;
-        this.vy += (dy/dist) * force * 0.9;
+      const dx = mx-this.x, dy = my-this.y;
+      const d2 = dx*dx+dy*dy;
+      if (d2 < 200*200) {
+        const dist = Math.sqrt(d2)||1;
+        const f = (1-dist/200)*1.15;
+        this.vx += (dx/dist)*f*0.9;
+        this.vy += (dy/dist)*f*0.9;
       }
     }
+    this.vx += Math.sin(windPhase*0.6 + this.y*0.01)*wind;
+    this.vy += 0.058;
+    this.vx *= 0.965; this.vy *= 0.965;
+    this.x += this.vx; this.y += this.vy;
+    this.rotation += this.rotSpeed + this.vx*0.01;
 
-    this.vy += 0.058; 
-    this.vx *= 0.965;
-    this.vy *= 0.965;
-
-    this.x += this.vx;
-    this.y += this.vy;
-
-    if (this.y > h - 5) {
-      this.y = h - 6;
-      this.vy = -Math.sqrt(2 * 0.058 * h) * 4.0; 
-      this.vx += (Math.random() - 0.5) * 15;
-    }
-
-    if (this.x < 10 || this.x > w - 10) this.vx *= -0.8;
-    // 天井での跳ね返り
-    if (this.y < 5) { 
-      this.y = 6; 
-      this.vy *= -0.3; 
-    }
+    if (this.y > h-5) { this.y = h-6; this.vy = -Math.sqrt(2*0.058*h)*4.0; this.vx += (Math.random()-0.5)*15; }
+    if (this.x < 10 || this.x > w-10) this.vx *= -0.8;
+    if (this.y < 5) { this.y = 6; this.vy *= -0.3; }
   }
-
   draw() {
     if (this.collected) return;
     ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
     ctx.globalAlpha = this.alpha;
-    ctx.fillStyle = `hsl(${this.hue}, 95%, 88%)`;
+    petalPath(this.size);
+    const g = ctx.createLinearGradient(0,-this.size,0,this.size);
+    g.addColorStop(0, this.colors[0]);
+    g.addColorStop(1, this.colors[1]);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(180,60,110,0.35)';
+    ctx.stroke();
+    ctx.globalAlpha = this.alpha*0.6;
     ctx.beginPath();
-    ctx.ellipse(this.x, this.y, this.size, this.size*0.55, this.vx*2.2, 0, Math.PI*2);
+    ctx.ellipse(-this.size*0.2,-this.size*0.15,this.size*0.22,this.size*0.12,0.6,0,Math.PI*2);
+    ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.restore();
   }
 }
 
+class Leaf {
+  constructor() { this.reset(true); }
+  reset(initial=false) {
+    this.x = Math.random()*w;
+    this.y = initial ? Math.random()*h : -20;
+    this.vx = (Math.random()-0.5)*2;
+    this.vy = (Math.random()-0.5)*1.4 + 0.5;
+    this.size = Math.random()*6 + 6;
+    this.rotation = Math.random()*Math.PI*2;
+    this.rotSpeed = (Math.random()-0.5)*0.08;
+    this.collected = false;
+  }
+  update(mx, my, wind) {
+    if (this.collected) return;
+    if (explosionActive <= 0) {
+      const dx = mx-this.x, dy = my-this.y;
+      const d2 = dx*dx+dy*dy;
+      if (d2 < 200*200) {
+        const dist = Math.sqrt(d2)||1;
+        const f = (1-dist/200)*1.0;
+        this.vx += (dx/dist)*f*0.85;
+        this.vy += (dy/dist)*f*0.85;
+      }
+    }
+    this.vx += Math.sin(windPhase*0.6 + this.y*0.01)*wind*1.3;
+    this.vy += 0.06;
+    this.vx *= 0.96; this.vy *= 0.96;
+    this.x += this.vx; this.y += this.vy;
+    this.rotation += this.rotSpeed;
+    if (this.y > h-5) { this.y = h-6; this.vy = -Math.sqrt(2*0.06*h)*3.6; this.vx += (Math.random()-0.5)*13; }
+    if (this.x < 10 || this.x > w-10) this.vx *= -0.8;
+    if (this.y < 5) { this.y = 6; this.vy *= -0.3; }
+  }
+  draw() {
+    if (this.collected) return;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.fillStyle = '#c98a45';
+    ctx.beginPath();
+    ctx.ellipse(0,0,this.size,this.size*0.6,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#8a5a26';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-this.size,0); ctx.lineTo(this.size,0);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* ---------- 背景(和風グラデーション+桜シルエット+月) ---------- */
+function drawSky() {
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0, '#2b1a4a');
+  g.addColorStop(0.45, '#6b3f6e');
+  g.addColorStop(0.8, '#ff9ab0');
+  g.addColorStop(1, '#ffd6c9');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,w,h);
+
+  // 月
+  ctx.save();
+  ctx.shadowBlur = 40; ctx.shadowColor = '#fff6e0';
+  ctx.fillStyle = '#fff9ea';
+  ctx.beginPath();
+  ctx.arc(w*0.85, h*0.16, 32, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  drawBranch(-20, -10, 1);
+  drawBranch(w+20, -10, -1);
+}
+
+function drawBranch(x, y, dir) {
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.strokeStyle = '#3a2417';
+  ctx.lineWidth = 10;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.bezierCurveTo(dir*80,40, dir*40,90, dir*130,120);
+  ctx.stroke();
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(dir*40,60);
+  ctx.bezierCurveTo(dir*90,70, dir*100,110, dir*160,100);
+  ctx.stroke();
+  for (let i=0;i<14;i++) {
+    const t = i/14;
+    const bx = dir*(60+t*170) + Math.sin(i)*10;
+    const by = 60 + t*90 + Math.cos(i)*10;
+    ctx.beginPath();
+    ctx.fillStyle = i%3===0 ? '#ffc9dc' : '#ffe3ee';
+    ctx.arc(bx,by, 7+((i*7)%5), 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ---------- 排出ゾーン(和風・かわいい) ---------- */
+function drawZone() {
+  const dx = mouseX - zoneCenter.x, dy = mouseY - zoneCenter.y;
+  const isHover = dx*dx+dy*dy < releaseRadius*releaseRadius;
+  hoverTimer = isHover ? Math.min(hoverTimer+1, SWITCH_THRESHOLD) : 0;
+
+  ctx.save();
+  ctx.shadowBlur = 30; ctx.shadowColor = '#ffb6d0';
+  ctx.strokeStyle = '#ffb6d0';
+  ctx.lineWidth = 12;
+  ctx.beginPath();
+  ctx.arc(zoneCenter.x, zoneCenter.y, releaseRadius, 0, Math.PI*2);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(255,180,210,0.18)';
+  ctx.beginPath();
+  ctx.arc(zoneCenter.x, zoneCenter.y, releaseRadius-12, 0, Math.PI*2);
+  ctx.fill();
+
+  // かご(バスケット)アイコン
+  ctx.save();
+  ctx.translate(zoneCenter.x, zoneCenter.y+8);
+  ctx.strokeStyle = '#a0673a'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-26,-4); ctx.quadraticCurveTo(0,18,26,-4);
+  ctx.stroke();
+  for (let i=-20;i<=20;i+=10) { ctx.beginPath(); ctx.moveTo(i,-3); ctx.lineTo(i*0.7,12); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(-26,-4); ctx.lineTo(26,-4); ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = '#fff0f6';
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(hoverTimer>=SWITCH_THRESHOLD ? '✨ クリック! ✨' : '🌸 排出ゾーン 🌸', zoneCenter.x, zoneCenter.y - releaseRadius - 16);
+}
+
+/* ---------- 入力 ---------- */
 function updatePointer(e) {
   const rect = canvas.getBoundingClientRect();
   mouseX = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
@@ -118,132 +386,156 @@ function updatePointer(e) {
 }
 canvas.addEventListener('mousemove', updatePointer);
 canvas.addEventListener('touchmove', e => { e.preventDefault(); updatePointer(e); }, {passive:false});
+canvas.addEventListener('mousedown', tryRelease);
+canvas.addEventListener('touchstart', e => { updatePointer(e); tryRelease(e); }, {passive:false});
 
-canvas.addEventListener('mousedown', (e) => {
-  const rect = canvas.getBoundingClientRect();
-  const tx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-  const ty = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-  const dx = tx - w/2;
-  const dy = ty - h/2;
-  if (dx*dx + dy*dy < releaseRadius * releaseRadius) {
-    explodeFromRoomba();
-  }
-});
-
-function explodeFromRoomba() {
+function tryRelease() {
+  if (gameState !== 'playing') return;
+  const dx = mouseX - zoneCenter.x, dy = mouseY - zoneCenter.y;
+  if (dx*dx+dy*dy < releaseRadius*releaseRadius) explodeZone();
+}
+function explodeZone() {
   if (collectedCount === 0) return;
-  explosionActive = 35; 
+  explosionActive = 35;
   particles.forEach(p => {
     if (p.collected) {
-      p.collected = false;
-      p.x = mouseX;
-      p.y = mouseY;
-      const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 35 + 10; 
-      p.vx = Math.cos(angle) * speed;
-      p.vy = Math.sin(angle) * speed;
+      p.collected = false; p.x = mouseX; p.y = mouseY;
+      const a = Math.random()*Math.PI*2, s = Math.random()*30+8;
+      p.vx = Math.cos(a)*s; p.vy = Math.sin(a)*s;
     }
   });
   collectedCount = 0;
   updateUI();
 }
 
-function updateUI() {
-  document.getElementById('collected').textContent = collectedCount;
-}
-
-function trySuck(mx, my) {
-  if (explosionActive > 0) return; 
+function trySuck(mx,my) {
+  if (explosionActive > 0 || gameState !== 'playing') return;
   for (let p of particles) {
     if (!p.collected) {
-      const dx = mx - p.x;
-      const dy = my - p.y;
-      if (dx*dx + dy*dy < 72*72) {
-        p.collected = true;
-        collectedCount++;
-        updateUI();
-      }
+      const dx = mx-p.x, dy = my-p.y;
+      if (dx*dx+dy*dy < 72*72) { p.collected = true; collectedCount++; updateUI(); checkClear(); }
+    }
+  }
+  for (let l of leaves) {
+    if (!l.collected) {
+      const dx = mx-l.x, dy = my-l.y;
+      if (dx*dx+dy*dy < 72*72) { l.collected = true; timeLeft = Math.max(0, timeLeft-1); }
     }
   }
 }
 
-function drawBackground() {
-  ctx.fillStyle = '#0d1f0d';
-  ctx.fillRect(0, 0, w, h);
-
-  // ホバー判定
-  const dx = mouseX - w/2;
-  const dy = mouseY - h/2;
-  const isHover = (dx*dx + dy*dy < releaseRadius * releaseRadius);
-
-  // カウント管理（乗せている間だけ増える）
-  if (isHover) {
-    if (hoverTimer < SWITCH_THRESHOLD) hoverTimer++;
-  } else {
-    hoverTimer = 0; // 離れたら即座にリセット
-  }
-
-  // 円の描画[cite: 2]
-  ctx.save();
-  ctx.shadowBlur = 35;
-  ctx.shadowColor = '#44ccff';
-  ctx.strokeStyle = '#44ccff';
-  ctx.lineWidth = 14;
-  ctx.beginPath();
-  ctx.arc(w/2, h/2, releaseRadius, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.fillStyle = 'rgba(68, 204, 255, 0.15)';
-  ctx.beginPath();
-  ctx.arc(w/2, h/2, releaseRadius - 12, 0, Math.PI*2);
-  ctx.fill();
-
-  ctx.fillStyle = '#aaffff';
-  ctx.font = 'bold 26px sans-serif';
-  ctx.textAlign = 'center';
-
-  if (hoverTimer >= SWITCH_THRESHOLD) {
-    ctx.fillText('✨ Click! ✨', w/2, h/2 + 10);
-  } else {
-    ctx.fillText('🌊 排出ゾーン 🌊', w/2, h/2 + 10);
-  }
+function updateUI() {
+  document.getElementById('collected').textContent = collectedCount;
+  document.getElementById('goal').textContent = goalCount;
+  const pct = goalCount ? Math.min(100, (collectedCount/goalCount)*100) : 0;
+  document.getElementById('barFill').style.width = pct+'%';
 }
 
+/* ---------- ステージ進行 ---------- */
+function loadStage(i) {
+  stageIndex = i;
+  const cfg = STAGES[i];
+  particles.length = 0; leaves.length = 0;
+  for (let k=0;k<cfg.petals;k++) particles.push(new Petal());
+  for (let k=0;k<cfg.leaves;k++) leaves.push(new Leaf());
+  goalCount = Math.ceil(cfg.petals*cfg.goalRatio);
+  collectedCount = 0;
+  timeLeft = cfg.time;
+  document.getElementById('stageLabel').textContent = `ステージ ${i+1} / ${STAGES.length}`;
+  document.getElementById('introTitle').textContent = cfg.label;
+  document.getElementById('introDesc').textContent =
+    `花びら ${cfg.petals}枚のうち ${goalCount}枚を ${cfg.time}秒以内に集めよう`
+    + (cfg.leaves ? `(落ち葉を吸うと-1秒)` : '');
+  updateUI();
+  document.getElementById('timerVal').textContent = timeLeft;
+  showOverlay('introOverlay');
+  gameState = 'intro';
+}
+
+function startPlaying() {
+  hideOverlays();
+  gameState = 'playing';
+  clearInterval(timerHandle);
+  timerHandle = setInterval(() => {
+    if (gameState !== 'playing') return;
+    timeLeft--;
+    const tv = document.getElementById('timerVal');
+    tv.textContent = timeLeft;
+    tv.className = timeLeft <= 5 ? 'low' : '';
+    if (timeLeft <= 0) { timeLeft = 0; tv.textContent = 0; failStage(); }
+  }, 1000);
+}
+
+function checkClear() {
+  if (gameState === 'playing' && collectedCount >= goalCount) clearStage();
+}
+function clearStage() {
+  gameState = 'clear';
+  clearInterval(timerHandle);
+  const isLast = stageIndex === STAGES.length-1;
+  document.getElementById('clearDesc').textContent = isLast
+    ? '最終幕を見事に集めきりました!'
+    : `花びらを ${collectedCount}枚 集めました。次の幕へ進みましょう。`;
+  document.getElementById('clearBtn').textContent = isLast ? '終幕へ' : 'つぎへ';
+  showOverlay('clearOverlay');
+}
+function failStage() {
+  gameState = 'over';
+  clearInterval(timerHandle);
+  document.getElementById('overDesc').textContent = `${collectedCount} / ${goalCount} 枚でした。もう一度挑戦しましょう。`;
+  showOverlay('overOverlay');
+}
+
+function showOverlay(id) {
+  hideOverlays();
+  document.getElementById(id).classList.add('show');
+}
+function hideOverlays() {
+  ['introOverlay','clearOverlay','overOverlay','finishOverlay'].forEach(id => document.getElementById(id).classList.remove('show'));
+}
+
+document.getElementById('introBtn').addEventListener('click', startPlaying);
+document.getElementById('overBtn').addEventListener('click', () => loadStage(stageIndex));
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (stageIndex === STAGES.length-1) {
+    hideOverlays();
+    showOverlay('finishOverlay');
+    gameState = 'finish';
+  } else {
+    loadStage(stageIndex+1);
+  }
+});
+document.getElementById('finishBtn').addEventListener('click', () => loadStage(0));
+
+/* ---------- メインループ ---------- */
 function animate() {
-  drawBackground();
+  drawSky();
+  drawZone();
+  windPhase += 0.02;
   if (explosionActive > 0) explosionActive--;
 
-  ctx.fillStyle = 'rgba(180, 240, 255, 0.22)';
+  const wind = STAGES[stageIndex].wind;
+
+  ctx.fillStyle = 'rgba(255,220,235,0.20)';
   ctx.beginPath();
   ctx.arc(mouseX, mouseY, 78, 0, Math.PI*2);
   ctx.fill();
 
-  for (let p of particles) {
-    p.update(mouseX, mouseY);
-    p.draw();
-  }
+  for (let l of leaves) { l.update(mouseX,mouseY,wind); l.draw(); }
+  for (let p of particles) { p.update(mouseX,mouseY,wind); p.draw(); }
 
   trySuck(mouseX, mouseY);
 
-  ctx.strokeStyle = '#44ddff';
+  ctx.strokeStyle = '#ffd3e6';
   ctx.lineWidth = 5;
-  ctx.beginPath();
-  ctx.arc(mouseX, mouseY, 24, 0, Math.PI*2);
-  ctx.stroke();
-
-  ctx.fillStyle = '#aaffff';
-  ctx.beginPath();
-  ctx.arc(mouseX, mouseY, 10, 0, Math.PI*2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(mouseX,mouseY,24,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#fff0f6';
+  ctx.beginPath(); ctx.arc(mouseX,mouseY,10,0,Math.PI*2); ctx.fill();
 
   requestAnimationFrame(animate);
 }
 
-for (let i = 0; i < totalPetals; i++) {
-  particles.push(new Particle());
-}
-updateUI();
+loadStage(0);
 animate();
 </script>
 </body>
