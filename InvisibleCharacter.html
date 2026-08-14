@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIテキスト不可視・制御文字アナライザー＆クリーナー</title>
+  <style>
+    :root {
+      --bg-color: #f8f9fa;
+      --card-bg: #ffffff;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --code-bg: #f3f4f6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    h1 { font-size: 1.4rem; color: var(--text); }
+    p.subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+
+    .grid-container { display: grid; grid-template-columns: 1fr; gap: 20px; }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    textarea {
+      width: 100%;
+      height: 130px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      outline: none;
+    }
+    textarea:focus { border-color: var(--primary); }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+      align-items: center;
+    }
+
+    .option-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--code-bg);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    select {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-primary { background-color: var(--primary); color: white; }
+    .btn-danger { background-color: var(--danger); color: white; }
+    .btn-secondary { background-color: #e5e7eb; color: var(--text); }
+
+    .output-box {
+      min-height: 120px;
+      background-color: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.95rem;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    /* 可視化バッジの見た目 */
+    .invisible-tag {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 0.8em;
+      font-weight: bold;
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin: 0 2px;
+      user-select: none;
+    }
+
+    .tag-zws { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .tag-control { background-color: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+    .tag-other { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+    .stats {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+    }
+    .stats span { font-weight: bold; color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🔍 AIテキスト 不可視・制御文字アナライザー</h1>
+    <p class="subtitle">AI生成文章に含まれる「見えない制御コード・ゼロ幅文字」を視覚化＆一括削除するツール</p>
+  </header>
+
+  <div class="grid-container">
+    <div class="card">
+      <div class="card-title">
+        <span>1. テキスト入力</span>
+        <button class="btn-secondary" onclick="insertSample()">サンプルを試す</button>
+      </div>
+      <textarea id="inputText" placeholder="ここに生成AIなどのテキストを貼り付けてください..."></textarea>
+      
+      <div class="controls">
+        <div class="option-group">
+          <label>カッコのスタイル:</label>
+          <select id="bracketStyle" onchange="processText()">
+            <option value="square">[ 0x200B ] 角カッコ</option>
+            <option value="thick">【 0x200B 】 隅付きカッコ</option>
+            <option value="curly">{ 0x200B } 波カッコ</option>
+            <option value="angle">‹ 0x200B › 山カッコ</option>
+          </select>
+        </div>
+
+        <div class="option-group">
+          <label>表示モード:</label>
+          <select id="displayMode" onchange="processText()">
+            <option value="code">文字コード（例: 0x200B）</option>
+            <option value="name">文字名（例: ゼロ幅スペース）</option>
+            <option value="both">両方（例: ゼロ幅スペース:0x200B）</option>
+          </select>
+        </div>
+
+        <button class="btn-primary" onclick="processText()">可視化</button>
+        <button class="btn-danger" onclick="removeInvisibleChars()">不可視文字を一括除去</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>2. 解析・可視化結果</span>
+        <button class="btn-secondary" onclick="copyCleanedText()">綺麗にしたテキストをコピー</button>
+      </div>
+      
+      <div id="output" class="output-box">ここに解析結果が表示されます...</div>
+
+      <div class="stats">
+        <div>検出数: <span id="countInvisible">0</span> 個</div>
+        <div>全文字数: <span id="countTotal">0</span> 文字</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const charDict = {
+      0x200B: { name: 'ゼロ幅スペース', type: 'zws' },
+      0x200C: { name: 'ゼロ幅非接合子', type: 'zws' },
+      0x200D: { name: 'ゼロ幅接合子', type: 'zws' },
+      0xFEFF: { name: 'BOM', type: 'zws' },
+      0x00AD: { name: 'ソフトハイフン', type: 'zws' },
+      0x0000: { name: 'NUL制御文字', type: 'control' },
+      0x0007: { name: 'ベル制御音', type: 'control' },
+      0x0008: { name: 'BS', type: 'control' },
+      0x000B: { name: '垂直タブ', type: 'control' },
+      0x000C: { name: 'FF', type: 'control' },
+      0x001B: { name: 'ESC', type: 'control' }
+    };
+
+    const invisibleRegex = /[\u200B-\u200D\uFEFF\u00AD\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+
+    function insertSample() {
+      const zws = String.fromCharCode(0x200B);
+      const bel = String.fromCharCode(0x0007);
+      document.getElementById('inputText').value = `これはAI${zws}生成テキストの${bel}デモです。`;
+      processText();
+    }
+
+    function formatBracket(content, style) {
+      if (style === 'thick') return `【${content}】`;
+      if (style === 'curly') return `{ ${content} }`;
+      if (style === 'angle') return `‹ ${content} ›`;
+      return `[ ${content} ]`;
+    }
+
+    function processText() {
+      const input = document.getElementById('inputText').value;
+      const bracketStyle = document.getElementById('bracketStyle').value;
+      const displayMode = document.getElementById('displayMode').value;
+      
+      let matchCount = 0;
+      if (!input) {
+        document.getElementById('output').innerHTML = '<span style="color: #9ca3af;">テキストが入力されていません。</span>';
+        document.getElementById('countInvisible').innerText = '0';
+        document.getElementById('countTotal').innerText = '0';
+        return;
+      }
+
+      const processedHtml = input.replace(invisibleRegex, (match) => {
+        matchCount++;
+        const code = match.charCodeAt(0);
+        const hex = '0x' + code.toString(16).toUpperCase().padStart(4, '0');
+        const info = charDict[code] || { name: '制御文字', type: 'other' };
+        
+        let label = hex;
+        if (displayMode === 'name') label = info.name;
+        if (displayMode === 'both') label = `${info.name}:${hex}`;
+
+        const displayText = formatBracket(label, bracketStyle);
+        return `<span class="invisible-tag tag-${info.type}">${escapeHtml(displayText)}</span>`;
+      });
+
+      document.getElementById('output').innerHTML = processedHtml.replace(/\n/g, '<br>');
+      document.getElementById('countInvisible').innerText = matchCount;
+      document.getElementById('countTotal').innerText = input.length;
+    }
+
+    function removeInvisibleChars() {
+      const input = document.getElementById('inputText').value;
+      if (!input) return;
+      document.getElementById('inputText').value = input.replace(invisibleRegex, '');
+      processText();
+    }
+
+    function copyCleanedText() {
+      const input = document.getElementById('inputText').value;
+      if (!input) return;
+      navigator.clipboard.writeText(input.replace(invisibleRegex, ''));
+      alert('除去後のテキストをコピーしました！');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    document.getElementById('inputText').addEventListener('input', processText);
+  </script>
+</body>
+</html>
