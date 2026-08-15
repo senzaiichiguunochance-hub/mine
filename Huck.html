@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高度システム解析ダッシュボード - v2.6.0</title>
+    <title>ブラウザ・フィンガープリンティング体験デモ - v2.6.0</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
 
@@ -259,11 +259,169 @@
 
         .blink { animation: blink 1s infinite alternate; }
         @keyframes blink { from { opacity: 1; } to { opacity: 0.4; } }
+
+        /* --- 解説バナー --- */
+        .notice-banner {
+            max-width: 1600px;
+            margin: 0 auto 20px;
+            background: #fffbea;
+            border: 3px solid var(--accent-yellow);
+            border-radius: 16px;
+            padding: 16px 24px;
+            box-shadow: 0 4px 0 #e6d840;
+            font-size: 0.85rem;
+        }
+        .notice-banner strong {
+            color: var(--text-pink);
+        }
+        .notice-banner summary {
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--text-pink);
+            margin-top: 8px;
+        }
+        .notice-banner ul {
+            margin: 10px 0 0;
+            padding-left: 20px;
+        }
+        .notice-banner li { margin-bottom: 6px; }
+
+        /* --- 各カテゴリの解説文 --- */
+        .card-desc {
+            font-size: 0.72rem;
+            color: #999;
+            background: #fdf0ff;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin: -4px 0 12px;
+            line-height: 1.5;
+        }
+        .card-desc b { color: var(--accent-purple); }
+        .card-desc .misuse { color: var(--text-pink); }
+
+        /* --- イントロ・モーダル --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(74, 74, 74, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+        .modal-box {
+            background: #fff;
+            border: 4px solid var(--accent-pink);
+            border-radius: 20px;
+            box-shadow: 0 8px 0 var(--accent-pink);
+            max-width: 620px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 30px;
+        }
+        .modal-box h2 {
+            color: var(--text-pink);
+            margin-top: 0;
+        }
+        .modal-box h3 {
+            color: var(--accent-purple);
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .modal-box p, .modal-box li { font-size: 0.85rem; line-height: 1.7; }
+        .modal-box ul { padding-left: 22px; }
+        .modal-warning {
+            background: #fff0f5;
+            border-left: 5px solid var(--text-pink);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px 0;
+            font-size: 0.82rem;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .modal-btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 22px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-family: var(--font-ui);
+        }
+        .modal-btn.primary {
+            background: var(--accent-pink);
+            color: #fff;
+            box-shadow: 0 4px 0 #d14081;
+        }
+        .modal-btn.primary:hover { transform: translateY(2px); box-shadow: 0 2px 0 #d14081; }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
     <a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+    <!-- ================= イントロ・モーダル ================= -->
+    <div class="modal-overlay" id="intro-modal">
+        <div class="modal-box">
+            <h2>🍬 これは何のページ？</h2>
+            <p>
+                このページは、<strong>あなたが今使っているブラウザ(端末)が、実は何も特別な操作なしに
+                これだけの情報をWebサイト側に渡してしまっている</strong>ということを体験してもらうための
+                教育・デモ用コンテンツです。特別なハッキングやマルウェアは一切使っていません。
+                すべて<strong>ブラウザが標準で公開しているJavaScript API</strong>を呼び出しているだけです。
+            </p>
+
+            <h3>ここで表示される情報</h3>
+            <ul>
+                <li>IPアドレス・通信環境などの<strong>ネットワーク情報</strong></li>
+                <li>OS・言語設定・使用ブラウザなどの<strong>環境情報</strong></li>
+                <li>CPU・メモリ・GPU・バッテリーなどの<strong>ハードウェア情報</strong></li>
+                <li>画面解像度・色域・ダークモード設定などの<strong>ディスプレイ情報</strong></li>
+                <li>接続カメラ・マイクの台数などの<strong>メディアデバイス情報</strong></li>
+                <li>Canvas/Audioなどを使った<strong>フィンガープリント(端末識別)情報</strong></li>
+            </ul>
+
+            <h3>目的</h3>
+            <p>
+                「自分がクリックしたリンク一つで、これだけの端末情報が相手に渡りうる」ということを
+                自分の目で確認し、フィッシングや不審なリンクへの警戒心を持ってもらうことが目的です。
+            </p>
+
+            <div class="modal-warning">
+                ⚠️ <strong>注意:</strong> ここで紹介する技術は、悪意を持って使えば
+                「本人が気づかないうちにリンク先で端末情報を収集し、個人特定や追跡に悪用する」ことが可能です。
+                実際にそのような目的で他者に対して使用することは、プライバシー侵害・不正アクセス関連の
+                法令に抵触する可能性があります。<strong>本デモは技術への理解と注意喚起のみを目的としており、
+                悪用を推奨・助長するものではありません。</strong>収集した情報はこの画面に表示するだけで、
+                どこにも送信・保存されません。
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn primary" id="modal-start-btn">理解した上で体験する →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 常設の注意バナー ================= -->
+    <div class="notice-banner">
+        🍬 <strong>これはフィンガープリンティング(端末識別技術)の教育デモです。</strong>
+        表示されている情報はすべてあなたのブラウザが標準APIで公開しているもので、外部には送信されていません。
+        <details>
+            <summary>もっと詳しく見る</summary>
+            <ul>
+                <li><strong>何を表示しているか:</strong> ネットワーク・OS・ハードウェア・ディスプレイ・位置情報(タイムゾーン)・接続デバイスなど、ブラウザが持つ「あなたを特徴づける」情報。</li>
+                <li><strong>何のために作ったか:</strong> 「怪しいリンクを踏むと、それだけでここまで分かってしまう」ことを実感してもらい、リンクのクリックやサイトへのアクセスに慎重になってもらうため。</li>
+                <li><strong>悪用されるとどうなるか:</strong> 攻撃者はこの情報だけでもある程度あなたの端末を「個体識別」でき、他のサイトでの行動と紐付けたり、狙い撃ちの攻撃(端末の脆弱性を突く等)の材料にしたりできます。さらにSTUN/WebRTCの悪用でVPN使用時でも内部IPが漏れる、Canvas/AudioのFingerprintでCookieを消しても追跡され続ける、といった悪質な使われ方も存在します。</li>
+            </ul>
+        </details>
+    </div>
 
     <div class="dashboard">
         <header>
@@ -274,7 +432,7 @@
             <div class="status-display">
                 <div class="status-item">
                     <span class="status-label">稼働ステータス</span>
-                    <span class="status-value blink" id="op-status">データ収集中...</span>
+                    <span class="status-value blink" id="op-status">同意待ち...</span>
                 </div>
                 <div class="status-item">
                     <span class="status-label">システム稼働時間</span>
@@ -323,10 +481,26 @@
         <main class="main-console">
             <div id="terminal"></div>
             <div class="data-grid" id="data-grid">
-                <div class="data-card" id="card-NETWORK"><h4>ネットワーク構成</h4><div class="card-content"></div></div>
-                <div class="data-card" id="card-OS/ENV"><h4>OS・環境情報</h4><div class="card-content"></div></div>
-                <div class="data-card" id="card-HARDWARE"><h4>ハードウェア構成</h4><div class="card-content"></div></div>
-                <div class="data-card" id="card-DISPLAY"><h4>ディスプレイ仕様</h4><div class="card-content"></div></div>
+                <div class="data-card" id="card-NETWORK">
+                    <h4>ネットワーク構成</h4>
+                    <div class="card-desc"><b>何が分かる？</b> あなたの通信元IPアドレスや回線の種類・速度。IPは大まかな地域特定に使われます。<br><span class="misuse">悪用例:</span> IPからおおよその居住地域を絞り込む、回線品質から攻撃タイミングを計るなど。</div>
+                    <div class="card-content"></div>
+                </div>
+                <div class="data-card" id="card-OS/ENV">
+                    <h4>OS・環境情報</h4>
+                    <div class="card-desc"><b>何が分かる？</b> OS・使用言語・ブラウザの種類とバージョンなど「どんな環境で見ているか」。<br><span class="misuse">悪用例:</span> そのOS/ブラウザ特有の脆弱性を狙った攻撃コードを選んで送りつける材料になります。</div>
+                    <div class="card-content"></div>
+                </div>
+                <div class="data-card" id="card-HARDWARE">
+                    <h4>ハードウェア構成</h4>
+                    <div class="card-desc"><b>何が分かる？</b> CPUコア数・メモリ量・GPU・バッテリー状況など端末のスペック。<br><span class="misuse">悪用例:</span> 複数サイトでの組み合わせが一致すれば、Cookieなしでも「同一端末」と特定する識別子(フィンガープリント)の材料になります。</div>
+                    <div class="card-content"></div>
+                </div>
+                <div class="data-card" id="card-DISPLAY">
+                    <h4>ディスプレイ仕様</h4>
+                    <div class="card-desc"><b>何が分かる？</b> 画面解像度・色深度・ダークモード設定など表示環境。<br><span class="misuse">悪用例:</span> 一見無害な情報ですが、他の項目と組み合わせることで端末の一意性(識別のしやすさ)が大きく上がります。</div>
+                    <div class="card-content"></div>
+                </div>
             </div>
         </main>
 
@@ -376,6 +550,16 @@
                 "PERF-TRACE": "パフォーマンス・トレース"
             };
 
+            // カテゴリごとの解説（何が分かるか／悪用されるとどうなるか）
+            const catDesc = {
+                "LOCALE": "<b>何が分かる？</b> タイムゾーンや暦・数字表記の設定から、おおよその居住地域や文化圏が推測できます。<br><span class=\"misuse\">悪用例:</span> IPアドレスと組み合わせることで、位置情報の推定精度がさらに上がります。",
+                "STORAGE": "<b>何が分かる？</b> ブラウザに割り当てられたストレージ容量や、既に保存されているデータ量。<br><span class=\"misuse\">悪用例:</span> 既に大量のサイトデータを保存している「常用端末」かどうかの判別材料になります。",
+                "MEDIA": "<b>何が分かる？</b> 接続されているカメラ・マイクの台数（内容そのものではなく「有無・台数」）。<br><span class=\"misuse\">悪用例:</span> 台数の組み合わせも識別子の一部になり得ます。また本物の攻撃では、この後に許可を求めるダイアログを出して実際の映像・音声を狙うケースもあります。",
+                "FINGERPRINT": "<b>何が分かる？</b> Canvas描画やAudioContextの微細な差異、自動操作ツール（bot）かどうかの検知結果など、端末を一意に特定するための「指紋」情報。<br><span class=\"misuse\">悪用例:</span> Cookieを削除してもこの指紋は変わらないため、<strong>ユーザーがどれだけプライバシー設定をしても追跡され続ける</strong>危険性があります。",
+                "MEDIA-QUERY": "<b>何が分かる？</b> 「動きを減らす設定」「コントラスト設定」など、OS側のアクセシビリティ・表示設定。<br><span class=\"misuse\">悪用例:</span> 単体では無害ですが、他の項目と合わせることで識別精度を底上げする補助情報として使われます。",
+                "PERF-TRACE": "<b>何が分かる？</b> ページ内で読み込まれたリソース（画像・スクリプト等）の一覧。<br><span class=\"misuse\">悪用例:</span> サイトの構成把握そのものより、ページの読み込み挙動から自動化ツール（bot）かどうかを判定する材料に使われることがあります。"
+            };
+
             const print = (cat, label, value) => {
                 const jpCat = catMap[cat] || cat;
                 
@@ -400,7 +584,8 @@
                     card = document.createElement('div');
                     card.className = 'data-card';
                     card.id = `card-${cat}`;
-                    card.innerHTML = `<h4>${jpCat}</h4><div class="card-content"></div>`;
+                    const descHtml = catDesc[cat] ? `<div class="card-desc">${catDesc[cat]}</div>` : '';
+                    card.innerHTML = `<h4>${jpCat}</h4>${descHtml}<div class="card-content"></div>`;
                     grid.appendChild(card);
                 }
                 const content = card.querySelector('.card-content');
@@ -543,7 +728,14 @@
             show();
         }
 
-        window.onload = startExtraction;
+        // 自動では実行せず、イントロ・モーダルで内容と注意事項を確認してから
+        // ユーザー自身のクリックで開始する（実際のフィッシング攻撃ではこの同意ステップが無いことも、
+        // このデモで伝えたいポイントの一つです）
+        document.getElementById('modal-start-btn').addEventListener('click', () => {
+            document.getElementById('intro-modal').style.display = 'none';
+            document.getElementById('op-status').textContent = 'データ収集中...';
+            startExtraction();
+        });
     </script>
 </body>
 </html>
