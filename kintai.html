@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>実労働時間・差分比較管理アプリ</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 16px; color: #0f172a; }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+    }
+    .company-card {
+      background: #fefce8;
+      border: 1px solid #fef08a;
+    }
+    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    label { font-size: 0.85rem; font-weight: bold; color: #64748b; display: block; margin-bottom: 4px; }
+    input, select, button {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+    button {
+      background-color: var(--primary);
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button.btn-secondary { background-color: #64748b; }
+    button.btn-danger { background-color: #ef4444; }
+    .btn-group { display: flex; gap: 8px; }
+    
+    /* 集計ボード */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .summary-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .summary-box.diff-box {
+      background: #fff1f2;
+      border-color: #fecdd3;
+    }
+    .summary-box .val { font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+    .summary-box .val.diff { color: #e11d48; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: center;
+    }
+    th { background: #f1f5f9; }
+    td input { padding: 2px 4px; font-size: 0.85rem; text-align: center; }
+    .weekend-sat { background-color: #eff6ff; }
+    .weekend-sun { background-color: #fef2f2; }
+    .overtime-alert { color: #dc2626; font-weight: bold; }
+    .text-muted { color: #94a3b8; font-style: italic; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>実労働時間・残業管理</h1>
+
+  <!-- 設定エリア -->
+  <div class="card">
+    <details>
+      <summary style="font-weight:bold; cursor:pointer;">⚙️ デフォルト・契約条件設定</summary>
+      <div class="grid" style="margin-top: 12px;">
+        <div>
+          <label>定格打刻（開始）</label>
+          <input type="time" id="defStartTime" value="09:00">
+        </div>
+        <div>
+          <label>定格打刻（終了）</label>
+          <input type="time" id="defEndTime" value="18:00">
+        </div>
+        <div>
+          <label>標準休憩時間（分）</label>
+          <input type="number" id="defBreakMin" value="60">
+        </div>
+        <div style="display: flex; align-items: end;">
+          <button onclick="saveSettings()">設定を保存</button>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- 打刻（ワンタップ登録） -->
+  <div class="card">
+    <label>本日のリアルタイム打刻</label>
+    <div class="btn-group">
+      <button onclick="recordTime('start')">勤務開始（今すぐ）</button>
+      <button onclick="recordTime('end')" class="btn-secondary">勤務終了（今すぐ）</button>
+    </div>
+  </div>
+
+  <!-- 月選択エリア -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <input type="month" id="targetMonth" onchange="renderAll()" style="width: auto;">
+      <button onclick="exportCSV()" class="btn-secondary" style="width: auto;">CSV出力</button>
+    </div>
+  </div>
+
+  <!-- 会社管理値の入力エリア -->
+  <div class="card company-card">
+    <label style="color: #854d0e; font-size: 1rem;">🏢 会社管理の勤務結果（給与明細などから入力）</label>
+    <div class="grid" style="margin-top: 8px;">
+      <div>
+        <label>会社計算：月間労働時間（時間:分）</label>
+        <input type="text" id="compTotal" placeholder="例: 160:30" onchange="saveCompanyRecord()">
+      </div>
+      <div>
+        <label>会社計算：月間残業時間（時間:分）</label>
+        <input type="text" id="compOvertime" placeholder="例: 15:00" onchange="saveCompanyRecord()">
+      </div>
+      <div style="display: flex; align-items: end;">
+        <button onclick="saveCompanyRecord()" style="background-color: #ca8a04;">会社結果を保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 集計サマリー（実労働 vs 会社管理 vs 差異） -->
+  <div class="card">
+    <label>📊 月間集計 & 差異比較</label>
+    <div class="summary-grid">
+      <div class="summary-box">
+        <label>アプリ計測（実労働）</label>
+        <div class="val" id="sumTotal">0時間0分</div>
+        <small style="color:#64748b;" id="sumOvertime">残業: 0時間0分</small>
+      </div>
+      <div class="summary-box" style="background:#fefce8; border-color:#fef08a;">
+        <label>会社管理（報告値）</label>
+        <div class="val" id="dispCompTotal" style="color:#854d0e;">未入力</div>
+        <small style="color:#854d0e;" id="dispCompOvertime">残業: 未入力</small>
+      </div>
+      <div class="summary-box diff-box">
+        <label>未払い/カット差分（実計測 - 会社）</label>
+        <div class="val diff" id="diffTotal">未入力</div>
+        <small class="overtime-alert" id="diffOvertime">残業差分: 未入力</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1か月分の勤務表 -->
+  <div class="card" style="overflow-x: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>開始</th>
+          <th>終了</th>
+          <th>休憩(分)</th>
+          <th>実労働</th>
+          <th>残業時間</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="attendanceTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // ローカルストレージキー
+  const KEY_SETTINGS = 'kintai_settings';
+  const KEY_RECORDS = 'kintai_records';
+  const KEY_COMPANY = 'kintai_company';
+
+  // 初期化
+  document.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    document.getElementById('targetMonth').value = `${yyyy}-${mm}`;
+
+    loadSettings();
+    renderAll();
+  });
+
+  // 設定の保存・読み込み
+  function saveSettings() {
+    const settings = {
+      defStartTime: document.getElementById('defStartTime').value,
+      defEndTime: document.getElementById('defEndTime').value,
+      defBreakMin: parseInt(document.getElementById('defBreakMin').value) || 0
+    };
+    localStorage.setItem(KEY_SETTINGS, JSON.stringify(settings));
+    alert('設定を保存しました');
+    renderAll();
+  }
+
+  function loadSettings() {
+    const saved = localStorage.getItem(KEY_SETTINGS);
+    if (saved) {
+      const s = JSON.parse(saved);
+      document.getElementById('defStartTime').value = s.defStartTime || '09:00';
+      document.getElementById('defEndTime').value = s.defEndTime || '18:00';
+      document.getElementById('defBreakMin').value = s.defBreakMin ?? 60;
+    }
+  }
+
+  function getSettings() {
+    return {
+      defStartTime: document.getElementById('defStartTime').value,
+      defEndTime: document.getElementById('defEndTime').value,
+      defBreakMin: parseInt(document.getElementById('defBreakMin').value) || 0
+    };
+  }
+
+  // レコードの取得・保存
+  function getRecords() { return JSON.parse(localStorage.getItem(KEY_RECORDS) || '{}'); }
+  function saveRecords(records) { localStorage.setItem(KEY_RECORDS, JSON.stringify(records)); }
+
+  function getCompanyRecords() { return JSON.parse(localStorage.getItem(KEY_COMPANY) || '{}'); }
+  function saveCompanyRecords(data) { localStorage.setItem(KEY_COMPANY, JSON.stringify(data)); }
+
+  // 会社データの保存
+  function saveCompanyRecord() {
+    const monthVal = document.getElementById('targetMonth').value;
+    if (!monthVal) return;
+
+    const compTotal = document.getElementById('compTotal').value.trim();
+    const compOvertime = document.getElementById('compOvertime').value.trim();
+
+    const companyData = getCompanyRecords();
+    companyData[monthVal] = { total: compTotal, overtime: compOvertime };
+    
+    saveCompanyRecords(companyData);
+    renderAll();
+  }
+
+  // 打刻
+  function recordTime(type) {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().substring(0, 5);
+
+    const records = getRecords();
+    if (!records[dateStr]) {
+      const settings = getSettings();
+      records[dateStr] = { start: '', end: '', breakMin: settings.defBreakMin };
+    }
+
+    if (type === 'start') records[dateStr].start = timeStr;
+    if (type === 'end') records[dateStr].end = timeStr;
+
+    saveRecords(records);
+    renderAll();
+    alert(`${dateStr} の${type === 'start' ? '開始' : '終了'}時刻（${timeStr}）を記録しました`);
+  }
+
+  // 画面全体の再描画
+  function renderAll() {
+    const monthVal = document.getElementById('targetMonth').value;
+    if (!monthVal) return;
+
+    // 1. 会社入力値の反映
+    const companyData = getCompanyRecords()[monthVal] || { total: '', overtime: '' };
+    document.getElementById('compTotal').value = companyData.total || '';
+    document.getElementById('compOvertime').value = companyData.overtime || '';
+
+    // 2. 日別テーブル生成 & アプリ集計
+    const [year, month] = monthVal.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const records = getRecords();
+    const settings = getSettings();
+
+    const tbody = document.getElementById('attendanceTable');
+    tbody.innerHTML = '';
+
+    let totalWorkMinutes = 0;
+    let totalOvertimeMinutes = 0;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayStr = String(d).padStart(2, '0');
+      const dateKey = `${year}-${String(month).padStart(2, '0')}-${dayStr}`;
+      const dateObj = new Date(year, month - 1, d);
+      const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+
+      const rec = records[dateKey] || { start: '', end: '', breakMin: settings.defBreakMin };
+      const calc = calculateHours(rec.start, rec.end, rec.breakMin, settings);
+
+      if (calc.workMin > 0) {
+        totalWorkMinutes += calc.workMin;
+        totalOvertimeMinutes += calc.overtimeMin;
+      }
+
+      const tr = document.createElement('tr');
+      if (dateObj.getDay() === 6) tr.className = 'weekend-sat';
+      if (dateObj.getDay() === 0) tr.className = 'weekend-sun';
+
+      tr.innerHTML = `
+        <td>${d} (${dayOfWeek})</td>
+        <td><input type="time" value="${rec.start || ''}" onchange="updateRecord('${dateKey}', 'start', this.value)"></td>
+        <td><input type="time" value="${rec.end || ''}" onchange="updateRecord('${dateKey}', 'end', this.value)"></td>
+        <td><input type="number" value="${rec.breakMin}" style="width: 50px;" onchange="updateRecord('${dateKey}', 'breakMin', this.value)"></td>
+        <td>${formatTime(calc.workMin)}<br><small style="color:#64748b;">(${calc.workMin}分)</small></td>
+        <td class="${calc.overtimeMin > 0 ? 'overtime-alert' : ''}">${formatTime(calc.overtimeMin)}<br><small>(${calc.overtimeMin}分)</small></td>
+        <td><button class="btn-danger" style="padding:2px 6px; font-size:0.75rem;" onclick="clearRecord('${dateKey}')">消去</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // 3. アプリ集計の表示
+    document.getElementById('sumTotal').innerText = formatTime(totalWorkMinutes);
+    document.getElementById('sumOvertime').innerText = `残業: ${formatTime(totalOvertimeMinutes)}`;
+
+    // 4. 会社管理値 & 差異計算表示
+    const compTotalMin = parseToMinutes(companyData.total);
+    const compOverMin = parseToMinutes(companyData.overtime);
+
+    const dispCompTotal = document.getElementById('dispCompTotal');
+    const dispCompOver = document.getElementById('dispCompOvertime');
+    const diffTotalEl = document.getElementById('diffTotal');
+    const diffOverEl = document.getElementById('diffOvertime');
+
+    if (compTotalMin === null) {
+      dispCompTotal.innerText = '未入力（給与待ち）';
+      dispCompTotal.className = 'val text-muted';
+      diffTotalEl.innerText = '未入力';
+      diffTotalEl.className = 'val text-muted';
+    } else {
+      dispCompTotal.innerText = formatTime(compTotalMin);
+      dispCompTotal.className = 'val';
+      
+      const diffWork = totalWorkMinutes - compTotalMin;
+      diffTotalEl.innerText = formatDiffTime(diffWork);
+      diffTotalEl.className = diffWork > 0 ? 'val diff' : 'val';
+    }
+
+    if (compOverMin === null) {
+      dispCompOver.innerText = '残業: 未入力';
+      diffOverEl.innerText = '残業差分: 未入力';
+    } else {
+      dispCompOver.innerText = `残業: ${formatTime(compOverMin)}`;
+      
+      const diffOver = totalOvertimeMinutes - compOverMin;
+      diffOverEl.innerText = `残業差分: ${formatDiffTime(diffOver)}`;
+    }
+  }
+
+  // 時間計算ロジック
+  function calculateHours(start, end, breakMin, settings) {
+    if (!start || !end) return { workMin: 0, overtimeMin: 0 };
+    const startMin = timeToMinutes(start);
+    const endMin = timeToMinutes(end);
+    const bMin = parseInt(breakMin) || 0;
+
+    if (endMin <= startMin) return { workMin: 0, overtimeMin: 0 };
+
+    const actualWorkMin = (endMin - startMin) - bMin;
+    if (actualWorkMin <= 0) return { workMin: 0, overtimeMin: 0 };
+
+    const defStart = timeToMinutes(settings.defStartTime);
+    const defEnd = timeToMinutes(settings.defEndTime);
+
+    let earlyOvertime = Math.max(0, defStart - startMin);
+    let lateOvertime = Math.max(0, endMin - defEnd);
+
+    return {
+      workMin: actualWorkMin,
+      overtimeMin: earlyOvertime + lateOvertime
+    };
+  }
+
+  function timeToMinutes(tStr) {
+    if (!tStr) return 0;
+    const [h, m] = tStr.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  // "160:30" や "160" や "160.5" などの柔軟な入力を「分」に変換
+  function parseToMinutes(str) {
+    if (!str || str.trim() === '') return null;
+    str = str.trim();
+    
+    // HH:MM 形式
+    if (str.includes(':')) {
+      const [h, m] = str.split(':').map(Number);
+      if (isNaN(h) || isNaN(m)) return null;
+      return h * 60 + m;
+    }
+    // 数値（時間単位）形式（例: 160.5時間 → 160時間30分）
+    const num = parseFloat(str);
+    if (!isNaN(num)) {
+      return Math.round(num * 60);
+    }
+    return null;
+  }
+
+  function formatTime(min) {
+    if (min <= 0) return '0時間0分';
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return `${h}時間${m}分`;
+  }
+
+  // 差分用フォーマット（＋マイナス表記）
+  function formatDiffTime(min) {
+    if (min === 0) return '差なし (±0分)';
+    const sign = min > 0 ? '＋' : '－';
+    const absMin = Math.abs(min);
+    const h = Math.floor(absMin / 60);
+    const m = absMin % 60;
+    
+    let text = `${sign}${h}時間${m}分`;
+    if (min > 0) {
+      text += ` (${min}分切り捨て/未払い)`;
+    }
+    return text;
+  }
+
+  function updateRecord(dateKey, field, value) {
+    const records = getRecords();
+    if (!records[dateKey]) {
+      const settings = getSettings();
+      records[dateKey] = { start: '', end: '', breakMin: settings.defBreakMin };
+    }
+    records[dateKey][field] = field === 'breakMin' ? (parseInt(value) || 0) : value;
+    saveRecords(records);
+    renderAll();
+  }
+
+  function clearRecord(dateKey) {
+    if (!confirm(`${dateKey} の記録を消去しますか？`)) return;
+    const records = getRecords();
+    delete records[dateKey];
+    saveRecords(records);
+    renderAll();
+  }
+
+  function exportCSV() {
+    const monthVal = document.getElementById('targetMonth').value;
+    const records = getRecords();
+    const settings = getSettings();
+    const companyData = getCompanyRecords()[monthVal] || { total: '', overtime: '' };
+    const [year, month] = monthVal.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    let csvContent = "\uFEFF【月間比較】\n";
+    csvContent += `対象月,${monthVal}\n`;
+    csvContent += `会社報告労働時間,${companyData.total || '未入力'}\n`;
+    csvContent += `会社報告残業時間,${companyData.overtime || '未入力'}\n\n`;
+
+    csvContent += "日付,開始,終了,休憩(分),実労働(分),実労働(時間),残業(分),残業(時間)\n";
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayStr = String(d).padStart(2, '0');
+      const dateKey = `${year}-${String(month).padStart(2, '0')}-${dayStr}`;
+      const rec = records[dateKey] || { start: '', end: '', breakMin: settings.defBreakMin };
+      const calc = calculateHours(rec.start, rec.end, rec.breakMin, settings);
+
+      csvContent += `${dateKey},${rec.start},${rec.end},${rec.breakMin},${calc.workMin},${formatTime(calc.workMin)},${calc.overtimeMin},${formatTime(calc.overtimeMin)}\n`;
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `勤務比較記録_${monthVal}.csv`;
+    link.click();
+  }
+</script>
+
+</body>
+</html>
