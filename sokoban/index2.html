@@ -278,17 +278,24 @@
         const w = level[0].length, h = level.length;
         const centerX = (w - 1) * GRID_SIZE / 2;
         const centerZ = (h - 1) * GRID_SIZE / 2;
-        const dir = new THREE.Vector3(0, 18, 14).normalize();
+        // 縦持ち(画面が縦長)のときは、奥行き方向がより上から見下ろす角度になるよう
+        // カメラ角度を調整。斜めから見るほど奥行きが縦方向に間延びして見え、
+        // 結果的に盤面の周りに無駄な余白が増えてしまうため
+        const dirVec = camera.aspect < 1 ? new THREE.Vector3(0, 23, 9) : new THREE.Vector3(0, 18, 14);
+        const dir = dirVec.normalize();
 
         const vFov = camera.fov * Math.PI / 180;
         const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
 
-        const halfW = (w * GRID_SIZE) / 2 + 2.5;
-        const halfH = (h * GRID_SIZE) / 2 + 2.5;
+        // 盤面を切れさせないための最小限の余白（以前は+2.5もあり無駄に小さく見えていた）
+        const halfW = (w * GRID_SIZE) / 2 + 1.1;
+        const halfH = (h * GRID_SIZE) / 2 + 1.1;
 
         const distV = halfH / Math.tan(vFov / 2);
         const distH = halfW / Math.tan(hFov / 2);
-        const dist = Math.max(distV, distH) * 1.35;
+        // 縦横どちらを基準にしても盤面全体が必ず収まる距離のうち、最小のものを採用
+        // （以前の1.35倍という余分な後退をやめ、体感でしっかり大きく見えるように）
+        const dist = Math.max(distV, distH) * 1.08;
 
         const target = new THREE.Vector3(centerX, 0, centerZ);
         camera.position.copy(target).add(dir.multiplyScalar(dist));
