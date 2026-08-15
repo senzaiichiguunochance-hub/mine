@@ -15,6 +15,8 @@
   #ui {
     position: absolute; top: 14px; left: 14px; color: #fff0f5;
     z-index: 10; pointer-events: none; user-select: none;
+    background: rgba(25,10,25,0.38); border-radius: 14px;
+    padding: 10px 16px 12px; backdrop-filter: blur(2px);
   }
   #ui h1 {
     margin: 0 0 6px 0; font-size: 20px; letter-spacing: 2px;
@@ -33,6 +35,16 @@
   #barFill { height: 100%; width: 0%; background: linear-gradient(90deg,#ff9ecb,#ffd3e6); transition: width 0.2s; }
   #timerWrap { font-size: 14px; margin-top: 6px; color: #cdeaff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
   #timerVal.low { color: #ff6b6b; }
+
+  @media (max-width: 700px) {
+    #ui { padding: 12px 18px 14px; border-radius: 16px; }
+    #ui h1 { font-size: 26px; margin-bottom: 8px; }
+    #stageLabel { font-size: 18px; margin-bottom: 6px; }
+    #info { font-size: 19px; }
+    #barWrap { width: 66vw; max-width: 260px; height: 14px; margin-top: 8px; }
+    #timerWrap { font-size: 18px; margin-top: 8px; }
+    a.menuBtn { font-size: 16px; padding: 8px 16px; }
+  }
 
   a.menuBtn {
     position: absolute; top: 16px; right: 16px; font-size: 14px; color: #4a2a3a;
@@ -74,6 +86,14 @@
     letter-spacing: 1px;
   }
   .btn:active { transform: translateY(1px); }
+
+  @media (max-width: 700px) {
+    .scroll { max-width: 92vw; padding: 30px 26px; }
+    .scroll h2 { font-size: 30px; letter-spacing: 1px; }
+    .scroll p { font-size: 19px; line-height: 1.7; }
+    .scroll .big { font-size: 46px; margin: 14px 0; }
+    .btn { font-size: 19px; padding: 13px 32px; margin-top: 20px; }
+  }
 </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
@@ -137,10 +157,10 @@ window.addEventListener('resize', resize);
 /* ---------- ステージ設定 ---------- */
 const STAGES = [
   { petals: 40,  time: 30, wind: 0.000, leaves: 0,  goalRatio: 0.80, label: 'だい1幕・春のはじまり' },
-  { petals: 60,  time: 32, wind: 0.020, leaves: 4,  goalRatio: 0.80, label: 'だい2幕・そよ風' },
-  { petals: 80,  time: 34, wind: 0.038, leaves: 8,  goalRatio: 0.85, label: 'だい3幕・花吹雪' },
-  { petals: 105, time: 38, wind: 0.052, leaves: 12, goalRatio: 0.85, label: 'だい4幕・嵐の予感' },
-  { petals: 135, time: 42, wind: 0.068, leaves: 16, goalRatio: 0.90, label: 'だい5幕・千本桜' },
+  { petals: 110, time: 46, wind: 0.020, leaves: 7,  goalRatio: 0.80, label: 'だい2幕・そよ風' },
+  { petals: 160, time: 58, wind: 0.038, leaves: 12, goalRatio: 0.85, label: 'だい3幕・花吹雪' },
+  { petals: 220, time: 72, wind: 0.052, leaves: 16, goalRatio: 0.85, label: 'だい4幕・嵐の予感' },
+  { petals: 280, time: 86, wind: 0.068, leaves: 20, goalRatio: 0.90, label: 'だい5幕・千本桜' },
 ];
 
 let stageIndex = 0;
