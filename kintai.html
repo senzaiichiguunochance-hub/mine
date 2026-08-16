@@ -138,11 +138,15 @@
     </div>
   </div>
 
-  <!-- 月選択エリア -->
+  <!-- 月選択＆データ入出力エリア -->
   <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <input type="month" id="targetMonth" onchange="renderAll()" style="width: auto;">
-      <button onclick="exportCSV()" class="btn-secondary" style="width: auto;">CSV出力</button>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button onclick="exportCSV()" class="btn-secondary" style="width: auto;">CSVエクスポート</button>
+        <button onclick="document.getElementById('importFile').click()" class="btn-secondary" style="width: auto;">CSVインポート</button>
+        <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="importCSV(event)">
+      </div>
     </div>
   </div>
 
@@ -474,6 +478,7 @@
     renderAll();
   }
 
+  // CSVエクスポート
   function exportCSV() {
     const monthVal = document.getElementById('targetMonth').value;
     const records = getRecords();
@@ -485,7 +490,10 @@
     let csvContent = "\uFEFF【月間比較】\n";
     csvContent += `対象月,${monthVal}\n`;
     csvContent += `会社報告労働時間,${companyData.total || '未入力'}\n`;
-    csvContent += `会社報告残業時間,${companyData.overtime || '未入力'}\n\n`;
+    csvContent += `会社報告残業時間,${companyData.overtime || '未入力'}\n`;
+    csvContent += `設定_定格開始,${settings.defStartTime}\n`;
+    csvContent += `設定_定格終了,${settings.defEndTime}\n`;
+    csvContent += `設定_標準休憩分,${settings.defBreakMin}\n\n`;
 
     csvContent += "日付,開始,終了,休憩(分),実労働(分),実労働(時間),残業(分),残業(時間)\n";
 
@@ -503,6 +511,64 @@
     link.href = URL.createObjectURL(blob);
     link.download = `勤務比較記録_${monthVal}.csv`;
     link.click();
+  }
+
+  // CSVインポート
+  function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const text = e.target.result;
+      const lines = text.split(/\r\n|\n/);
+
+      const records = getRecords();
+      const companyRecords = getCompanyRecords();
+      let importedMonth = '';
+      let compTotal = '';
+      let compOvertime = '';
+
+      lines.forEach(line => {
+        const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length < 2) return;
+
+        // ヘッダーメタ情報の読み込み
+        if (cols[0] === '対象月') importedMonth = cols[1];
+        if (cols[0] === '会社報告労働時間' && cols[1] !== '未入力') compTotal = cols[1];
+        if (cols[0] === '会社報告残業時間' && cols[1] !== '未入力') compOvertime = cols[1];
+
+        // 日付行（YYYY-MM-DD）の解析
+        if (/^\d{4}-\d{2}-\d{2}$/.test(cols[0])) {
+          const dateKey = cols[0];
+          const start = cols[1] || '';
+          const end = cols[2] || '';
+          const breakMin = parseInt(cols[3]) || 0;
+
+          if (start || end) {
+            records[dateKey] = { start, end, breakMin };
+          }
+        }
+      });
+
+      // 会社報告値の更新
+      if (importedMonth) {
+        if (!companyRecords[importedMonth]) companyRecords[importedMonth] = {};
+        if (compTotal) companyRecords[importedMonth].total = compTotal;
+        if (compOvertime) companyRecords[importedMonth].overtime = compOvertime;
+        saveCompanyRecords(companyRecords);
+
+        // 表示月をインポートした月に変更
+        document.getElementById('targetMonth').value = importedMonth;
+      }
+
+      saveRecords(records);
+      renderAll();
+      alert('CSVデータのインポートが完了しました。');
+      event.target.value = ''; // inputのクリア
+    };
+
+    reader.readAsText(file, 'UTF-8');
   }
 </script>
 
