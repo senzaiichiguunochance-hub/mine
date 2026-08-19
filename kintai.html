@@ -281,7 +281,10 @@
   // 打刻
   function recordTime(type) {
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
     const timeStr = now.toTimeString().substring(0, 5);
 
     const records = getRecords();
