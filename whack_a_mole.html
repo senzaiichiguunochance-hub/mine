@@ -3,129 +3,267 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ネオン・モグラたたき</title>
+<title>ネオン・モグラたたき ARCADE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #c1c19d;
-    color: #e0e0e0;
-    margin: 0;
-    overflow: hidden;
+  :root {
+    --bg: #0a0518;
+    --surface: #150c2e;
+    --surface-2: #1d1140;
+    --magenta: #ff2e88;
+    --cyan: #00e5ff;
+    --gold: #ffd23f;
+    --text: #f2ecff;
+    --muted: #a89bc9;
+    --danger: #ff5252;
+  }
 
-    /* 横方向中央寄せ、縦方向は上寄せに */
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Zen Kaku Gothic New', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,46,136,0.12), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(0,229,255,0.10), transparent 45%),
+      var(--bg);
+    color: var(--text);
+    margin: 0;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    min-height: 100vh;
-    padding-top: 20px;
+    padding: 24px 12px 60px;
+    position: relative;
   }
+
+  .back-link {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    background: rgba(21,12,46,0.85);
+    border: 1px solid rgba(255,46,136,0.4);
+    padding: 7px 14px;
+    border-radius: 999px;
+    z-index: 1000;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .back-link:hover { color: var(--text); border-color: var(--cyan); }
+
   #game-wrapper {
     display: flex;
-    border: 2px solid #ff4da6;
-    box-shadow: 0 0 25px rgba(255, 77, 166, 0.6);
-    background-color: #10102a;
-
-    margin: 0 auto; /* 横中央寄せ */
-  }
-  #game-container {
-    padding: 20px;
-    display: grid;
-    grid-template-columns: repeat(3, 120px);
-    grid-template-rows: repeat(3, 120px);
-    gap: 20px;
-  }
-  .hole {
-    width: 120px;
-    height: 120px;
-    background-color: #000;
-    border-radius: 50%;
-    position: relative;
-    cursor: pointer;
-    border: 4px solid #2a2a4a;
+    flex-wrap: wrap;
+    border: 1px solid rgba(255,46,136,0.35);
+    box-shadow: 0 0 40px rgba(255,46,136,0.15), inset 0 0 60px rgba(0,229,255,0.03);
+    background: linear-gradient(180deg, var(--surface), #0d0722);
+    border-radius: 18px;
     overflow: hidden;
-    transition: border-color 0.3s;
+    max-width: 760px;
+    width: 100%;
   }
-  .hole:hover {
-    border-color: #ff4da6;
-  }
-  .mole {
-    width: 100px;
-    height: 100px;
-    background-color: #00aaff;
-    border-radius: 50%;
-    position: absolute;
-    left: 10px;
-    bottom: -120px;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 20px #00aaff, 0 0 30px #00aaff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 60px;
-    user-select: none;
-  }
-  .mole.up {
-    bottom: 10px;
-  }
-  .mole.hit {
-    background-color: #ff4da6;
-    box-shadow: 0 0 30px #ff4da6, 0 0 45px #ff4da6;
-    transform: scale(0.9);
-    opacity: 0;
-  }
+
+  /* ---------- info panel ---------- */
   #info-panel {
-    width: 250px;
-    padding: 20px;
-    border-left: 2px solid #ff4da6;
+    width: 260px;
+    flex-shrink: 0;
+    padding: 26px 22px;
+    border-right: 1px solid rgba(255,46,136,0.25);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    gap: 18px;
   }
+
   h1 {
-    color: #ff4da6;
+    font-family: 'DotGothic16', monospace;
+    letter-spacing: 0.05em;
+    color: var(--magenta);
+    text-shadow: 0 0 12px rgba(255,46,136,0.7);
     text-align: center;
-    margin-top: 0;
+    margin: 0 0 4px;
+    font-size: 1.55em;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--cyan);
+    font-family: 'DotGothic16', monospace;
+    font-size: 0.75em;
+    letter-spacing: 0.25em;
+    margin: 0 0 18px;
+    opacity: 0.8;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 10px;
   }
   .info-box {
-    background: #1a1a3a;
-    padding: 15px;
-    border-radius: 8px;
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 10px 8px;
+    border-radius: 10px;
     text-align: center;
-    margin-bottom: 20px;
   }
   .info-box h2 {
-    margin: 0 0 10px 0;
-    font-size: 1.2em;
-    color: #e0e0e0;
+    margin: 0 0 4px;
+    font-size: 0.68em;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.05em;
   }
   .info-box p {
     margin: 0;
-    font-size: 2em;
-    font-weight: bold;
-    color: #00aaff;
+    font-family: 'DotGothic16', monospace;
+    font-size: 1.6em;
+    color: var(--cyan);
+    line-height: 1;
   }
-  button {
-    padding: 15px;
-    font-size: 1.3em;
-    background-color: #ff4da6;
-    color: white;
-    border: none;
+  #combo.active { color: var(--gold); text-shadow: 0 0 10px rgba(255,210,63,0.8); }
+  #high-score-box p { color: var(--gold); font-size: 1.3em; }
+
+  #time-bar-track {
+    height: 6px;
+    width: 100%;
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  #time-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta));
+    transition: width 1s linear;
+  }
+
+  .difficulty-select {
+    display: flex;
+    gap: 6px;
+  }
+  .diff-btn {
+    flex: 1;
+    padding: 8px 4px;
+    font-size: 0.75em;
+    background: var(--surface-2);
+    color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s;
+    font-family: inherit;
   }
-  button:hover {
-    background-color: #fff;
-    color: #ff4da6;
-    box-shadow: 0 0 20px #ff4da6;
+  .diff-btn.selected {
+    color: var(--bg);
+    background: var(--cyan);
+    border-color: var(--cyan);
+    font-weight: 700;
   }
-  button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+  .diff-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+  button:focus-visible, .diff-btn:focus-visible, .hole:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
   }
+
+  #startButton {
+    padding: 16px;
+    font-size: 1.15em;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--magenta), #b5006b);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 0 #7a0044, 0 0 20px rgba(255,46,136,0.4);
+  }
+  #startButton:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 0 #7a0044, 0 0 26px rgba(255,46,136,0.6); }
+  #startButton:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #7a0044; }
+  #startButton:disabled { background: #3a3454; color: #756b8f; box-shadow: none; cursor: not-allowed; }
+
+  /* ---------- game board ---------- */
+  #board-area {
+    position: relative;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-width: 300px;
+  }
+  #game-container {
+    display: grid;
+    grid-template-columns: repeat(3, 108px);
+    grid-template-rows: repeat(3, 108px);
+    gap: 18px;
+  }
+  .hole {
+    width: 108px;
+    height: 108px;
+    background: radial-gradient(circle at 50% 40%, #050310, #000);
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    border: 3px solid #2a2350;
+    overflow: hidden;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+  .hole:hover { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,229,255,0.35); }
+  .hole.miss-flash { border-color: var(--danger); box-shadow: 0 0 18px rgba(255,82,82,0.6); }
+
+  .mole {
+    width: 90px;
+    height: 90px;
+    background: radial-gradient(circle at 35% 30%, #4fd8ff, #007fb3);
+    border-radius: 50%;
+    position: absolute;
+    left: 9px;
+    bottom: -110px;
+    transition: bottom 0.28s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 0 20px #00aaff, 0 0 34px rgba(0,170,255,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 52px;
+    user-select: none;
+  }
+  .mole.up { bottom: 9px; }
+  .mole.golden {
+    background: radial-gradient(circle at 35% 30%, #fff2b0, var(--gold));
+    box-shadow: 0 0 24px var(--gold), 0 0 40px rgba(255,210,63,0.6);
+  }
+  .mole.hit {
+    background: radial-gradient(circle, var(--magenta), #7a0044);
+    box-shadow: 0 0 32px var(--magenta), 0 0 50px rgba(255,46,136,0.7);
+    transform: scale(0.8);
+    opacity: 0;
+    transition: all 0.25s ease-out;
+  }
+
+  .float-text {
+    position: absolute;
+    font-family: 'DotGothic16', monospace;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--gold);
+    pointer-events: none;
+    z-index: 20;
+    animation: float-up 0.7s ease-out forwards;
+    text-shadow: 0 0 8px rgba(255,210,63,0.8);
+  }
+  @keyframes float-up {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-46px); opacity: 0; }
+  }
+
   .particle {
     position: absolute;
-    background-color: #00aaff;
     border-radius: 50%;
     pointer-events: none;
     z-index: 10;
@@ -133,198 +271,459 @@
     transition: transform 0.5s ease-out, opacity 0.5s ease-out;
   }
 
+  #countdown-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(5,3,16,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DotGothic16', monospace;
+    font-size: 4em;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan);
+    z-index: 30;
+    border-radius: 12px;
+  }
 
-  @media (max-width: 768px) {
-    body {
-        height: auto;
-        overflow: auto; /* スクロールを許可 */
-        padding: 10px 0;
-        padding-top: 60px; /* メニューボタンのためのスペースを確保 */
-        align-items: flex-start;
-    }
-    #game-wrapper {
-        flex-direction: column;
-        align-items: center;
-        border: none;
-        box-shadow: none;
-        background-color: transparent;
-        width: 100%;
-    }
+  /* ---------- result modal ---------- */
+  #result-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5,3,16,0.82);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+  }
+  #result-card {
+    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    border: 1px solid rgba(255,46,136,0.4);
+    box-shadow: 0 0 50px rgba(255,46,136,0.3);
+    border-radius: 16px;
+    padding: 32px 36px;
+    text-align: center;
+    max-width: 320px;
+    width: 100%;
+  }
+  #result-card h2 {
+    font-family: 'DotGothic16', monospace;
+    color: var(--magenta);
+    font-size: 1.4em;
+    margin: 0 0 6px;
+    letter-spacing: 0.08em;
+  }
+  #result-score {
+    font-family: 'DotGothic16', monospace;
+    font-size: 3em;
+    color: var(--cyan);
+    margin: 10px 0;
+  }
+  #new-record-badge {
+    display: none;
+    background: var(--gold);
+    color: #3a2900;
+    font-weight: 700;
+    font-size: 0.8em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin: 0 auto 14px;
+    width: fit-content;
+    letter-spacing: 0.05em;
+  }
+  #result-highscore { color: var(--muted); font-size: 0.85em; margin-bottom: 20px; }
+  #retryButton {
+    width: 100%;
+    padding: 14px;
+    font-size: 1em;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--cyan), #007fb3);
+    color: #041018;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+  #retryButton:hover { filter: brightness(1.1); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mole, .particle, .float-text, .hole { transition: none !important; animation: none !important; }
+  }
+
+  @media (max-width: 700px) {
+    #game-wrapper { flex-direction: column; }
     #info-panel {
-        order: 1; /* 1番目に表示 */
-        width: 90vw;
-        max-width: 400px;
-        margin-top: 20px;
-        border-left: none;
-        background-color: #10102a;
-        border: 2px solid #ff4da6;
-        border-radius: 10px;
-        padding: 15px;
+      order: 1;
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid rgba(255,46,136,0.25);
     }
+    #board-area { order: 2; width: 100%; padding: 22px 10px; }
     #game-container {
-        order: 2; /* 2番目に表示 */
-        width: 90vw;
-        height: 90vw;
-        max-width: 400px;
-        max-height: 400px;
-        padding: 10px;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        gap: 10px;
-        margin-top: 20px; /* 上のパネルとの間隔 */
+      width: 100%;
+      max-width: 380px;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 12px;
     }
-    .hole {
-        width: auto;
-        height: auto;
-    }
-    .mole {
-        width: 85%;
-        height: 85%;
-        left: 7.5%;
-        font-size: 15vw;
-    }
-    .mole.up {
-        bottom: 7.5%;
-    }
-    h1 {
-        font-size: 1.5em;
-    }
-
+    .hole { width: auto; aspect-ratio: 1/1; height: auto; }
+    .mole { width: 84%; height: 84%; left: 8%; font-size: 14vw; }
+    .mole.up { bottom: 8%; }
   }
 </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<a class="back-link" href="menu.html">メニューに戻る</a>
 
+<div id="game-wrapper">
+  <div id="info-panel">
+    <div>
+      <h1>ネオンモグラ</h1>
+      <p class="subtitle">ARCADE EDITION</p>
 
-  <div id="game-wrapper">
-    <div id="game-container"></div>
-    <div id="info-panel">
-      <div>
-        <h1>ネオンモグラ</h1>
+      <div class="stats-row" style="margin-bottom:10px;">
         <div class="info-box">
           <h2>スコア</h2>
           <p id="score">0</p>
         </div>
         <div class="info-box">
-          <h2>残り時間</h2>
-          <p id="time">20</p>
+          <h2>コンボ</h2>
+          <p id="combo">x1</p>
         </div>
       </div>
-      <button id="startButton">ゲーム開始</button>
+
+      <div class="info-box" style="margin-bottom:10px;">
+        <h2>残り時間</h2>
+        <p id="time">20</p>
+        <div id="time-bar-track"><div id="time-bar-fill"></div></div>
+      </div>
+
+      <div class="info-box" id="high-score-box" style="margin-bottom:14px;">
+        <h2>ハイスコア</h2>
+        <p id="high-score">0</p>
+      </div>
+
+      <div class="difficulty-select" id="difficulty-select" style="margin-bottom:14px;">
+        <button class="diff-btn" data-diff="easy">かんたん</button>
+        <button class="diff-btn selected" data-diff="normal">ふつう</button>
+        <button class="diff-btn" data-diff="hard">むずい</button>
+      </div>
     </div>
+    <button id="startButton">ゲーム開始</button>
   </div>
 
-  <script>
-    const gameContainer = document.getElementById('game-container');
-    const scoreDisplay = document.getElementById('score');
-    const timeDisplay = document.getElementById('time');
-    const startButton = document.getElementById('startButton');
+  <div id="board-area">
+    <div id="game-container"></div>
+    <div id="countdown-overlay">3</div>
+  </div>
+</div>
 
-    let score = 0;
-    let time = 20;
-    let timerId = null;
-    let moleInterval = null;
-    let holes = [];
-    let gameRunning = false;
+<div id="result-overlay">
+  <div id="result-card">
+    <h2>GAME OVER</h2>
+    <div id="new-record-badge">✨ NEW RECORD ✨</div>
+    <div id="result-score">0</div>
+    <div id="result-highscore">ハイスコア: 0</div>
+    <button id="retryButton">もう一度あそぶ</button>
+  </div>
+</div>
 
-    const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🕸', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐄', '🐎', '🐖', '🐏', '🐑', '🦙', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐈‍⬛', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔'];
+<script>
+  const gameContainer = document.getElementById('game-container');
+  const scoreDisplay = document.getElementById('score');
+  const comboDisplay = document.getElementById('combo');
+  const timeDisplay = document.getElementById('time');
+  const timeBarFill = document.getElementById('time-bar-fill');
+  const highScoreDisplay = document.getElementById('high-score');
+  const startButton = document.getElementById('startButton');
+  const countdownOverlay = document.getElementById('countdown-overlay');
+  const difficultySelect = document.getElementById('difficulty-select');
+  const resultOverlay = document.getElementById('result-overlay');
+  const resultScore = document.getElementById('result-score');
+  const resultHighScore = document.getElementById('result-highscore');
+  const newRecordBadge = document.getElementById('new-record-badge');
+  const retryButton = document.getElementById('retryButton');
 
-    function createBoard() {
-      gameContainer.innerHTML = '';
-      holes = [];
-      for (let i = 0; i < 9; i++) {
-        const hole = document.createElement('div');
-        hole.classList.add('hole');
-        const mole = document.createElement('div');
-        mole.classList.add('mole');
-        hole.appendChild(mole);
-        gameContainer.appendChild(hole);
-        holes.push({ hole, mole });
+  const DIFFICULTIES = {
+    easy:   { duration: 25, startInterval: 950, minInterval: 550, speedUp: 0.985 },
+    normal: { duration: 20, startInterval: 750, minInterval: 380, speedUp: 0.975 },
+    hard:   { duration: 15, startInterval: 550, minInterval: 260, speedUp: 0.965 },
+  };
+  let currentDifficulty = 'normal';
 
-        hole.addEventListener('mousedown', () => {
-          if (gameRunning && mole.classList.contains('up')) {
-            whack(mole, hole);
-          }
-        });
-      }
+  const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🐺', '🐴', '🐝', '🐢', '🐍', '🦎', '🐙', '🦑', '🦀', '🐠', '🐬', '🦈', '🐊', '🐅', '🦓', '🐘', '🦒', '🐕', '🐈', '🦃', '🦢', '🐇', '🦔'];
+
+  let score = 0;
+  let combo = 0;
+  let time = 20;
+  let interval = 750;
+  let settings = DIFFICULTIES.normal;
+  let holeTimer = null;
+  let timerId = null;
+  let gameRunning = false;
+  let activeIndex = -1;
+  let moleHit = false;
+  let holes = [];
+  let audioCtx = null;
+
+  const highScoreKey = 'neonMoguraHighScore';
+  highScoreDisplay.textContent = localStorage.getItem(highScoreKey) || 0;
+
+  function createBoard() {
+    gameContainer.innerHTML = '';
+    holes = [];
+    for (let i = 0; i < 9; i++) {
+      const hole = document.createElement('div');
+      hole.classList.add('hole');
+      hole.tabIndex = 0;
+      const mole = document.createElement('div');
+      mole.classList.add('mole');
+      hole.appendChild(mole);
+      gameContainer.appendChild(hole);
+      holes.push({ hole, mole });
+
+      const handler = (e) => {
+        if (!gameRunning) return;
+        if (i === activeIndex && mole.classList.contains('up') && !moleHit) {
+          whack(mole, hole, i, e);
+        } else {
+          missClick(hole);
+        }
+      };
+      hole.addEventListener('mousedown', handler);
+      hole.addEventListener('touchstart', (e) => { e.preventDefault(); handler(e); }, { passive: false });
+      hole.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); } });
     }
+  }
 
-    function createParticles(x, y) {
-      for (let i = 0; i < 15; i++) {
-        const particle = document.createElement('div');
-        particle.classList.add('particle');
-        const size = Math.random() * 8 + 2;
-        particle.style.width = `${size}px`;
-        particle.style.height = `${size}px`;
+  function ensureAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
 
-        const rect = gameContainer.getBoundingClientRect();
-        particle.style.left = `${x - rect.left}px`;
-        particle.style.top = `${y - rect.top}px`;
+  function playTone(freq, duration = 0.12, type = 'square', volume = 0.18, delay = 0) {
+    if (!audioCtx) return;
+    const t0 = audioCtx.currentTime + delay;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(volume, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration);
+  }
 
-        document.body.appendChild(particle);
+  function createParticles(x, y, color) {
+    for (let i = 0; i < 14; i++) {
+      const particle = document.createElement('div');
+      particle.classList.add('particle');
+      const size = Math.random() * 7 + 3;
+      particle.style.width = `${size}px`;
+      particle.style.height = `${size}px`;
+      particle.style.backgroundColor = color;
+      particle.style.boxShadow = `0 0 8px ${color}`;
 
-        const angle = Math.random() * 360;
-        const distance = Math.random() * 80 + 50;
-        const translateX = Math.cos(angle * Math.PI / 180) * distance;
-        const translateY = Math.sin(angle * Math.PI / 180) * distance;
+      const rect = gameContainer.getBoundingClientRect();
+      particle.style.left = `${x - rect.left}px`;
+      particle.style.top = `${y - rect.top}px`;
 
+      gameContainer.appendChild(particle);
+
+      const angle = Math.random() * 360;
+      const distance = Math.random() * 70 + 40;
+      const tx = Math.cos(angle * Math.PI / 180) * distance;
+      const ty = Math.sin(angle * Math.PI / 180) * distance;
+
+      requestAnimationFrame(() => {
+        particle.style.transform = `translate(${tx}px, ${ty}px)`;
+        particle.style.opacity = 0;
+      });
+
+      setTimeout(() => particle.remove(), 520);
+    }
+  }
+
+  function showFloatText(hole, text, color) {
+    const el = document.createElement('div');
+    el.classList.add('float-text');
+    el.textContent = text;
+    el.style.color = color;
+    el.style.left = '50%';
+    el.style.top = '30%';
+    el.style.transform = 'translateX(-50%)';
+    hole.appendChild(el);
+    setTimeout(() => el.remove(), 720);
+  }
+
+  function missClick(hole) {
+    if (combo > 0) playTone(140, 0.15, 'sawtooth', 0.15);
+    combo = 0;
+    updateCombo();
+    hole.classList.add('miss-flash');
+    setTimeout(() => hole.classList.remove('miss-flash'), 250);
+  }
+
+  function updateCombo() {
+    const multiplier = 1 + Math.floor(combo / 5);
+    comboDisplay.textContent = `x${multiplier}`;
+    comboDisplay.classList.toggle('active', multiplier > 1);
+    return multiplier;
+  }
+
+  function whack(mole, hole, index, event) {
+    moleHit = true;
+    const isGolden = mole.classList.contains('golden');
+    combo++;
+    const multiplier = updateCombo();
+    const points = (isGolden ? 3 : 1) * multiplier;
+    score += points;
+    scoreDisplay.textContent = score;
+
+    playTone(isGolden ? 1046 : 880, 0.1, isGolden ? 'triangle' : 'square', 0.16);
+    if (isGolden) playTone(1318, 0.12, 'triangle', 0.14, 0.06);
+
+    mole.classList.add('hit');
+    mole.classList.remove('up');
+
+    const rect = hole.getBoundingClientRect();
+    createParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, isGolden ? '#ffd23f' : '#00e5ff');
+    showFloatText(hole, `+${points}`, isGolden ? '#ffd23f' : '#00e5ff');
+
+    setTimeout(() => mole.classList.remove('hit', 'golden'), 250);
+  }
+
+  function popMole() {
+    if (activeIndex !== -1 && !moleHit) {
+      combo = 0;
+      updateCombo();
+    }
+    holes.forEach(h => h.mole.classList.remove('up', 'golden'));
+    const idx = Math.floor(Math.random() * holes.length);
+    activeIndex = idx;
+    moleHit = false;
+    const isGolden = Math.random() < 0.12;
+    const { mole } = holes[idx];
+    mole.textContent = isGolden ? '✨' : icons[Math.floor(Math.random() * icons.length)];
+    mole.classList.toggle('golden', isGolden);
+    mole.classList.add('up');
+  }
+
+  function scheduleMole() {
+    holeTimer = setTimeout(() => {
+      popMole();
+      interval = Math.max(settings.minInterval, interval * settings.speedUp);
+      scheduleMole();
+    }, interval);
+  }
+
+  function countdown(callback) {
+    let n = 3;
+    countdownOverlay.style.display = 'flex';
+    countdownOverlay.textContent = n;
+    ensureAudio();
+    playTone(660, 0.08, 'sine', 0.14);
+    const step = () => {
+      n--;
+      if (n > 0) {
+        countdownOverlay.textContent = n;
+        playTone(660, 0.08, 'sine', 0.14);
+        setTimeout(step, 600);
+      } else {
+        countdownOverlay.textContent = 'START!';
+        playTone(880, 0.18, 'triangle', 0.18);
         setTimeout(() => {
-          particle.style.transform = `translate(${translateX}px, ${translateY}px)`;
-          particle.style.opacity = 0;
-        }, 10);
-
-        setTimeout(() => {
-          particle.remove();
-        }, 510);
+          countdownOverlay.style.display = 'none';
+          callback();
+        }, 500);
       }
-    }
+    };
+    setTimeout(step, 600);
+  }
 
-    function whack(mole, hole) {
-      score++;
-      scoreDisplay.textContent = score;
-      mole.classList.add('hit');
-      mole.classList.remove('up');
-      const holeRect = hole.getBoundingClientRect();
-      createParticles(holeRect.left + holeRect.width / 2, holeRect.top + holeRect.height / 2);
-      setTimeout(() => mole.classList.remove('hit'), 300);
-    }
+  function setDifficulty(diff) {
+    if (gameRunning) return;
+    currentDifficulty = diff;
+    settings = DIFFICULTIES[diff];
+    time = settings.duration;
+    timeDisplay.textContent = time;
+    timeBarFill.style.width = '100%';
+    [...difficultySelect.children].forEach(btn => btn.classList.toggle('selected', btn.dataset.diff === diff));
+  }
 
-    function popMole() {
-      holes.forEach(h => h.mole.classList.remove('up'));
-      const randomHole = holes[Math.floor(Math.random() * holes.length)];
-      randomHole.mole.textContent = icons[Math.floor(Math.random() * icons.length)];
-      randomHole.mole.classList.add('up');
-    }
+  difficultySelect.addEventListener('click', (e) => {
+    const btn = e.target.closest('.diff-btn');
+    if (btn) setDifficulty(btn.dataset.diff);
+  });
 
-    function startGame() {
-      score = 0;
-      time = 20;
-      scoreDisplay.textContent = score;
-      timeDisplay.textContent = time;
-      startButton.disabled = true;
+  function startGame() {
+    ensureAudio();
+    score = 0;
+    combo = 0;
+    settings = DIFFICULTIES[currentDifficulty];
+    time = settings.duration;
+    interval = settings.startInterval;
+    activeIndex = -1;
+    moleHit = true;
+
+    scoreDisplay.textContent = 0;
+    updateCombo();
+    timeDisplay.textContent = time;
+    timeBarFill.style.width = '100%';
+
+    startButton.disabled = true;
+    [...difficultySelect.children].forEach(btn => btn.disabled = true);
+
+    countdown(() => {
       gameRunning = true;
+      scheduleMole();
+      timerId = setInterval(tick, 1000);
+    });
+  }
 
-      moleInterval = setInterval(popMole, 700);
-      timerId = setInterval(countdown, 1000);
-    }
+  function tick() {
+    time--;
+    timeDisplay.textContent = time;
+    timeBarFill.style.width = `${Math.max(0, (time / settings.duration) * 100)}%`;
+    if (time <= 3 && time > 0) playTone(660, 0.07, 'sine', 0.12);
+    if (time <= 0) endGame();
+  }
 
-    function countdown() {
-      time--;
-      timeDisplay.textContent = time;
-      if (time <= 0) {
-        clearInterval(timerId);
-        clearInterval(moleInterval);
-        gameRunning = false;
-        startButton.disabled = false;
-        alert(`ゲーム終了！スコア: ${score}`);
-        holes.forEach(h => h.mole.classList.remove('up'));
-      }
-    }
+  function endGame() {
+    clearInterval(timerId);
+    clearTimeout(holeTimer);
+    gameRunning = false;
+    holes.forEach(h => h.mole.classList.remove('up', 'golden'));
+    startButton.disabled = false;
+    [...difficultySelect.children].forEach(btn => btn.disabled = false);
 
-    startButton.addEventListener('click', startGame);
-    createBoard();
-  </script>
+    playTone(523, 0.15, 'triangle', 0.16, 0);
+    playTone(659, 0.15, 'triangle', 0.16, 0.15);
+    playTone(784, 0.25, 'triangle', 0.18, 0.3);
+
+    const prevHigh = Number(localStorage.getItem(highScoreKey) || 0);
+    const isRecord = score > prevHigh;
+    if (isRecord) localStorage.setItem(highScoreKey, score);
+    highScoreDisplay.textContent = localStorage.getItem(highScoreKey);
+
+    resultScore.textContent = score;
+    resultHighScore.textContent = `ハイスコア: ${localStorage.getItem(highScoreKey)}`;
+    newRecordBadge.style.display = isRecord ? 'block' : 'none';
+    resultOverlay.style.display = 'flex';
+  }
+
+  retryButton.addEventListener('click', () => {
+    resultOverlay.style.display = 'none';
+    startGame();
+  });
+
+  startButton.addEventListener('click', startGame);
+  createBoard();
+</script>
 </body>
 </html>
