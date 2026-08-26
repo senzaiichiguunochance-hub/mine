@@ -1,20 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 
 :root {
-    --bg-color: #c1c19d;
-    --board-bg: #16213e;
-    --wall-color: #0f3460;
-    --floor-color: #16213e;
-    --player-color: #e94560;
-    --box-color: #f9a826;
-    --goal-color: rgba(249, 168, 38, 0.3);
-    --font-color: #dcdcdc;
-    --panel-bg: #0f3460;
+    --bg-deep: #05060f;
+    --bg-mid: #0c0f22;
+    --board-bg: #10142a;
+    --wall-dark: #1c2140;
+    --wall-light: #2a3158;
+    --floor-color: #161a34;
+    --gold: #e8c874;
+    --gold-bright: #ffe9a8;
+    --gold-dim: #a9863f;
+    --gold-deep: #8a6a2c;
+    --player-color: #e63950;
+    --player-glow: #ff6b7f;
+    --box-color: #f0c04a;
+    --box-shadow-color: #7a4a12;
+    --goal-color: rgba(232, 200, 116, 0.28);
+    --font-color: #ece3cf;
+    --font-muted: #b9ae94;
+    --panel-bg: linear-gradient(160deg, #12162f, #0b0e20);
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
-    font-family: 'M PLUS Rounded 1c', sans-serif;
-    background-color: var(--bg-color);
+    font-family: 'Zen Kaku Gothic New', sans-serif;
     color: var(--font-color);
     display: flex;
     flex-direction: column;
@@ -22,14 +34,55 @@ body {
     justify-content: center;
     min-height: 100vh;
     margin: 0;
+    padding: 40px 20px;
+    background:
+        radial-gradient(circle at 50% 0%, #171c3d 0%, var(--bg-mid) 45%, var(--bg-deep) 100%),
+        repeating-linear-gradient(45deg, rgba(232,200,116,0.015) 0px, rgba(232,200,116,0.015) 1px, transparent 1px, transparent 26px);
+    background-attachment: fixed;
+    position: relative;
+}
+
+a[href*="menu.html"] {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 13px !important;
+    letter-spacing: 0.1em;
+    padding: 8px 18px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 2px;
+    background: rgba(12, 15, 34, 0.7);
+    color: var(--gold) !important;
+    transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+
+a[href*="menu.html"]:hover {
+    background: var(--gold);
+    color: #14172c !important;
+    border-color: var(--gold);
 }
 
 h1 {
-    font-size: 3em;
+    font-family: 'Shippori Mincho', serif;
+    font-size: 3.2em;
     font-weight: 800;
-    color: var(--player-color);
-    text-shadow: 0 0 10px var(--player-color);
-    margin-bottom: 20px;
+    letter-spacing: 0.14em;
+    margin: 10px 0 6px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 45%, var(--gold-deep) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 2px 10px rgba(232, 200, 116, 0.35));
+}
+
+h1::after {
+    content: "◆";
+    display: block;
+    text-align: center;
+    font-size: 0.16em;
+    letter-spacing: 1.4em;
+    color: var(--gold-dim);
+    margin: 6px 0 0 0.7em;
+    opacity: 0.85;
 }
 
 #main-container {
@@ -37,45 +90,80 @@ h1 {
     flex-wrap: wrap;
     justify-content: center;
     align-items: flex-start;
-    gap: 40px;
+    gap: 48px;
+    margin-top: 20px;
 }
 
 #game-container {
     flex-shrink: 0;
+    position: relative;
+    padding: 22px;
+    background:
+        radial-gradient(circle 5px at 16px 16px, var(--gold) 45%, transparent 46%),
+        radial-gradient(circle 5px at calc(100% - 16px) 16px, var(--gold) 45%, transparent 46%),
+        radial-gradient(circle 5px at 16px calc(100% - 16px), var(--gold) 45%, transparent 46%),
+        radial-gradient(circle 5px at calc(100% - 16px) calc(100% - 16px), var(--gold) 45%, transparent 46%),
+        linear-gradient(160deg, #14183399, #0a0d1e99);
+    border: 1px solid var(--gold-dim);
+    border-radius: 6px;
+    box-shadow:
+        0 0 0 1px rgba(232, 200, 116, 0.08),
+        0 25px 60px -15px rgba(0, 0, 0, 0.8),
+        inset 0 0 40px rgba(232, 200, 116, 0.04);
 }
 
 #game-board {
     display: grid;
-    border: 5px solid var(--wall-color);
+    border: 6px solid;
+    border-image: linear-gradient(135deg, var(--gold-bright), var(--gold-dim), var(--gold-bright)) 1;
     background-color: var(--board-bg);
-    border-radius: 10px;
-    padding: 10px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    border-radius: 4px;
+    padding: 12px;
+    box-shadow:
+        inset 0 0 30px rgba(0, 0, 0, 0.7),
+        0 0 30px rgba(0, 0, 0, 0.6);
 }
 
 .cell {
-    width: 40px;  /* 元のサイズに戻す */
-    height: 40px; /* 元のサイズに戻す */
+    width: 40px;
+    height: 40px;
     box-sizing: border-box;
-    transition: transform 0.2s ease, background-color 0.3s ease;
-    position: relative; /* 子要素の配置のため */
+    transition: transform 0.2s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
 }
 
 .cell.wall {
-    background-color: var(--wall-color);
-    border-radius: 5px;
+    background:
+        linear-gradient(155deg, var(--wall-light) 0%, var(--wall-dark) 60%, #10132a 100%);
+    border-radius: 3px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(169, 134, 63, 0.15);
 }
 
 .cell.floor {
-    background-color: var(--floor-color);
+    background:
+        radial-gradient(circle at 50% 40%, #1b2040 0%, var(--floor-color) 75%);
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.4);
 }
 
 .cell.goal {
-    background-color: var(--goal-color);
+    background: var(--goal-color);
     border-radius: 50%;
+    transform: scale(0.55);
+    box-shadow:
+        0 0 0 1px rgba(232, 200, 116, 0.5),
+        0 0 12px rgba(232, 200, 116, 0.45),
+        inset 0 0 8px rgba(232, 200, 116, 0.5);
+    animation: goal-breathe 2.4s ease-in-out infinite;
 }
 
-/* プレイヤー、箱、ゴール上の箱のスタイルを更新 */
+@keyframes goal-breathe {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(232, 200, 116, 0.5), 0 0 10px rgba(232, 200, 116, 0.35), inset 0 0 6px rgba(232, 200, 116, 0.4); }
+    50% { box-shadow: 0 0 0 1px rgba(232, 200, 116, 0.7), 0 0 18px rgba(232, 200, 116, 0.6), inset 0 0 12px rgba(232, 200, 116, 0.6); }
+}
+
 .cell.player,
 .cell.box,
 .cell.box-on-goal {
@@ -85,73 +173,148 @@ h1 {
 }
 
 .cell.player {
-    background-color: var(--player-color);
+    background:
+        radial-gradient(circle at 35% 30%, var(--player-glow) 0%, var(--player-color) 55%, #9c1d2f 100%);
     border-radius: 50%;
-    transform: scale(0.7);
-    box-shadow: 0 0 15px var(--player-color);
+    transform: scale(0.72);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.15),
+        0 0 16px var(--player-color),
+        inset 0 -4px 6px rgba(0, 0, 0, 0.35);
 }
 
 .cell.box {
-    background-color: var(--box-color);
-    border-radius: 8px;
-    transform: scale(0.8);
-    border: 3px solid #a16207;
+    background:
+        linear-gradient(155deg, #ffe6a0 0%, var(--box-color) 45%, #c98a1e 100%);
+    border-radius: 5px;
+    transform: scale(0.82);
+    border: 2px solid var(--box-shadow-color);
+    box-shadow:
+        inset 0 2px 3px rgba(255, 255, 255, 0.45),
+        inset 0 -6px 8px rgba(122, 74, 18, 0.6),
+        0 4px 8px rgba(0, 0, 0, 0.45);
+}
+
+.cell.box::after {
+    content: "";
+    position: absolute;
+    top: 45%;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    background: rgba(122, 74, 18, 0.55);
+    box-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .cell.box-on-goal {
-    background-color: var(--box-color);
-    border-radius: 8px;
-    transform: scale(0.8);
-    border: 3px solid #a16207;
-    box-shadow: 0 0 20px #fff, 0 0 30px var(--box-color);
+    background:
+        linear-gradient(155deg, #fff3ca 0%, var(--box-color) 45%, #c98a1e 100%);
+    border-radius: 5px;
+    transform: scale(0.82);
+    border: 2px solid var(--gold-bright);
+    box-shadow:
+        inset 0 2px 3px rgba(255, 255, 255, 0.55),
+        0 0 18px rgba(255, 233, 168, 0.85),
+        0 0 32px rgba(232, 200, 116, 0.5);
     animation: pulse 1.5s infinite;
 }
 
+.cell.box-on-goal::after {
+    content: "";
+    position: absolute;
+    top: 45%;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    background: rgba(122, 74, 18, 0.4);
+}
+
 @keyframes pulse {
-    0% { transform: scale(0.8); }
-    50% { transform: scale(0.85); }
-    100% { transform: scale(0.8); }
+    0% { transform: scale(0.82); }
+    50% { transform: scale(0.88); }
+    100% { transform: scale(0.82); }
 }
 
 #info-panel {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    width: 250px;
+    gap: 22px;
+    width: 260px;
     text-align: left;
 }
 
 #controls, #legend, #rules {
-    background-color: var(--panel-bg);
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid var(--wall-color);
+    background: var(--panel-bg);
+    padding: 22px;
+    border-radius: 4px;
+    border: 1px solid rgba(169, 134, 63, 0.4);
+    box-shadow:
+        0 12px 30px -12px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    position: relative;
+}
+
+#controls::before, #legend::before, #rules::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(232, 200, 116, 0.12);
+    border-radius: 2px;
+    pointer-events: none;
 }
 
 #info-panel h2 {
+    font-family: 'Shippori Mincho', serif;
+    font-weight: 500;
+    font-size: 1.25em;
+    letter-spacing: 0.08em;
     margin-top: 0;
-    border-bottom: 2px solid var(--player-color);
+    border-bottom: 1px solid var(--gold-dim);
     padding-bottom: 10px;
-    margin-bottom: 15px;
-    color: var(--player-color);
+    margin-bottom: 16px;
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#info-panel h2::before {
+    content: "◆";
+    font-size: 0.5em;
+    color: var(--gold-dim);
+}
+
+#info-panel p {
+    color: var(--font-muted);
+    line-height: 1.7;
+    font-size: 0.95em;
 }
 
 #reset-button {
     width: 100%;
     padding: 15px;
-    background: linear-gradient(45deg, #e94560, #f9a826);
-    color: white;
-    border: none;
-    border-radius: 8px;
+    background: linear-gradient(160deg, var(--gold-bright), var(--gold) 55%, var(--gold-deep));
+    color: #211705;
+    border: 1px solid var(--gold-bright);
+    border-radius: 3px;
     cursor: pointer;
-    font-size: 1.1em;
-    font-weight: 800;
-    transition: transform 0.2s, box-shadow 0.2s;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 1.05em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    box-shadow: 0 8px 20px -6px rgba(232, 200, 116, 0.5);
 }
 
 #reset-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(233, 69, 96, 0.4);
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+    box-shadow: 0 12px 26px -6px rgba(232, 200, 116, 0.65);
+}
+
+#reset-button:active {
+    transform: translateY(0);
+    filter: brightness(0.96);
 }
 
 .legend-item {
@@ -160,16 +323,21 @@ h1 {
     margin-bottom: 15px;
 }
 
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
 .legend-item .cell {
-    width: 30px;   /* 凡例のセルサイズは元のまま */
-    height: 30px;  /* 凡例のセルサイズは元のまま */
+    width: 30px;
+    height: 30px;
     margin-right: 15px;
     flex-shrink: 0;
 }
 
 .legend-item span {
-    font-weight: bold;
-    font-size: 1.1em;
+    font-weight: 500;
+    font-size: 1.02em;
+    color: var(--font-color);
 }
 
 /* --- Touch Controls --- */
@@ -182,11 +350,12 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
-    background-color: rgba(15, 52, 96, 0.8);
-    padding: 15px;
-    border-radius: 20px;
-    box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    gap: 6px;
+    background: linear-gradient(160deg, rgba(18, 22, 47, 0.92), rgba(8, 10, 22, 0.92));
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(232, 200, 116, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
 .control-row-touch {
@@ -198,39 +367,41 @@ h1 {
 .touch-button {
     width: 60px;
     height: 60px;
-    font-size: 2em;
+    font-size: 1.7em;
     font-weight: bold;
-    color: white;
-    background: linear-gradient(45deg, #16213e, #0f3460);
-    border: 2px solid var(--player-color);
-    border-radius: 15px;
+    color: var(--gold);
+    background: linear-gradient(155deg, #1c2140, #0e1128);
+    border: 1px solid var(--gold-dim);
+    border-radius: 10px;
     cursor: pointer;
-    user-select: none; /* Prevent text selection on repeated taps */
-    transition: background-color 0.2s, transform 0.1s;
+    user-select: none;
+    transition: background 0.2s, transform 0.1s, border-color 0.2s, color 0.2s;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
 .touch-button:active {
-    background: linear-gradient(45deg, #e94560, #f9a826);
+    background: linear-gradient(155deg, var(--gold), var(--gold-deep));
+    border-color: var(--gold-bright);
+    color: #211705;
     transform: scale(0.95);
 }
 
 /* Responsive adjustments for smaller screens */
 @media (max-width: 768px) {
     h1 {
-        font-size: 2em;
-        margin-top: 40px; /* メニューに戻るボタンとのスペース */
+        font-size: 2.1em;
+        margin-top: 40px;
     }
     #main-container {
         flex-direction: column;
         align-items: center;
-        gap: 20px;
+        gap: 24px;
     }
     #info-panel {
         width: 90%;
         max-width: 300px;
     }
     #game-board {
-        /* Make the board scale down on small screens */
         transform: scale(0.9);
         transform-origin: top center;
     }
@@ -240,7 +411,7 @@ h1 {
     .touch-button {
         width: 55px;
         height: 55px;
-        font-size: 1.8em;
+        font-size: 1.5em;
     }
 }
 
@@ -248,7 +419,7 @@ h1 {
     #game-board {
         transform: scale(0.8);
     }
-     #touch-controls {
+    #touch-controls {
         padding: 10px;
     }
     .touch-button {
