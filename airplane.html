@@ -12,7 +12,7 @@
     #ui-panel {
         position: absolute; top: 20px; left: 20px; z-index: 1000;
         background: rgba(0, 0, 0, 0.85); padding: 15px;
-        border-radius: 12px; border: 1px solid #444; width: 220px;
+        border-radius: 12px; border: 1px solid #444; width: 250px;
         max-height: 80vh; overflow-y: auto;
     }
     .panel-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 10px; color: #fff; border-bottom: 1px solid #444; padding-bottom: 5px; }
@@ -20,18 +20,30 @@
     .color-dot { width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; flex-shrink: 0; }
     .airline-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+    #status { font-size: 0.75rem; color: #ffcc00; margin-bottom: 8px; line-height: 1.4; word-break: break-all; }
+
     /* スクロールバーのカスタム */
     #ui-panel::-webkit-scrollbar { width: 5px; }
     #ui-panel::-webkit-scrollbar-thumb { background: #666; border-radius: 10px; }
 </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+<!-- GoatCounter (file:/// 警告回避) -->
+<script>
+    if (location.protocol !== 'file:') {
+        var s = document.createElement('script');
+        s.async = true;
+        s.dataset.goatcounter = "https://senzaiichiguunochance.goatcounter.com/count";
+        s.src = "https://gc.zgo.at/count.js";
+        document.head.appendChild(s);
+    }
+</script>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-
 <div id="ui-panel">
     <div class="panel-title">探知中の航空会社</div>
+    <div id="status">データ受信中...</div>
     <div id="airline-list"></div>
 </div>
 
@@ -39,90 +51,149 @@
 
 <script>
 const map = L.map("map", { zoomControl: false }).setView([35.6, 139.7], 6);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png").addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+}).addTo(map);
 
 let planeMarkers = {};
 
-// コールサインから一意のRGB色を生成する関数
 function generateColor(callsign) {
     if (!callsign || callsign === "N/A") return "#888888";
-    const code = callsign.substring(0, 3); // ICAOコード(ANA, JAL等)
+    const code = callsign.substring(0, 3);
     let hash = 0;
     for (let i = 0; i < code.length; i++) {
         hash = code.charCodeAt(i) + ((hash << 5) - hash);
     }
-    // RGBの各値を0-255の範囲で生成
     const r = (hash & 0xFF0000) >> 16;
     const g = (hash & 0x00FF00) >> 8;
     const b = hash & 0x0000FF;
-    return `rgb(${r}, ${g}, ${b})`;
+    return `rgb(${Math.abs(r)}, ${Math.abs(g)}, ${Math.abs(b)})`;
 }
 
 function createPlaneIcon(heading, color) {
     const svg = `
-    <svg viewBox="0 0 24 24" width="24" height="24" style="transform: rotate(${heading}deg); filter: drop-shadow(0 0 1px #fff);">
+    <svg viewBox="0 0 24 24" width="24" height="24" style="transform: rotate(${heading}deg); filter: drop-shadow(0 0 2px #000);">
         <path fill="${color}" d="M21,16L13,11V3.5A1.5,1.5 0 0,0 11.5,2A1.5,1.5 0 0,0 10,3.5V11L2,16V18L10,15.5V21L8,22.5V24L11.5,23L15,24V22.5L13,21V15.5L21,18V16Z" />
     </svg>`;
     return L.divIcon({ html: svg, className: 'plane-icon', iconSize: [24, 24], iconAnchor: [12, 12] });
 }
 
-async function updatePlanes() {
+async function fetchWithTimeout(resource, options = {}) {
+    const { timeout = 5000 } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
     try {
-        const b = map.getBounds();
-        const url = `https://opensky-network.org/api/states/all?lamin=${b.getSouth()}&lomin=${b.getWest()}&lamax=${b.getNorth()}&lomax=${b.getEast()}`;
-        const res = await fetch(url);
+        const response = await fetch(resource, { ...options, signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (err) {
+        clearTimeout(id);
+        throw err;
+    }
+}
+
+async function updatePlanes() {
+    const statusEl = document.getElementById('status');
+    const center = map.getCenter();
+    const bounds = map.getBounds();
+    
+    // 表示範囲から探知半径（海里）を動的計算
+    const centerLatLng = L.latLng(center.lat, center.lng);
+    const distanceKm = centerLatLng.distanceTo(bounds.getNorthEast()) / 1000;
+    let radiusNmi = Math.min(Math.round(distanceKm * 0.539957), 250);
+    if (radiusNmi < 10) radiusNmi = 10;
+
+    statusEl.style.color = "#ffcc00";
+    statusEl.innerText = "データ取得中...";
+
+    // 1. プロキシなしで adsb.lol 直接通信
+    try {
+        const url1 = `https://api.adsb.lol/v2/lat/${center.lat.toFixed(4)}/lon/${center.lng.toFixed(4)}/${radiusNmi}`;
+        const res = await fetchWithTimeout(url1, { timeout: 5000 });
+        
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         
-        const airlineStats = {};
-        const currentIds = new Set();
+        renderAircrafts(data.ac || [], "adsb.lol");
+        return;
 
-        if (data.states) {
-            data.states.forEach(s => {
-                const id = s[0];
-                const callsign = (s[1] || "N/A").trim();
-                const code = callsign.substring(0, 3);
-                const lat = s[6], lon = s[5], heading = s[10] || 0;
+    } catch (e1) {
+        let err1 = e1.name === 'AbortError' ? 'タイムアウト(5秒)' : e1.message;
+        statusEl.innerText = `adsb.lol エラー: ${err1}\nadsb.fi へ切替中...`;
 
-                if (lat && lon) {
-                    currentIds.add(id);
-                    const color = generateColor(callsign);
-                    
-                    // リスト用統計
-                    if (code !== "N/A") {
-                        airlineStats[code] = (airlineStats[code] || 0) + 1;
-                    }
+        // 2. フォールバック: プロキシなしで adsb.fi 直接通信
+        try {
+            const url2 = `https://api.adsb.fi/v2/lat/${center.lat.toFixed(4)}/lon/${center.lng.toFixed(4)}/${radiusNmi}`;
+            const res2 = await fetchWithTimeout(url2, { timeout: 5000 });
+            
+            if (!res2.ok) throw new Error(`HTTP ${res2.status}`);
+            const data2 = await res2.json();
+            
+            renderAircrafts(data2.ac || [], "adsb.fi");
 
-                    if (planeMarkers[id]) {
-                        planeMarkers[id].setLatLng([lat, lon]);
-                        planeMarkers[id].setIcon(createPlaneIcon(heading, color));
-                    } else {
-                        planeMarkers[id] = L.marker([lat, lon], {
-                            icon: createPlaneIcon(heading, color)
-                        }).addTo(map).bindTooltip(callsign);
-                    }
-                }
-            });
+        } catch (e2) {
+            let err2 = e2.name === 'AbortError' ? 'タイムアウト(5秒)' : e2.message;
+            statusEl.style.color = "#ff6666";
+            statusEl.innerText = `【全APIエラー】\n・adsb.lol: ${err1}\n・adsb.fi: ${err2}`;
         }
+    }
+}
 
-        // 画面外の削除
-        for (const id in planeMarkers) {
-            if (!currentIds.has(id)) {
-                map.removeLayer(planeMarkers[id]);
-                delete planeMarkers[id];
+function renderAircrafts(aircrafts, providerName) {
+    const statusEl = document.getElementById('status');
+    statusEl.style.color = "#aaa";
+    statusEl.innerText = `探知数: ${aircrafts.length} 機 (${providerName})`;
+
+    const airlineStats = {};
+    const currentIds = new Set();
+
+    aircrafts.forEach(ac => {
+        const id = ac.hex;
+        const callsign = (ac.flight || "N/A").trim();
+        const code = callsign.length >= 3 ? callsign.substring(0, 3) : "N/A";
+        const lat = ac.lat;
+        const lon = ac.lon;
+        const heading = ac.track || ac.true_heading || 0;
+        const alt = ac.alt_baro || '不明';
+        const vel = ac.gs || '不明';
+
+        if (lat !== undefined && lon !== undefined) {
+            currentIds.add(id);
+            const color = generateColor(callsign);
+            
+            if (code !== "N/A" && code.match(/^[A-Z0-9]{3}$/i)) {
+                airlineStats[code] = (airlineStats[code] || 0) + 1;
+            }
+
+            const popupText = `<b>${callsign}</b><br>高度: ${alt} ft<br>速度: ${vel} kt`;
+
+            if (planeMarkers[id]) {
+                planeMarkers[id].setLatLng([lat, lon]);
+                planeMarkers[id].setIcon(createPlaneIcon(heading, color));
+                planeMarkers[id].setTooltipContent(popupText);
+            } else {
+                planeMarkers[id] = L.marker([lat, lon], {
+                    icon: createPlaneIcon(heading, color)
+                }).addTo(map).bindTooltip(popupText);
             }
         }
+    });
 
-        // 左上パネルの更新
-        updateAirlineList(airlineStats);
+    // 画面外・ロストした機体の削除
+    for (const id in planeMarkers) {
+        if (!currentIds.has(id)) {
+            map.removeLayer(planeMarkers[id]);
+            delete planeMarkers[id];
+        }
+    }
 
-    } catch (e) { console.error(e); }
+    updateAirlineList(airlineStats);
 }
 
 function updateAirlineList(stats) {
     const listEl = document.getElementById('airline-list');
     listEl.innerHTML = '';
     
-    // 機体数が多い順にソート
     const sortedAirlines = Object.entries(stats).sort((a, b) => b[1] - a[1]);
 
     sortedAirlines.forEach(([code, count]) => {
@@ -137,7 +208,8 @@ function updateAirlineList(stats) {
     });
 }
 
-setInterval(updatePlanes, 15000);
+// 12秒ごとに更新
+setInterval(updatePlanes, 12000);
 map.on('moveend', updatePlanes);
 updatePlanes();
 </script>
