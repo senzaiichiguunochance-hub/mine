@@ -275,30 +275,19 @@ const countryCoordinates = {
 // 内蔵データから座標を取得する（超高速＆確実）
 function getCountryCoords(countryName) {
     if (!countryName) return null;
-    if (countryCoordinates[countryName]) {
-        return countryCoordinates[countryName];
-    }
-    // 表記揺れ対応：部分一致チェック
+    if (countryCoordinates[countryName]) return countryCoordinates[countryName];
     for (const key in countryCoordinates) {
-        if (countryName.includes(key) || key.includes(countryName)) {
-            return countryCoordinates[key];
-        }
+        if (countryName.includes(key) || key.includes(countryName)) return countryCoordinates[key];
     }
     return null;
 }
 
-// ミニマップを初期化する関数
 function initMiniMap(elementId, lat, lon) {
     const container = L.DomUtil.get(elementId);
-    if(container._leaflet_id) {
-        return;
-    }
+    if(container && container._leaflet_id) return;
+
     const map = L.map(elementId, {
-        zoomControl: false,
-        scrollWheelZoom: false,
-        dragging: false,
-        doubleClickZoom: false,
-        attributionControl: false
+        zoomControl: false, scrollWheelZoom: false, dragging: false, doubleClickZoom: false, attributionControl: false
     }).setView([lat, lon], 4);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(map);
@@ -308,34 +297,33 @@ function initMiniMap(elementId, lat, lon) {
 let mofaRawData = [];
 
 function toggleMofaCodeInputs() {
-    const type = document.getElementById('mofa-type').value;
-    document.getElementById('mofa-region-code').style.display = 'none';
-    document.getElementById('mofa-country-code').style.display = 'none';
+    // 制御用（必要に応じて拡張）
 }
 
-async function renderMofaResults() {
+function renderMofaResults() {
     const f = document.getElementById('mofa-filter').value.toLowerCase().trim();
     const box = document.getElementById('mofa-results');
     if (mofaRawData.length === 0) {
-        box.innerHTML = '<p class="status-msg">まず「情報を取得」を押してください。</p>';
+        box.innerHTML = '<p class="status-msg">データが見つかりませんでした。</p>';
         return;
     }
+
     const keywords = f.split(/\s+/).filter(x => x);
     const filtered = mofaRawData.filter(item => {
         const t = item.querySelector('title')?.textContent.toLowerCase() || '';
         const c = item.querySelector('country > name')?.textContent.toLowerCase() || '';
         const lead = item.querySelector('lead')?.textContent.toLowerCase() || '';
-        const main = item.querySelector('mainText')?.textContent.toLowerCase() || '';
-        const info = item.querySelector('contentInfo')?.textContent.toLowerCase() || '';
-        return keywords.every(k => t.includes(k) || c.includes(k) || lead.includes(k) || main.includes(k) || info.includes(k));
+        return keywords.every(k => t.includes(k) || c.includes(k) || lead.includes(k));
     });
-    let html = `<h3>${filtered.length}件の情報が見つかりました</h3>`;
+
+    let html = `<h3>${filtered.length}件の最新情報が見つかりました</h3>`;
     filtered.forEach((item, index) => {
-        const title = item.querySelector('title')?.textContent || '';
-        const country = item.querySelector('country > name')?.textContent || '';
+        const title = item.querySelector('title')?.textContent || 'タイトルなし';
+        const country = item.querySelector('country > name')?.textContent || '不明';
         const date = item.querySelector('leaveDate')?.textContent || '';
         const lead = item.querySelector('lead')?.textContent || '';
         const url = item.querySelector('infoUrl')?.textContent || '#';
+
         html += `
         <div class="card">
             <h4>${title}</h4>
@@ -348,49 +336,55 @@ async function renderMofaResults() {
     });
     box.innerHTML = html;
 
-    for (const [index, item] of filtered.entries()) {
+    filtered.forEach((item, index) => {
         const country = item.querySelector('country > name')?.textContent || '';
-        const mapDiv = document.getElementById(`map-${index}`);
-        if (!country || !mapDiv) continue;
-        
-        // 内蔵データから座標を引っ張る
         const coords = getCountryCoords(country);
         if (coords) {
-            const [lat, lon] = coords;
-            initMiniMap(`map-${index}`, lat, lon);
+            initMiniMap(`map-${index}`, coords[0], coords[1]);
         } else {
-            mapDiv.style.display = 'none';
+            const mapDiv = document.getElementById(`map-${index}`);
+            if (mapDiv) mapDiv.style.display = 'none';
         }
-    }
+    });
 }
 
+// 外務省APIから最新データを動的に取得
 async function getMofaData() {
     const box = document.getElementById('mofa-results');
-    box.innerHTML = '<p class="status-msg">情報を取得中...</p>';
+    box.innerHTML = '<p class="status-msg">外務省サーバーから最新情報を取得中...</p>';
     document.getElementById('mofa-filter').value = '';
 
     const type = document.getElementById('mofa-type').value;
     const detail = document.getElementById('mofa-detail').value;
 
     let path = (type === 'newarrival') ? 'area/newarrival' : 'area/00';
-    const url = `https://www.ezairyu.mofa.go.jp/opendata/${path}${detail}.xml`;
-    const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const targetUrl = `https://www.ezairyu.mofa.go.jp/opendata/${path}${detail}.xml`;
+
+    // allorigins プロキシを経由してCORSを回避しつつ最新データをFetch
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
     try {
-        const resp = await fetch(proxy);
-        const xmlText = await resp.text();
+        const resp = await fetch(proxyUrl);
+        if (!resp.ok) throw new Error(`HTTP error! status: ${resp.status}`);
+        
+        const json = await resp.json();
+        const xmlText = json.contents; // プロキシから受け取った生XML
+
         const xml = new DOMParser().parseFromString(xmlText, 'application/xml');
         const items = xml.getElementsByTagName('mail');
+        
         mofaRawData = Array.from(items);
         renderMofaResults();
     } catch (e) {
+        console.error(e);
         mofaRawData = [];
-        box.innerHTML = '<p class="status-msg">情報の取得に失敗しました。（「すべての地域」は情報量が多いため、失敗する場合があります。）</p>';
-        showError(box, '海外安全情報APIエラー', e, url);
+        box.innerHTML = `<div class="error-box"><strong>最新データの取得に失敗しました</strong><br>${e.message}<br><small>※「すべての地域」はデータ容量が大きいためタイムアウトする場合があります。「新着情報」でお試しください。</small></div>`;
     }
 }
 
-document.addEventListener('DOMContentLoaded', toggleMofaCodeInputs);
+document.addEventListener('DOMContentLoaded', () => {
+    toggleMofaCodeInputs();
+});
 </script>
 </body>
 </html>
