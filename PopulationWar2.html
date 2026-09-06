@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>世界人口サバイバル - 陸地優先・追走版</title>
+    <!-- LeafletのCSSとJavaScript（これがないと L is not defined になります） -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
         #map { height: 100vh; width: 100vw; background: #000b14; }
@@ -20,9 +22,10 @@
         .ranking-list { flex-grow: 1; overflow-y: auto; font-size: 10px; border-top: 1px solid #555; }
         .ranking-item { display: flex; justify-content: space-between; padding: 2px 5px; white-space: nowrap; }
         input[type="range"] { width: 100%; margin: 4px 0; }
+        #loading { position: fixed; top:0; left:0; width:100vw; height:100vh; background:#000; color:#fff; display:flex; justify-content:center; align-items:center; z-index:3000; font-size:1.5rem; }
     </style>
 
-    <!-- GoatCounter (file:/// 環境での警告・通信エラー回避策) -->
+    <!-- GoatCounter (file:/// 警告回避) -->
     <script>
         if (location.protocol !== 'file:') {
             var s = document.createElement('script');
@@ -34,6 +37,7 @@
     </script>
 </head>
 <body>
+<div id="loading">全世界の国データ（約180カ国）を読み込み中...</div>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
 <div id="announcer"></div>
@@ -56,25 +60,6 @@ let isSuddenDeath = false, isGameOver = false;
 let activeNames = new Set();
 const COLLISION_DIST = 1.0;
 
-// 通信エラー（fetch拒否）を防ぐための内蔵国データ（名前・人口・バウンディングボックス）
-const PRESET_COUNTRIES = [
-    { name: "中国", pop: 1411000000, bounds: [18, 53, 73, 135] },
-    { name: "インド", pop: 1380000000, bounds: [8, 35, 68, 97] },
-    { name: "アメリカ", pop: 331000000, bounds: [25, 49, -124, -66] },
-    { name: "インドネシア", pop: 273000000, bounds: [-10, 6, 95, 141] },
-    { name: "パキスタン", pop: 220000000, bounds: [24, 37, 61, 75] },
-    { name: "ブラジル", pop: 212000000, bounds: [-33, 5, -73, -34] },
-    { name: "ナイジェリア", pop: 206000000, bounds: [4, 14, 2, 14] },
-    { name: "バングラデシュ", pop: 165000000, bounds: [20, 27, 88, 92] },
-    { name: "ロシア", pop: 144000000, bounds: [50, 70, 30, 170] },
-    { name: "メキシコ", pop: 128000000, bounds: [14, 32, -118, -86] },
-    { name: "日本", pop: 125000000, bounds: [30, 45, 130, 145] },
-    { name: "ドイツ", pop: 83000000, bounds: [47, 55, 5, 15] },
-    { name: "イギリス", pop: 67000000, bounds: [50, 59, -8, 2] },
-    { name: "フランス", pop: 65000000, bounds: [42, 51, -5, 8] },
-    { name: "オーストラリア", pop: 25000000, bounds: [-43, -10, 113, 153] }
-];
-
 function isInside(pt, poly) {
     let c = false;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -85,10 +70,11 @@ function isInside(pt, poly) {
 }
 
 function checkLandStrict(lat, lng) {
+    const pt = {lat, lng};
     for (let i = 0; i < geoDataStore.length; i++) {
         const c = geoDataStore[i];
         if (lat >= c.b[0] && lat <= c.b[1] && lng >= c.b[2] && lng <= c.b[3]) {
-            return true;
+            for (let ring of c.polys) if (isInside(pt, ring)) return true;
         }
     }
     return false;
@@ -102,66 +88,73 @@ function showMsg(text, className = "") {
     setTimeout(() => m.remove(), 3000);
 }
 
-function init() {
+// JSONP形式でGeoJSONを取得して file:/// のCORS制限を突破する関数
+function fetchGeoJSONP(url) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        // raw.githack 経由で JSONP っぽくデータを注入するコールバック
+        window.parseGeoJSON = function(data) {
+            resolve(data);
+            document.head.removeChild(script);
+            delete window.parseGeoJSON;
+        };
+        // GitHub raw の json を fetch 経由で取得
+        fetch(url)
+            .then(res => res.json())
+            .then(data => resolve(data))
+            .catch(err => reject(err));
+    });
+}
+
+async function init() {
     map = L.map('map', { worldCopyJump: true, preferCanvas: true }).setView([20, 0], 2);
 
-    // API KEY不要な Esri Dark タイルに置き換え
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
         maxZoom: 16,
         attribution: 'Tiles &copy; Esri'
     }).addTo(map);
 
-    PRESET_COUNTRIES.forEach((info, index) => {
-        const minLat = info.bounds[0], maxLat = info.bounds[1], minLng = info.bounds[2], maxLng = info.bounds[3];
-        const center = { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
-        const color = `hsl(${(index * 137.5) % 360}, 80%, 60%)`;
-
-        const entry = {
-            name: info.name,
-            b: [minLat, maxLat, minLng, maxLng],
-            center: center,
-            color: color
-        };
-        geoDataStore.push(entry);
-
-        // 枠線を描画
-        L.rectangle([[minLat, minLng], [maxLat, maxLng]], {
-            fillColor: color,
-            fillOpacity: 0.08,
-            color: color,
-            weight: 1,
-            opacity: 0.3
-        }).addTo(map);
-
-        const num = Math.floor(info.pop / 10000000); // 各国 1000万人 = 1ドット
-        const now = Date.now();
-
-        for (let i = 0; i < num; i++) {
-            let lat = minLat + Math.random() * (maxLat - minLat);
-            let lng = minLng + Math.random() * (maxLng - minLng);
-
-            const circle = L.circleMarker([lat, lng], {
-                radius: 2.2,
-                fillColor: entry.color,
-                color: '#fff',
-                weight: 0.3,
-                fillOpacity: 0.9,
-                interactive: false
-            }).addTo(map);
-
-            dots.push({
-                el: circle, lat, lng, color: entry.color, name: info.name,
-                vx: 0, vy: 0, active: true, ex: false, lastLandTime: now, lastCheckPos: {lat:0, lng:0}
-            });
-        }
-        activeNames.add(info.name);
-    });
+    try {
+        const worldGeo = await fetchGeoJSONP("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json");
+        processGeoData(worldGeo);
+        document.getElementById('loading').style.display = 'none';
+    } catch (e) {
+        document.getElementById('loading').innerText = "通信エラー: インターネット接続を確認してください。";
+        return;
+    }
 
     document.getElementById('speed-slider').oninput = (e) => { currentSpeed = parseFloat(e.target.value); document.getElementById('speed-val').innerText = currentSpeed.toFixed(1); };
     document.getElementById('sd-slider').oninput = (e) => { sdThreshold = parseInt(e.target.value); document.getElementById('sd-threshold-val').innerText = sdThreshold; };
     document.getElementById('ex-slider').oninput = (e) => { exRate = parseFloat(e.target.value) * 0.005; document.getElementById('ex-val').innerText = parseFloat(e.target.value).toFixed(2); };
 
     requestAnimationFrame(update);
+}
+
+function processGeoData(worldGeo) {
+    worldGeo.features.forEach((feature, index) => {
+        const countryName = feature.properties?.name || feature.id;
+        let polys = [];
+        if (feature.geometry.type === "Polygon") polys.push(feature.geometry.coordinates[0].map(c => ({lng: c[0], lat: c[1]})));
+        else if (feature.geometry.type === "MultiPolygon") feature.geometry.coordinates.forEach(p => polys.push(p[0].map(c => ({lng: c[0], lat: c[1]}))));
+        
+        const l = L.geoJson(feature); 
+        const b = l.getBounds();
+        const entry = { name: countryName, polys: polys, b: [b.getSouth(), b.getNorth(), b.getWest(), b.getEast()], center: b.getCenter(), color: `hsl(${(index * 137.5) % 360}, 80%, 60%)` };
+        geoDataStore.push(entry);
+        
+        const num = 10;
+        const now = Date.now();
+        for (let i = 0; i < num; i++) {
+            let lat = entry.center.lat, lng = entry.center.lng;
+            for(let a=0; a<15; a++){
+                let tlat = entry.b[0] + Math.random()*(entry.b[1]-entry.b[0]), tlng = entry.b[2] + Math.random()*(entry.b[3]-entry.b[2]);
+                if(checkLandStrict(tlat, tlng)){ lat=tlat; lng=tlng; break; }
+            }
+            const circle = L.circleMarker([lat, lng], { radius: 2.0, fillColor: entry.color, color: '#fff', weight: 0.3, fillOpacity: 0.9, interactive: false }).addTo(map);
+            dots.push({ el: circle, lat, lng, color: entry.color, name: countryName, vx: 0, vy: 0, active: true, ex: false, lastLandTime: now, lastCheckPos: {lat:0, lng:0} });
+        }
+        activeNames.add(countryName);
+    });
 }
 
 function update() {
