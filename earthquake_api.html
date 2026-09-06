@@ -90,16 +90,11 @@
     box-shadow: 0 0 5px rgba(0,0,0,0.5);
   }
 
-  /* 震度別カラー */
-  .quake-marker-10 { background-color: #f2f2f2; border-color: #999; }
-  .quake-marker-20 { background-color: #bfdfff; border-color: #6a9edc; }
-  .quake-marker-30 { background-color: #a0f0ff; border-color: #55c6d9; }
-  .quake-marker-40 { background-color: #ffc9a0; border-color: #d18d53; }
-  .quake-marker-45 { background-color: #ffab4f; border-color: #e07b00; }
-  .quake-marker-50 { background-color: #ff7f00; border-color: #cc6600; }
-  .quake-marker-55 { background-color: #ff0000; border-color: #cc0000; color: white; }
-  .quake-marker-60 { background-color: #cc0000; border-color: #990000; color: white; }
-  .quake-marker-70 { background-color: #660000; border-color: #330000; color: white; }
+  /* マグニチュード別カラー */
+  .quake-m-low { background-color: #a0f0ff; border-color: #55c6d9; }
+  .quake-m-mid { background-color: #ffc9a0; border-color: #d18d53; }
+  .quake-m-high { background-color: #ff7f00; border-color: #cc6600; }
+  .quake-m-vhigh { background-color: #ff0000; border-color: #cc0000; color: white; }
 </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
@@ -109,29 +104,25 @@
 <div class="container">
     <br>
     <header class="header">
-        <h1>日本地震情報マップ (API版)</h1>
+        <h1>日本近海 地震情報マップ (USGS API版)</h1>
     </header>
 
     <div class="box">
         <div id="controls" class="controls">
-            <label>取得件数: <input type="number" id="limit" value="100" min="10" max="100" style="width:80px"></label>
-            <label>最小震度:
+            <label>取得件数: <input type="number" id="limit" value="100" min="10" max="200" style="width:80px"></label>
+            <label>最小マグニチュード:
                 <select id="minScale">
                     <option value="0">すべて</option>
-                    <option value="10">1</option>
-                    <option value="20">2</option>
-                    <option value="30">3</option>
-                    <option value="40">4</option>
-                    <option value="45">5弱</option>
-                    <option value="50">5強</option>
-                    <option value="55">6弱</option>
-                    <option value="60">6強</option>
-                    <option value="70">7</option>
+                    <option value="2.5">M 2.5 以上</option>
+                    <option value="3.5">M 3.5 以上</option>
+                    <option value="4.5">M 4.5 以上</option>
+                    <option value="5.5">M 5.5 以上</option>
+                    <option value="6.5">M 6.5 以上</option>
                 </select>
             </label>
             <button id="btnLoad" class="primary" style="padding: 5px 15px;">表示</button>
         </div>
-        <div class="note">※P2P地震情報APIより直近のデータを取得します。</div>
+        <div class="note">※USGS (米国地質調査所) APIより日本周辺の最新地震データを取得します。</div>
     </div>
 
     <div id="main-content">
@@ -149,9 +140,6 @@
 </div>
 
 <script>
-// P2P地震情報API
-const P2P_API_URL = "https://api.p2pquake.net/v2/history?codes=551&limit=";
-
 let map;
 let layerGroup;
 
@@ -174,14 +162,12 @@ function initializeMap() {
     return true;
 }
 
-// UI要素
 const overlay = document.getElementById("loadingOverlay");
 const btn = document.getElementById("btnLoad");
 const progressBar = document.getElementById("progressBar");
 const loadingText = document.getElementById("loadingText");
 const limitInput = document.getElementById("limit");
 const minScaleSelect = document.getElementById("minScale"); 
-const LS_MIN_SCALE_KEY = "earthquake_min_scale";
 
 function showOverlay(msg="処理中...") {
   overlay.style.display = "flex";
@@ -195,66 +181,32 @@ function hideOverlay() {
   btn.disabled = false;
 }
 
-// 震度に応じたCSSクラス取得
-function getScaleClass(scale) {
-    if (scale >= 70) return "quake-marker-70";
-    if (scale >= 60) return "quake-marker-60";
-    if (scale >= 55) return "quake-marker-55";
-    if (scale >= 50) return "quake-marker-50";
-    if (scale >= 45) return "quake-marker-45";
-    if (scale >= 40) return "quake-marker-40";
-    if (scale >= 30) return "quake-marker-30";
-    if (scale >= 20) return "quake-marker-20";
-    if (scale >= 10) return "quake-marker-10";
-    return "quake-marker-10";
+// マグニチュードに応じたカラー表示
+function getMClass(m) {
+    if (m >= 6.0) return "quake-m-vhigh";
+    if (m >= 5.0) return "quake-m-high";
+    if (m >= 4.0) return "quake-m-mid";
+    return "quake-m-low";
 }
 
-// 震度数値をテキストに変換（例: 45 -> 震度5弱）
-function formatScaleText(scale) {
-    if (scale === 0) return "-";
-    
-    let intScale = Math.floor(scale / 10);
-    let suffix = "";
-
-    if (scale % 10 === 5) {
-        intScale += 1;
-        suffix = "弱";
-    } else if (scale % 10 === 0 && scale >= 50) {
-        if (scale === 50 || scale === 60) {
-            suffix = "強";
-        }
-    }
-    return `震度${intScale}${suffix}`;
-}
-
-// APIデータ取得・描画処理
+// USGS APIよりデータ取得
 async function loadFromApi() {
   const infoListContainer = document.getElementById("info-list-container");
   try {
     showOverlay("データ読込中...");
-    infoListContainer.innerHTML = ""; // リストをクリア
+    infoListContainer.innerHTML = "";
     
-    const limit = Math.min(parseInt(limitInput.value || 100), 100); 
-    const selectedMinScale = parseInt(minScaleSelect.value) || 0; 
-    localStorage.setItem(LS_MIN_SCALE_KEY, selectedMinScale.toString());
+    const limit = Math.min(parseInt(limitInput.value || 100), 200); 
+    const minMag = parseFloat(minScaleSelect.value) || 0; 
 
-    const url = `${P2P_API_URL}${limit}`;
+    // 日本周辺（緯度20~50, 経度120~150）の範囲を指定して取得
+    const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minlatitude=20&maxlatitude=50&minlongitude=120&maxlongitude=150&limit=${limit}&minmagnitude=${minMag}`;
+    
     const r = await fetch(url);
-
     if (!r.ok) throw new Error(`APIエラー: ${r.status}`);
 
     const rawData = await r.json();
-    
-    // 地震情報(551)かつ震源情報が存在するデータのみ抽出
-    const records = rawData.filter(item => item.code === 551 && item.earthquake && item.earthquake.hypocenter);
-    
-    const filtered = records.filter(rec => {
-        const maxScale = rec.earthquake.maxScale || 0;
-        return maxScale >= selectedMinScale;
-    });
-
-    // 日時の降順でソート
-    filtered.sort((a, b) => new Date(b.time) - new Date(a.time));
+    const filtered = rawData.features || [];
 
     loadingText.textContent = `該当データ: ${filtered.length}件 描画準備中...`;
     
@@ -266,46 +218,45 @@ async function loadFromApi() {
 
     for (let i = 0; i < filtered.length; i += chunkSize) {
       const chunk = filtered.slice(i, i + chunkSize);
-      
       let listHtml = '';
-      for (const r of chunk) {
-        const lat = parseFloat(r.earthquake.hypocenter.latitude);
-        const lng = parseFloat(r.earthquake.hypocenter.longitude);
-        const timeStr = new Date(r.time).toLocaleString('ja-JP');
-        const maxScale = r.earthquake.maxScale || 0;
-        const scaleText = formatScaleText(maxScale);
 
-        // リスト項目HTMLの生成
+      for (const feature of chunk) {
+        const props = feature.properties;
+        const coords = feature.geometry.coordinates; // [lng, lat, depth]
+        
+        const lng = coords[0];
+        const lat = coords[1];
+        const depth = coords[2];
+        const mag = props.mag ? props.mag.toFixed(1) : "-";
+        const timeStr = new Date(props.time).toLocaleString('ja-JP');
+        const place = props.place || "日本周辺";
+
         listHtml += `
             <div class="info-item">
-                <strong>場所:</strong> ${r.earthquake.hypocenter.name || "情報なし"}<br>
+                <strong>場所:</strong> ${place}<br>
                 <strong>日時:</strong> ${timeStr}<br>
-                <strong>M:</strong> ${r.earthquake.magnitude || "-"}
-                <strong>深さ:</strong> ${r.earthquake.hypocenter.depth ? r.earthquake.hypocenter.depth + 'km' : "-"}<br>
-                <strong>最大震度:</strong> ${scaleText}
+                <strong>M:</strong> ${mag}
+                <strong>深さ:</strong> ${depth ? Math.round(depth) + 'km' : "-"}<br>
             </div>
         `;
         
-        // 無効な座標はスキップ
-        if (lat === -200 || lng === -200 || !isFinite(lat) || !isFinite(lng)) continue;
+        if (!isFinite(lat) || !isFinite(lng)) continue;
 
-        const scaleClass = getScaleClass(maxScale);
-        const displayScale = scaleText.replace("震度", "");
+        const mClass = getMClass(props.mag || 0);
 
         const customIcon = L.divIcon({
-            className: `quake-marker-base ${scaleClass}`,
-            html: `<span>${displayScale}</span>`,
+            className: `quake-marker-base ${mClass}`,
+            html: `<span>M${Math.floor(mag)}</span>`,
             iconSize: [24, 24],
             popupAnchor: [0, -12]
         });
         
         const popup = `
           <div style="min-width:200px;">
-            <b>${r.earthquake.hypocenter.name || "震源地不明"}</b><br>
+            <b>${place}</b><br>
             <hr style="margin:5px 0;">
             日時: ${timeStr}<br>
-            M${r.earthquake.magnitude || "-"} / 深さ${r.earthquake.hypocenter.depth ? r.earthquake.hypocenter.depth + 'km' : "-"}<br>
-            最大震度: <b>${scaleText}</b>
+            <b>M${mag}</b> / 深さ ${depth ? Math.round(depth) + 'km' : "-"}
           </div>
         `;
         L.marker([lat, lng], {icon: customIcon}).bindPopup(popup).addTo(layerGroup);
@@ -313,7 +264,7 @@ async function loadFromApi() {
       
       infoListContainer.innerHTML += listHtml;
       done += chunk.length;
-      const percent = Math.round((done / filtered.length) * 100);
+      const percent = Math.round((done / (filtered.length || 1)) * 100);
       progressBar.style.width = percent + "%";
       await new Promise(res => setTimeout(res, 5)); 
     }
@@ -335,13 +286,8 @@ async function loadFromApi() {
   }
 }
 
-// 起動時処理
 window.onload = function() {
     if(initializeMap()) {
-        const savedMinScale = localStorage.getItem(LS_MIN_SCALE_KEY);
-        if (savedMinScale !== null) {
-            minScaleSelect.value = savedMinScale;
-        }
         loadFromApi();
     }
 };
