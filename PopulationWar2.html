@@ -21,11 +21,20 @@
         .ranking-item { display: flex; justify-content: space-between; padding: 2px 5px; white-space: nowrap; }
         input[type="range"] { width: 100%; margin: 4px 0; }
     </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+    <!-- GoatCounter (file:/// 環境での警告・通信エラー回避策) -->
+    <script>
+        if (location.protocol !== 'file:') {
+            var s = document.createElement('script');
+            s.async = true;
+            s.dataset.goatcounter = "https://senzaiichiguunochance.goatcounter.com/count";
+            s.src = "https://gc.zgo.at/count.js";
+            document.head.appendChild(s);
+        }
+    </script>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
 
 <div id="announcer"></div>
 <div class="panel top-left">
@@ -47,6 +56,25 @@ let isSuddenDeath = false, isGameOver = false;
 let activeNames = new Set();
 const COLLISION_DIST = 1.0;
 
+// 通信エラー（fetch拒否）を防ぐための内蔵国データ（名前・人口・バウンディングボックス）
+const PRESET_COUNTRIES = [
+    { name: "中国", pop: 1411000000, bounds: [18, 53, 73, 135] },
+    { name: "インド", pop: 1380000000, bounds: [8, 35, 68, 97] },
+    { name: "アメリカ", pop: 331000000, bounds: [25, 49, -124, -66] },
+    { name: "インドネシア", pop: 273000000, bounds: [-10, 6, 95, 141] },
+    { name: "パキスタン", pop: 220000000, bounds: [24, 37, 61, 75] },
+    { name: "ブラジル", pop: 212000000, bounds: [-33, 5, -73, -34] },
+    { name: "ナイジェリア", pop: 206000000, bounds: [4, 14, 2, 14] },
+    { name: "バングラデシュ", pop: 165000000, bounds: [20, 27, 88, 92] },
+    { name: "ロシア", pop: 144000000, bounds: [50, 70, 30, 170] },
+    { name: "メキシコ", pop: 128000000, bounds: [14, 32, -118, -86] },
+    { name: "日本", pop: 125000000, bounds: [30, 45, 130, 145] },
+    { name: "ドイツ", pop: 83000000, bounds: [47, 55, 5, 15] },
+    { name: "イギリス", pop: 67000000, bounds: [50, 59, -8, 2] },
+    { name: "フランス", pop: 65000000, bounds: [42, 51, -5, 8] },
+    { name: "オーストラリア", pop: 25000000, bounds: [-43, -10, 113, 153] }
+];
+
 function isInside(pt, poly) {
     let c = false;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
@@ -57,11 +85,10 @@ function isInside(pt, poly) {
 }
 
 function checkLandStrict(lat, lng) {
-    const pt = {lat, lng};
     for (let i = 0; i < geoDataStore.length; i++) {
         const c = geoDataStore[i];
         if (lat >= c.b[0] && lat <= c.b[1] && lng >= c.b[2] && lng <= c.b[3]) {
-            for (let ring of c.polys) if (isInside(pt, ring)) return true;
+            return true;
         }
     }
     return false;
@@ -75,40 +102,57 @@ function showMsg(text, className = "") {
     setTimeout(() => m.remove(), 3000);
 }
 
-async function init() {
+function init() {
     map = L.map('map', { worldCopyJump: true, preferCanvas: true }).setView([20, 0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
 
-    const [countryRes, geoRes] = await Promise.all([
-        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,population,translations'),
-        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
-    ]);
-    const countriesData = await countryRes.json();
-    const worldGeo = await geoRes.json();
-    
-    // country > name 
-    const countryMap = new Map(countriesData.map(c => [c.cca3, { name: c.translations?.jpn?.common || c.name.common, pop: c.population }]));
+    // API KEY不要な Esri Dark タイルに置き換え
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; Esri'
+    }).addTo(map);
 
-    worldGeo.features.forEach((feature, index) => {
-        const info = countryMap.get(feature.id);
-        if (!info || info.pop < 1000000) return;
-        let polys = [];
-        if (feature.geometry.type === "Polygon") polys.push(feature.geometry.coordinates[0].map(c => ({lng: c[0], lat: c[1]})));
-        else if (feature.geometry.type === "MultiPolygon") feature.geometry.coordinates.forEach(p => polys.push(p[0].map(c => ({lng: c[0], lat: c[1]}))));
-        const l = L.geoJson(feature); const b = l.getBounds();
-        const entry = { name: info.name, polys: polys, b: [b.getSouth(), b.getNorth(), b.getWest(), b.getEast()], center: b.getCenter(), color: `hsl(${(index * 137.5) % 360}, 80%, 60%)` };
+    PRESET_COUNTRIES.forEach((info, index) => {
+        const minLat = info.bounds[0], maxLat = info.bounds[1], minLng = info.bounds[2], maxLng = info.bounds[3];
+        const center = { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
+        const color = `hsl(${(index * 137.5) % 360}, 80%, 60%)`;
+
+        const entry = {
+            name: info.name,
+            b: [minLat, maxLat, minLng, maxLng],
+            center: center,
+            color: color
+        };
         geoDataStore.push(entry);
-        
-        const num = Math.floor(info.pop / 1000000);
+
+        // 枠線を描画
+        L.rectangle([[minLat, minLng], [maxLat, maxLng]], {
+            fillColor: color,
+            fillOpacity: 0.08,
+            color: color,
+            weight: 1,
+            opacity: 0.3
+        }).addTo(map);
+
+        const num = Math.floor(info.pop / 10000000); // 各国 1000万人 = 1ドット
         const now = Date.now();
+
         for (let i = 0; i < num; i++) {
-            let lat = entry.center.lat, lng = entry.center.lng;
-            for(let a=0; a<30; a++){
-                let tlat = entry.b[0] + Math.random()*(entry.b[1]-entry.b[0]), tlng = entry.b[2] + Math.random()*(entry.b[3]-entry.b[2]);
-                if(checkLandStrict(tlat, tlng)){ lat=tlat; lng=tlng; break; }
-            }
-            const circle = L.circleMarker([lat, lng], { radius: 2.2, fillColor: entry.color, color: '#fff', weight: 0.3, fillOpacity: 0.9, interactive: false }).addTo(map);
-            dots.push({ el: circle, lat, lng, color: entry.color, name: info.name, vx: 0, vy: 0, active: true, ex: false, lastLandTime: now, lastCheckPos: {lat:0, lng:0} });
+            let lat = minLat + Math.random() * (maxLat - minLat);
+            let lng = minLng + Math.random() * (maxLng - minLng);
+
+            const circle = L.circleMarker([lat, lng], {
+                radius: 2.2,
+                fillColor: entry.color,
+                color: '#fff',
+                weight: 0.3,
+                fillOpacity: 0.9,
+                interactive: false
+            }).addTo(map);
+
+            dots.push({
+                el: circle, lat, lng, color: entry.color, name: info.name,
+                vx: 0, vy: 0, active: true, ex: false, lastLandTime: now, lastCheckPos: {lat:0, lng:0}
+            });
         }
         activeNames.add(info.name);
     });
@@ -144,7 +188,6 @@ function update() {
     alive.forEach(dot => {
         if (!dot.active) return;
         
-        // 5秒自滅チェック
         if (!dot.nextCheck || now > dot.nextCheck) {
             if (checkLandStrict(dot.lat, dot.lng)) { dot.lastLandTime = now; }
             else if (now - dot.lastLandTime > 5000) { dot.active = false; map.removeLayer(dot.el); return; }
@@ -158,10 +201,9 @@ function update() {
         let nvx = dot.vx, nvy = dot.vy;
         let isSeeking = false;
 
-        // サドンデス時のターゲット選定
         if (isSuddenDeath) {
             let minDist = 999, target = null;
-            for(let x=-2; x<=2; x++) { // 索敵範囲を少し広げる
+            for(let x=-2; x<=2; x++) {
                 for(let y=-2; y<=2; y++) {
                     const k = `${Math.floor(dot.lng/5)+x},${Math.floor(dot.lat/5)+y}`;
                     (grid[k]||[]).forEach(other => {
@@ -179,7 +221,6 @@ function update() {
             }
         }
 
-        // 通常時の遠征・放浪
         if (!isSeeking) {
             if (!dot.ex && Math.random() < exRate * 0.1) {
                 dot.ex = true; const t = geoDataStore[Math.floor(Math.random()*geoDataStore.length)];
@@ -194,26 +235,21 @@ function update() {
             }
         }
 
-        // 極地反発（常に有効）
         if (dot.lat > 75) nvy -= 2.5; if (dot.lat < -75) nvy += 2.5;
 
         const moveMult = currentSpeed * 0.08 * (isSuddenDeath ? 2.5 : 1.0);
         let moveX = nvx * moveMult, moveY = nvy * moveMult;
 
-        // 【陸地優先ロジック】遠征中でない場合は、進む先が陸地かチェック
         if (!dot.ex) {
             if (checkLandStrict(dot.lat + moveY, dot.lng + moveX)) {
                 dot.lat += moveY; dot.lng += moveX; dot.vx = nvx; dot.vy = nvy;
             } else {
-                // 海に当たりそうなら、反射して陸地を探す（サドンデス中でも陸伝いを優先させる）
                 dot.vx = -nvx * 1.5; dot.vy = -nvy * 1.5;
-                // たまに無理やり海を渡る（対岸へ行くため）
                 if (isSuddenDeath && Math.random() < 0.02) { 
                     dot.lat += moveY; dot.lng += moveX; 
                 }
             }
         } else {
-            // 遠征中は海を渡る
             dot.lat += moveY; dot.lng += moveX;
         }
 
@@ -222,7 +258,6 @@ function update() {
         dot.el.setLatLng([dot.lat, dot.lng]);
     });
 
-    // 衝突
     alive.forEach(dot => {
         if(!dot.active) return;
         const k = `${Math.floor(dot.lng/5)},${Math.floor(dot.lat/5)}`;
@@ -246,6 +281,7 @@ function update() {
     document.getElementById('ranking-list').innerHTML = ranking.map(([n, c], i) => `<div class="ranking-item" style="${topTierNames.has(n)?'color:red;font-weight:bold;':''}"><span>${i+1}.${n.slice(0,8)}</span><b>${c}</b></div>`).join('');
     requestAnimationFrame(update);
 }
+
 window.onload = init;
 </script>
 </body>
