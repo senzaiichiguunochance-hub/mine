@@ -32,15 +32,24 @@
         background: rgba(255, 255, 255, 0.9); color: #000;
         border-radius: 50%; text-align: center; font-weight: bold;
         display: flex; align-items: center; justify-content: center;
-        border: 1px solid #ff4500; box-shadow: 0 0 4px #ff4500;
+        border: 1px solid #ff4500; box-shadow: 0 0 6px #ff4500;
         white-space: nowrap;
     }
 </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+<!-- GoatCounter (file:/// 警告回避) -->
+<script>
+    if (location.protocol !== 'file:') {
+        var s = document.createElement('script');
+        s.async = true;
+        s.dataset.goatcounter = "https://senzaiichiguunochance.goatcounter.com/count";
+        s.src = "https://gc.zgo.at/count.js";
+        document.head.appendChild(s);
+    }
+</script>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
-
 
 <div id="ui-panel">
     <h3 style="margin:0 0 10px 0; font-size: 1rem; color:#ff4500;">地震発生シミュレーター</h3>
@@ -55,7 +64,9 @@
             <option value="40">震度4以上</option>
             <option value="45">震度5弱以上</option>
             <option value="50">震度5強以上</option>
-            <option value="60">震度6以上</option>
+            <option value="55">震度6弱以上</option>
+            <option value="60">震度6強以上</option>
+            <option value="70">震度7</option>
         </select>
     </div>
     <button id="btnStart">シミュレーション開始</button>
@@ -80,25 +91,37 @@ window.addEventListener('resize', resize);
 resize();
 
 class Particle {
-    constructor(x, y, hue, scale) {
-        this.x = x; this.y = y;
+    constructor(lat, lng, hue, scale) {
+        this.lat = lat; 
+        this.lng = lng;
         const intensity = scale / 10; 
-        this.vx = (Math.random() - 0.5) * (intensity * 2.5);
-        this.vy = (Math.random() - 0.5) * (intensity * 2.5);
-        this.size = (Math.random() * 1.5 + 0.5) * (intensity * 0.5);
-        this.hue = hue; this.alpha = 1;
+        this.ox = (Math.random() - 0.5) * (intensity * 10);
+        this.oy = (Math.random() - 0.5) * (intensity * 10);
+        this.vx = (Math.random() - 0.5) * (intensity * 1.5);
+        this.vy = (Math.random() - 0.5) * (intensity * 1.5);
+        this.size = (Math.random() * 2 + 1) * (intensity * 0.5);
+        this.hue = hue; 
+        this.alpha = 1;
     }
-    update() { this.x += this.vx; this.y += this.vy; this.alpha -= 0.015; }
+    update() { 
+        this.ox += this.vx; 
+        this.oy += this.vy; 
+        this.alpha -= 0.02; 
+    }
     draw() {
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${this.alpha})`; ctx.fill();
+        const pt = map.latLngToContainerPoint([this.lat, this.lng]);
+        ctx.beginPath(); 
+        ctx.arc(pt.x + this.ox, pt.y + this.oy, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, ${this.alpha})`; 
+        ctx.fill();
     }
 }
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update(); particles[i].draw();
+        particles[i].update(); 
+        particles[i].draw();
         if (particles[i].alpha <= 0) particles.splice(i, 1);
     }
     requestAnimationFrame(animate);
@@ -106,38 +129,77 @@ function animate() {
 animate();
 
 function getScaleText(scale) {
-    if (scale >= 60) return "6"; if (scale >= 50) return "5";
-    return Math.floor(scale / 10).toString();
+    if (scale >= 70) return "7";
+    if (scale >= 60) return "6強";
+    if (scale >= 55) return "6弱";
+    if (scale >= 50) return "5強";
+    if (scale >= 45) return "5弱";
+    if (scale >= 40) return "4";
+    if (scale >= 30) return "3";
+    if (scale >= 20) return "2";
+    if (scale >= 10) return "1";
+    return "?";
 }
 
 async function fetchData() {
     try {
         const res = await fetch(P2P_API_URL);
         const data = await res.json();
-        earthquakeData = data.filter(r => r.earthquake?.hypocenter?.latitude !== -200);
-        document.getElementById('status').innerText = "✅ 準備完了";
-    } catch (e) { document.getElementById('status').innerText = "❌ API取得エラー"; }
+        
+        // 緯度経度が存在するデータのみ抽出
+        earthquakeData = data.filter(r => 
+            r.earthquake && 
+            r.earthquake.hypocenter && 
+            r.earthquake.hypocenter.latitude > 0
+        );
+
+        if (earthquakeData.length > 0) {
+            // APIから取得できた最古と最新の日付で入力欄を初期化
+            const dates = earthquakeData.map(r => new Date(r.time)).filter(d => isFinite(d));
+            const minDate = new Date(Math.min(...dates));
+            const maxDate = new Date(Math.max(...dates));
+
+            document.getElementById('startDate').value = minDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = maxDate.toISOString().split('T')[0];
+            document.getElementById('status').innerText = `✅ 準備完了 (${earthquakeData.length}件)`;
+        } else {
+            document.getElementById('status').innerText = "⚠️ データが見つかりません";
+        }
+    } catch (e) { 
+        document.getElementById('status').innerText = "❌ API取得エラー"; 
+    }
 }
 
 function startSimulation() {
     if (timer) clearInterval(timer);
-    const startLimit = new Date(document.getElementById('startDate').value);
-    const endLimit = new Date(document.getElementById('endDate').value);
+    
+    const startVal = document.getElementById('startDate').value;
+    const endVal = document.getElementById('endDate').value;
+    if (!startVal || !endVal) return alert("日付を指定してください");
+
+    const startLimit = new Date(startVal + "T00:00:00");
+    const endLimit = new Date(endVal + "T23:59:59");
     const minScale = parseInt(document.getElementById('minScale').value);
     const dateDisplay = document.getElementById('current-date-display');
     
     let dailyEvents = {};
     earthquakeData.forEach(r => {
-        const d = new Date(r.time), scale = r.earthquake.maxScale || 0;
+        const d = new Date(r.time);
+        const scale = r.earthquake.maxScale || 0;
         if (d >= startLimit && d <= endLimit && scale >= minScale) {
             const dStr = r.time.split(' ')[0].replace(/\//g, '-');
             if (!dailyEvents[dStr]) dailyEvents[dStr] = [];
-            dailyEvents[dStr].push({ lat: r.earthquake.hypocenter.latitude, lng: r.earthquake.hypocenter.longitude, scale: scale });
+            dailyEvents[dStr].push({ 
+                lat: r.earthquake.hypocenter.latitude, 
+                lng: r.earthquake.hypocenter.longitude, 
+                scale: scale,
+                name: r.earthquake.hypocenter.name || "震源地不明"
+            });
         }
     });
 
     const sortedDates = Object.keys(dailyEvents).sort((a, b) => new Date(a) - new Date(b));
-    if (sortedDates.length === 0) return alert("データなし");
+    if (sortedDates.length === 0) return alert("指定期間・条件に該当する地震データがありません");
 
     dateDisplay.style.display = 'block';
     document.getElementById('btnStart').disabled = true;
@@ -146,21 +208,24 @@ function startSimulation() {
     timer = setInterval(() => {
         const currentDate = sortedDates[index];
         dateDisplay.innerText = currentDate.replace(/-/g, '/');
-        dailyEvents[currentDate].forEach(q => triggerVisual(q.lat, q.lng, q.scale));
+        dailyEvents[currentDate].forEach(q => triggerVisual(q.lat, q.lng, q.scale, q.name));
         index++;
-        if (index >= sortedDates.length) { clearInterval(timer); document.getElementById('btnStart').disabled = false; }
-    }, 1000);
+        if (index >= sortedDates.length) { 
+            clearInterval(timer); 
+            document.getElementById('btnStart').disabled = false; 
+        }
+    }, 1200);
 }
 
-function triggerVisual(lat, lng, scale) {
-    const pt = map.latLngToContainerPoint([lat, lng]);
+function triggerVisual(lat, lng, scale, name) {
     let hue = scale >= 50 ? 0 : (scale >= 30 ? 45 : 200);
-    for (let i = 0; i < (scale / 10) * 20; i++) particles.push(new Particle(pt.x, pt.y, hue, scale));
+    for (let i = 0; i < (scale / 10) * 15; i++) {
+        particles.push(new Particle(lat, lng, hue, scale));
+    }
 
-    // 震度1を12pxとして、震度が1上がるごとに1.2倍にする計算
     const rawScale = scale / 10;
-    const size = 12 * Math.pow(1.2, rawScale - 1);
-    const fontSize = size * 0.6; // 文字も円に合わせて調整
+    const size = Math.max(16, 12 * Math.pow(1.15, rawScale));
+    const fontSize = size * 0.45;
 
     const icon = L.divIcon({
         html: `<div class="shindo-badge" style="width:${size}px; height:${size}px; font-size:${fontSize}px;">${getScaleText(scale)}</div>`,
@@ -168,15 +233,14 @@ function triggerVisual(lat, lng, scale) {
         iconSize: [size, size], 
         iconAnchor: [size/2, size/2]
     });
+    
     const marker = L.marker([lat, lng], { icon: icon }).addTo(map);
-    setTimeout(() => map.removeLayer(marker), 1000);
+    marker.bindTooltip(`<b>${name}</b><br>最大震度: ${getScaleText(scale)}`, { permanent: false, direction: 'top' });
+
+    setTimeout(() => map.removeLayer(marker), 1200);
 }
 
 window.onload = () => {
-    const end = new Date(), start = new Date();
-    start.setMonth(start.getMonth() - 3);
-    document.getElementById('endDate').value = end.toISOString().split('T')[0];
-    document.getElementById('startDate').value = start.toISOString().split('T')[0];
     fetchData();
     document.getElementById('btnStart').onclick = startSimulation;
 };
