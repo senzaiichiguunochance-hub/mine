@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>水没回避</title>
+<style>
+  html,body{margin:0;padding:0;overflow:hidden;background:#0a1a2a;font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;-webkit-user-select:none;user-select:none;}
+  #crosshair{position:absolute;top:50%;left:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border:2px solid rgba(255,255,255,0.85);border-radius:50%;pointer-events:none;z-index:10;}
+
+  /* ---- overlays ---- */
+  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2000;background:rgba(3,10,20,0.88);color:#eaf6ff;}
+  .panel{width:min(440px,92vw);max-height:90vh;overflow:auto;background:rgba(10,25,45,0.92);border:1px solid rgba(120,200,255,0.35);border-radius:16px;padding:26px 26px 20px;box-shadow:0 0 40px rgba(0,150,255,0.25);}
+  .panel h1{margin:0 0 4px;font-size:26px;letter-spacing:2px;color:#7fd4ff;text-shadow:0 0 12px rgba(80,180,255,0.6);}
+  .panel .sub{margin:0 0 18px;font-size:12px;color:#9fc4dd;line-height:1.6;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:13px;color:#bfe3ff;margin-bottom:6px;}
+  .field .hint{font-size:11px;color:#7fa0b8;margin-top:4px;line-height:1.5;}
+  .field input[type=number]{width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(140,200,255,0.4);border-radius:8px;color:#fff;font-size:16px;padding:8px 10px;}
+  .record-box{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.35);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:13px;line-height:1.8;color:#ffe9a8;}
+  .btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;font-size:16px;font-weight:bold;letter-spacing:2px;cursor:pointer;background:linear-gradient(180deg,#3fc3ff,#0d8fdb);color:#fff;box-shadow:0 4px 14px rgba(0,140,255,0.45);}
+  .btn:active{transform:translateY(1px);}
+  .btn.secondary{background:linear-gradient(180deg,#4a5568,#2d3748);box-shadow:none;margin-top:10px;}
+  .result-title{font-size:30px;text-align:center;margin:0 0 6px;letter-spacing:3px;}
+  .result-title.over{color:#ff6b6b;text-shadow:0 0 14px rgba(255,60,60,0.7);}
+  .result-title.clear{color:#7fffb0;text-shadow:0 0 14px rgba(80,255,140,0.7);}
+  .result-stats{text-align:center;font-size:14px;color:#dff0ff;line-height:2;margin-bottom:14px;}
+  .result-stats b{color:#ffe9a8;font-size:16px;}
+
+  /* ---- HUD ---- */
+  #hud{position:absolute;top:16px;left:16px;color:#fff;z-index:100;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,0.8);}
+  #hud .card{background:rgba(0,10,25,0.55);border:1px solid rgba(120,200,255,0.3);border-radius:10px;padding:10px 16px;margin-bottom:8px;font-size:14px;line-height:1.7;min-width:150px;}
+  #hud .floorline{font-size:18px;font-weight:bold;color:#8fe0ff;}
+  #timerline{font-size:13px;color:#cfe8ff;}
+  #warning{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:150;background:rgba(180,20,20,0.75);border:2px solid #ff4d4d;border-radius:10px;padding:10px 22px;color:#fff;font-size:18px;font-weight:bold;display:none;text-align:center;animation:pulse 0.8s infinite alternate;}
+  @keyframes pulse{from{box-shadow:0 0 8px rgba(255,70,70,0.5);}to{box-shadow:0 0 26px rgba(255,70,70,0.95);}}
+  #flash{position:absolute;inset:0;background:rgba(200,20,20,0.28);z-index:140;display:none;pointer-events:none;}
+
+  #movement-pad{position:absolute;bottom:20px;left:20px;width:150px;height:100px;z-index:100;}
+  .move-btn{position:absolute;width:50px;height:50px;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.6);border-radius:8px;display:flex;justify-content:center;align-items:center;color:#fff;font-size:20px;cursor:pointer;}
+  #move-w{top:0;left:50px;} #move-a{top:50px;left:0;} #move-s{top:50px;left:50px;} #move-d{top:50px;left:100px;}
+  #move-jump{position:absolute;bottom:20px;left:180px;width:80px;height:50px;border-radius:25px;font-size:13px;}
+  #key-info{position:absolute;bottom:20px;right:20px;color:#dff0ff;background:rgba(0,10,25,0.5);padding:8px 14px;border-radius:8px;font-size:12px;line-height:1.7;z-index:100;}
+  #tap-hint{position:absolute;bottom:130px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,0.5);padding:6px 14px;border-radius:20px;font-size:12px;z-index:100;}
+</style>
+</head>
+<body>
+
+  <div id="crosshair"></div>
+  <div id="flash"></div>
+  <div id="warning">⚠️ 溺れています！ 残り <span id="warn-sec">30</span> 秒</div>
+
+  <div id="hud" style="display:none;">
+    <div class="card">
+      <div class="floorline">🏢 <span id="hud-floor">1</span> / <span id="hud-total">3</span> 階</div>
+      <div id="timerline">経過時間: <span id="hud-time">00:00</span></div>
+      <div id="timerline">水位: <span id="hud-water">0.0</span> m</div>
+    </div>
+  </div>
+  <div id="key-info">WASD: 移動 / SPACE: ジャンプ<br>マウス: 視点操作 / ESC: 解除</div>
+  <div id="tap-hint">画面をタップして視点操作を開始</div>
+
+  <div id="movement-pad">
+    <div id="move-w" class="move-btn">▲</div><div id="move-a" class="move-btn">◀</div>
+    <div id="move-s" class="move-btn">▼</div><div id="move-d" class="move-btn">▶</div>
+  </div>
+  <div id="move-jump" class="move-btn">JUMP</div>
+
+  <!-- スタート画面 -->
+  <div id="start-screen" class="overlay">
+    <div class="panel">
+      <h1>🌊 水没回避</h1>
+      <p class="sub">建物の下から水位が上昇してくる。ランダム生成された各フロアの部屋と廊下を抜け、唯一の階段を見つけて上の階へ避難しよう。頭まで水に浸かってから30秒でゲームオーバー。最上階の脱出ポイントに辿り着けばクリア！</p>
+
+      <div class="record-box" id="record-box">記録を読み込み中...</div>
+
+      <div class="field">
+        <label>💧 水位上昇速度：1分でキャラクター身長の 1/<input id="input-rise" type="number" min="1" max="60" step="1" style="width:70px;display:inline-block;"></label>
+        <div class="hint">数値が大きいほどゆっくり増水します。デフォルト「10」＝その場に留まると約10分で水没状態に。</div>
+      </div>
+
+      <div class="field">
+        <label>🏢 建物の階数</label>
+        <input id="input-floors" type="number" min="1" max="10" step="1">
+        <div class="hint">デフォルトは3階。最上階に脱出ポイントがあります。</div>
+      </div>
+
+      <button class="btn" id="btn-start">ゲーム開始</button>
+    </div>
+  </div>
+
+  <!-- 終了画面 -->
+  <div id="end-screen" class="overlay" style="display:none;">
+    <div class="panel">
+      <h2 class="result-title" id="end-title">GAME OVER</h2>
+      <div class="result-stats" id="end-stats"></div>
+      <button class="btn" id="btn-retry">もう一度プレイ</button>
+      <button class="btn secondary" id="btn-back">設定に戻る</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+    /* =========================================================
+       定数
+    ========================================================= */
+    const CHAR_HEIGHT   = 3;      // キャラクターの「身長」（水位計算・当たり判定の基準）
+    const EYE_HALF      = 1.5;    // 当たり判定ボックスの半高さ（=足元からのオフセット感覚）
+    const FLOOR_HEIGHT  = 6;      // 1フロアの高さ
+    const WALL_T        = 0.3;    // 壁の厚み
+    const TOTAL_W       = 40;     // 建物の幅
+    const TOTAL_D       = 40;     // 建物の奥行き
+    const COLS = 5, ROWS = 5;     // フロアの部屋グリッド
+    const STEP_COUNT = 6;
+    const STEP_H = FLOOR_HEIGHT / STEP_COUNT;
+
+    const SETTINGS_KEY = 'suibotsu_kaihi_settings_v1';
+    const RECORD_KEY   = 'suibotsu_kaihi_record_v1';
+
+    /* =========================================================
+       Three.js 基本セットアップ
+    ========================================================= */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x9fd3f0);
+    scene.fog = new THREE.Fog(0x9fd3f0, 8, 130);
+
+    const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.05);
+    sun.position.set(60, 140, 40);
+    sun.castShadow = true;
+    scene.add(sun);
+
+    const controls = new PointerLockControls(camera, document.body);
+    scene.add(controls.getObject());
+
+    document.body.addEventListener('click', () => {
+      if (gameRunning && !controls.isLocked) controls.lock();
+    });
+    controls.addEventListener('lock', () => { document.getElementById('tap-hint').style.display = 'none'; });
+    controls.addEventListener('unlock', () => { if (gameRunning) document.getElementById('tap-hint').style.display = 'block'; });
+
+    /* =========================================================
+       マテリアル
+    ========================================================= */
+    const wallMat  = new THREE.MeshStandardMaterial({ color: 0xd7d1c2, roughness: 0.9 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0xaea283, roughness: 0.85 });
+    const stepMat  = new THREE.MeshStandardMaterial({ color: 0x9a8f78, roughness: 0.75 });
+    const padMat   = new THREE.MeshStandardMaterial({ color: 0x2dff9a, emissive: 0x2dff9a, emissiveIntensity: 0.7 });
+    const waterMat = new THREE.MeshPhysicalMaterial({ color: 0x1f78c8, transparent: true, opacity: 0.68, roughness: 0.15, transmission: 0.25 });
+
+    /* =========================================================
+       状態変数
+    ========================================================= */
+    let objects = [];        // { mesh, box } の静的コリジョンリスト
+    let waterMesh = null;
+    let escapePad = null;
+    let floorsCount = 3;
+    let riseFactor = 10;
+    let waterLevel = 0;
+    let waterRatePerSec = 0;
+    let gameRunning = false;
+    let drownTimer = null;   // null = 溺れていない
+    let startPerf = 0;
+    let elapsed = 0;
+
+    /* =========================================================
+       設定・記録の保存/読込
+    ========================================================= */
+    function loadSettings() {
+      try {
+        const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+        if (s && s.riseFactor && s.floors) return s;
+      } catch (e) {}
+      return { riseFactor: 10, floors: 3 };
+    }
+    function saveSettings(s) {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) {}
+    }
+    function loadRecord() {
+      try {
+        const r = JSON.parse(localStorage.getItem(RECORD_KEY));
+        if (r) return r;
+      } catch (e) {}
+      return { bestFloor: 0, bestTimeSec: 0, clearCount: 0 };
+    }
+    function saveRecord(r) {
+      try { localStorage.setItem(RECORD_KEY, JSON.stringify(r)); } catch (e) {}
+    }
+    function fmtTime(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+    function refreshRecordBox() {
+      const r = loadRecord();
+      document.getElementById('record-box').innerHTML =
+        `🏆 最高到達階: <b>${r.bestFloor}</b> 階　/　最長生存: <b>${fmtTime(r.bestTimeSec)}</b><br>🏁 クリア回数: <b>${r.clearCount}</b> 回`;
+    }
+
+    const settings = loadSettings();
+    document.getElementById('input-rise').value = settings.riseFactor;
+    document.getElementById('input-floors').value = settings.floors;
+    refreshRecordBox();
+
+    /* =========================================================
+       建物生成
+    ========================================================= */
+    function clearBuilding() {
+      for (const o of objects) scene.remove(o.mesh);
+      objects = [];
+      if (waterMesh) { scene.remove(waterMesh); waterMesh = null; }
+      if (escapePad) { scene.remove(escapePad); escapePad = null; }
+    }
+
+    function addSolid(mesh) {
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      scene.add(mesh);
+      objects.push({ mesh, box: new THREE.Box3().setFromObject(mesh) });
+    }
+
+    function randRange(a, b) { return a + Math.random() * (b - a); }
+
+    function buildGrid() {
+      let ws = []; for (let c = 0; c < COLS; c++) ws.push(randRange(0.7, 1.6));
+      let sw = ws.reduce((a, b) => a + b, 0);
+      ws = ws.map(v => Math.max(3.6, v / sw * TOTAL_W));
+      let sw2 = ws.reduce((a, b) => a + b, 0);
+      ws = ws.map(v => v / sw2 * TOTAL_W);
+
+      let ds = []; for (let r = 0; r < ROWS; r++) ds.push(randRange(0.7, 1.6));
+      let sd = ds.reduce((a, b) => a + b, 0);
+      ds = ds.map(v => Math.max(3.6, v / sd * TOTAL_D));
+      let sd2 = ds.reduce((a, b) => a + b, 0);
+      ds = ds.map(v => v / sd2 * TOTAL_D);
+
+      const cx = [0]; for (let c = 0; c < COLS; c++) cx.push(cx[c] + ws[c]);
+      const cz = [0]; for (let r = 0; r < ROWS; r++) cz.push(cz[r] + ds[r]);
+      return { ws, ds, cx, cz };
+    }
+
+    // フロアごとに独立した迷路（部屋のつながり）を生成。
+    // 深さ優先の全域木で「ドアが無くて入れない部屋」が絶対に無いことを保証し、
+    // 追加でランダムなドアを開けてドア数にばらつきを出す。
+    function generateMaze() {
+      const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+      const doorH = Array.from({ length: ROWS }, () => Array(COLS - 1).fill(false));
+      const doorV = Array.from({ length: ROWS - 1 }, () => Array(COLS).fill(false));
+      const stack = [[0, 0]]; visited[0][0] = true;
+      while (stack.length) {
+        const [r, c] = stack[stack.length - 1];
+        const opts = [];
+        if (r > 0 && !visited[r - 1][c]) opts.push(['U', r - 1, c]);
+        if (r < ROWS - 1 && !visited[r + 1][c]) opts.push(['D', r + 1, c]);
+        if (c > 0 && !visited[r][c - 1]) opts.push(['L', r, c - 1]);
+        if (c < COLS - 1 && !visited[r][c + 1]) opts.push(['R', r, c + 1]);
+        if (opts.length === 0) { stack.pop(); continue; }
+        const [dir, nr, nc] = opts[Math.floor(Math.random() * opts.length)];
+        visited[nr][nc] = true;
+        if (dir === 'U') doorV[nr][c] = true;
+        if (dir === 'D') doorV[r][c] = true;
+        if (dir === 'L') doorH[r][nc] = true;
+        if (dir === 'R') doorH[r][c] = true;
+        stack.push([nr, nc]);
+      }
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) if (!doorH[r][c] && Math.random() < 0.22) doorH[r][c] = true;
+      for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS; c++) if (!doorV[r][c] && Math.random() < 0.22) doorV[r][c] = true;
+      return { doorH, doorV };
+    }
+
+    function addWallBox(vertical, fixedCoord, start, length, baseY) {
+      if (length <= 0.15) return;
+      let mesh;
+      if (vertical) {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(WALL_T, FLOOR_HEIGHT, length), wallMat);
+        mesh.position.set(fixedCoord, baseY + FLOOR_HEIGHT / 2, start + length / 2);
+      } else {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(length, FLOOR_HEIGHT, WALL_T), wallMat);
+        mesh.position.set(start + length / 2, baseY + FLOOR_HEIGHT / 2, fixedCoord);
+      }
+      addSolid(mesh);
+    }
+
+    function buildWallSegment(vertical, fixedCoord, start, length, baseY, hasDoor) {
+      if (!hasDoor) { addWallBox(vertical, fixedCoord, start, length, baseY); return; }
+      const doorW = randRange(2.6, 4.0);
+      const gapCenter = start + length / 2 + randRange(-length * 0.15, length * 0.15);
+      const gapStart = gapCenter - doorW / 2;
+      const gapEnd = gapCenter + doorW / 2;
+      const seg1 = gapStart - start;
+      const seg2 = (start + length) - gapEnd;
+      if (seg1 > 0.6) addWallBox(vertical, fixedCoord, start, seg1, baseY);
+      if (seg2 > 0.6) addWallBox(vertical, fixedCoord, gapEnd, seg2, baseY);
+    }
+
+    function buildFloor(floorIndex, holeCell, grid) {
+      const baseY = floorIndex * FLOOR_HEIGHT;
+      const { ws, ds, cx, cz } = grid;
+      const { doorH, doorV } = generateMaze();
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (holeCell && holeCell.r === r && holeCell.c === c) continue;
+          const w = ws[c], d = ds[r];
+          const tile = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), floorMat);
+          tile.position.set(cx[c] + w / 2, baseY - 0.15, cz[r] + d / 2);
+          addSolid(tile);
+        }
+      }
+
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS - 1; c++)
+          buildWallSegment(true, cx[c + 1], cz[r], ds[r], baseY, doorH[r][c]);
+
+      for (let r = 0; r < ROWS - 1; r++)
+        for (let c = 0; c < COLS; c++)
+          buildWallSegment(false, cz[r + 1], cx[c], ws[c], baseY, doorV[r][c]);
+
+      buildWallSegment(false, 0, 0, TOTAL_W, baseY, false);
+      buildWallSegment(false, TOTAL_D, 0, TOTAL_W, baseY, false);
+      buildWallSegment(true, 0, 0, TOTAL_D, baseY, false);
+      buildWallSegment(true, TOTAL_W, 0, TOTAL_D, baseY, false);
+
+      const candidates = [];
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+        if (holeCell && holeCell.r === r && holeCell.c === c) continue;
+        candidates.push({ r, c, w: ws[c], d: ds[r] });
+      }
+      candidates.sort((a, b) => Math.max(b.w, b.d) - Math.max(a.w, a.d));
+      const top = candidates.slice(0, Math.max(3, Math.floor(candidates.length * 0.3)));
+      const chosen = top[Math.floor(Math.random() * top.length)];
+      const stairsCell = { r: chosen.r, c: chosen.c };
+
+      return { baseY, stairsCell, cx, cz, ws, ds };
+    }
+
+    function buildStairs(floorIndex, info) {
+      const { stairsCell, cx, cz, ws, ds } = info;
+      const w = ws[stairsCell.c], d = ds[stairsCell.r];
+      const baseY = floorIndex * FLOOR_HEIGHT;
+      const longAxisIsZ = d >= w;
+      const runLen = (longAxisIsZ ? d : w) - 1.2;
+      const stepDepth = Math.max(0.9, Math.min(2.0, runLen / STEP_COUNT));
+      const stepWidth = Math.min(2.6, (longAxisIsZ ? w : d) - 0.8);
+      const cxCenter = cx[stairsCell.c] + w / 2;
+      const czCenter = cz[stairsCell.r] + d / 2;
+      for (let i = 0; i < STEP_COUNT; i++) {
+        const y = baseY + i * STEP_H + STEP_H / 2;
+        if (longAxisIsZ) {
+          const zStart = cz[stairsCell.r] + 0.6;
+          const step = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, STEP_H, stepDepth * 0.96), stepMat);
+          step.position.set(cxCenter, y, zStart + i * stepDepth + stepDepth / 2);
+          addSolid(step);
+        } else {
+          const xStart = cx[stairsCell.c] + 0.6;
+          const step = new THREE.Mesh(new THREE.BoxGeometry(stepDepth * 0.96, STEP_H, stepWidth), stepMat);
+          step.position.set(xStart + i * stepDepth + stepDepth / 2, y, czCenter);
+          addSolid(step);
+        }
+      }
+    }
+
+    function buildEscapePad(floorIndex, info) {
+      const { cx, cz, ws, ds } = info;
+      const r = Math.floor(Math.random() * ROWS), c = Math.floor(Math.random() * COLS);
+      const x = cx[c] + ws[c] / 2, z = cz[r] + ds[r] / 2;
+      const baseY = floorIndex * FLOOR_HEIGHT;
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.15, 24), padMat);
+      pad.position.set(x, baseY + 0.1, z);
+      scene.add(pad);
+      escapePad = pad;
+      escapePad.userData.x = x; escapePad.userData.z = z; escapePad.userData.y = baseY;
+    }
+
+    function generateBuilding(F) {
+      clearBuilding();
+      const grid = buildGrid();
+      let holeCell = null;
+      let spawn = null;
+      for (let i = 0; i < F; i++) {
+        const info = buildFloor(i, holeCell, grid);
+        if (i === 0) {
+          const sx = info.cx[0] + info.ws[0] / 2, sz = info.cz[0] + info.ds[0] / 2;
+          spawn = new THREE.Vector3(sx, 1.55, sz);
+        }
+        if (i < F - 1) {
+          buildStairs(i, info);
+          holeCell = info.stairsCell;
+        } else {
+          buildEscapePad(i, info);
+        }
+      }
+      const waterGeo = new THREE.BoxGeometry(TOTAL_W + 6, 100, TOTAL_D + 6);
+      waterMesh = new THREE.Mesh(waterGeo, waterMat);
+      waterMesh.position.set(TOTAL_W / 2, -50, TOTAL_D / 2);
+      scene.add(waterMesh);
+      return spawn;
+    }
+
+    /* =========================================================
+       開始 / 終了処理
+    ========================================================= */
+    function startGame() {
+      riseFactor = Math.max(1, Math.min(60, parseFloat(document.getElementById('input-rise').value) || 10));
+      floorsCount = Math.max(1, Math.min(10, parseInt(document.getElementById('input-floors').value) || 3));
+      saveSettings({ riseFactor, floors: floorsCount });
+
+      const spawn = generateBuilding(floorsCount);
+      controls.getObject().position.copy(spawn);
+      velocity.set(0, 0, 0);
+
+      waterLevel = 0;
+      waterRatePerSec = (CHAR_HEIGHT / riseFactor) / 60;
+      drownTimer = null;
+      elapsed = 0;
+      startPerf = performance.now();
+      gameRunning = true;
+
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('end-screen').style.display = 'none';
+      document.getElementById('hud').style.display = 'block';
+      document.getElementById('hud-total').textContent = floorsCount;
+      document.getElementById('warning').style.display = 'none';
+      document.getElementById('flash').style.display = 'none';
+      document.getElementById('tap-hint').style.display = 'block';
+    }
+
+    function endGame(won) {
+      gameRunning = false;
+      controls.unlock();
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('warning').style.display = 'none';
+      document.getElementById('flash').style.display = 'none';
+      document.getElementById('tap-hint').style.display = 'none';
+
+      const floorReached = Math.min(floorsCount, Math.max(1, Math.floor(controls.getObject().position.y / FLOOR_HEIGHT) + 1));
+      const rec = loadRecord();
+      let updated = false;
+      if (floorReached > rec.bestFloor) { rec.bestFloor = floorReached; updated = true; }
+      if (elapsed > rec.bestTimeSec) { rec.bestTimeSec = elapsed; updated = true; }
+      if (won) { rec.clearCount = (rec.clearCount || 0) + 1; updated = true; if (floorsCount > rec.bestFloor) rec.bestFloor = floorsCount; }
+      if (updated) saveRecord(rec);
+
+      const title = document.getElementById('end-title');
+      const stats = document.getElementById('end-stats');
+      if (won) {
+        title.className = 'result-title clear';
+        title.textContent = '🎉 脱出成功！';
+      } else {
+        title.className = 'result-title over';
+        title.textContent = '💦 GAME OVER';
+      }
+      stats.innerHTML =
+        `到達階数: <b>${floorReached}</b> / ${floorsCount} 階<br>生存時間: <b>${fmtTime(elapsed)}</b>` +
+        (updated ? `<br><span style="color:#7fffb0;">✨ 新記録を更新しました！</span>` : '');
+
+      document.getElementById('end-screen').style.display = 'flex';
+    }
+
+    document.getElementById('btn-start').addEventListener('click', startGame);
+    document.getElementById('btn-retry').addEventListener('click', startGame);
+    document.getElementById('btn-back').addEventListener('click', () => {
+      document.getElementById('end-screen').style.display = 'none';
+      document.getElementById('start-screen').style.display = 'flex';
+      refreshRecordBox();
+    });
+
+    /* =========================================================
+       移動・入力
+    ========================================================= */
+    let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = true;
+    const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+
+    document.addEventListener('keydown', (e) => {
+      if (!controls.isLocked) return;
+      switch (e.code) {
+        case 'KeyW': moveForward = true; break;
+        case 'KeyS': moveBackward = true; break;
+        case 'KeyA': moveLeft = true; break;
+        case 'KeyD': moveRight = true; break;
+        case 'Space': if (canJump) { velocity.y = 32; canJump = false; } break;
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      switch (e.code) {
+        case 'KeyW': moveForward = false; break;
+        case 'KeyS': moveBackward = false; break;
+        case 'KeyA': moveLeft = false; break;
+        case 'KeyD': moveRight = false; break;
+      }
+    });
+
+    const moveBtns = { 'move-w': 'w', 'move-s': 's', 'move-a': 'a', 'move-d': 'd' };
+    Object.entries(moveBtns).forEach(([id, key]) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('touchstart', (e) => { e.preventDefault(); if (key === 'w') moveForward = true; if (key === 's') moveBackward = true; if (key === 'a') moveLeft = true; if (key === 'd') moveRight = true; });
+      btn.addEventListener('touchend', (e) => { e.preventDefault(); if (key === 'w') moveForward = false; if (key === 's') moveBackward = false; if (key === 'a') moveLeft = false; if (key === 'd') moveRight = false; });
+    });
+    document.getElementById('move-jump').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (canJump && controls.isLocked) { velocity.y = 32; canJump = false; }
+    });
+
+    /* =========================================================
+       メインループ
+    ========================================================= */
+    let prevTime = performance.now();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = performance.now();
+      const delta = Math.min(0.1, (time - prevTime) / 1000);
+      prevTime = time;
+
+      if (gameRunning) {
+        elapsed = (time - startPerf) / 1000;
+
+        // 水位上昇
+        waterLevel += waterRatePerSec * delta;
+        if (waterMesh) waterMesh.position.y = waterLevel - 50;
+
+        if (controls.isLocked) {
+          // 重力・移動
+          velocity.y -= 80.0 * delta;
+          const oldY = controls.getObject().position.y;
+          controls.getObject().position.y += velocity.y * delta;
+
+          let collision = false;
+          const pBox = new THREE.Box3().setFromCenterAndSize(controls.getObject().position, new THREE.Vector3(1.5, 3, 1.5));
+          for (const o of objects) { if (pBox.intersectsBox(o.box)) { collision = true; break; } }
+          if (collision) { controls.getObject().position.y = oldY; velocity.y = 0; canJump = true; }
+          if (controls.getObject().position.y < -12) {
+            // 安全ネット：どこかに落下した場合は初期位置付近に戻す
+            controls.getObject().position.set(4, 1.55, 4);
+            velocity.set(0, 0, 0);
+          }
+
+          velocity.x -= velocity.x * 10.0 * delta;
+          velocity.z -= velocity.z * 10.0 * delta;
+          direction.z = Number(moveForward) - Number(moveBackward);
+          direction.x = Number(moveRight) - Number(moveLeft);
+          direction.normalize();
+          if (moveForward || moveBackward) velocity.z -= direction.z * 200.0 * delta;
+          if (moveLeft || moveRight) velocity.x -= direction.x * 200.0 * delta;
+
+          const beforeX = controls.getObject().position.x, beforeZ = controls.getObject().position.z;
+          controls.moveRight(-velocity.x * delta);
+          controls.moveForward(-velocity.z * delta);
+          const pBoxXZ = new THREE.Box3().setFromCenterAndSize(controls.getObject().position, new THREE.Vector3(1.5, 3, 1.5));
+          let collXZ = false;
+          for (const o of objects) { if (pBoxXZ.intersectsBox(o.box)) { collXZ = true; break; } }
+          if (collXZ) { controls.getObject().position.x = beforeX; controls.getObject().position.z = beforeZ; }
+
+          // 脱出判定
+          if (escapePad) {
+            const dx = controls.getObject().position.x - escapePad.userData.x;
+            const dz = controls.getObject().position.z - escapePad.userData.z;
+            const sameFloor = Math.abs(controls.getObject().position.y - (escapePad.userData.y + 1.5)) < 3.5;
+            if (sameFloor && Math.sqrt(dx * dx + dz * dz) < 2.2) { endGame(true); return; }
+          }
+        }
+
+        // 溺れ判定
+        const feetY = controls.getObject().position.y - EYE_HALF;
+        const submerged = (waterLevel - feetY) >= CHAR_HEIGHT;
+        const warnEl = document.getElementById('warning');
+        const flashEl = document.getElementById('flash');
+        if (submerged) {
+          if (drownTimer === null) drownTimer = 30;
+          drownTimer -= delta;
+          warnEl.style.display = 'block';
+          flashEl.style.display = 'block';
+          document.getElementById('warn-sec').textContent = Math.max(0, Math.ceil(drownTimer));
+          if (drownTimer <= 0) { endGame(false); return; }
+        } else {
+          drownTimer = null;
+          warnEl.style.display = 'none';
+          flashEl.style.display = 'none';
+        }
+
+        // HUD更新
+        const curFloor = Math.min(floorsCount, Math.max(1, Math.floor(controls.getObject().position.y / FLOOR_HEIGHT) + 1));
+        document.getElementById('hud-floor').textContent = curFloor;
+        document.getElementById('hud-time').textContent = fmtTime(elapsed);
+        document.getElementById('hud-water').textContent = waterLevel.toFixed(1);
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+  </script>
+</body>
+</html>
