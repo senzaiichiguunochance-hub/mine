@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>世界人口カラフルドットマップ</title>
+    <title>世界人口カラフルドットマップ - 全世界対応版</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
         body { margin: 0; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100vw; background: #000b14; }
-        .loading { position: fixed; top: 10px; left: 10px; color: white; z-index: 1000; background: rgba(0,0,0,0.7); padding: 8px 15px; border-radius: 4px; font-family: sans-serif; }
+        .loading { position: fixed; top: 10px; left: 10px; color: white; z-index: 1000; background: rgba(0,0,0,0.85); padding: 8px 15px; border-radius: 4px; font-family: sans-serif; border: 1px solid #444; }
     </style>
 
     <!-- GoatCounter (file:///環境での警告回避策設定済み) -->
@@ -26,31 +26,11 @@
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-<div id="loading" class="loading">描画処理中...</div>
+<div id="loading" class="loading">全世界の国データ（約180カ国）を読み込み中...</div>
 <div id="map"></div>
 
 <script>
-let map, dots = [];
-const PEOPLE_PER_DOT = 10000000; // 1ドット = 1000万人
-
-// 主要国のポリゴン範囲と人口（通信不要で軽量表示）
-const COUNTRIES_DATA = [
-    { id: "JPN", name: "日本", pop: 125000000, bounds: [[30, 130], [45, 145]] },
-    { id: "USA", name: "アメリカ", pop: 331000000, bounds: [[25, -124], [49, -66]] },
-    { id: "CHN", name: "中国", pop: 1411000000, bounds: [[18, 73], [53, 135]] },
-    { id: "IND", name: "インド", pop: 1380000000, bounds: [[8, 68], [35, 97]] },
-    { id: "BRA", name: "ブラジル", pop: 212000000, bounds: [[-33, -73], [5, -34]] },
-    { id: "IDN", name: "インドネシア", pop: 273000000, bounds: [[-10, 95], [6, 141]] },
-    { id: "PAK", name: "パキスタン", pop: 220000000, bounds: [[24, 61], [37, 75]] },
-    { id: "NGA", name: "ナイジェリア", pop: 206000000, bounds: [[4, 2], [14, 14]] },
-    { id: "BGD", name: "バングラデシュ", pop: 165000000, bounds: [[20, 88], [27, 92]] },
-    { id: "RUS", name: "ロシア", pop: 144000000, bounds: [[50, 30], [70, 170]] },
-    { id: "MEX", name: "メキシコ", pop: 128000000, bounds: [[14, -118], [32, -86]] },
-    { id: "DEU", name: "ドイツ", pop: 83000000, bounds: [[47, 5], [55, 15]] },
-    { id: "FRA", name: "フランス", pop: 65000000, bounds: [[42, -5], [51, 8]] },
-    { id: "GBR", name: "イギリス", pop: 67000000, bounds: [[50, -8], [59, 2]] },
-    { id: "AUS", name: "オーストラリア", pop: 25000000, bounds: [[-43, 113], [-10, 153]] }
-];
+let map, dots = [], geoDataStore = [];
 
 function getHighlyDivergentColor(index) {
     const goldenRatioConjugate = 0.618033988749895;
@@ -58,61 +38,102 @@ function getHighlyDivergentColor(index) {
     return `hsl(${h * 360}, 85%, 60%)`;
 }
 
-function init() {
-    map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
-// 修正後（OpenStreetMap標準タイル）:
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
-
-    COUNTRIES_DATA.forEach((country, index) => {
-        const color = getHighlyDivergentColor(index);
-        const bounds = L.latLngBounds(country.bounds);
-
-        // 国枠線を描画
-        L.rectangle(bounds, {
-            fillColor: color,
-            fillOpacity: 0.1,
-            color: color,
-            weight: 1,
-            opacity: 0.4
-        }).addTo(map);
-
-        generateDotsInBounds(bounds, country.name, country.pop, color);
-    });
-
-    document.getElementById('loading').style.display = 'none';
-    animate();
+function isInside(pt, poly) {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        if (((poly[i].lat <= pt.lat && pt.lat < poly[j].lat) || (poly[j].lat <= pt.lat && pt.lat < poly[i].lat)) &&
+            (pt.lng < (poly[j].lng - poly[i].lng) * (pt.lat - poly[i].lat) / (poly[j].lat - poly[i].lat) + poly[i].lng)) c = !c;
+    }
+    return c;
 }
 
-function generateDotsInBounds(bounds, countryName, population, color) {
-    const numDots = Math.floor(population / PEOPLE_PER_DOT);
+function checkLandStrict(lat, lng) {
+    const pt = {lat, lng};
+    for (let i = 0; i < geoDataStore.length; i++) {
+        const c = geoDataStore[i];
+        if (lat >= c.b[0] && lat <= c.b[1] && lng >= c.b[2] && lng <= c.b[3]) {
+            for (let ring of c.polys) if (isInside(pt, ring)) return true;
+        }
+    }
+    return false;
+}
 
-    for (let i = 0; i < numDots; i++) {
-        const testLat = bounds.getSouth() + Math.random() * (bounds.getNorth() - bounds.getSouth());
-        const testLng = bounds.getWest() + Math.random() * (bounds.getEast() - bounds.getWest());
-        const latlng = L.latLng(testLat, testLng);
+async function init() {
+    map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
 
-        const circle = L.circleMarker(latlng, {
-            radius: 2.5,
-            fillColor: color,
-            color: '#fff',
-            weight: 0.4,
-            fillOpacity: 0.9,
-            interactive: true
+    // ダークテーママップタイル
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles &copy; Esri'
+    }).addTo(map);
+
+    // オンラインから全200カ国相当のGeoJSONを自動ロード
+    try {
+        const res = await fetch("https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json");
+        const worldGeo = await res.json();
+        processGeoData(worldGeo);
+        document.getElementById('loading').style.display = 'none';
+        animate();
+    } catch (e) {
+        document.getElementById('loading').innerText = "データ取得失敗。インターネット接続を確認してください。";
+    }
+}
+
+function processGeoData(worldGeo) {
+    worldGeo.features.forEach((feature, index) => {
+        const countryName = feature.properties?.name || feature.id;
+        const color = getHighlyDivergentColor(index);
+
+        let polys = [];
+        if (feature.geometry.type === "Polygon") polys.push(feature.geometry.coordinates[0].map(c => ({lng: c[0], lat: c[1]})));
+        else if (feature.geometry.type === "MultiPolygon") feature.geometry.coordinates.forEach(p => polys.push(p[0].map(c => ({lng: c[0], lat: c[1]}))));
+
+        // 国境界ポリゴンのレイヤー追加
+        const layer = L.geoJson(feature, {
+            style: {
+                fillColor: color,
+                fillOpacity: 0.15,
+                color: color,
+                weight: 1,
+                opacity: 0.5
+            }
         }).addTo(map);
 
-        circle.bindPopup(`<b>${countryName}</b><br>人口: 約${(population / 1000000).toFixed(1)}百万人`);
+        const b = layer.getBounds();
+        const entry = { name: countryName, polys: polys, b: [b.getSouth(), b.getNorth(), b.getWest(), b.getEast()], center: b.getCenter(), color: color };
+        geoDataStore.push(entry);
 
-        dots.push({
-            el: circle,
-            baseLatLng: latlng,
-            angle: Math.random() * Math.PI * 2,
-            speed: 0.015 + Math.random() * 0.02,
-            range: 0.08 + Math.random() * 0.1
-        });
-    }
+        // 各国領域内にドットをランダム生成（1国あたり12個）
+        const numDots = 12;
+        for (let i = 0; i < numDots; i++) {
+            let lat = entry.center.lat, lng = entry.center.lng;
+            for(let a = 0; a < 20; a++){
+                let tlat = entry.b[0] + Math.random() * (entry.b[1] - entry.b[0]);
+                let tlng = entry.b[2] + Math.random() * (entry.b[3] - entry.b[2]);
+                if(checkLandStrict(tlat, tlng)){ lat = tlat; lng = tlng; break; }
+            }
+
+            const latlng = L.latLng(lat, lng);
+            const circle = L.circleMarker(latlng, {
+                radius: 2.5,
+                fillColor: color,
+                color: '#fff',
+                weight: 0.4,
+                fillOpacity: 0.9,
+                interactive: true
+            }).addTo(map);
+
+            circle.bindPopup(`<b>${countryName}</b>`);
+
+            dots.push({
+                el: circle,
+                baseLatLng: latlng,
+                angle: Math.random() * Math.PI * 2,
+                speed: 0.015 + Math.random() * 0.02,
+                range: 0.08 + Math.random() * 0.1
+            });
+        }
+    });
 }
 
 function animate() {
