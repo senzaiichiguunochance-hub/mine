@@ -5,132 +5,114 @@
     <title>世界人口カラフルドットマップ</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         body { margin: 0; background: #000; overflow: hidden; }
         #map { height: 100vh; width: 100vw; background: #000b14; }
         .loading { position: fixed; top: 10px; left: 10px; color: white; z-index: 1000; background: rgba(0,0,0,0.7); padding: 8px 15px; border-radius: 4px; font-family: sans-serif; }
     </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+    <!-- GoatCounter (file:///環境での警告回避策設定済み) -->
+    <script>
+        if (location.protocol !== 'file:') {
+            var s = document.createElement('script');
+            s.async = true;
+            s.dataset.goatcounter = "https://senzaiichiguunochance.goatcounter.com/count";
+            s.src = "https://gc.zgo.at/count.js";
+            document.head.appendChild(s);
+        }
+    </script>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-
-<div id="loading" class="loading">Now Loading...</div>
+<div id="loading" class="loading">描画処理中...</div>
 <div id="map"></div>
 
 <script>
 let map, dots = [];
-const PEOPLE_PER_DOT = 1000000;
+const PEOPLE_PER_DOT = 10000000; // 1ドット = 1000万人
 
-/**
- * 黄金比を利用して色相を分散させるロジック
- * 配列のインデックスに基づいて、前の色と最も遠い色を選択し続けます
- */
+// 主要国のポリゴン範囲と人口（通信不要で軽量表示）
+const COUNTRIES_DATA = [
+    { id: "JPN", name: "日本", pop: 125000000, bounds: [[30, 130], [45, 145]] },
+    { id: "USA", name: "アメリカ", pop: 331000000, bounds: [[25, -124], [49, -66]] },
+    { id: "CHN", name: "中国", pop: 1411000000, bounds: [[18, 73], [53, 135]] },
+    { id: "IND", name: "インド", pop: 1380000000, bounds: [[8, 68], [35, 97]] },
+    { id: "BRA", name: "ブラジル", pop: 212000000, bounds: [[-33, -73], [5, -34]] },
+    { id: "IDN", name: "インドネシア", pop: 273000000, bounds: [[-10, 95], [6, 141]] },
+    { id: "PAK", name: "パキスタン", pop: 220000000, bounds: [[24, 61], [37, 75]] },
+    { id: "NGA", name: "ナイジェリア", pop: 206000000, bounds: [[4, 2], [14, 14]] },
+    { id: "BGD", name: "バングラデシュ", pop: 165000000, bounds: [[20, 88], [27, 92]] },
+    { id: "RUS", name: "ロシア", pop: 144000000, bounds: [[50, 30], [70, 170]] },
+    { id: "MEX", name: "メキシコ", pop: 128000000, bounds: [[14, -118], [32, -86]] },
+    { id: "DEU", name: "ドイツ", pop: 83000000, bounds: [[47, 5], [55, 15]] },
+    { id: "FRA", name: "フランス", pop: 65000000, bounds: [[42, -5], [51, 8]] },
+    { id: "GBR", name: "イギリス", pop: 67000000, bounds: [[50, -8], [59, 2]] },
+    { id: "AUS", name: "オーストラリア", pop: 25000000, bounds: [[-43, 113], [-10, 153]] }
+];
+
 function getHighlyDivergentColor(index) {
     const goldenRatioConjugate = 0.618033988749895;
-    let h = (index * goldenRatioConjugate) % 1; // 0から1の間で分散
+    let h = (index * goldenRatioConjugate) % 1;
     return `hsl(${h * 360}, 85%, 60%)`;
 }
 
-async function init() {
+function init() {
     map = L.map('map', { worldCopyJump: true }).setView([20, 0], 2);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+// 修正後（OpenStreetMap標準タイル）:
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
 
-    const [countryRes, geoRes] = await Promise.all([
-        fetch('https://restcountries.com/v3.1/all?fields=name,cca3,population'),
-        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
-    ]);
-    
-    const countriesData = await countryRes.json();
-    const geoData = await geoRes.json();
+    COUNTRIES_DATA.forEach((country, index) => {
+        const color = getHighlyDivergentColor(index);
+        const bounds = L.latLngBounds(country.bounds);
 
-    // 1. 国データをCCA3をキーにして整理
-    const countryMap = new Map(countriesData.map(c => [c.cca3, c]));
+        // 国枠線を描画
+        L.rectangle(bounds, {
+            fillColor: color,
+            fillOpacity: 0.1,
+            color: color,
+            weight: 1,
+            opacity: 0.4
+        }).addTo(map);
 
-    // 2. 地理データの「並び順」を利用して色を割り当て
-    // geo.jsonの並びは地域ごとにまとまっていることが多いため、
-    // 黄金比による分散が最も効果を発揮します
-    L.geoJson(geoData, {
-        style: (feature, index) => {
-            const color = getHighlyDivergentColor(index);
-            return { fillColor: color, fillOpacity: 0.07, color: color, weight: 1, opacity: 0.4 };
-        },
-        onEachFeature: (feature, layer) => {
-            const country = countryMap.get(feature.id);
-            // featureのインデックスを取得するためにgeoData.featuresから検索
-            const geoIndex = geoData.features.findIndex(f => f.id === feature.id);
-            
-            if (country && country.population >= PEOPLE_PER_DOT) {
-                const color = getHighlyDivergentColor(geoIndex);
-                generateDotsInPolygon(layer, country, color);
-            }
-        }
-    }).addTo(map);
+        generateDotsInBounds(bounds, country.name, country.pop, color);
+    });
 
     document.getElementById('loading').style.display = 'none';
     animate();
 }
 
-// --- 以下のロジック（点生成・判定・アニメ）は前回と同様 ---
-
-function generateDotsInPolygon(layer, country, color) {
-    const bounds = layer.getBounds();
-    const numDots = Math.floor(country.population / PEOPLE_PER_DOT);
+function generateDotsInBounds(bounds, countryName, population, color) {
+    const numDots = Math.floor(population / PEOPLE_PER_DOT);
 
     for (let i = 0; i < numDots; i++) {
-        let latlng = null;
-        for (let j = 0; j < 100; j++) {
-            const testLat = bounds.getSouth() + Math.random() * (bounds.getNorth() - bounds.getSouth());
-            const testLng = bounds.getWest() + Math.random() * (bounds.getEast() - bounds.getWest());
-            const testPt = L.latLng(testLat, testLng);
-            if (isInside(testPt, layer)) {
-                latlng = testPt;
-                break;
-            }
-        }
+        const testLat = bounds.getSouth() + Math.random() * (bounds.getNorth() - bounds.getSouth());
+        const testLng = bounds.getWest() + Math.random() * (bounds.getEast() - bounds.getWest());
+        const latlng = L.latLng(testLat, testLng);
 
-        if (latlng) {
-            const circle = L.circleMarker(latlng, {
-                radius: 2.2,
-                fillColor: color,
-                color: '#fff',
-                weight: 0.4,
-                fillOpacity: 0.9,
-                interactive: true
-            }).addTo(map);
+        const circle = L.circleMarker(latlng, {
+            radius: 2.5,
+            fillColor: color,
+            color: '#fff',
+            weight: 0.4,
+            fillOpacity: 0.9,
+            interactive: true
+        }).addTo(map);
 
-            circle.bindPopup(`<b>${country.name.common}</b><br>人口: 約${(country.population/1000000).toFixed(1)}百万人`);
+        circle.bindPopup(`<b>${countryName}</b><br>人口: 約${(population / 1000000).toFixed(1)}百万人`);
 
-            dots.push({
-                el: circle,
-                baseLatLng: latlng,
-                angle: Math.random() * Math.PI * 2,
-                speed: 0.015 + Math.random() * 0.02,
-                range: 0.08 + Math.random() * 0.1
-            });
-        }
+        dots.push({
+            el: circle,
+            baseLatLng: latlng,
+            angle: Math.random() * Math.PI * 2,
+            speed: 0.015 + Math.random() * 0.02,
+            range: 0.08 + Math.random() * 0.1
+        });
     }
-}
-
-function isInside(latlng, layer) {
-    let inside = false;
-    const pt = [latlng.lat, latlng.lng];
-    const layers = layer.getLayers ? layer.getLayers() : [layer];
-    for (const l of layers) {
-        const coords = l.getLatLngs();
-        const rings = Array.isArray(coords[0]) ? coords : [coords];
-        for (const ring of rings) {
-            const vertices = ring[0] instanceof L.LatLng ? ring : ring[0];
-            for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-                const xi = vertices[i].lat, yi = vertices[i].lng;
-                const xj = vertices[j].lat, yj = vertices[j].lng;
-                const intersect = ((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi);
-                if (intersect) inside = !inside;
-            }
-        }
-    }
-    return inside;
 }
 
 function animate() {
