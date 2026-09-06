@@ -17,6 +17,9 @@
   .field label{display:block;font-size:13px;color:#bfe3ff;margin-bottom:6px;}
   .field .hint{font-size:11px;color:#7fa0b8;margin-top:4px;line-height:1.5;}
   .field input[type=number]{width:100%;box-sizing:border-box;background:rgba(255,255,255,0.08);border:1px solid rgba(140,200,255,0.4);border-radius:8px;color:#fff;font-size:16px;padding:8px 10px;}
+  .checkbox-field{display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer;}
+  .checkbox-field input{width:18px;height:18px;cursor:pointer;}
+  .checkbox-field span{font-size:13px;color:#bfe3ff;}
   .inline-inputs{display:flex;align-items:center;gap:8px;}
   .inline-inputs input{width:80px !important;}
   .record-box{background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.35);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:13px;line-height:1.8;color:#ffe9a8;}
@@ -97,6 +100,11 @@
         <div class="hint">最上階に脱出用ゴール（緑の円盤）があります。</div>
       </div>
 
+      <label class="checkbox-field">
+        <input id="input-auto-stair" type="checkbox" checked>
+        <span>階段に触れると自動で上の階へ移動（ワープ）</span>
+      </label>
+
       <button class="btn" id="btn-start">ゲーム開始</button>
     </div>
   </div>
@@ -122,17 +130,17 @@
     /* =========================================================
        定数・設定値
     ========================================================= */
-    let charHeightM = 1.5;   // メートル単位
-    const FLOOR_HEIGHT = 5.0;  // 1フロアの高さ
-    const WALL_T       = 0.3;  // 壁の厚み
-    const TOTAL_W      = 40;   // 建物の幅
-    const TOTAL_D      = 40;   // 建物の奥行き
-    const COLS = 5, ROWS = 5;  // フロアの部屋グリッド
-    const STEP_COUNT = 8;
+    let charHeightM = 1.5;   
+    const FLOOR_HEIGHT = 5.0;  
+    const WALL_T       = 0.3;  
+    const TOTAL_W      = 80;   
+    const TOTAL_D      = 80;   
+    const COLS = 5, ROWS = 5;  
+    const STEP_COUNT = 10;     
     const STEP_H = FLOOR_HEIGHT / STEP_COUNT;
 
-    const SETTINGS_KEY = 'suibotsu_kaihi_settings_v2';
-    const RECORD_KEY   = 'suibotsu_kaihi_record_v2';
+    const SETTINGS_KEY = 'submerged_evasion_settings';
+    const RECORD_KEY   = 'submerged_evasion_records';
 
     /* =========================================================
        Three.js 基本セットアップ
@@ -167,25 +175,30 @@
     /* =========================================================
        マテリアル
     ========================================================= */
-    const wallMat  = new THREE.MeshStandardMaterial({ color: 0xd7d1c2, roughness: 0.9 });
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0xaea283, roughness: 0.85 });
-    const stepMat  = new THREE.MeshStandardMaterial({ color: 0x9a8f78, roughness: 0.75 });
+    const wallMat  = new THREE.MeshStandardMaterial({ color: 0xc8c3b5, roughness: 0.9 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x8e9499, roughness: 0.85 }); 
+    const stepMat  = new THREE.MeshStandardMaterial({ color: 0x5a6065, roughness: 0.75 });
+    const doorMat  = new THREE.MeshStandardMaterial({ color: 0x3d6b99, roughness: 0.4, metalness: 0.2 }); 
     const padMat   = new THREE.MeshStandardMaterial({ color: 0x2dff9a, emissive: 0x2dff9a, emissiveIntensity: 0.7 });
     const waterMat = new THREE.MeshPhysicalMaterial({ color: 0x1f78c8, transparent: true, opacity: 0.68, roughness: 0.15, transmission: 0.25 });
 
     /* =========================================================
        状態変数
     ========================================================= */
-    let objects = [];        // 静的コリジョンリスト
+    let objects = [];        
+    let doors = [];
+    let stairZones = []; 
     let waterMesh = null;
     let escapePad = null;
     let floorsCount = 3;
+    let autoStairEnabled = true;
     let waterLevel = 0;
     let waterRatePerSec = 0;
     let gameRunning = false;
     let drownTimer = null;
     let startPerf = 0;
     let elapsed = 0;
+    let lastWarpTime = 0;
 
     /* =========================================================
        設定・記録の保存/読込
@@ -195,7 +208,7 @@
         const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
         if (s) return s;
       } catch (e) {}
-      return { heightCm: 150, waterSec: 10, waterCm: 10, floors: 3 };
+      return { heightCm: 150, waterSec: 10, waterCm: 10, floors: 3, autoStair: true };
     }
     function saveSettings(s) {
       try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch (e) {}
@@ -226,6 +239,7 @@
     document.getElementById('input-water-sec').value = initSet.waterSec || 10;
     document.getElementById('input-water-cm').value = initSet.waterCm || 10;
     document.getElementById('input-floors').value = initSet.floors || 3;
+    document.getElementById('input-auto-stair').checked = initSet.autoStair !== false;
     refreshRecordBox();
 
     /* =========================================================
@@ -233,7 +247,10 @@
     ========================================================= */
     function clearBuilding() {
       for (const o of objects) scene.remove(o.mesh);
+      for (const d of doors) scene.remove(d.mesh);
       objects = [];
+      doors = [];
+      stairZones = [];
       if (waterMesh) { scene.remove(waterMesh); waterMesh = null; }
       if (escapePad) { scene.remove(escapePad); escapePad = null; }
     }
@@ -245,46 +262,25 @@
     }
 
     function buildGrid() {
-      const cellW = TOTAL_W / COLS;
-      const cellD = TOTAL_D / ROWS;
-      const ws = Array(COLS).fill(cellW);
-      const ds = Array(ROWS).fill(cellD);
+      const rawWs = [];
+      const rawDs = [];
+      for (let i = 0; i < COLS; i++) {
+        rawWs.push(5.0 + Math.random() * 20.0);
+        rawDs.push(5.0 + Math.random() * 20.0);
+      }
+
+      const sumW = rawWs.reduce((a, b) => a + b, 0);
+      const sumD = rawDs.reduce((a, b) => a + b, 0);
+      const ws = rawWs.map(w => (w / sumW) * TOTAL_W);
+      const ds = rawDs.map(d => (d / sumD) * TOTAL_D);
+
       const cx = [0]; for (let c = 0; c < COLS; c++) cx.push(cx[c] + ws[c]);
       const cz = [0]; for (let r = 0; r < ROWS; r++) cz.push(cz[r] + ds[r]);
       return { ws, ds, cx, cz };
     }
 
-    // 各階ごとに迷路構造（壁とドア）を確実に生成して1階と同等の難易度に設定
-    function generateMaze() {
-      const visited = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
-      const doorH = Array.from({ length: ROWS }, () => Array(COLS - 1).fill(false));
-      const doorV = Array.from({ length: ROWS - 1 }, () => Array(COLS).fill(false));
-      const stack = [[0, 0]]; visited[0][0] = true;
-
-      while (stack.length) {
-        const [r, c] = stack[stack.length - 1];
-        const opts = [];
-        if (r > 0 && !visited[r - 1][c]) opts.push(['U', r - 1, c]);
-        if (r < ROWS - 1 && !visited[r + 1][c]) opts.push(['D', r + 1, c]);
-        if (c > 0 && !visited[r][c - 1]) opts.push(['L', r, c - 1]);
-        if (c < COLS - 1 && !visited[r][c + 1]) opts.push(['R', r, c + 1]);
-        if (opts.length === 0) { stack.pop(); continue; }
-        const [dir, nr, nc] = opts[Math.floor(Math.random() * opts.length)];
-        visited[nr][nc] = true;
-        if (dir === 'U') doorV[nr][c] = true;
-        if (dir === 'D') doorV[r][c] = true;
-        if (dir === 'L') doorH[r][nc] = true;
-        if (dir === 'R') doorH[r][c] = true;
-        stack.push([nr, nc]);
-      }
-      // 通路の開放感を出すために一定確率でドアを追加
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS - 1; c++) if (!doorH[r][c] && Math.random() < 0.25) doorH[r][c] = true;
-      for (let r = 0; r < ROWS - 1; r++) for (let c = 0; c < COLS; c++) if (!doorV[r][c] && Math.random() < 0.25) doorV[r][c] = true;
-      return { doorH, doorV };
-    }
-
     function addWallBox(vertical, fixedCoord, start, length, baseY) {
-      if (length < 0.8) return; // 短すぎて引っかかる壁を生成させない
+      if (length < 0.2) return;
       let mesh;
       if (vertical) {
         mesh = new THREE.Mesh(new THREE.BoxGeometry(WALL_T, FLOOR_HEIGHT, length), wallMat);
@@ -296,40 +292,65 @@
       addSolid(mesh);
     }
 
-    function buildWallSegment(vertical, fixedCoord, start, length, baseY, hasDoor) {
-      if (!hasDoor) { addWallBox(vertical, fixedCoord, start, length, baseY); return; }
-      const doorW = 2.8; // 十分な通り抜け幅
-      const gapCenter = start + length / 2;
-      const gapStart = gapCenter - doorW / 2;
-      const gapEnd = gapCenter + doorW / 2;
-      const seg1 = gapStart - start;
-      const seg2 = (start + length) - gapEnd;
-      addWallBox(vertical, fixedCoord, start, seg1, baseY);
-      addWallBox(vertical, fixedCoord, gapEnd, seg2, baseY);
+    function buildInteractiveDoor(vertical, fixedCoord, start, length, baseY) {
+      const doorW = 2.4;
+      const doorH = 3.6;
+      const center = start + length / 2;
+      const gapStart = center - doorW / 2;
+      const gapEnd = center + doorW / 2;
+
+      addWallBox(vertical, fixedCoord, start, gapStart - start, baseY);
+      addWallBox(vertical, fixedCoord, gapEnd, (start + length) - gapEnd, baseY);
+
+      const topH = FLOOR_HEIGHT - doorH;
+      let topMesh;
+      if (vertical) {
+        topMesh = new THREE.Mesh(new THREE.BoxGeometry(WALL_T, topH, doorW), wallMat);
+        topMesh.position.set(fixedCoord, baseY + doorH + topH / 2, center);
+      } else {
+        topMesh = new THREE.Mesh(new THREE.BoxGeometry(doorW, topH, WALL_T), wallMat);
+        topMesh.position.set(center, baseY + doorH + topH / 2, fixedCoord);
+      }
+      addSolid(topMesh);
+
+      let doorMesh;
+      if (vertical) {
+        doorMesh = new THREE.Mesh(new THREE.BoxGeometry(WALL_T * 0.8, doorH, doorW - 0.1), doorMat);
+        doorMesh.position.set(fixedCoord, baseY + doorH / 2, center);
+      } else {
+        doorMesh = new THREE.Mesh(new THREE.BoxGeometry(doorW - 0.1, doorH, WALL_T * 0.8), doorMat);
+        doorMesh.position.set(center, baseY + doorH / 2, fixedCoord);
+      }
+      scene.add(doorMesh);
+
+      doors.push({
+        mesh: doorMesh,
+        isOpen: false,
+        isOpening: false,
+        baseY: baseY + doorH / 2,
+        targetY: baseY + doorH / 2 + doorH * 0.95,
+        pos: doorMesh.position
+      });
     }
 
-function buildFloor(floorIndex, holeCell, grid) {
+    function buildFloor(floorIndex, grid, stairsInThisFloor) {
       const baseY = floorIndex * FLOOR_HEIGHT;
       const { ws, ds, cx, cz } = grid;
-      const { doorH, doorV } = generateMaze();
 
-      // 先にこの階の階段位置（穴を開ける場所）を決定
-      const candidates = [];
+      const roomCandidates = [];
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          if (holeCell && holeCell.r === r && holeCell.c === c) continue;
-          candidates.push({ r, c });
+          roomCandidates.push({ r, c, area: ws[c] * ds[r] });
         }
       }
-      const stairsCell = candidates[Math.floor(Math.random() * candidates.length)];
+      roomCandidates.sort((a, b) => b.area - a.area);
+      const topCandidates = roomCandidates.slice(0, Math.max(1, Math.floor(roomCandidates.length / 3)));
+      const stairsCell = topCandidates[Math.floor(Math.random() * topCandidates.length)];
 
-      // 床パネルの配置（「下からの階段穴」と「上へ登る階段穴」の2カ所を開ける）
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          const isHoleBelow = holeCell && holeCell.r === r && holeCell.c === c;
-          const isStairsAbove = (floorIndex < floorsCount - 1) && (stairsCell.r === r && stairsCell.c === c);
-          
-          if (isHoleBelow || isStairsAbove) continue;
+          const isHoleForStairsBelow = stairsInThisFloor && (stairsInThisFloor.r === r && stairsInThisFloor.c === c);
+          if (isHoleForStairsBelow) continue;
 
           const w = ws[c], d = ds[r];
           const tile = new THREE.Mesh(new THREE.BoxGeometry(w, 0.3, d), floorMat);
@@ -338,26 +359,30 @@ function buildFloor(floorIndex, holeCell, grid) {
         }
       }
 
-      // 壁パネルの生成（階段セルに接する箇所の壁は自動排除して引っかかりを防止）
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS - 1; c++) {
-          const isNearHole = holeCell && ((holeCell.r === r && holeCell.c === c) || (holeCell.r === r && holeCell.c === c + 1));
-          buildWallSegment(true, cx[c + 1], cz[r], ds[r], baseY, isNearHole || doorH[r][c]);
+          if (Math.random() < 0.6) {
+            buildInteractiveDoor(true, cx[c + 1], cz[r], ds[r], baseY);
+          } else {
+            addWallBox(true, cx[c + 1], cz[r], ds[r], baseY);
+          }
         }
       }
 
       for (let r = 0; r < ROWS - 1; r++) {
         for (let c = 0; c < COLS; c++) {
-          const isNearHole = holeCell && ((holeCell.r === r && holeCell.c === c) || (holeCell.r === r + 1 && holeCell.c === c));
-          buildWallSegment(false, cz[r + 1], cx[c], ws[c], baseY, isNearHole || doorV[r][c]);
+          if (Math.random() < 0.6) {
+            buildInteractiveDoor(false, cz[r + 1], cx[c], ws[c], baseY);
+          } else {
+            addWallBox(false, cz[r + 1], cx[c], ws[c], baseY);
+          }
         }
       }
 
-      // 外壁
-      buildWallSegment(false, 0, 0, TOTAL_W, baseY, false);
-      buildWallSegment(false, TOTAL_D, 0, TOTAL_W, baseY, false);
-      buildWallSegment(true, 0, 0, TOTAL_D, baseY, false);
-      buildWallSegment(true, TOTAL_W, 0, TOTAL_D, baseY, false);
+      addWallBox(false, 0, 0, TOTAL_W, baseY);
+      addWallBox(false, TOTAL_D, 0, TOTAL_W, baseY);
+      addWallBox(true, 0, 0, TOTAL_D, baseY);
+      addWallBox(true, TOTAL_W, 0, TOTAL_D, baseY);
 
       return { baseY, stairsCell, cx, cz, ws, ds };
     }
@@ -367,27 +392,38 @@ function buildFloor(floorIndex, holeCell, grid) {
       const w = ws[stairsCell.c], d = ds[stairsCell.r];
       const baseY = floorIndex * FLOOR_HEIGHT;
 
-      // 正面からまっすぐ登れるシンプルな階段構造
-      const runLen = d - 2.0;
-      const stepDepth = runLen / STEP_COUNT;
-      const stepWidth = w - 2.0;
+      const stepWidth = Math.min(4.0, w * 0.8);
+      const totalDepth = d * 0.7;
+      const stepDepth = totalDepth / STEP_COUNT;
       const cxCenter = cx[stairsCell.c] + w / 2;
-      const zStart = cz[stairsCell.r] + 1.0;
+      const zStart = cz[stairsCell.r] + d * 0.15;
 
+      // 階段ステップの配置（床から正しく階段を立ち上げる）
       for (let i = 0; i < STEP_COUNT; i++) {
-        const y = baseY + i * STEP_H + STEP_H / 2;
-        const step = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, STEP_H, stepDepth * 0.98), stepMat);
+        const y = baseY + (i + 0.5) * STEP_H;
+        const step = new THREE.Mesh(new THREE.BoxGeometry(stepWidth, STEP_H, stepDepth), stepMat);
         step.position.set(cxCenter, y, zStart + i * stepDepth + stepDepth / 2);
-        addSolid(step);
+        step.castShadow = true;
+        step.receiveShadow = true;
+        scene.add(step);
       }
+
+      // 自動ワープ判定ゾーン（階段の登り口〜全体を覆う領域）
+      stairZones.push({
+        box: new THREE.Box3(
+          new THREE.Vector3(cxCenter - stepWidth / 2, baseY, zStart - 1.0),
+          new THREE.Vector3(cxCenter + stepWidth / 2, baseY + FLOOR_HEIGHT, zStart + totalDepth + 1.0)
+        ),
+        // 上の階の床へ安全に着地させるターゲット座標
+        targetPos: new THREE.Vector3(cxCenter, baseY + FLOOR_HEIGHT + charHeightM + 0.2, zStart + totalDepth + 2.0)
+      });
     }
 
     function buildEscapePad(floorIndex, info) {
       const { cx, cz, ws, ds } = info;
-      const r = Math.floor(Math.random() * ROWS), c = Math.floor(Math.random() * COLS);
-      const x = cx[c] + ws[c] / 2, z = cz[r] + ds[r] / 2;
+      const x = cx[2] + ws[2] / 2, z = cz[2] + ds[2] / 2;
       const baseY = floorIndex * FLOOR_HEIGHT;
-      const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.15, 24), padMat);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.15, 24), padMat);
       pad.position.set(x, baseY + 0.1, z);
       scene.add(pad);
       escapePad = pad;
@@ -397,18 +433,18 @@ function buildFloor(floorIndex, holeCell, grid) {
     function generateBuilding(F) {
       clearBuilding();
       const grid = buildGrid();
-      let holeCell = null;
       let spawn = null;
+      let prevStairsCell = null;
 
       for (let i = 0; i < F; i++) {
-        const info = buildFloor(i, holeCell, grid);
+        const info = buildFloor(i, grid, prevStairsCell);
         if (i === 0) {
           const sx = info.cx[0] + info.ws[0] / 2, sz = info.cz[0] + info.ds[0] / 2;
           spawn = new THREE.Vector3(sx, charHeightM, sz);
         }
         if (i < F - 1) {
           buildStairs(i, info);
-          holeCell = info.stairsCell;
+          prevStairsCell = info.stairsCell;
         } else {
           buildEscapePad(i, info);
         }
@@ -429,8 +465,9 @@ function buildFloor(floorIndex, holeCell, grid) {
       const waterSec = Math.max(1, Math.min(300, parseFloat(document.getElementById('input-water-sec').value) || 10));
       const waterCm  = Math.max(1, Math.min(500, parseFloat(document.getElementById('input-water-cm').value) || 10));
       floorsCount    = Math.max(2, Math.min(100, parseInt(document.getElementById('input-floors').value) || 3));
+      autoStairEnabled = document.getElementById('input-auto-stair').checked;
 
-      saveSettings({ heightCm, waterSec, waterCm, floors: floorsCount });
+      saveSettings({ heightCm, waterSec, waterCm, floors: floorsCount, autoStair: autoStairEnabled });
 
       charHeightM = heightCm / 100.0;
       waterRatePerSec = (waterCm / 100.0) / waterSec;
@@ -495,11 +532,20 @@ function buildFloor(floorIndex, holeCell, grid) {
     });
 
     /* =========================================================
-       移動・操作入力
+       移動・キー入力
     ========================================================= */
     let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, canJump = true;
     const velocity = new THREE.Vector3();
     const direction = new THREE.Vector3();
+
+    function interactDoors() {
+      const playerPos = controls.getObject().position;
+      for (const d of doors) {
+        if (!d.isOpen && playerPos.distanceTo(d.pos) < 3.5) {
+          d.isOpening = true;
+        }
+      }
+    }
 
     document.addEventListener('keydown', (e) => {
       if (!controls.isLocked) return;
@@ -508,6 +554,7 @@ function buildFloor(floorIndex, holeCell, grid) {
         case 'KeyS': moveBackward = true; break;
         case 'KeyA': moveLeft = true; break;
         case 'KeyD': moveRight = true; break;
+        case 'KeyE': interactDoors(); break;
         case 'Space': if (canJump) { velocity.y = 28; canJump = false; } break;
       }
     });
@@ -545,12 +592,40 @@ function buildFloor(floorIndex, holeCell, grid) {
       if (gameRunning) {
         elapsed = (time - startPerf) / 1000;
 
-        // 水位上昇
         waterLevel += waterRatePerSec * delta;
         if (waterMesh) waterMesh.position.y = waterLevel - 100;
 
+        const playerPos = controls.getObject().position;
+
+        // ドア自動オープン
+        for (const d of doors) {
+          if (!d.isOpen && playerPos.distanceTo(d.pos) < 2.5) {
+            d.isOpening = true;
+          }
+          if (d.isOpening && !d.isOpen) {
+            d.mesh.position.y += 5.0 * delta;
+            if (d.mesh.position.y >= d.targetY) {
+              d.mesh.position.y = d.targetY;
+              d.isOpen = true;
+              d.isOpening = false;
+            }
+          }
+        }
+
+        // 自動階段ワープ判定（足元の範囲を判定）
+        if (autoStairEnabled && (time - lastWarpTime > 800)) {
+          const pBox = new THREE.Box3().setFromCenterAndSize(playerPos, new THREE.Vector3(1.2, charHeightM, 1.2));
+          for (const zone of stairZones) {
+            if (zone.box.intersectsBox(pBox)) {
+              controls.getObject().position.copy(zone.targetPos);
+              velocity.set(0, 0, 0);
+              lastWarpTime = time;
+              break;
+            }
+          }
+        }
+
         if (controls.isLocked) {
-          // 重力・物理挙動
           velocity.y -= 75.0 * delta;
           const oldY = controls.getObject().position.y;
           controls.getObject().position.y += velocity.y * delta;
@@ -558,17 +633,16 @@ function buildFloor(floorIndex, holeCell, grid) {
           let collision = false;
           const pBox = new THREE.Box3().setFromCenterAndSize(
             controls.getObject().position,
-            new THREE.Vector3(1.2, charHeightM, 1.2)
+            new THREE.Vector3(1.0, charHeightM, 1.0)
           );
           for (const o of objects) { if (pBox.intersectsBox(o.box)) { collision = true; break; } }
           if (collision) { controls.getObject().position.y = oldY; velocity.y = 0; canJump = true; }
 
           if (controls.getObject().position.y < -10) {
-            controls.getObject().position.set(4, charHeightM, 4);
+            controls.getObject().position.set(20, charHeightM, 20);
             velocity.set(0, 0, 0);
           }
 
-          // 水平移動
           velocity.x -= velocity.x * 10.0 * delta;
           velocity.z -= velocity.z * 10.0 * delta;
           direction.z = Number(moveForward) - Number(moveBackward);
@@ -582,13 +656,12 @@ function buildFloor(floorIndex, holeCell, grid) {
           controls.moveForward(-velocity.z * delta);
           const pBoxXZ = new THREE.Box3().setFromCenterAndSize(
             controls.getObject().position,
-            new THREE.Vector3(1.2, charHeightM, 1.2)
+            new THREE.Vector3(1.0, charHeightM, 1.0)
           );
           let collXZ = false;
           for (const o of objects) { if (pBoxXZ.intersectsBox(o.box)) { collXZ = true; break; } }
           if (collXZ) { controls.getObject().position.x = beforeX; controls.getObject().position.z = beforeZ; }
 
-          // 脱出（ゴール）判定
           if (escapePad) {
             const dx = controls.getObject().position.x - escapePad.userData.x;
             const dz = controls.getObject().position.z - escapePad.userData.z;
@@ -597,7 +670,6 @@ function buildFloor(floorIndex, holeCell, grid) {
           }
         }
 
-        // 溺れ判定（キャラの身長頭頂部まで水没した場合にカウントダウン開始）
         const headY = controls.getObject().position.y;
         const submerged = waterLevel >= headY;
         const warnEl = document.getElementById('warning');
@@ -616,7 +688,6 @@ function buildFloor(floorIndex, holeCell, grid) {
           flashEl.style.display = 'none';
         }
 
-        // HUD更新
         const curFloor = Math.min(floorsCount, Math.max(1, Math.floor(controls.getObject().position.y / FLOOR_HEIGHT) + 1));
         document.getElementById('hud-floor').textContent = curFloor;
         document.getElementById('hud-time').textContent = fmtTime(elapsed);
