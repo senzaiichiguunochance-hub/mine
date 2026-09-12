@@ -5,22 +5,43 @@
     <title>リアルパタパタ案内表示機（完全同期版）</title>
     <style>
         body {
-            background-color: #222;
+            background: linear-gradient(160deg, #ffe3ef 0%, #e6e6ff 45%, #dff5ff 100%);
             color: #fff;
             font-family: 'Helvetica Neue', Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 30px 10px;
             user-select: none;
+            box-sizing: border-box;
+        }
+
+        .page-wrap {
+            background: rgba(255,255,255,0.55);
+            backdrop-filter: blur(6px);
+            border-radius: 28px;
+            padding: 28px 30px 24px;
+            box-shadow: 0 15px 35px rgba(120,110,160,0.25);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 640px;
         }
 
         h1 {
-            font-size: 1.5rem;
-            margin-bottom: 30px;
-            color: #aaa;
+            font-size: 1.3rem;
+            margin: 0 0 20px;
+            color: #7a6d9e;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        h1 .deco {
+            filter: saturate(1.3);
         }
 
         .board {
@@ -166,13 +187,90 @@
             background-color: #555;
             cursor: not-allowed;
         }
+
+        /* ===== ここからかわいいアレンジ用 ===== */
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-panel {
+            margin-top: 18px;
+            width: 100%;
+            max-width: 360px;
+            background: #fbfbff;
+            border-radius: 16px;
+            box-shadow: inset 0 0 0 1px #ece8fb;
+            padding: 10px 14px;
+            box-sizing: border-box;
+        }
+
+        .log-title {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #9188b5;
+            margin-bottom: 6px;
+            letter-spacing: 1px;
+        }
+
+        #logList {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            height: 150px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 4px;
+        }
+
+        #logList li {
+            font-size: 0.7rem;
+            color: #6b6480;
+            background: #f3f1fc;
+            border-radius: 8px;
+            padding: 4px 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            flex-shrink: 0;
+            animation: fade-in 0.3s ease;
+        }
+
+        #logList li .log-time {
+            color: #b3aecb;
+            font-variant-numeric: tabular-nums;
+        }
+
+        #logList .log-empty {
+            color: #c9c5db;
+            font-size: 0.7rem;
+            padding: 4px 8px;
+        }
+
+        #logList::-webkit-scrollbar {
+            width: 5px;
+        }
+        #logList::-webkit-scrollbar-thumb {
+            background: #dcd7ee;
+            border-radius: 4px;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
 
-    <h1>東京近辺 JR 私鉄 パタパタ案内表示機</h1>
+    <div class="page-wrap">
+    <h1><span class="deco">☆</span> 東京近辺 JR 私鉄 パタパタ案内表示機 <span class="deco">☆</span></h1>
 
     <div class="board">
         <div class="segment">
@@ -192,7 +290,15 @@
         </div>
     </div>
 
-    <button id="btn" onclick="startSequence()">運行情報を更新</button>
+    <div class="controls">
+        <button id="btn" onclick="startSequence()">運行情報を更新</button>
+    </div>
+
+    <div class="log-panel">
+        <div class="log-title">📝 運行ログ</div>
+        <ul id="logList"><li class="log-empty">まだ運行記録がありません</li></ul>
+    </div>
+    </div>
 
     <script>
         const masterData = [
@@ -296,6 +402,28 @@
         ];
 
         let currentIndex = 0;
+        let landedDest = null;
+        let landedType = null;
+
+        function addLogEntry(type, dest) {
+            const list = document.getElementById('logList');
+
+            // 初回だけ表示している空プレースホルダーを消す
+            const empty = list.querySelector('.log-empty');
+            if (empty) empty.remove();
+
+            const li = document.createElement('li');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            li.innerHTML = `<span class="log-time">${timeStr}</span><span>🚃 ${type} ${dest}行き</span>`;
+            list.appendChild(li);
+
+            // ログは直近8件だけ残す（かわいく小さく保つ）
+            while (list.children.length > 8) {
+                list.removeChild(list.firstChild);
+            }
+        }
 
         function startSequence() {
             const btn = document.getElementById('btn');
@@ -323,10 +451,14 @@
                 flip('board-type', currentFlap.type, nextFlap.type, currentFlap.class, nextFlap.class, currentInterval);
                 flip('board-dest', currentFlap.dest, nextFlap.dest, 'dest-color', 'dest-color', currentInterval);
 
+                landedDest = nextFlap.dest;
+                landedType = nextFlap.type;
+
                 if (elapsed < totalDuration) {
                     setTimeout(nextTick, currentInterval);
                 } else {
                     btn.disabled = false;
+                    addLogEntry(landedType, landedDest);
                 }
             }
 
