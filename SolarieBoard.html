@@ -223,7 +223,7 @@
             height: 150px;
             overflow-y: auto;
             display: flex;
-            flex-direction: column-reverse;
+            flex-direction: column;
             gap: 4px;
         }
 
@@ -423,6 +423,9 @@
             while (list.children.length > 8) {
                 list.removeChild(list.firstChild);
             }
+
+            // 追加した最新行が見えるように一番下までスクロール
+            list.scrollTop = list.scrollHeight;
         }
 
         function startSequence() {
