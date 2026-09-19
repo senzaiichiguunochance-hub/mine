@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自動対戦オセロ Casino Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+        }
+
+        .reversi-board {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            gap: 3px;
+            background-color: #064e3b;
+            padding: 10px;
+            border-radius: 16px;
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.25), inset 0 0 15px rgba(0,0,0,0.8);
+            border: 4px solid #059669;
+        }
+
+        .cell {
+            aspect-ratio: 1 / 1;
+            background-color: #047857;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .cell:hover {
+            background-color: #10b981;
+        }
+
+        .disc-container {
+            width: 84%;
+            height: 84%;
+            perspective: 1000px;
+        }
+
+        .disc {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 0.3s ease, box-shadow 0.2s;
+            transform-style: preserve-3d;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .disc.black {
+            background: radial-gradient(circle at 30% 30%, #4b5563, #0f172a 85%);
+            border: 1px solid #334155;
+        }
+
+        .disc.white {
+            background: radial-gradient(circle at 30% 30%, #ffffff, #cbd5e1 85%);
+            border: 1px solid #94a3b8;
+        }
+
+        .last-move-indicator {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #f43f5e;
+            box-shadow: 0 0 10px #f43f5e;
+            z-index: 10;
+        }
+
+        .valid-move-dot {
+            width: 24%;
+            height: 24%;
+            border-radius: 50%;
+            background-color: rgba(250, 204, 21, 0.8);
+            box-shadow: 0 0 8px rgba(250, 204, 21, 0.9);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 0.9; transform: scale(1.1); }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        /* ハンデ演出ポップアップ */
+        @keyframes handicapAnim {
+            0% { transform: scale(0.6) translateY(20px); opacity: 0; }
+            20% { transform: scale(1.05) translateY(0); opacity: 1; }
+            80% { transform: scale(1) translateY(0); opacity: 1; }
+            100% { transform: scale(0.9) translateY(-15px); opacity: 0; }
+        }
+
+        .handicap-banner {
+            animation: handicapAnim 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* モーダル表示アニメーション */
+        @keyframes modalScale {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-animate {
+            animation: modalScale 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+    </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative overflow-x-hidden">
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+    <header class="bg-slate-900/90 border-b border-amber-500/30 sticky top-0 z-30 backdrop-blur-md py-3 px-4 sm:px-8">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl text-slate-950 shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-coins text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black tracking-wide text-white flex items-center gap-2">
+                        オセロ CASINO <span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-semibold">BET & AI</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">賭けて勝者を予測！ハンデ設定で高倍率を狙え</p>
+                </div>
+            </div>
+
+            <!-- コインカウンター & 前回勝者情報 -->
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-800/90 px-4 py-2 rounded-xl border border-slate-700 flex items-center gap-3 shadow-inner">
+                    <span class="text-xs text-slate-400 uppercase font-semibold">所持コイン:</span>
+                    <div class="flex items-center gap-1.5 text-amber-400 font-extrabold text-xl tracking-wider">
+                        <i class="fa-solid fa-coins text-amber-400 text-lg"></i>
+                        <span id="user-coins">100</span>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center gap-2 bg-slate-800/50 px-3 py-2 rounded-xl border border-slate-700/60 text-xs text-slate-300">
+                    <span class="text-slate-400">前回勝者:</span>
+                    <span id="prev-winner-tag" class="font-bold text-slate-200">なし (初回)</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto w-full p-4 sm:p-6 flex-1 flex flex-col gap-5 items-center">
+
+        <!-- 1. カジノベット・ハンデ設定 -->
+        <div class="w-full bg-slate-800/90 rounded-2xl p-5 border border-amber-500/30 shadow-xl space-y-4">
+            <h2 class="text-xs font-extrabold tracking-wider text-amber-400 uppercase flex items-center gap-2">
+                <i class="fa-solid fa-dice text-amber-400"></i> ベット ＆ ハンデ設定
+            </h2>
+
+            <!-- 賭け先指定 -->
+            <div>
+                <label class="block text-xs text-slate-400 font-semibold mb-1.5">どちらに賭けますか？</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="bet-black-btn" type="button" class="py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-500/10 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all">
+                        <span class="w-3 h-3 rounded-full bg-slate-950 border border-slate-600"></span>
+                        黒 (AI-1)
+                    </button>
+                    <button id="bet-white-btn" type="button" class="py-2.5 px-3 rounded-xl border-2 border-slate-700 bg-slate-900/50 text-slate-400 font-semibold text-xs flex items-center justify-center gap-2 transition-all">
+                        <span class="w-3 h-3 rounded-full bg-white border border-slate-300"></span>
+                        白 (AI-2)
+                    </button>
+                </div>
+            </div>
+
+            <!-- ハンデ設定 -->
+            <div class="space-y-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700/80">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-slate-300">ハンデ付与</span>
+                    <span class="text-[10px] text-amber-400 font-medium">賭けた側のハンデで倍率増!</span>
+                </div>
+
+                <!-- 黒のハンデ -->
+                <div class="text-xs space-y-1">
+                    <p class="text-[11px] font-semibold text-slate-400">【黒 (AI-1) のハンデ】</p>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-b1" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>① 5手に1回適当に打つ</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-b2" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>② 5手に1回うっかりパス</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-amber-300 font-semibold cursor-pointer">
+                        <input type="checkbox" id="handicap-b3" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>③ 初期角（四隅）の譲渡 <span class="text-[10px] text-amber-400 font-normal">(片方のみで倍率*4)</span></span>
+                    </label>
+                </div>
+
+                <!-- 白のハンデ -->
+                <div class="text-xs space-y-1 pt-1 border-t border-slate-800">
+                    <p class="text-[11px] font-semibold text-slate-400">【白 (AI-2) のハンデ】</p>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-w1" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>① 5手に1回適当に打つ</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-w2" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>② 5手に1回うっかりパス</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-amber-300 font-semibold cursor-pointer">
+                        <input type="checkbox" id="handicap-w3" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>③ 初期角（四隅）の譲渡 <span class="text-[10px] text-amber-400 font-normal">(片方のみで倍率*4)</span></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 賭け額 & 倍率 -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center text-xs">
+                    <label class="text-slate-400 font-semibold">賭け額</label>
+                    <div class="text-amber-400 font-bold">
+                        オッズ: <span id="odds-multiplier-display" class="text-sm font-black underline">x2.0</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="number" id="bet-amount-input" value="10" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-amber-500">
+                    <button id="btn-max-bet" type="button" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-xl font-bold transition-all">全額</button>
+                </div>
+                <p id="payout-preview" class="text-[11px] text-emerald-400 font-semibold text-right">勝利時獲得: 20 コイン</p>
+            </div>
+
+            <!-- 対戦スタートボタン -->
+            <div class="pt-1">
+                <button id="btn-start-match" type="button" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold py-3.5 px-4 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-play text-base"></i>
+                    <span>試合開始 & ベット確定</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. メイン画面 (オセロ盤 & 状態表示) -->
+        <div id="main-game-area" class="w-full flex flex-col items-center pt-2 scroll-mt-20">
+            <!-- スコア表示 -->
+            <div class="w-full max-w-[480px] mb-4 grid grid-cols-2 gap-3">
+                <div id="black-card" class="bg-slate-800/90 p-3 rounded-2xl border-2 border-slate-700 flex items-center justify-between shadow-lg transition-all">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-full bg-slate-950 border border-slate-700 flex items-center justify-center shadow">
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-200">黒 (AI-1)</p>
+                            <p class="text-[10px] text-slate-400">角・枚数戦略</p>
+                        </div>
+                    </div>
+                    <span id="black-score" class="text-2xl font-black text-white">2</span>
+                </div>
+
+                <div id="white-card" class="bg-slate-800/90 p-3 rounded-2xl border-2 border-slate-700 flex items-center justify-between shadow-lg transition-all">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-full bg-white border border-slate-300 flex items-center justify-center shadow">
+                            <div class="w-2.5 h-2.5 rounded-full bg-slate-300"></div>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-slate-200">白 (AI-2)</p>
+                            <p class="text-[10px] text-slate-400">盤面評価表戦略</p>
+                        </div>
+                    </div>
+                    <span id="white-score" class="text-2xl font-black text-white">2</span>
+                </div>
+            </div>
+
+            <!-- ステータスバー -->
+            <div id="status-banner" class="w-full max-w-[480px] mb-3 p-2.5 bg-slate-800/90 rounded-xl border border-slate-700 flex items-center justify-between px-4 text-xs font-medium">
+                <div class="flex items-center space-x-2">
+                    <div id="current-turn-disc" class="w-4 h-4 rounded-full bg-black border border-slate-600"></div>
+                    <span id="current-turn-text" class="text-slate-200">試合準備完了</span>
+                </div>
+                <div id="status-badge" class="px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 font-semibold">
+                    待機中
+                </div>
+            </div>
+
+            <!-- 盤面 -->
+            <div class="w-full max-w-[480px] relative">
+                <!-- ハンデ発動演出ポップアップオーバーレイ -->
+                <div id="handicap-toast-container" class="absolute inset-0 pointer-events-none z-20 flex items-center justify-center p-4"></div>
+                <div id="board" class="reversi-board aspect-square w-full"></div>
+            </div>
+        </div>
+
+        <!-- 3. 速度 & コントロール -->
+        <div class="w-full bg-slate-800/90 rounded-2xl p-4 border border-slate-700/80 shadow-lg space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-400">速度 & コントロール</span>
+                <div class="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-[10px]">
+                    <button data-speed="1000" class="speed-btn px-2 py-0.5 rounded text-slate-400">遅</button>
+                    <button data-speed="400" class="speed-btn px-2 py-0.5 rounded bg-emerald-600 text-white font-bold">普通</button>
+                    <button data-speed="150" class="speed-btn px-2 py-0.5 rounded text-slate-400">早</button>
+                    <button data-speed="30" class="speed-btn px-2 py-0.5 rounded text-slate-400">最速</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+                <button id="btn-toggle" disabled type="button" class="flex items-center justify-center gap-2 bg-slate-700 text-slate-300 font-semibold py-2 px-3 rounded-xl text-xs transition-all disabled:opacity-40">
+                    <i id="btn-toggle-icon" class="fa-solid fa-pause"></i>
+                    <span id="btn-toggle-text">一時停止</span>
+                </button>
+                <button id="btn-step" disabled type="button" class="flex items-center justify-center gap-2 bg-slate-700 text-slate-300 font-semibold py-2 px-3 rounded-xl text-xs transition-all disabled:opacity-40">
+                    <i class="fa-solid fa-forward-step"></i>
+                    <span>1手進める</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. 対戦ログ -->
+        <div class="w-full bg-slate-800/90 rounded-2xl p-4 border border-slate-700/80 shadow-lg flex-1 flex flex-col min-h-[200px] max-h-[260px]">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-ul text-emerald-400"></i> 対戦ログ
+                </h2>
+                <span id="move-count" class="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">0手</span>
+            </div>
+            <div id="log-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-1 pr-1 text-[11px] text-slate-300 font-mono">
+                <div class="text-slate-500 italic py-2 text-center">賭け項目を設定して試合を開始してください</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 試合結果モーダル -->
+    <div id="result-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div id="result-modal-card" class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-5 shadow-2xl modal-animate relative overflow-hidden">
+            <!-- 背景光沢エフェクト -->
+            <div id="result-glow" class="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div id="result-icon-bg" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto text-4xl shadow-xl transition-all">
+                <i id="result-icon-class" class="fa-solid fa-trophy"></i>
+            </div>
+
+            <div>
+                <span id="result-sub-title" class="text-[11px] font-black uppercase tracking-widest text-amber-400 block mb-1">MATCH RESULT</span>
+                <h3 id="result-main-title" class="text-3xl font-black text-white tracking-tight">WIN!</h3>
+            </div>
+
+            <!-- コイン変動詳細表示エリア -->
+            <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <p id="result-score-text" class="text-xs text-slate-400 font-mono">黒 32 - 白 32</p>
+                <div id="result-coin-text" class="text-sm font-extrabold tracking-wide">
+                    Win 20コイン獲得、現在：120コイン
+                </div>
+            </div>
+
+            <button id="btn-close-result" type="button" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold py-3.5 rounded-xl shadow-lg shadow-amber-500/20 active:scale-95 transition-all text-sm tracking-wide">
+                次へ進む
+            </button>
+        </div>
+    </div>
+
+    <!-- ゲームオーバーモーダル -->
+    <div id="gameover-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-amber-500/50 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="w-16 h-16 bg-rose-500/20 text-rose-500 border border-rose-500/40 rounded-full flex items-center justify-center mx-auto text-3xl">
+                <i class="fa-solid fa-skull"></i>
+            </div>
+            <h3 class="text-xl font-black text-white">GAME OVER</h3>
+            <p class="text-xs text-slate-400">コインが0になりました！リセットして100コインからやり直せます。</p>
+            <button id="btn-reset-coins" type="button" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold py-3 rounded-xl shadow-lg hover:from-amber-400 transition-all text-sm">
+                100 コインでやり直す
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 自動対戦オセロ Casino Edition - Complete Single-File Script
+         */
+
+        const BOARD_SIZE = 8;
+        const EMPTY = 0;
+        const BLACK = 1;
+        const WHITE = 2;
+
+        const DIRECTIONS = [
+            [-1, -1], [-1, 0], [-1, 1],
+            [ 0, -1],          [ 0, 1],
+            [ 1, -1], [ 1, 0], [ 1, 1]
+        ];
+
+        // 白(AI-2) 評価テーブル
+        const EVAL_MAP = [
+            [120, -20,  20,   5,   5,  20, -20, 120],
+            [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
+            [ 20,  -5,  15,   3,   3,  15,  -5,  20],
+            [  5,  -5,   3,   3,   3,   3,  -5,   5],
+            [  5,  -5,   3,   3,   3,   3,  -5,   5],
+            [ 20,  -5,  15,   3,   3,  15,  -5,  20],
+            [-20, -40,  -5,  -5,  -5,  -5, -40, -20],
+            [120, -20,  20,   5,   5,  20, -20, 120]
+        ];
+
+        // システム・ゲーム状態変数
+        let coins = 100;
+        let previousWinner = null;
+        let board = [];
+        let currentTurn = BLACK;
+        let isPlaying = false;
+        let isAutoPlaying = false;
+        let playTimer = null;
+        let speedMs = 400;
+        let moveHistory = [];
+        let lastMove = null;
+        let isGameOver = false;
+
+        // 手数カウンター（ハンデ判定用）
+        let blackTurnCount = 0;
+        let whiteTurnCount = 0;
+
+        // 5手の中でどの手番（0〜4のオフセット）でハンデを発動させるかのターゲット
+        let blackH1Target = -1;
+        let blackH2Target = -1;
+        let whiteH1Target = -1;
+        let whiteH2Target = -1;
+
+        // ベット設定
+        let betTarget = BLACK;
+        let betAmount = 10;
+        let activeOdds = 2.0;
+
+        // DOM参照変数
+        let userCoinsEl, prevWinnerTagEl, boardEl, blackScoreEl, whiteScoreEl;
+        let turnDiscEl, turnTextEl, statusBadgeEl, logContainerEl, moveCountEl;
+        let betBlackBtn, betWhiteBtn, betAmountInput, btnMaxBet, oddsMultiplierDisplay;
+        let payoutPreviewEl, btnStartMatch, btnToggle, btnToggleIcon, btnToggleText, btnStep;
+        let speedBtns, handicapCBs, gameoverModal, btnResetCoins;
+        let handicapToastContainer, resultModal, resultModalCard, resultGlow, resultIconBg, resultIconClass, resultSubTitle, resultMainTitle, resultScoreText, resultCoinText, btnCloseResult;
+
+        function initDOM() {
+            userCoinsEl = document.getElementById('user-coins');
+            prevWinnerTagEl = document.getElementById('prev-winner-tag');
+            boardEl = document.getElementById('board');
+            blackScoreEl = document.getElementById('black-score');
+            whiteScoreEl = document.getElementById('white-score');
+            turnDiscEl = document.getElementById('current-turn-disc');
+            turnTextEl = document.getElementById('current-turn-text');
+            statusBadgeEl = document.getElementById('status-badge');
+            logContainerEl = document.getElementById('log-container');
+            moveCountEl = document.getElementById('move-count');
+            betBlackBtn = document.getElementById('bet-black-btn');
+            betWhiteBtn = document.getElementById('bet-white-btn');
+            betAmountInput = document.getElementById('bet-amount-input');
+            btnMaxBet = document.getElementById('btn-max-bet');
+            oddsMultiplierDisplay = document.getElementById('odds-multiplier-display');
+            payoutPreviewEl = document.getElementById('payout-preview');
+            btnStartMatch = document.getElementById('btn-start-match');
+            btnToggle = document.getElementById('btn-toggle');
+            btnToggleIcon = document.getElementById('btn-toggle-icon');
+            btnToggleText = document.getElementById('btn-toggle-text');
+            btnStep = document.getElementById('btn-step');
+            speedBtns = document.querySelectorAll('.speed-btn');
+            handicapCBs = document.querySelectorAll('.handicap-cb');
+            gameoverModal = document.getElementById('gameover-modal');
+            btnResetCoins = document.getElementById('btn-reset-coins');
+
+            // 演出用DOM
+            handicapToastContainer = document.getElementById('handicap-toast-container');
+            resultModal = document.getElementById('result-modal');
+            resultModalCard = document.getElementById('result-modal-card');
+            resultGlow = document.getElementById('result-glow');
+            resultIconBg = document.getElementById('result-icon-bg');
+            resultIconClass = document.getElementById('result-icon-class');
+            resultSubTitle = document.getElementById('result-sub-title');
+            resultMainTitle = document.getElementById('result-main-title');
+            resultScoreText = document.getElementById('result-score-text');
+            resultCoinText = document.getElementById('result-coin-text');
+            btnCloseResult = document.getElementById('btn-close-result');
+        }
+
+        // LocalStorage からコイン情報読み込み
+        function loadStorage() {
+            try {
+                const savedCoins = localStorage.getItem('othello_casino_coins');
+                if (savedCoins !== null) {
+                    coins = parseInt(savedCoins, 10);
+                } else {
+                    coins = 100;
+                }
+                if (isNaN(coins) || coins <= 0) {
+                    coins = 0;
+                }
+
+                const savedWinner = localStorage.getItem('othello_casino_prev_winner');
+                if (savedWinner !== null && savedWinner !== 'null') {
+                    previousWinner = parseInt(savedWinner, 10);
+                } else {
+                    previousWinner = null;
+                }
+            } catch(e) {
+                console.error("Storage error:", e);
+                coins = 100;
+            }
+
+            updateCoinDisplay();
+            updatePrevWinnerDisplay();
+            
+            if (coins <= 0) {
+                showGameOverModal();
+            }
+        }
+
+        function saveStorage() {
+            try {
+                localStorage.setItem('othello_casino_coins', coins.toString());
+                localStorage.setItem('othello_casino_prev_winner', previousWinner !== null ? previousWinner.toString() : 'null');
+            } catch(e) {
+                console.error("Save error:", e);
+            }
+        }
+
+        function updateCoinDisplay() {
+            if (!userCoinsEl) return;
+            userCoinsEl.textContent = coins.toLocaleString();
+            if (betAmountInput) {
+                betAmountInput.max = coins;
+                let currentVal = parseInt(betAmountInput.value, 10);
+                if (isNaN(currentVal) || currentVal <= 0) {
+                    betAmountInput.value = Math.min(10, Math.max(1, coins));
+                } else if (currentVal > coins && coins > 0) {
+                    betAmountInput.value = coins;
+                }
+            }
+            updatePayoutPreview();
+        }
+
+        function updatePrevWinnerDisplay() {
+            if (!prevWinnerTagEl) return;
+            if (previousWinner === BLACK) {
+                prevWinnerTagEl.textContent = '黒 (AI-1)';
+                prevWinnerTagEl.className = 'font-bold text-emerald-400';
+            } else if (previousWinner === WHITE) {
+                prevWinnerTagEl.textContent = '白 (AI-2)';
+                prevWinnerTagEl.className = 'font-bold text-amber-400';
+            } else {
+                prevWinnerTagEl.textContent = 'なし (初回)';
+                prevWinnerTagEl.className = 'font-bold text-slate-300';
+            }
+        }
+
+        function calculateOdds() {
+            let baseOdds = 2.0;
+            if (previousWinner !== null) {
+                if (betTarget === previousWinner) {
+                    baseOdds = 1.5;
+                } else {
+                    baseOdds = 2.0;
+                }
+            }
+
+            let normalHandicapCount = 0;
+            if (betTarget === BLACK) {
+                if (document.getElementById('handicap-b1')?.checked) normalHandicapCount++;
+                if (document.getElementById('handicap-b2')?.checked) normalHandicapCount++;
+            } else {
+                if (document.getElementById('handicap-w1')?.checked) normalHandicapCount++;
+                if (document.getElementById('handicap-w2')?.checked) normalHandicapCount++;
+            }
+
+            let normalBoost = 1;
+            if (normalHandicapCount === 1) normalBoost = 2;
+            if (normalHandicapCount === 2) normalBoost = 4;
+
+            const cornerB = document.getElementById('handicap-b3')?.checked || false;
+            const cornerW = document.getElementById('handicap-w3')?.checked || false;
+
+            let cornerBoost = 1;
+            if ((cornerB && !cornerW) || (!cornerB && cornerW)) {
+                cornerBoost = 4;
+            }
+
+            activeOdds = baseOdds * normalBoost * cornerBoost;
+
+            if (oddsMultiplierDisplay) {
+                oddsMultiplierDisplay.textContent = `x${activeOdds.toFixed(1)}`;
+            }
+            updatePayoutPreview();
+        }
+
+        function updatePayoutPreview() {
+            if (!payoutPreviewEl || !betAmountInput) return;
+            const amt = parseInt(betAmountInput.value, 10) || 0;
+            const payout = Math.floor(amt * activeOdds);
+            payoutPreviewEl.textContent = `勝利時獲得: ${payout.toLocaleString()} コイン (+${Math.max(0, payout - amt).toLocaleString()})`;
+        }
+
+        function initBoard() {
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(EMPTY));
+            
+            board[3][3] = WHITE;
+            board[3][4] = BLACK;
+            board[4][3] = BLACK;
+            board[4][4] = WHITE;
+
+            const cornerB = document.getElementById('handicap-b3')?.checked || false;
+            const cornerW = document.getElementById('handicap-w3')?.checked || false;
+
+            const corners = [
+                { r: 0, c: 0 },
+                { r: 0, c: 7 },
+                { r: 7, c: 0 },
+                { r: 7, c: 7 }
+            ];
+
+            if (cornerB && !cornerW) {
+                corners.forEach(p => { board[p.r][p.c] = BLACK; });
+            } else if (!cornerB && cornerW) {
+                corners.forEach(p => { board[p.r][p.c] = WHITE; });
+            } else if (cornerB && cornerW) {
+                const shuffledCorners = [...corners].sort(() => Math.random() - 0.5);
+                board[shuffledCorners[0].r][shuffledCorners[0].c] = BLACK;
+                board[shuffledCorners[1].r][shuffledCorners[1].c] = BLACK;
+                board[shuffledCorners[2].r][shuffledCorners[2].c] = WHITE;
+                board[shuffledCorners[3].r][shuffledCorners[3].c] = WHITE;
+            }
+
+            currentTurn = BLACK;
+            moveHistory = [];
+            lastMove = null;
+            isGameOver = false;
+            blackTurnCount = 0;
+            whiteTurnCount = 0;
+
+            blackH1Target = -1;
+            blackH2Target = -1;
+            whiteH1Target = -1;
+            whiteH2Target = -1;
+
+            renderBoard();
+            updateScores();
+        }
+
+        function renderBoard() {
+            if (!boardEl) return;
+            boardEl.innerHTML = '';
+            const validMoves = getValidMoves(board, currentTurn);
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+
+                    const cellVal = board[r][c];
+                    if (cellVal !== EMPTY) {
+                        const discContainer = document.createElement('div');
+                        discContainer.className = 'disc-container flex items-center justify-center';
+                        const disc = document.createElement('div');
+                        disc.className = `disc ${cellVal === BLACK ? 'black' : 'white'}`;
+                        discContainer.appendChild(disc);
+                        cell.appendChild(discContainer);
+                    } else if (isPlaying && !isGameOver) {
+                        const isValid = validMoves.some(m => m.r === r && m.c === c);
+                        if (isValid) {
+                            const dot = document.createElement('div');
+                            dot.className = 'valid-move-dot';
+                            cell.appendChild(dot);
+                        }
+                    }
+
+                    if (lastMove && lastMove.r === r && lastMove.c === c) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'last-move-indicator';
+                        cell.appendChild(indicator);
+                    }
+
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function getFlippableDiscs(currentBoard, row, col, player) {
+            if (currentBoard[row][col] !== EMPTY) return [];
+            const opponent = player === BLACK ? WHITE : BLACK;
+            let flippable = [];
+
+            for (const [dr, dc] of DIRECTIONS) {
+                let r = row + dr;
+                let c = col + dc;
+                let temp = [];
+
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && currentBoard[r][c] === opponent) {
+                    temp.push({ r, c });
+                    r += dr;
+                    c += dc;
+                }
+
+                if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && currentBoard[r][c] === player) {
+                    flippable = flippable.concat(temp);
+                }
+            }
+            return flippable;
+        }
+
+        function getValidMoves(currentBoard, player) {
+            const moves = [];
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const flips = getFlippableDiscs(currentBoard, r, c, player);
+                    if (flips.length > 0) {
+                        moves.push({ r, c, flips });
+                    }
+                }
+            }
+            return moves;
+        }
+
+        function chooseMove(player, validMoves) {
+            if (validMoves.length === 0) return null;
+
+            const isBlack = player === BLACK;
+            const turnNum = isBlack ? ++blackTurnCount : ++whiteTurnCount;
+
+            const handicap1 = isBlack ? document.getElementById('handicap-b1')?.checked : document.getElementById('handicap-w1')?.checked;
+            const handicap2 = isBlack ? document.getElementById('handicap-b2')?.checked : document.getElementById('handicap-w2')?.checked;
+
+            // 5手ブロック内の位置（0, 1, 2, 3, 4）
+            const offset = (turnNum - 1) % 5;
+
+            // 新しい5手ブロックの開始時（offset === 0）または未初期化時に発動手番をランダム決定
+            if (offset === 0) {
+                let h1 = Math.floor(Math.random() * 5);
+                let h2 = Math.floor(Math.random() * 5);
+
+                // 両方ONかつ同じ手番に当たった場合は重ならないようにずらす
+                if (handicap1 && handicap2 && h1 === h2) {
+                    h2 = (h2 + 1) % 5;
+                }
+
+                if (isBlack) {
+                    blackH1Target = h1;
+                    blackH2Target = h2;
+                } else {
+                    whiteH1Target = h1;
+                    whiteH2Target = h2;
+                }
+            }
+
+            const currentH1Target = isBlack ? blackH1Target : whiteH1Target;
+            const currentH2Target = isBlack ? blackH2Target : whiteH2Target;
+
+            const isHandicap2Trigger = handicap2 && (offset === currentH2Target);
+            const isHandicap1Trigger = handicap1 && (offset === currentH1Target);
+
+            // ② うっかりパスの発動（5手中ランダムな1手）
+            if (isHandicap2Trigger) {
+                const pTag = isBlack ? '⚫ 黒 (AI-1)' : '⚪ 白 (AI-2)';
+                addLog(`⚠️ ${pTag}: ハンデ【うっかりパス】発動！`, 'text-amber-400 font-bold');
+                showHandicapBanner(player, 'うっかりパス');
+                return 'FORCED_PASS';
+            }
+
+            // ① ランダム手の発動（5手中ランダムな1手）
+            if (isHandicap1Trigger) {
+                const pTag = isBlack ? '⚫ 黒 (AI-1)' : '⚪ 白 (AI-2)';
+                addLog(`🎲 ${pTag}: ハンデ【ランダム打ち】発動！`, 'text-purple-300 font-bold');
+                showHandicapBanner(player, 'ランダム打ち');
+                return validMoves[Math.floor(Math.random() * validMoves.length)];
+            }
+
+            if (isBlack) {
+                const corners = validMoves.filter(m => (m.r === 0 || m.r === 7) && (m.c === 0 || m.c === 7));
+                if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
+
+                validMoves.sort((a, b) => b.flips.length - a.flips.length);
+                const maxF = validMoves[0].flips.length;
+                const bests = validMoves.filter(m => m.flips.length === maxF);
+                return bests[Math.floor(Math.random() * bests.length)];
+            } else {
+                let bestScore = -Infinity;
+                let bestMove = validMoves[0];
+
+                for (const move of validMoves) {
+                    let score = EVAL_MAP[move.r][move.c] + move.flips.length + (Math.random() * 2);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+                return bestMove;
+            }
+        }
+
+        function showHandicapBanner(player, handicapName) {
+            if (!handicapToastContainer) return;
+            handicapToastContainer.innerHTML = '';
+
+            const isBlack = player === BLACK;
+            const banner = document.createElement('div');
+            
+            if (isBlack) {
+                banner.className = 'handicap-banner border-2 border-amber-400 bg-slate-950/95 text-amber-300 px-6 py-3.5 rounded-2xl shadow-2xl shadow-amber-500/30 text-center flex flex-col items-center gap-1 backdrop-blur-md';
+                banner.innerHTML = `
+                    <div class="flex items-center gap-2 text-xs font-black tracking-wider uppercase text-amber-400">
+                        <span class="w-3.5 h-3.5 rounded-full bg-slate-950 border-2 border-amber-400 inline-block shadow"></span>
+                        ⚫ 黒 (AI-1) のハンデ発動！
+                    </div>
+                    <span class="text-base font-black text-white tracking-wide">【 ${handicapName} 】</span>
+                `;
+            } else {
+                banner.className = 'handicap-banner border-2 border-amber-400 bg-slate-100/95 text-slate-900 px-6 py-3.5 rounded-2xl shadow-2xl shadow-amber-500/30 text-center flex flex-col items-center gap-1 backdrop-blur-md';
+                banner.innerHTML = `
+                    <div class="flex items-center gap-2 text-xs font-black tracking-wider uppercase text-amber-600">
+                        <span class="w-3.5 h-3.5 rounded-full bg-white border-2 border-slate-400 inline-block shadow-sm"></span>
+                        ⚪ 白 (AI-2) のハンデ発動！
+                    </div>
+                    <span class="text-base font-black text-slate-950 tracking-wide">【 ${handicapName} 】</span>
+                `;
+            }
+
+            handicapToastContainer.appendChild(banner);
+
+            setTimeout(() => {
+                if (banner.parentNode) {
+                    banner.parentNode.removeChild(banner);
+                }
+            }, 1800);
+        }
+
+        function countScores() {
+            let black = 0, white = 0;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === BLACK) black++;
+                    if (board[r][c] === WHITE) white++;
+                }
+            }
+            return { black, white };
+        }
+
+        function updateScores() {
+            const scores = countScores();
+            if (blackScoreEl) blackScoreEl.textContent = scores.black;
+            if (whiteScoreEl) whiteScoreEl.textContent = scores.white;
+        }
+
+        function updateMatchUI() {
+            if (moveCountEl) moveCountEl.textContent = `${moveHistory.length}手`;
+
+            if (!isPlaying) {
+                if (turnDiscEl) turnDiscEl.className = 'w-4 h-4 rounded-full bg-slate-600';
+                if (turnTextEl) turnTextEl.textContent = '試合準備完了';
+                if (statusBadgeEl) {
+                    statusBadgeEl.className = 'px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 font-semibold';
+                    statusBadgeEl.textContent = '待機中';
+                }
+                return;
+            }
+
+            if (currentTurn === BLACK) {
+                if (turnDiscEl) turnDiscEl.className = 'w-4 h-4 rounded-full bg-black border border-slate-600';
+                if (turnTextEl) turnTextEl.textContent = '黒（AI-1）思考中...';
+            } else {
+                if (turnDiscEl) turnDiscEl.className = 'w-4 h-4 rounded-full bg-white border border-slate-300';
+                if (turnTextEl) turnTextEl.textContent = '白（AI-2）思考中...';
+            }
+
+            if (isAutoPlaying) {
+                if (statusBadgeEl) {
+                    statusBadgeEl.className = 'px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-700 font-semibold';
+                    statusBadgeEl.textContent = '対戦中';
+                }
+            } else {
+                if (statusBadgeEl) {
+                    statusBadgeEl.className = 'px-2 py-0.5 rounded-full bg-amber-900/80 text-amber-300 border border-amber-700 font-semibold';
+                    statusBadgeEl.textContent = '一時停止';
+                }
+            }
+        }
+
+        function addLog(msg, customClass = 'text-slate-300') {
+            if (!logContainerEl) return;
+            const item = document.createElement('div');
+            item.className = `leading-relaxed border-b border-slate-800/40 pb-0.5 ${customClass}`;
+            item.textContent = msg;
+            logContainerEl.appendChild(item);
+            logContainerEl.scrollTop = logContainerEl.scrollHeight;
+        }
+
+        function toggleInputControls(disabled) {
+            if (betBlackBtn) betBlackBtn.disabled = disabled;
+            if (betWhiteBtn) betWhiteBtn.disabled = disabled;
+            if (betAmountInput) betAmountInput.disabled = disabled;
+            if (btnMaxBet) btnMaxBet.disabled = disabled;
+            if (handicapCBs) handicapCBs.forEach(cb => cb.disabled = disabled);
+            if (btnStartMatch) btnStartMatch.disabled = disabled;
+
+            if (disabled) {
+                if (betBlackBtn) betBlackBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                if (betWhiteBtn) betWhiteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                if (betBlackBtn) betBlackBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                if (betWhiteBtn) betWhiteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function startMatch() {
+            if (isPlaying) return;
+
+            betAmount = parseInt(betAmountInput.value, 10);
+            if (isNaN(betAmount) || betAmount <= 0) {
+                addLog('⚠️ 有効な賭け額を入力してください', 'text-rose-400 font-bold');
+                return;
+            }
+            if (betAmount > coins) {
+                addLog('⚠️ 所持コインが不足しています', 'text-rose-400 font-bold');
+                return;
+            }
+
+            // コイン消費
+            coins -= betAmount;
+            saveStorage();
+            updateCoinDisplay();
+
+            // UIコントロールのロック
+            toggleInputControls(true);
+
+            // ログクリア＆盤面初期化
+            if (logContainerEl) logContainerEl.innerHTML = '';
+            initBoard();
+
+            isPlaying = true;
+            isGameOver = false;
+
+            // メイン画面（碁盤）の位置へスムーズスクロール
+            const gameArea = document.getElementById('main-game-area');
+            if (gameArea) {
+                gameArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            const targetName = betTarget === BLACK ? '黒 (AI-1)' : '白 (AI-2)';
+            addLog(`🎰 試合開始！ ${targetName} に ${betAmount} コイン (オッズ x${activeOdds.toFixed(1)}) をベットしました`, 'text-amber-400 font-bold');
+
+            if (btnToggle) btnToggle.disabled = false;
+            updateMatchUI();
+            startAutoPlay();
+        }
+
+        function stepTurn() {
+            if (!isPlaying || isGameOver) return;
+
+            let validMoves = getValidMoves(board, currentTurn);
+
+            // 置ける場所がない場合（パス判定）
+            if (validMoves.length === 0) {
+                const pName = currentTurn === BLACK ? '黒 (AI-1)' : '白 (AI-2)';
+                const opponent = currentTurn === BLACK ? WHITE : BLACK;
+                const opponentMoves = getValidMoves(board, opponent);
+
+                if (opponentMoves.length === 0) {
+                    // 両者置けないので試合終了
+                    addLog('🛑 両者置けるマスが無いため試合終了', 'text-amber-300 font-bold');
+                    endMatch();
+                    return;
+                }
+
+                addLog(`💬 ${pName} は置けるマスが無いためパス`, 'text-slate-400 italic');
+                currentTurn = opponent;
+                renderBoard();
+                updateMatchUI();
+                return;
+            }
+
+            // AIの手を決定
+            const move = chooseMove(currentTurn, validMoves);
+
+            if (move === 'FORCED_PASS') {
+                currentTurn = currentTurn === BLACK ? WHITE : BLACK;
+                renderBoard();
+                updateMatchUI();
+                return;
+            }
+
+            // 着手処理
+            board[move.r][move.c] = currentTurn;
+            move.flips.forEach(f => {
+                board[f.r][f.c] = currentTurn;
+            });
+
+            lastMove = { r: move.r, c: move.c };
+            moveHistory.push({ player: currentTurn, r: move.r, c: move.c, flipped: move.flips.length });
+
+            const pName = currentTurn === BLACK ? '黒' : '白';
+            const colChar = String.fromCharCode(97 + move.c);
+            const rowNum = move.r + 1;
+            addLog(`📍 ${pName}: ${colChar}${rowNum} に着手 (${move.flips.length}石裏返し)`);
+
+            // ターン交代
+            currentTurn = currentTurn === BLACK ? WHITE : BLACK;
+
+            renderBoard();
+            updateScores();
+            updateMatchUI();
+
+            // 終了判定
+            const scores = countScores();
+            if (scores.black + scores.white === 64) {
+                endMatch();
+                return;
+            }
+
+            const nextValid = getValidMoves(board, currentTurn);
+            const oppValid = getValidMoves(board, currentTurn === BLACK ? WHITE : BLACK);
+            if (nextValid.length === 0 && oppValid.length === 0) {
+                endMatch();
+                return;
+            }
+        }
+
+        function endMatch() {
+            isPlaying = false;
+            isGameOver = true;
+            stopAutoPlay();
+
+            toggleInputControls(false);
+
+            const scores = countScores();
+            let winner = null;
+            let winnerText = '';
+
+            if (scores.black > scores.white) {
+                winner = BLACK;
+                winnerText = '黒 (AI-1)';
+            } else if (scores.white > scores.black) {
+                winner = WHITE;
+                winnerText = '白 (AI-2)';
+            } else {
+                winner = null; // DRAW
+                winnerText = '引き分け';
+            }
+
+            addLog(`🏆 試合終了！ 勝者: ${winnerText} (黒 ${scores.black} - 白 ${scores.white})`, 'text-amber-400 font-extrabold');
+
+            let resultType = 'LOSE';
+            let payout = 0;
+
+            if (winner !== null) {
+                previousWinner = winner;
+                if (betTarget === winner) {
+                    resultType = 'WIN';
+                    payout = Math.floor(betAmount * activeOdds);
+                    coins += payout;
+                    addLog(`🎉 ベット的中！ ${payout} コインを獲得しました！`, 'text-emerald-400 font-bold');
+                } else {
+                    resultType = 'LOSE';
+                    addLog(`💀 ベット不的中... ${betAmount} コインを失いました。`, 'text-rose-400 font-bold');
+                }
+            } else {
+                resultType = 'DRAW';
+                payout = betAmount;
+                coins += betAmount; // コイン返還
+                addLog(`🤝 引き分けのため ${betAmount} コインが返還されました。`, 'text-amber-300 font-bold');
+            }
+
+            saveStorage();
+            updateCoinDisplay();
+            updatePrevWinnerDisplay();
+            updateMatchUI();
+
+            showResultModal(resultType, payout, betAmount, scores);
+        }
+
+        function showResultModal(resultType, payout, betAmt, scores) {
+            if (!resultModal) return;
+
+            if (resultScoreText) {
+                resultScoreText.textContent = `黒 ${scores.black} - 白 ${scores.white}`;
+            }
+
+            if (resultType === 'WIN') {
+                if (resultGlow) resultGlow.className = 'absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/30 rounded-full blur-3xl pointer-events-none';
+                if (resultIconBg) resultIconBg.className = 'w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-4xl shadow-xl shadow-emerald-500/20';
+                if (resultIconClass) resultIconClass.className = 'fa-solid fa-trophy text-emerald-400';
+                if (resultSubTitle) {
+                    resultSubTitle.textContent = 'MATCH RESULT';
+                    resultSubTitle.className = 'text-[11px] font-black uppercase tracking-widest text-emerald-400 block mb-1';
+                }
+                if (resultMainTitle) {
+                    resultMainTitle.textContent = 'YOU WIN!';
+                    resultMainTitle.className = 'text-3xl font-black text-emerald-400 tracking-tight';
+                }
+                if (resultCoinText) {
+                    resultCoinText.innerHTML = `<span class="text-emerald-400">Win ${payout.toLocaleString()}コイン獲得</span><br><span class="text-xs text-slate-400 font-normal">現在：${coins.toLocaleString()}コイン</span>`;
+                }
+            } else if (resultType === 'LOSE') {
+                if (resultGlow) resultGlow.className = 'absolute -top-24 -left-24 w-48 h-48 bg-rose-500/30 rounded-full blur-3xl pointer-events-none';
+                if (resultIconBg) resultIconBg.className = 'w-20 h-20 rounded-full bg-rose-500/20 text-rose-500 border border-rose-500/40 flex items-center justify-center mx-auto text-4xl shadow-xl shadow-rose-500/20';
+                if (resultIconClass) resultIconClass.className = 'fa-solid fa-skull text-rose-500';
+                if (resultSubTitle) {
+                    resultSubTitle.textContent = 'MATCH RESULT';
+                    resultSubTitle.className = 'text-[11px] font-black uppercase tracking-widest text-rose-400 block mb-1';
+                }
+                if (resultMainTitle) {
+                    resultMainTitle.textContent = 'YOU LOSE...';
+                    resultMainTitle.className = 'text-3xl font-black text-rose-500 tracking-tight';
+                }
+                if (resultCoinText) {
+                    resultCoinText.innerHTML = `<span class="text-rose-400">Lose ${betAmt.toLocaleString()}コイン喪失</span><br><span class="text-xs text-slate-400 font-normal">現在：${coins.toLocaleString()}コイン</span>`;
+                }
+            } else { // DRAW
+                if (resultGlow) resultGlow.className = 'absolute -top-24 -left-24 w-48 h-48 bg-amber-500/30 rounded-full blur-3xl pointer-events-none';
+                if (resultIconBg) resultIconBg.className = 'w-20 h-20 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center mx-auto text-4xl shadow-xl shadow-amber-500/20';
+                if (resultIconClass) resultIconClass.className = 'fa-solid fa-scale-balanced text-amber-400';
+                if (resultSubTitle) {
+                    resultSubTitle.textContent = 'MATCH RESULT';
+                    resultSubTitle.className = 'text-[11px] font-black uppercase tracking-widest text-amber-400 block mb-1';
+                }
+                if (resultMainTitle) {
+                    resultMainTitle.textContent = 'DRAW';
+                    resultMainTitle.className = 'text-3xl font-black text-amber-400 tracking-tight';
+                }
+                if (resultCoinText) {
+                    resultCoinText.innerHTML = `<span class="text-amber-400">Draw ${betAmt.toLocaleString()}コイン返還</span><br><span class="text-xs text-slate-400 font-normal">現在：${coins.toLocaleString()}コイン</span>`;
+                }
+            }
+
+            resultModal.classList.remove('hidden');
+        }
+
+        function startAutoPlay() {
+            if (!isPlaying || isGameOver) return;
+            isAutoPlaying = true;
+            if (btnToggleIcon) btnToggleIcon.className = 'fa-solid fa-pause';
+            if (btnToggleText) btnToggleText.textContent = '一時停止';
+            if (btnStep) btnStep.disabled = true;
+
+            if (playTimer) clearInterval(playTimer);
+            playTimer = setInterval(() => {
+                stepTurn();
+            }, speedMs);
+
+            updateMatchUI();
+        }
+
+        function stopAutoPlay() {
+            isAutoPlaying = false;
+            if (btnToggleIcon) btnToggleIcon.className = 'fa-solid fa-play';
+            if (btnToggleText) btnToggleText.textContent = '再開';
+            if (btnStep) btnStep.disabled = !isPlaying || isGameOver;
+
+            if (playTimer) {
+                clearInterval(playTimer);
+                playTimer = null;
+            }
+            updateMatchUI();
+        }
+
+        function showGameOverModal() {
+            if (gameoverModal) gameoverModal.classList.remove('hidden');
+        }
+
+        function setupEventListeners() {
+            if (betBlackBtn) {
+                betBlackBtn.addEventListener('click', () => {
+                    if (isPlaying) return;
+                    betTarget = BLACK;
+                    betBlackBtn.className = 'py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-500/10 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all';
+                    betWhiteBtn.className = 'py-2.5 px-3 rounded-xl border-2 border-slate-700 bg-slate-900/50 text-slate-400 font-semibold text-xs flex items-center justify-center gap-2 transition-all';
+                    calculateOdds();
+                });
+            }
+
+            if (betWhiteBtn) {
+                betWhiteBtn.addEventListener('click', () => {
+                    if (isPlaying) return;
+                    betTarget = WHITE;
+                    betWhiteBtn.className = 'py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-500/10 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all';
+                    betBlackBtn.className = 'py-2.5 px-3 rounded-xl border-2 border-slate-700 bg-slate-900/50 text-slate-400 font-semibold text-xs flex items-center justify-center gap-2 transition-all';
+                    calculateOdds();
+                });
+            }
+
+            if (handicapCBs) {
+                handicapCBs.forEach(cb => {
+                    cb.addEventListener('change', () => {
+                        calculateOdds();
+                    });
+                });
+            }
+
+            if (betAmountInput) {
+                betAmountInput.addEventListener('input', () => {
+                    updatePayoutPreview();
+                });
+            }
+
+            if (btnMaxBet) {
+                btnMaxBet.addEventListener('click', () => {
+                    if (isPlaying) return;
+                    betAmountInput.value = coins;
+                    updatePayoutPreview();
+                });
+            }
+
+            if (btnStartMatch) {
+                btnStartMatch.addEventListener('click', () => {
+                    if (!isPlaying) startMatch();
+                });
+            }
+
+            if (btnToggle) {
+                btnToggle.addEventListener('click', () => {
+                    if (!isPlaying) return;
+                    if (isAutoPlaying) stopAutoPlay();
+                    else startAutoPlay();
+                });
+            }
+
+            if (btnStep) {
+                btnStep.addEventListener('click', () => {
+                    if (isPlaying && !isAutoPlaying) stepTurn();
+                });
+            }
+
+            if (btnCloseResult) {
+                btnCloseResult.addEventListener('click', () => {
+                    if (resultModal) resultModal.classList.add('hidden');
+                    if (coins <= 0) {
+                        showGameOverModal();
+                    }
+                });
+            }
+
+            if (btnResetCoins) {
+                btnResetCoins.addEventListener('click', () => {
+                    coins = 100;
+                    previousWinner = null;
+                    saveStorage();
+                    updateCoinDisplay();
+                    updatePrevWinnerDisplay();
+                    if (gameoverModal) gameoverModal.classList.add('hidden');
+                    initBoard();
+                    calculateOdds();
+                });
+            }
+
+            if (speedBtns) {
+                speedBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        speedBtns.forEach(b => b.className = 'speed-btn px-2 py-0.5 rounded text-slate-400');
+                        btn.className = 'speed-btn px-2 py-0.5 rounded bg-emerald-600 text-white font-bold';
+                        speedMs = parseInt(btn.dataset.speed, 10);
+                        if (isAutoPlaying) startAutoPlay();
+                    });
+                });
+            }
+        }
+
+        // ページロード時初期化
+        window.addEventListener('DOMContentLoaded', () => {
+            initDOM();
+            setupEventListeners();
+            loadStorage();
+            initBoard();
+            calculateOdds();
+        });
+    </script>
+</body>
+</html>
