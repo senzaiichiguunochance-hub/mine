@@ -127,6 +127,67 @@
         .modal-animate {
             animation: modalScale 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
+
+        /* 石の反転（フリップ）演出 */
+        @keyframes discFlipIn {
+            0%   { transform: rotateY(180deg) scale(0.4); opacity: 0.3; }
+            60%  { transform: rotateY(-15deg) scale(1.05); opacity: 1; }
+            100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+        }
+
+        .disc.flip-in {
+            animation: discFlipIn 0.35s ease-out;
+        }
+
+        /* ベットチップボタン */
+        .chip-btn {
+            background: linear-gradient(180deg, #334155, #1e293b);
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            font-weight: 800;
+            font-size: 11px;
+            padding: 6px 0;
+            border-radius: 10px;
+            transition: all 0.15s ease;
+        }
+        .chip-btn:hover {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+        .chip-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* 勝利時のコイン紙吹雪演出 */
+        .confetti-piece {
+            position: absolute;
+            top: -10%;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            opacity: 0.95;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(340px) rotate(540deg); opacity: 0; }
+        }
+
+        /* 直近戦績ドット */
+        .history-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .history-dot.win { background-color: #34d399; box-shadow: 0 0 5px rgba(52,211,153,0.7); }
+        .history-dot.lose { background-color: #64748b; }
+        .history-dot.draw { background-color: #fbbf24; }
+
+        /* 勝率・連勝ストリーク表示のパルス */
+        .streak-pulse {
+            animation: pulse 1.8s infinite;
+        }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
@@ -206,9 +267,17 @@
                         <input type="checkbox" id="handicap-b2" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
                         <span>② 5手に1回うっかりパス</span>
                     </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-b4" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>③ 終盤(残り10手)は集中力切れでランダム打ち</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-b5" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>④ 視野狭窄（候補手の上位2つからしか選ばない）</span>
+                    </label>
                     <label class="flex items-center gap-2 text-amber-300 font-semibold cursor-pointer">
                         <input type="checkbox" id="handicap-b3" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
-                        <span>③ 初期角（四隅）の譲渡 <span class="text-[10px] text-amber-400 font-normal">(片方のみで倍率*4)</span></span>
+                        <span>⑤ 初期角（四隅）の譲渡 <span class="text-[10px] text-amber-400 font-normal">(片方のみで倍率*4)</span></span>
                     </label>
                 </div>
 
@@ -223,11 +292,28 @@
                         <input type="checkbox" id="handicap-w2" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
                         <span>② 5手に1回うっかりパス</span>
                     </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-w4" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>③ 終盤(残り10手)は集中力切れでランダム打ち</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="handicap-w5" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
+                        <span>④ 視野狭窄（候補手の上位2つからしか選ばない）</span>
+                    </label>
                     <label class="flex items-center gap-2 text-amber-300 font-semibold cursor-pointer">
                         <input type="checkbox" id="handicap-w3" class="handicap-cb rounded border-slate-700 text-amber-500 focus:ring-0">
-                        <span>③ 初期角（四隅）の譲渡 <span class="text-[10px] text-amber-400 font-normal">(片方のみで倍率*4)</span></span>
+                        <span>⑤ 初期角（四隅）の譲渡 <span class="text-[10px] text-amber-400 font-normal">(片方のみで倍率*4)</span></span>
                     </label>
                 </div>
+            </div>
+
+            <!-- 直近戦績 & 連勝ストリーク -->
+            <div class="flex items-center justify-between bg-slate-900/60 px-3 py-2 rounded-xl border border-slate-700/80 text-[11px]">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-slate-400 font-semibold">直近5戦:</span>
+                    <div id="history-dots" class="flex items-center gap-1"></div>
+                </div>
+                <div id="streak-text" class="text-slate-300 font-bold"></div>
             </div>
 
             <!-- 賭け額 & 倍率 -->
@@ -241,6 +327,12 @@
                 <div class="flex items-center gap-2">
                     <input type="number" id="bet-amount-input" value="10" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm focus:outline-none focus:border-amber-500">
                     <button id="btn-max-bet" type="button" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-3 py-2 rounded-xl font-bold transition-all">全額</button>
+                </div>
+                <div class="grid grid-cols-4 gap-1.5">
+                    <button type="button" class="chip-btn chip-add-btn" data-add="10">+10</button>
+                    <button type="button" class="chip-btn chip-add-btn" data-add="50">+50</button>
+                    <button type="button" class="chip-btn chip-add-btn" data-add="100">+100</button>
+                    <button type="button" id="btn-half-bet" class="chip-btn">半額</button>
                 </div>
                 <p id="payout-preview" class="text-[11px] text-emerald-400 font-semibold text-right">勝利時獲得: 20 コイン</p>
             </div>
@@ -348,6 +440,7 @@
         <div id="result-modal-card" class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-5 shadow-2xl modal-animate relative overflow-hidden">
             <!-- 背景光沢エフェクト -->
             <div id="result-glow" class="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div id="confetti-container" class="absolute inset-0 overflow-hidden pointer-events-none z-10"></div>
 
             <div id="result-icon-bg" class="w-20 h-20 rounded-full flex items-center justify-center mx-auto text-4xl shadow-xl transition-all">
                 <i id="result-icon-class" class="fa-solid fa-trophy"></i>
@@ -396,6 +489,34 @@
         const BLACK = 1;
         const WHITE = 2;
 
+        // ==========================================================
+        // CONFIG: バランス調整用の設定値をここに集約
+        // ==========================================================
+        const CONFIG = {
+            startCoins: 100,
+            // 基本オッズ（前回勝者に賭けた場合 / それ以外）
+            baseOddsFavorite: 1.5,
+            baseOddsUnderdog: 2.0,
+            // 連勝ストリークに対して「格下」に賭けた場合の追加オッズ（1連勝につき加算、上限あり）
+            streakBonusPerWin: 0.15,
+            streakBonusMax: 0.6,
+            // 通常ハンデ（①②③④：ランダム打ち/うっかりパス/集中力切れ/視野狭窄）は
+            // ONにした数に応じて段階的に倍率が上がる
+            normalHandicapBoostTable: [1, 1.5, 2, 3, 4],
+            // 角ハンデ（⑤）：片方だけONで倍率ブースト
+            cornerHandicapBoost: 3,
+            // オッズの上限キャップ（射幸性の暴走を防止）
+            maxOdds: 15,
+            // 払戻時の胴元控除率（house edge）
+            houseEdgeRate: 0.03,
+            // 終盤ハンデ：残りこの手数以下でランダム化
+            endgameHandicapRemaining: 10,
+            // 視野狭窄ハンデ：評価上位何手からしか選ばないか
+            narrowViewTopN: 2,
+            // 直近戦績として保持する試合数
+            historyLength: 5
+        };
+
         const DIRECTIONS = [
             [-1, -1], [-1, 0], [-1, 1],
             [ 0, -1],          [ 0, 1],
@@ -415,8 +536,10 @@
         ];
 
         // システム・ゲーム状態変数
-        let coins = 100;
+        let coins = CONFIG.startCoins;
         let previousWinner = null;
+        let winStreak = 0;           // previousWinner が連続で勝っている回数
+        let matchHistory = [];       // ユーザーのベット結果履歴 ('WIN' | 'LOSE' | 'DRAW') 新しい順
         let board = [];
         let currentTurn = BLACK;
         let isPlaying = false;
@@ -425,6 +548,7 @@
         let speedMs = 400;
         let moveHistory = [];
         let lastMove = null;
+        let lastFlippedCells = []; // 直前の手で反転/設置されたマス（フリップ演出用）
         let isGameOver = false;
 
         // 手数カウンター（ハンデ判定用）
@@ -449,6 +573,7 @@
         let payoutPreviewEl, btnStartMatch, btnToggle, btnToggleIcon, btnToggleText, btnStep;
         let speedBtns, handicapCBs, gameoverModal, btnResetCoins;
         let handicapToastContainer, resultModal, resultModalCard, resultGlow, resultIconBg, resultIconClass, resultSubTitle, resultMainTitle, resultScoreText, resultCoinText, btnCloseResult;
+        let chipAddBtns, btnHalfBet, historyDotsEl, streakTextEl, confettiContainerEl;
 
         function initDOM() {
             userCoinsEl = document.getElementById('user-coins');
@@ -489,6 +614,12 @@
             resultScoreText = document.getElementById('result-score-text');
             resultCoinText = document.getElementById('result-coin-text');
             btnCloseResult = document.getElementById('btn-close-result');
+
+            chipAddBtns = document.querySelectorAll('.chip-add-btn');
+            btnHalfBet = document.getElementById('btn-half-bet');
+            historyDotsEl = document.getElementById('history-dots');
+            streakTextEl = document.getElementById('streak-text');
+            confettiContainerEl = document.getElementById('confetti-container');
         }
 
         // LocalStorage からコイン情報読み込み
@@ -498,7 +629,7 @@
                 if (savedCoins !== null) {
                     coins = parseInt(savedCoins, 10);
                 } else {
-                    coins = 100;
+                    coins = CONFIG.startCoins;
                 }
                 if (isNaN(coins) || coins <= 0) {
                     coins = 0;
@@ -510,13 +641,23 @@
                 } else {
                     previousWinner = null;
                 }
+
+                const savedStreak = localStorage.getItem('othello_casino_win_streak');
+                winStreak = savedStreak !== null ? (parseInt(savedStreak, 10) || 0) : 0;
+
+                const savedHistory = localStorage.getItem('othello_casino_history');
+                matchHistory = savedHistory ? JSON.parse(savedHistory) : [];
+                if (!Array.isArray(matchHistory)) matchHistory = [];
             } catch(e) {
                 console.error("Storage error:", e);
-                coins = 100;
+                coins = CONFIG.startCoins;
+                matchHistory = [];
+                winStreak = 0;
             }
 
             updateCoinDisplay();
             updatePrevWinnerDisplay();
+            updateHistoryDisplay();
             
             if (coins <= 0) {
                 showGameOverModal();
@@ -527,6 +668,8 @@
             try {
                 localStorage.setItem('othello_casino_coins', coins.toString());
                 localStorage.setItem('othello_casino_prev_winner', previousWinner !== null ? previousWinner.toString() : 'null');
+                localStorage.setItem('othello_casino_win_streak', winStreak.toString());
+                localStorage.setItem('othello_casino_history', JSON.stringify(matchHistory.slice(0, CONFIG.historyLength)));
             } catch(e) {
                 console.error("Save error:", e);
             }
@@ -550,10 +693,10 @@
         function updatePrevWinnerDisplay() {
             if (!prevWinnerTagEl) return;
             if (previousWinner === BLACK) {
-                prevWinnerTagEl.textContent = '黒 (AI-1)';
+                prevWinnerTagEl.textContent = winStreak >= 2 ? `黒 (AI-1) ${winStreak}連勝中` : '黒 (AI-1)';
                 prevWinnerTagEl.className = 'font-bold text-emerald-400';
             } else if (previousWinner === WHITE) {
-                prevWinnerTagEl.textContent = '白 (AI-2)';
+                prevWinnerTagEl.textContent = winStreak >= 2 ? `白 (AI-2) ${winStreak}連勝中` : '白 (AI-2)';
                 prevWinnerTagEl.className = 'font-bold text-amber-400';
             } else {
                 prevWinnerTagEl.textContent = 'なし (初回)';
@@ -561,38 +704,68 @@
             }
         }
 
-        function calculateOdds() {
-            let baseOdds = 2.0;
-            if (previousWinner !== null) {
-                if (betTarget === previousWinner) {
-                    baseOdds = 1.5;
+        // 直近戦績ドット & 連勝ストリーク表示の更新
+        function updateHistoryDisplay() {
+            if (historyDotsEl) {
+                historyDotsEl.innerHTML = '';
+                const recent = matchHistory.slice(0, CONFIG.historyLength).reverse();
+                if (recent.length === 0) {
+                    historyDotsEl.innerHTML = '<span class="text-slate-500 italic">まだありません</span>';
                 } else {
-                    baseOdds = 2.0;
+                    recent.forEach(result => {
+                        const dot = document.createElement('span');
+                        dot.className = `history-dot ${result === 'WIN' ? 'win' : (result === 'LOSE' ? 'lose' : 'draw')}`;
+                        historyDotsEl.appendChild(dot);
+                    });
                 }
             }
+            if (streakTextEl) {
+                if (winStreak >= 2 && previousWinner !== null) {
+                    const name = previousWinner === BLACK ? '黒' : '白';
+                    streakTextEl.textContent = `🔥 ${name} ${winStreak}連勝`;
+                    streakTextEl.className = 'text-amber-400 font-black streak-pulse';
+                } else {
+                    streakTextEl.textContent = '';
+                }
+            }
+        }
 
-            let normalHandicapCount = 0;
-            if (betTarget === BLACK) {
-                if (document.getElementById('handicap-b1')?.checked) normalHandicapCount++;
-                if (document.getElementById('handicap-b2')?.checked) normalHandicapCount++;
-            } else {
-                if (document.getElementById('handicap-w1')?.checked) normalHandicapCount++;
-                if (document.getElementById('handicap-w2')?.checked) normalHandicapCount++;
+        function calculateOdds() {
+            // 1. 基本オッズ（前回勝者に賭けたか否か）
+            let baseOdds = CONFIG.baseOddsUnderdog;
+            if (previousWinner !== null && betTarget === previousWinner) {
+                baseOdds = CONFIG.baseOddsFavorite;
             }
 
-            let normalBoost = 1;
-            if (normalHandicapCount === 1) normalBoost = 2;
-            if (normalHandicapCount === 2) normalBoost = 4;
+            // 2. 連勝ストリークに逆張り（格下に賭ける）した場合のボーナス
+            //    例: 前回勝者に3連勝の実績があるのに、あえて反対側に賭けるほどオッズが上乗せされる
+            if (previousWinner !== null && betTarget !== previousWinner && winStreak >= 2) {
+                const streakBonus = Math.min((winStreak - 1) * CONFIG.streakBonusPerWin, CONFIG.streakBonusMax);
+                baseOdds += streakBonus;
+            }
 
+            // 3. 通常ハンデ（①ランダム打ち ②うっかりパス ③集中力切れ ④視野狭窄）
+            let normalHandicapCount = 0;
+            const ids = betTarget === BLACK
+                ? ['handicap-b1', 'handicap-b2', 'handicap-b4', 'handicap-b5']
+                : ['handicap-w1', 'handicap-w2', 'handicap-w4', 'handicap-w5'];
+            ids.forEach(id => {
+                if (document.getElementById(id)?.checked) normalHandicapCount++;
+            });
+            const normalBoost = CONFIG.normalHandicapBoostTable[normalHandicapCount] ?? CONFIG.normalHandicapBoostTable[CONFIG.normalHandicapBoostTable.length - 1];
+
+            // 4. 角ハンデ（⑤初期角の譲渡）：片方のみONで倍率ブースト
             const cornerB = document.getElementById('handicap-b3')?.checked || false;
             const cornerW = document.getElementById('handicap-w3')?.checked || false;
 
             let cornerBoost = 1;
             if ((cornerB && !cornerW) || (!cornerB && cornerW)) {
-                cornerBoost = 4;
+                cornerBoost = CONFIG.cornerHandicapBoost;
             }
 
-            activeOdds = baseOdds * normalBoost * cornerBoost;
+            // 5. 上限キャップ（射幸性の暴走防止）
+            const rawOdds = baseOdds * normalBoost * cornerBoost;
+            activeOdds = Math.min(rawOdds, CONFIG.maxOdds);
 
             if (oddsMultiplierDisplay) {
                 oddsMultiplierDisplay.textContent = `x${activeOdds.toFixed(1)}`;
@@ -603,8 +776,13 @@
         function updatePayoutPreview() {
             if (!payoutPreviewEl || !betAmountInput) return;
             const amt = parseInt(betAmountInput.value, 10) || 0;
-            const payout = Math.floor(amt * activeOdds);
-            payoutPreviewEl.textContent = `勝利時獲得: ${payout.toLocaleString()} コイン (+${Math.max(0, payout - amt).toLocaleString()})`;
+            const payout = calculatePayout(amt, activeOdds);
+            payoutPreviewEl.textContent = `勝利時獲得: ${payout.toLocaleString()} コイン (+${Math.max(0, payout - amt).toLocaleString()}) ※胴元控除${(CONFIG.houseEdgeRate * 100).toFixed(0)}%込`;
+        }
+
+        // 払戻額の計算（house edge 控除込み）
+        function calculatePayout(amt, odds) {
+            return Math.floor(amt * odds * (1 - CONFIG.houseEdgeRate));
         }
 
         function initBoard() {
@@ -626,9 +804,11 @@
             ];
 
             if (cornerB && !cornerW) {
-                corners.forEach(p => { board[p.r][p.c] = BLACK; });
-            } else if (!cornerB && cornerW) {
+                // 黒のハンデ(角の譲渡)をON → 角は相手の白に渡す
                 corners.forEach(p => { board[p.r][p.c] = WHITE; });
+            } else if (!cornerB && cornerW) {
+                // 白のハンデ(角の譲渡)をON → 角は相手の黒に渡す
+                corners.forEach(p => { board[p.r][p.c] = BLACK; });
             } else if (cornerB && cornerW) {
                 const shuffledCorners = [...corners].sort(() => Math.random() - 0.5);
                 board[shuffledCorners[0].r][shuffledCorners[0].c] = BLACK;
@@ -640,6 +820,7 @@
             currentTurn = BLACK;
             moveHistory = [];
             lastMove = null;
+            lastFlippedCells = [];
             isGameOver = false;
             blackTurnCount = 0;
             whiteTurnCount = 0;
@@ -668,7 +849,8 @@
                         const discContainer = document.createElement('div');
                         discContainer.className = 'disc-container flex items-center justify-center';
                         const disc = document.createElement('div');
-                        disc.className = `disc ${cellVal === BLACK ? 'black' : 'white'}`;
+                        const wasFlipped = lastFlippedCells.some(f => f.r === r && f.c === c);
+                        disc.className = `disc ${cellVal === BLACK ? 'black' : 'white'}${wasFlipped ? ' flip-in' : ''}`;
                         discContainer.appendChild(disc);
                         cell.appendChild(discContainer);
                     } else if (isPlaying && !isGameOver) {
@@ -727,19 +909,72 @@
             return moves;
         }
 
+        // ==========================================================
+        // AI戦略（差し替え可能な形にプラグイン化）
+        // 新しいAIを追加したい場合はここに戦略関数を1つ足すだけでよい
+        // ==========================================================
+        const STRATEGIES = {
+            // 黒(AI-1): 角優先 → 最大反転数
+            black(validMoves) {
+                const corners = validMoves.filter(m => (m.r === 0 || m.r === 7) && (m.c === 0 || m.c === 7));
+                if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
+
+                const sorted = [...validMoves].sort((a, b) => b.flips.length - a.flips.length);
+                const maxF = sorted[0].flips.length;
+                const bests = sorted.filter(m => m.flips.length === maxF);
+                return bests[Math.floor(Math.random() * bests.length)];
+            },
+            // 白(AI-2): 盤面評価テーブル + 反転数 + 微小乱数
+            white(validMoves) {
+                let bestScore = -Infinity;
+                let bestMove = validMoves[0];
+                for (const move of validMoves) {
+                    const score = EVAL_MAP[move.r][move.c] + move.flips.length + (Math.random() * 2);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+                return bestMove;
+            }
+        };
+
+        // 盤面上の空きマス数を数える（終盤ハンデの判定用）
+        function countRemainingEmpty() {
+            let empty = 0;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (board[r][c] === EMPTY) empty++;
+                }
+            }
+            return empty;
+        }
+
+        // 「視野狭窄」ハンデ：即時反転数だけを基準に上位N手へ候補を絞る
+        // (戦略本来の評価基準=角優先/評価テーブルとは別の単純基準を使うことで、
+        //  本来なら選ばないはずの手しか見えなくなる＝弱体化として機能する)
+        function restrictToTopByFlips(moves, topN) {
+            const sorted = [...moves].sort((a, b) => b.flips.length - a.flips.length);
+            return sorted.slice(0, Math.max(1, topN));
+        }
+
         function chooseMove(player, validMoves) {
             if (validMoves.length === 0) return null;
 
             const isBlack = player === BLACK;
             const turnNum = isBlack ? ++blackTurnCount : ++whiteTurnCount;
+            const pTag = isBlack ? '⚫ 黒 (AI-1)' : '⚪ 白 (AI-2)';
 
-            const handicap1 = isBlack ? document.getElementById('handicap-b1')?.checked : document.getElementById('handicap-w1')?.checked;
-            const handicap2 = isBlack ? document.getElementById('handicap-b2')?.checked : document.getElementById('handicap-w2')?.checked;
+            const idOf = (n) => `handicap-${isBlack ? 'b' : 'w'}${n}`;
+            const handicap1 = document.getElementById(idOf(1))?.checked; // ランダム打ち
+            const handicap2 = document.getElementById(idOf(2))?.checked; // うっかりパス
+            const handicap4 = document.getElementById(idOf(4))?.checked; // 終盤の集中力切れ
+            const handicap5 = document.getElementById(idOf(5))?.checked; // 視野狭窄
 
             // 5手ブロック内の位置（0, 1, 2, 3, 4）
             const offset = (turnNum - 1) % 5;
 
-            // 新しい5手ブロックの開始時（offset === 0）または未初期化時に発動手番をランダム決定
+            // 新しい5手ブロックの開始時（offset === 0）に発動手番をランダム決定
             if (offset === 0) {
                 let h1 = Math.floor(Math.random() * 5);
                 let h2 = Math.floor(Math.random() * 5);
@@ -766,41 +1001,106 @@
 
             // ② うっかりパスの発動（5手中ランダムな1手）
             if (isHandicap2Trigger) {
-                const pTag = isBlack ? '⚫ 黒 (AI-1)' : '⚪ 白 (AI-2)';
                 addLog(`⚠️ ${pTag}: ハンデ【うっかりパス】発動！`, 'text-amber-400 font-bold');
                 showHandicapBanner(player, 'うっかりパス');
+                playSound('handicap');
                 return 'FORCED_PASS';
             }
 
             // ① ランダム手の発動（5手中ランダムな1手）
             if (isHandicap1Trigger) {
-                const pTag = isBlack ? '⚫ 黒 (AI-1)' : '⚪ 白 (AI-2)';
                 addLog(`🎲 ${pTag}: ハンデ【ランダム打ち】発動！`, 'text-purple-300 font-bold');
                 showHandicapBanner(player, 'ランダム打ち');
+                playSound('handicap');
                 return validMoves[Math.floor(Math.random() * validMoves.length)];
             }
 
-            if (isBlack) {
-                const corners = validMoves.filter(m => (m.r === 0 || m.r === 7) && (m.c === 0 || m.c === 7));
-                if (corners.length > 0) return corners[Math.floor(Math.random() * corners.length)];
-
-                validMoves.sort((a, b) => b.flips.length - a.flips.length);
-                const maxF = validMoves[0].flips.length;
-                const bests = validMoves.filter(m => m.flips.length === maxF);
-                return bests[Math.floor(Math.random() * bests.length)];
-            } else {
-                let bestScore = -Infinity;
-                let bestMove = validMoves[0];
-
-                for (const move of validMoves) {
-                    let score = EVAL_MAP[move.r][move.c] + move.flips.length + (Math.random() * 2);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = move;
-                    }
-                }
-                return bestMove;
+            // ③ 終盤の集中力切れ（残りマス数がしきい値以下でランダム化）
+            if (handicap4 && countRemainingEmpty() <= CONFIG.endgameHandicapRemaining) {
+                addLog(`😮‍💨 ${pTag}: ハンデ【集中力切れ】発動！`, 'text-purple-300 font-bold');
+                showHandicapBanner(player, '集中力切れ');
+                playSound('handicap');
+                return validMoves[Math.floor(Math.random() * validMoves.length)];
             }
+
+            // ④ 視野狭窄（候補手を上位N手に制限してから通常戦略で選ばせる）
+            let candidateMoves = validMoves;
+            if (handicap5 && validMoves.length > CONFIG.narrowViewTopN) {
+                candidateMoves = restrictToTopByFlips(validMoves, CONFIG.narrowViewTopN);
+            }
+
+            return isBlack ? STRATEGIES.black(candidateMoves) : STRATEGIES.white(candidateMoves);
+        }
+
+        // ==========================================================
+        // サウンド演出（外部音源ファイル不要・Web Audio APIで簡易生成）
+        // ==========================================================
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    return null;
+                }
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+            return audioCtx;
+        }
+
+        function playSound(type) {
+            // 最速再生中は「置く」音を省略してうるさくなり過ぎないようにする
+            if (type === 'place' && speedMs < 100) return;
+
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+
+            const presets = {
+                place:    { freq: 320, dur: 0.05, type: 'square',   vol: 0.04 },
+                handicap: { freq: 660, dur: 0.18, type: 'sawtooth', vol: 0.07 },
+                win:      { freq: 880, dur: 0.35, type: 'triangle', vol: 0.10 },
+                lose:     { freq: 160, dur: 0.40, type: 'sawtooth', vol: 0.09 },
+                draw:     { freq: 440, dur: 0.30, type: 'sine',     vol: 0.07 }
+            };
+            const p = presets[type] || presets.place;
+
+            try {
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.type = p.type;
+                osc.frequency.setValueAtTime(p.freq, now);
+                gain.gain.setValueAtTime(p.vol, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + p.dur);
+
+                osc.start(now);
+                osc.stop(now + p.dur);
+            } catch (e) { /* 音声再生に失敗しても進行に影響させない */ }
+        }
+
+        // ==========================================================
+        // 勝利時のコイン紙吹雪演出（CSSアニメーションのみ・外部ライブラリ不要）
+        // ==========================================================
+        function spawnConfetti() {
+            if (!confettiContainerEl) return;
+            confettiContainerEl.innerHTML = '';
+            const colors = ['#f59e0b', '#34d399', '#38bdf8', '#f472b6', '#facc15'];
+            const count = 26;
+            for (let i = 0; i < count; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = `${Math.random() * 100}%`;
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDuration = `${0.9 + Math.random() * 0.7}s`;
+                piece.style.animationDelay = `${Math.random() * 0.25}s`;
+                confettiContainerEl.appendChild(piece);
+            }
+            setTimeout(() => { if (confettiContainerEl) confettiContainerEl.innerHTML = ''; }, 2200);
         }
 
         function showHandicapBanner(player, handicapName) {
@@ -1000,7 +1300,9 @@
             });
 
             lastMove = { r: move.r, c: move.c };
+            lastFlippedCells = [{ r: move.r, c: move.c }, ...move.flips];
             moveHistory.push({ player: currentTurn, r: move.r, c: move.c, flipped: move.flips.length });
+            playSound('place');
 
             const pName = currentTurn === BLACK ? '黒' : '白';
             const colChar = String.fromCharCode(97 + move.c);
@@ -1055,28 +1357,38 @@
 
             let resultType = 'LOSE';
             let payout = 0;
+            const prevWinnerBeforeThisMatch = previousWinner;
 
             if (winner !== null) {
+                // 連勝ストリークの更新
+                winStreak = (winner === prevWinnerBeforeThisMatch) ? winStreak + 1 : 1;
                 previousWinner = winner;
+
                 if (betTarget === winner) {
                     resultType = 'WIN';
-                    payout = Math.floor(betAmount * activeOdds);
+                    payout = calculatePayout(betAmount, activeOdds);
                     coins += payout;
-                    addLog(`🎉 ベット的中！ ${payout} コインを獲得しました！`, 'text-emerald-400 font-bold');
+                    addLog(`🎉 ベット的中！ ${payout} コインを獲得しました！(胴元控除${(CONFIG.houseEdgeRate * 100).toFixed(0)}%込)`, 'text-emerald-400 font-bold');
                 } else {
                     resultType = 'LOSE';
                     addLog(`💀 ベット不的中... ${betAmount} コインを失いました。`, 'text-rose-400 font-bold');
                 }
             } else {
                 resultType = 'DRAW';
+                winStreak = 0; // 引き分けでストリークは途切れる
                 payout = betAmount;
-                coins += betAmount; // コイン返還
+                coins += betAmount; // コイン返還（house edge控除なし）
                 addLog(`🤝 引き分けのため ${betAmount} コインが返還されました。`, 'text-amber-300 font-bold');
             }
+
+            // 直近戦績履歴の記録
+            matchHistory.unshift(resultType);
+            if (matchHistory.length > 20) matchHistory.length = 20;
 
             saveStorage();
             updateCoinDisplay();
             updatePrevWinnerDisplay();
+            updateHistoryDisplay();
             updateMatchUI();
 
             showResultModal(resultType, payout, betAmount, scores);
@@ -1089,7 +1401,10 @@
                 resultScoreText.textContent = `黒 ${scores.black} - 白 ${scores.white}`;
             }
 
+            playSound(resultType === 'WIN' ? 'win' : (resultType === 'LOSE' ? 'lose' : 'draw'));
+
             if (resultType === 'WIN') {
+                spawnConfetti();
                 if (resultGlow) resultGlow.className = 'absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/30 rounded-full blur-3xl pointer-events-none';
                 if (resultIconBg) resultIconBg.className = 'w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto text-4xl shadow-xl shadow-emerald-500/20';
                 if (resultIconClass) resultIconClass.className = 'fa-solid fa-trophy text-emerald-400';
@@ -1214,6 +1529,27 @@
                 });
             }
 
+            if (chipAddBtns) {
+                chipAddBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (isPlaying) return;
+                        const add = parseInt(btn.dataset.add, 10) || 0;
+                        const current = parseInt(betAmountInput.value, 10) || 0;
+                        betAmountInput.value = Math.min(coins, Math.max(1, current + add));
+                        updatePayoutPreview();
+                    });
+                });
+            }
+
+            if (btnHalfBet) {
+                btnHalfBet.addEventListener('click', () => {
+                    if (isPlaying) return;
+                    const current = parseInt(betAmountInput.value, 10) || 0;
+                    betAmountInput.value = Math.max(1, Math.floor(current / 2));
+                    updatePayoutPreview();
+                });
+            }
+
             if (btnStartMatch) {
                 btnStartMatch.addEventListener('click', () => {
                     if (!isPlaying) startMatch();
@@ -1245,11 +1581,14 @@
 
             if (btnResetCoins) {
                 btnResetCoins.addEventListener('click', () => {
-                    coins = 100;
+                    coins = CONFIG.startCoins;
                     previousWinner = null;
+                    winStreak = 0;
+                    matchHistory = [];
                     saveStorage();
                     updateCoinDisplay();
                     updatePrevWinnerDisplay();
+                    updateHistoryDisplay();
                     if (gameoverModal) gameoverModal.classList.add('hidden');
                     initBoard();
                     calculateOdds();
