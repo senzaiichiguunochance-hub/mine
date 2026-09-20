@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" data-theme="classic">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +15,7 @@
       --cell-fixed: #e9ecef;
       --primary-color: #1e88e5;
       --primary-hover: #1565c0;
+      --primary-text: #ffffff;
       --accent-border: #ff9800;
     }
     :root[data-theme="dark"] {
@@ -26,6 +27,7 @@
       --cell-fixed: #2d2d2d;
       --primary-color: #90caf9;
       --primary-hover: #64b5f6;
+      --primary-text: #121212;
       --accent-border: #ffd54f;
     }
     :root[data-theme="pastel"] {
@@ -37,6 +39,7 @@
       --cell-fixed: #fbefff;
       --primary-color: #b5e2fa;
       --primary-hover: #9cd5f4;
+      --primary-text: #333333;
       --accent-border: #ffb703;
     }
     :root[data-theme="retro"] {
@@ -48,6 +51,7 @@
       --cell-fixed: #e0d8c3;
       --primary-color: #b07d62;
       --primary-hover: #8a5a44;
+      --primary-text: #ffffff;
       --accent-border: #d4a373;
     }
 
@@ -62,6 +66,12 @@
     }
 
     h1 { margin: 5px 0 10px 0; font-size: 1.4rem; }
+
+    .back-link {
+      align-self: flex-end; margin: 0 0 4px 0;
+      font-size: 16px; color: #333; text-decoration: none;
+      background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px;
+    }
 
     /* 設定エリア */
     .controls-panel {
@@ -83,13 +93,18 @@
 
     button {
       background: var(--primary-color);
-      color: #fff; border: none; padding: 6px 10px;
+      color: var(--primary-text); border: none; padding: 6px 10px;
       border-radius: 4px; cursor: pointer; font-weight: bold;
       transition: background 0.2s; font-size: 0.85rem;
     }
-    button:hover { background: var(--primary-hover); }
-    button.secondary { background: #78909c; }
-    button.secondary:hover { background: #546e7a; }
+    button.secondary { background: #78909c; color: #fff; }
+    /* ホバーはマウス環境のみ(タッチ端末で押した後に色が残るのを防止) */
+    @media (hover: hover) {
+      button:hover { background: var(--primary-hover); }
+      button.secondary:hover { background: #546e7a; }
+      .num-btn:hover, .tab-btn:hover { background: var(--cell-fixed); }
+      .tab-btn.active:hover { background: var(--primary-hover); }
+    }
 
     /* タイマー＆情報エリア */
     .status-bar {
@@ -154,7 +169,7 @@
     }
     .memo-num {
       display: flex; align-items: center; justify-content: center;
-      line-height: 1; color: #666; font-weight: normal;
+      line-height: 1; color: inherit; opacity: 0.8; font-weight: normal;
     }
 
     /* 太線強調 */
@@ -180,7 +195,7 @@
       border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;
     }
     .tab-btn.active {
-      background: var(--primary-color); color: #fff; border-color: var(--primary-color);
+      background: var(--primary-color); color: var(--primary-text); border-color: var(--primary-color);
     }
 
     /* パレットエリア */
@@ -227,10 +242,10 @@
       pointer-events: none; z-index: 99;
     }
   </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
-<body class="min-h-screen flex flex-col justify-between relative overflow-x-hidden">
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<body>
+  <a href="menu.html" class="back-link">メニューに戻る</a>
 
   <h1>可変サイズ ナンプレ</h1>
 
@@ -346,6 +361,8 @@
     let timerSeconds = 0;
     let timerInterval = null;
     let isPaused = false;
+    let isCompleted = false;   // クリア済み(タイマー停止・入力ロック)
+    let confettiFrame = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initSelectOptions();
@@ -365,26 +382,33 @@
       return Math.max(8, Math.min(36, maxFont));
     }
 
+    // プルダウンに実在する最大の文字サイズ(8から2刻み)
+    function getMaxFontOption(n) {
+      return 8 + Math.floor((getMaxFontSizeForSize(n) - 8) / 2) * 2;
+    }
+
+    // 任意の値を「プルダウンに存在する値」に丸める(奇数や範囲外だと選択欄が空白になるため)
+    function snapFontSize(v, n = N) {
+      let f = parseInt(v, 10);
+      if (!Number.isFinite(f)) f = 8;
+      f = 8 + Math.round((f - 8) / 2) * 2;
+      return Math.min(getMaxFontOption(n), Math.max(8, f));
+    }
+
     function updateFontSizeOptions() {
       const fontSelect = document.getElementById('font-size');
-      const maxFont = getMaxFontSizeForSize(N);
+      const maxOpt = getMaxFontOption(N);
       const currentVal = parseInt(fontSelect.value) || fontSize;
 
       fontSelect.innerHTML = '';
-      for (let i = 8; i <= maxFont; i += 2) {
+      for (let i = 8; i <= maxOpt; i += 2) {
         const opt = document.createElement('option');
         opt.value = i; opt.textContent = i;
         fontSelect.appendChild(opt);
       }
 
-      // 現在の値が新しい上限を超えていたら自動補正
-      if (currentVal > maxFont) {
-        fontSize = maxFont;
-      } else if (currentVal < 8) {
-        fontSize = 8;
-      } else {
-        fontSize = currentVal;
-      }
+      // 現在の値が新しい上限を超えていたら自動補正(選択肢に存在する値へ丸める)
+      fontSize = snapFontSize(currentVal);
       fontSelect.value = fontSize;
     }
 
@@ -408,11 +432,12 @@
 
     function getRecommendedFontSize(n) {
       const maxFont = getMaxFontSizeForSize(n);
-      if (n <= 4) return Math.min(24, maxFont);
-      if (n <= 6) return Math.min(18, maxFont);
-      if (n <= 9) return Math.min(14, maxFont);
-      if (n <= 12) return Math.min(12, maxFont);
-      return Math.min(10, maxFont);
+      let base = 10;
+      if (n <= 4) base = 24;
+      else if (n <= 6) base = 18;
+      else if (n <= 9) base = 14;
+      else if (n <= 12) base = 12;
+      return snapFontSize(Math.min(base, maxFont), n);
     }
 
     function setupEventListeners() {
@@ -463,20 +488,27 @@
       });
 
       document.addEventListener('keydown', (e) => {
-        if (isPaused || !selectedCell) return;
+        if (isPaused || isCompleted || !selectedCell) return;
+        // Ctrl+R などブラウザのショートカットを数字入力として誤処理しない
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        // プルダウン操作中のキー入力は盤面に反映しない
+        const tag = e.target && e.target.tagName;
+        if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+
         const { r, c } = selectedCell;
         if (initialBoard[r] && initialBoard[r][c] !== 0) return;
 
         const key = e.key.toLowerCase();
         let val = null;
 
-        if (key >= '1' && key <= '9') {
-          val = parseInt(key);
+        if (/^[1-9]$/.test(key)) {
+          val = parseInt(key, 10);
         } else if (KEY_MAP[key] !== undefined) {
           val = KEY_MAP[key];
         }
 
         if (val !== null && val <= N) {
+          if (e.repeat) return; // 押しっぱなしでメモのON/OFFが連打されないように
           if (isMemoMode) toggleMemoValue(r, c, val);
           else setCellValue(r, c, val);
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -487,6 +519,12 @@
       window.addEventListener('resize', () => {
         updateFontSizeOptions();
         applyStyles();
+      });
+
+      // タブを閉じる/切り替える時に経過時間も含めて保存
+      window.addEventListener('pagehide', saveState);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') saveState();
       });
     }
 
@@ -508,6 +546,8 @@
     }
 
     function startNewGame() {
+      if (isPaused) resumeGame();
+      cancelConfetti();
       [boxRows, boxCols] = getBlockDimensions(N);
       solutionBoard = generateCompleteBoard(N, boxRows, boxCols);
       initialBoard = createPuzzle(solutionBoard, N, difficulty);
@@ -519,53 +559,86 @@
       selectedCell = null;
       historyStack = [];
       timerSeconds = 0;
+      isCompleted = false;
       hideClearModal();
 
       renderBoard();
       renderNumPad();
       renderColorPad();
+      updateTimerDisplay();
       updateBestTimeDisplay();
       saveState();
     }
 
+    // 偏りのない Fisher-Yates シャッフル
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
     function generateCompleteBoard(n, bRows, bCols) {
+      // 1) ランダム順のバックトラック法(探索回数に上限を設け、行き詰まったらやり直す)
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const board = tryGenerateByBacktracking(n, bRows, bCols, 20000);
+        if (board) return board;
+      }
+      // 2) 大きいサイズで探索が長引く場合のフォールバック(フリーズ防止)
+      return generateByPattern(n, bRows, bCols);
+    }
+
+    function tryGenerateByBacktracking(n, bRows, bCols, limit) {
       const board = Array.from({ length: n }, () => Array(n).fill(0));
+      const rowUsed = Array(n).fill(0);
+      const colUsed = Array(n).fill(0);
+      const boxUsed = Array(n).fill(0);
+      const boxesPerRow = n / bCols;
+      const total = n * n;
+      let steps = 0;
 
-      function isValid(b, r, c, val) {
-        for (let i = 0; i < n; i++) {
-          if (b[r][i] === val || b[i][c] === val) return false;
+      function fill(pos) {
+        if (pos === total) return true;
+        if (++steps > limit) return false;
+        const r = Math.floor(pos / n), c = pos % n;
+        const b = Math.floor(r / bRows) * boxesPerRow + Math.floor(c / bCols);
+        const used = rowUsed[r] | colUsed[c] | boxUsed[b];
+
+        const cands = [];
+        for (let v = 0; v < n; v++) if (!(used & (1 << v))) cands.push(v);
+
+        for (const v of shuffle(cands)) {
+          const bit = 1 << v;
+          board[r][c] = v + 1;
+          rowUsed[r] |= bit; colUsed[c] |= bit; boxUsed[b] |= bit;
+          if (fill(pos + 1)) return true;
+          board[r][c] = 0;
+          rowUsed[r] &= ~bit; colUsed[c] &= ~bit; boxUsed[b] &= ~bit;
+          if (steps > limit) return false;
         }
-        const startR = Math.floor(r / bRows) * bRows;
-        const startC = Math.floor(c / bCols) * bCols;
-        for (let i = 0; i < bRows; i++) {
-          for (let j = 0; j < bCols; j++) {
-            if (b[startR + i][startC + j] === val) return false;
-          }
-        }
-        return true;
+        return false;
       }
+      return fill(0) ? board : null;
+    }
 
-      function solve(b) {
-        for (let r = 0; r < n; r++) {
-          for (let c = 0; c < n; c++) {
-            if (b[r][c] === 0) {
-              const nums = Array.from({ length: n }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-              for (let num of nums) {
-                if (isValid(b, r, c, num)) {
-                  b[r][c] = num;
-                  if (solve(b)) return true;
-                  b[r][c] = 0;
-                }
-              }
-              return false;
-            }
-          }
-        }
-        return true;
+    // 基本パターンを「バンド/スタック内外の行列入れ替え + 数字の入れ替え」でシャッフルして完成盤面を作る
+    function generateByPattern(n, bRows, bCols) {
+      const idx = k => Array.from({ length: k }, (_, i) => i);
+      const rowOrder = [];
+      for (const band of shuffle(idx(n / bRows))) {
+        for (const i of shuffle(idx(bRows))) rowOrder.push(band * bRows + i);
       }
+      const colOrder = [];
+      for (const stack of shuffle(idx(n / bCols))) {
+        for (const j of shuffle(idx(bCols))) colOrder.push(stack * bCols + j);
+      }
+      const symbols = shuffle(idx(n).map(i => i + 1));
 
-      solve(board);
-      return board;
+      return rowOrder.map(rr => colOrder.map(cc =>
+        symbols[(bCols * (rr % bRows) + Math.floor(rr / bRows) + cc) % n]
+      ));
     }
 
     function createPuzzle(sol, n, diff) {
@@ -582,10 +655,10 @@
       for (let r = 0; r < n; r++) {
         for (let c = 0; c < n; c++) coords.push([r, c]);
       }
-      coords.sort(() => Math.random() - 0.5);
+      const shuffled = shuffle(coords);
 
       for (let i = 0; i < cellsToRemove; i++) {
-        const [r, c] = coords[i];
+        const [r, c] = shuffled[i];
         puzzle[r][c] = 0;
       }
       return puzzle;
@@ -594,7 +667,8 @@
     function renderBoard() {
       const boardEl = document.getElementById('sudoku-board');
       boardEl.innerHTML = '';
-      boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+      // minmax(0,1fr): 中身(2桁数字など)の幅で列が押し広げられて盤面が崩れるのを防止
+      boardEl.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
 
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
@@ -606,7 +680,8 @@
           if ((r + 1) % boxRows === 0 && r < N - 1) cell.classList.add('border-bottom-thick');
 
           if (initialBoard[r][c] !== 0) cell.classList.add('fixed');
-          if (colorBoard[r][c]) cell.style.backgroundColor = colorBoard[r][c];
+          if (selectedCell && selectedCell.r === r && selectedCell.c === c) cell.classList.add('selected');
+          applyCellColor(cell, r, c);
 
           updateCellContent(cell, r, c);
           cell.addEventListener('click', () => selectCell(r, c));
@@ -617,18 +692,26 @@
       checkErrors();
     }
 
+    // セルの着色を反映(着色セルは背景が明るいため、ダークテーマでも読めるよう文字色を固定)
+    function applyCellColor(cell, r, c) {
+      const col = colorBoard[r][c];
+      cell.style.backgroundColor = col || '';
+      cell.style.color = col ? '#333333' : '';
+    }
+
+    function getMemoFontSize() {
+      return Math.max(6, fontSize * 0.4);
+    }
+
     function updateCellContent(cell, r, c) {
       const val = currentBoard[r][c];
       cell.innerHTML = '';
+      cell.style.letterSpacing = 'normal';
 
       if (val !== 0) {
         cell.textContent = val;
         // 2桁表示の際の縮小調整
-        if (val >= 10) {
-          cell.style.letterSpacing = '-1px';
-        } else {
-          cell.style.letterSpacing = 'normal';
-        }
+        if (val >= 10) cell.style.letterSpacing = '-1px';
       } else if (memoBoard[r][c] && memoBoard[r][c].size > 0) {
         const memoGrid = document.createElement('div');
         memoGrid.className = 'memo-grid';
@@ -638,7 +721,7 @@
         for (let i = 1; i <= side * side; i++) {
           const item = document.createElement('div');
           item.className = 'memo-num';
-          item.style.fontSize = `${Math.max(6, fontSize * 0.4)}px`;
+          item.style.fontSize = `${getMemoFontSize()}px`;
           if (i <= N && memoBoard[r][c].has(i)) item.textContent = i;
           memoGrid.appendChild(item);
         }
@@ -695,6 +778,10 @@
       document.querySelectorAll('.cell').forEach(cell => {
         cell.style.fontSize = `${fontSize}px`;
       });
+      // メモ数字も文字サイズ変更に追従させる
+      document.querySelectorAll('.memo-num').forEach(el => {
+        el.style.fontSize = `${getMemoFontSize()}px`;
+      });
     }
 
     function selectCell(r, c) {
@@ -715,7 +802,7 @@
     }
 
     function undoAction() {
-      if (historyStack.length === 0) return;
+      if (isPaused || isCompleted || historyStack.length === 0) return;
       const last = historyStack.pop();
       currentBoard = last.currentBoard;
       memoBoard = last.memoBoard;
@@ -725,7 +812,10 @@
     }
 
     function setCellValue(r, c, val) {
+      if (isPaused || isCompleted) return;
       if (initialBoard[r][c] !== 0) return;
+      // 変化がない操作は「戻す」履歴に積まない
+      if (currentBoard[r][c] === val && (val !== 0 || memoBoard[r][c].size === 0)) return;
       saveHistory();
 
       currentBoard[r][c] = val;
@@ -740,6 +830,7 @@
     }
 
     function toggleMemoValue(r, c, val) {
+      if (isPaused || isCompleted) return;
       if (initialBoard[r][c] !== 0 || currentBoard[r][c] !== 0) return;
       saveHistory();
 
@@ -752,46 +843,49 @@
     }
 
     function setCellColor(r, c, colorCode) {
+      if (isPaused || isCompleted) return;
+      if (colorBoard[r][c] === colorCode) return;
       saveHistory();
       colorBoard[r][c] = colorCode;
       const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
-      if (target) {
-        target.style.backgroundColor = colorCode || (initialBoard[r][c] !== 0 ? 'var(--cell-fixed)' : 'var(--panel-bg)');
-      }
+      if (target) applyCellColor(target, r, c);
       saveState();
     }
 
     function giveHint() {
-      if (!selectedCell) return;
+      if (isPaused || isCompleted || !selectedCell) return;
       const { r, c } = selectedCell;
       if (initialBoard[r][c] !== 0 || currentBoard[r][c] === solutionBoard[r][c]) return;
 
       setCellValue(r, c, solutionBoard[r][c]);
     }
 
+    // (r,c) の値が同じ行・列・ブロックの他のマスと重複しているか
+    function hasConflict(r, c) {
+      const val = currentBoard[r][c];
+      if (val === 0) return false;
+
+      for (let i = 0; i < N; i++) {
+        if (i !== c && currentBoard[r][i] === val) return true;
+        if (i !== r && currentBoard[i][c] === val) return true;
+      }
+      const startR = Math.floor(r / boxRows) * boxRows;
+      const startC = Math.floor(c / boxCols) * boxCols;
+      for (let i = 0; i < boxRows; i++) {
+        for (let j = 0; j < boxCols; j++) {
+          const nr = startR + i, nc = startC + j;
+          if ((nr !== r || nc !== c) && currentBoard[nr][nc] === val) return true;
+        }
+      }
+      return false;
+    }
+
     function checkErrors() {
-      document.querySelectorAll('.cell').forEach(el => el.classList.remove('invalid'));
+      document.querySelectorAll('.cell.invalid').forEach(el => el.classList.remove('invalid'));
 
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
-          const val = currentBoard[r][c];
-          if (val === 0) continue;
-
-          let isDup = false;
-          for (let i = 0; i < N; i++) {
-            if (i !== c && currentBoard[r][i] === val) isDup = true;
-            if (i !== r && currentBoard[i][c] === val) isDup = true;
-          }
-          const startR = Math.floor(r / boxRows) * boxRows;
-          const startC = Math.floor(c / boxCols) * boxCols;
-          for (let i = 0; i < boxRows; i++) {
-            for (let j = 0; j < boxCols; j++) {
-              const nr = startR + i, nc = startC + j;
-              if ((nr !== r || nc !== c) && currentBoard[nr][nc] === val) isDup = true;
-            }
-          }
-
-          if (isDup) {
+          if (hasConflict(r, c)) {
             const el = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
             if (el) el.classList.add('invalid');
           }
@@ -799,13 +893,21 @@
       }
     }
 
-    function checkWinCondition() {
+    // 全マスが埋まり、行・列・ブロックに重複がなければ完成
+    // (出題は唯一解とは限らないため、生成時の解答との一致ではなくルールで判定する)
+    function isBoardSolved() {
+      if (!currentBoard.length) return false;
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
-          if (currentBoard[r][c] !== solutionBoard[r][c]) return;
+          if (currentBoard[r][c] === 0 || hasConflict(r, c)) return false;
         }
       }
-      pauseTimer();
+      return true;
+    }
+
+    function checkWinCondition() {
+      if (isCompleted || !isBoardSolved()) return;
+      isCompleted = true; // タイマー停止・入力ロック
       saveBestTime();
       showClearModal();
       triggerConfetti();
@@ -822,7 +924,17 @@
       document.getElementById('clear-modal').classList.remove('show');
     }
 
+    function cancelConfetti() {
+      if (confettiFrame) {
+        cancelAnimationFrame(confettiFrame);
+        confettiFrame = null;
+      }
+      const canvas = document.getElementById('confetti-canvas');
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
     function triggerConfetti() {
+      cancelConfetti();
       const canvas = document.getElementById('confetti-canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
@@ -844,7 +956,6 @@
         });
       }
 
-      let animationFrame;
       let duration = 0;
 
       function update() {
@@ -864,25 +975,25 @@
 
         duration++;
         if (duration < 200) {
-          animationFrame = requestAnimationFrame(update);
+          confettiFrame = requestAnimationFrame(update);
         } else {
+          confettiFrame = null;
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
       }
       update();
     }
 
+    // 1秒ごとに加算(一時停止中・クリア後は加算しない)
     function startTimer() {
       clearInterval(timerInterval);
       timerInterval = setInterval(() => {
-        if (!isPaused) {
+        if (!isPaused && !isCompleted) {
           timerSeconds++;
           updateTimerDisplay();
         }
       }, 1000);
     }
-
-    function pauseTimer() { clearInterval(timerInterval); }
 
     function togglePause() {
       if (isPaused) resumeGame();
@@ -905,20 +1016,28 @@
       document.getElementById('timer').textContent = `${m}:${s}`;
     }
 
+    // localStorage が使えない環境(プライベートモード等)でもゲームが止まらないようにする
+    function storageGet(key) {
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+    function storageSet(key, value) {
+      try { localStorage.setItem(key, value); } catch (e) { /* 保存不可でも続行 */ }
+    }
+
     function saveBestTime() {
       const key = `best_time_${N}_${difficulty}`;
-      const best = localStorage.getItem(key);
-      if (!best || timerSeconds < parseInt(best)) {
-        localStorage.setItem(key, timerSeconds);
+      const best = parseInt(storageGet(key), 10);
+      if (!Number.isFinite(best) || timerSeconds < best) {
+        storageSet(key, timerSeconds);
         updateBestTimeDisplay();
       }
     }
 
     function updateBestTimeDisplay() {
       const key = `best_time_${N}_${difficulty}`;
-      const best = localStorage.getItem(key);
+      const best = parseInt(storageGet(key), 10);
       const el = document.getElementById('best-time');
-      if (best) {
+      if (Number.isFinite(best)) {
         const m = String(Math.floor(best / 60)).padStart(2, '0');
         const s = String(best % 60).padStart(2, '0');
         el.textContent = `自己ベスト: ${m}:${s}`;
@@ -928,42 +1047,69 @@
     }
 
     function saveState() {
+      if (!currentBoard.length) return;
       const state = {
         N, fontSize, difficulty, theme, timerSeconds,
         solutionBoard, initialBoard, currentBoard,
         colorBoard,
         memoBoard: memoBoard.map(row => row.map(set => Array.from(set)))
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      storageSet(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    // n×n の二次元配列で、全要素が pred を満たすか
+    function isGrid(g, n, pred) {
+      return Array.isArray(g) && g.length === n &&
+        g.every(row => Array.isArray(row) && row.length === n && row.every(pred));
+    }
+
+    // 画面上のプルダウンを現在の設定値に合わせる
+    function syncControls() {
+      document.getElementById('size-select').value = N;
+      document.getElementById('font-size').value = fontSize;
+      document.getElementById('diff-select').value = difficulty;
+      document.getElementById('theme-select').value = theme;
+      document.documentElement.setAttribute('data-theme', theme);
     }
 
     function loadSettingsAndState() {
-      const data = localStorage.getItem(STORAGE_KEY);
+      const data = storageGet(STORAGE_KEY);
       if (data) {
         try {
           const state = JSON.parse(data);
-          N = state.N || 6;
-          difficulty = state.difficulty || 'hard';
-          theme = state.theme || 'classic';
-          timerSeconds = state.timerSeconds || 0;
+
+          // 保存データが壊れていても新規ゲームで起動できるよう、反映前に検証する
+          const n = parseInt(state.N, 10);
+          if (!(n >= 2 && n <= 20)) throw new Error('invalid N');
+          const isCell = v => Number.isInteger(v) && v >= 0 && v <= n;
+          if (!isGrid(state.solutionBoard, n, isCell) ||
+              !isGrid(state.initialBoard, n, isCell) ||
+              !isGrid(state.currentBoard, n, isCell)) throw new Error('invalid board');
+
+          N = n;
+          difficulty = ['easy', 'normal', 'hard'].includes(state.difficulty) ? state.difficulty : 'hard';
+          theme = ['classic', 'dark', 'pastel', 'retro'].includes(state.theme) ? state.theme : 'classic';
+          timerSeconds = parseInt(state.timerSeconds, 10) || 0;
 
           updateFontSizeOptions();
-          fontSize = state.fontSize || getRecommendedFontSize(N);
+          fontSize = snapFontSize(state.fontSize || getRecommendedFontSize(N));
 
           solutionBoard = state.solutionBoard;
           initialBoard = state.initialBoard;
           currentBoard = state.currentBoard;
-          colorBoard = state.colorBoard || Array.from({ length: N }, () => Array(N).fill(''));
-          memoBoard = state.memoBoard ? state.memoBoard.map(row => row.map(arr => new Set(arr))) : Array.from({ length: N }, () => Array.from({ length: N }, () => new Set()));
+          colorBoard = isGrid(state.colorBoard, N, v => typeof v === 'string')
+            ? state.colorBoard
+            : Array.from({ length: N }, () => Array(N).fill(''));
+          memoBoard = isGrid(state.memoBoard, N, a => Array.isArray(a) && a.every(v => Number.isInteger(v) && v >= 1 && v <= N))
+            ? state.memoBoard.map(row => row.map(arr => new Set(arr)))
+            : Array.from({ length: N }, () => Array.from({ length: N }, () => new Set()));
 
           [boxRows, boxCols] = getBlockDimensions(N);
+          selectedCell = null;
+          historyStack = [];
+          isCompleted = isBoardSolved(); // 完成済みの盤面を復元した場合はタイマーを動かさない
 
-          document.getElementById('size-select').value = N;
-          document.getElementById('font-size').value = fontSize;
-          document.getElementById('diff-select').value = difficulty;
-          document.getElementById('theme-select').value = theme;
-          document.documentElement.setAttribute('data-theme', theme);
-
+          syncControls();
           renderBoard();
           renderNumPad();
           renderColorPad();
@@ -977,9 +1123,7 @@
 
       updateFontSizeOptions();
       fontSize = getRecommendedFontSize(N);
-      document.getElementById('size-select').value = N;
-      document.getElementById('font-size').value = fontSize;
-      document.documentElement.setAttribute('data-theme', theme);
+      syncControls();
       startNewGame();
     }
   </script>
