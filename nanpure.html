@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>可変サイズ ナンプレ</title>
+  <title>可変サイズ ナンプレ (表示崩れ防止版)</title>
   <style>
     /* --- カラーテーマ定義 --- */
     :root[data-theme="classic"] {
@@ -13,9 +13,9 @@
       --border-color: #cccccc;
       --thick-border: #333333;
       --cell-fixed: #e9ecef;
-      --cell-selected: #bbdefb;
       --primary-color: #1e88e5;
       --primary-hover: #1565c0;
+      --accent-border: #ff9800;
     }
     :root[data-theme="dark"] {
       --bg-color: #121212;
@@ -24,9 +24,9 @@
       --border-color: #444444;
       --thick-border: #ffffff;
       --cell-fixed: #2d2d2d;
-      --cell-selected: #0d47a1;
       --primary-color: #90caf9;
       --primary-hover: #64b5f6;
+      --accent-border: #ffd54f;
     }
     :root[data-theme="pastel"] {
       --bg-color: #fef6f6;
@@ -35,9 +35,9 @@
       --border-color: #f3d1d1;
       --thick-border: #e5989b;
       --cell-fixed: #fbefff;
-      --cell-selected: #ffd1dc;
       --primary-color: #b5e2fa;
       --primary-hover: #9cd5f4;
+      --accent-border: #ffb703;
     }
     :root[data-theme="retro"] {
       --bg-color: #f4ebd9;
@@ -46,97 +46,186 @@
       --border-color: #bcb8b1;
       --thick-border: #8a5a44;
       --cell-fixed: #e0d8c3;
-      --cell-selected: #d7b9d5;
       --primary-color: #b07d62;
       --primary-hover: #8a5a44;
+      --accent-border: #d4a373;
     }
 
     * { box-sizing: border-box; font-family: sans-serif; }
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
-      margin: 0; padding: 15px;
+      margin: 0; padding: 10px;
       display: flex; flex-direction: column; align-items: center;
       transition: background-color 0.3s, color 0.3s;
+      overflow-x: hidden;
     }
 
-    h1 { margin: 5px 0 15px 0; font-size: 1.5rem; }
+    h1 { margin: 5px 0 10px 0; font-size: 1.4rem; }
 
     /* 設定エリア */
     .controls-panel {
       background: var(--panel-bg);
-      padding: 12px; border-radius: 8px;
+      padding: 10px; border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      display: flex; flex-wrap: wrap; gap: 10px;
+      display: flex; flex-wrap: wrap; gap: 8px;
       justify-content: center; align-items: center;
-      max-width: 500px; width: 100%; margin-bottom: 15px;
+      max-width: 500px; width: 100%; margin-bottom: 10px;
     }
     .control-group {
-      display: flex; align-items: center; gap: 5px; font-size: 0.85rem;
+      display: flex; align-items: center; gap: 4px; font-size: 0.8rem;
     }
     select {
-      padding: 4px 8px; border-radius: 4px;
+      padding: 4px 6px; border-radius: 4px;
       border: 1px solid var(--border-color);
       background: var(--panel-bg); color: var(--text-color);
     }
 
     button {
       background: var(--primary-color);
-      color: #fff; border: none; padding: 6px 12px;
+      color: #fff; border: none; padding: 6px 10px;
       border-radius: 4px; cursor: pointer; font-weight: bold;
-      transition: background 0.2s;
+      transition: background 0.2s; font-size: 0.85rem;
     }
     button:hover { background: var(--primary-hover); }
+    button.secondary { background: #78909c; }
+    button.secondary:hover { background: #546e7a; }
+
+    /* タイマー＆情報エリア */
+    .status-bar {
+      display: flex; gap: 15px; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 450px; margin-bottom: 8px; font-size: 0.85rem;
+    }
+    .timer-container { font-weight: bold; }
+    .best-time { color: #888; font-size: 0.75rem; }
+
+    /* 初心者ガイド表示 */
+    .usage-guide {
+      background: rgba(30, 136, 229, 0.1);
+      color: var(--text-color);
+      border-left: 4px solid var(--primary-color);
+      padding: 6px 10px; border-radius: 4px;
+      font-size: 0.78rem; font-weight: bold;
+      width: 100%; max-width: 450px; margin-bottom: 10px;
+      text-align: center; line-height: 1.4;
+    }
 
     /* 盤面コンテナ */
     .board-container {
       width: 100%; max-width: 450px;
       display: flex; justify-content: center;
-      overflow-x: auto; margin-bottom: 15px;
+      margin-bottom: 10px; position: relative;
     }
     #sudoku-board {
       display: grid;
       border: 2px solid var(--thick-border);
       background: var(--thick-border);
-      gap: 1px;
-      width: 100%;
-      max-width: 450px;
+      gap: 1px; width: 100%; max-width: 450px;
+      position: relative;
     }
 
-    /* マス目スタイル（正方形固定） */
+    /* マス目スタイル（崩れ防止対策追加） */
     .cell {
       background: var(--panel-bg);
       display: flex; justify-content: center; align-items: center;
       font-weight: bold; cursor: pointer; user-select: none;
-      width: 100%;
-      aspect-ratio: 1 / 1;
+      width: 100%; aspect-ratio: 1 / 1;
+      position: relative; transition: border 0.1s;
+      overflow: hidden; /* ハミ出し防止 */
+      line-height: 1;
+      white-space: nowrap;
     }
     .cell.fixed {
       background: var(--cell-fixed);
       cursor: default;
     }
     .cell.selected {
-      background: var(--cell-selected) !important;
+      outline: 3px solid var(--accent-border) !important;
+      outline-offset: -3px;
+      z-index: 10;
+    }
+    .cell.invalid { color: #d32f2f !important; }
+
+    /* メモのグリッド表示 */
+    .memo-grid {
+      display: grid; width: 100%; height: 100%;
+      padding: 1px; box-sizing: border-box;
+      pointer-events: none;
+    }
+    .memo-num {
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1; color: #666; font-weight: normal;
     }
 
-    /* サブブロック太線強調 */
+    /* 太線強調 */
     .border-right-thick { border-right: 2px solid var(--thick-border) !important; }
     .border-bottom-thick { border-bottom: 2px solid var(--thick-border) !important; }
 
-    /* テンキーパレット */
-    .num-pad {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      justify-content: center; max-width: 450px; margin-bottom: 15px;
+    /* 一時停止マスク */
+    .pause-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); color: white;
+      display: flex; justify-content: center; align-items: center;
+      font-size: 1.2rem; font-weight: bold; z-index: 20; border-radius: 4px;
+    }
+
+    /* モード切替タブ・アクションボタン */
+    .action-bar {
+      display: flex; gap: 6px; justify-content: center;
+      width: 100%; max-width: 450px; margin-bottom: 8px;
+    }
+    .tab-btn {
+      flex: 1; padding: 6px; border: 1px solid var(--border-color);
+      background: var(--panel-bg); color: var(--text-color);
+      border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;
+    }
+    .tab-btn.active {
+      background: var(--primary-color); color: #fff; border-color: var(--primary-color);
+    }
+
+    /* パレットエリア */
+    .num-pad, .color-pad {
+      display: flex; flex-wrap: wrap; gap: 5px;
+      justify-content: center; max-width: 450px; margin-bottom: 10px; width: 100%;
     }
     .num-btn {
-      width: 38px; height: 38px; font-size: 1rem;
+      width: 36px; height: 36px; font-size: 0.95rem;
       border: 1px solid var(--border-color);
       background: var(--panel-bg); color: var(--text-color);
       border-radius: 4px; cursor: pointer;
-      display: flex; justify-content: center; align-items: center;
+      display: flex; justify-content: center; align-items: center; font-weight: bold;
     }
+    .color-btn {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 2px solid #ccc; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .color-btn:hover { transform: scale(1.1); }
 
-    #message { font-weight: bold; min-height: 24px; color: #2e7d32; }
+    /* 中央クリアモーダル */
+    .clear-modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 100; opacity: 0; visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .clear-modal-overlay.show { opacity: 1; visibility: visible; }
+    .clear-modal-card {
+      background: var(--panel-bg); color: var(--text-color);
+      padding: 30px 25px; border-radius: 16px; text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3); transform: scale(0.7);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      max-width: 320px; width: 85%;
+    }
+    .clear-modal-overlay.show .clear-modal-card { transform: scale(1); }
+    .clear-title { font-size: 2rem; font-weight: 900; color: #ff9800; margin-bottom: 10px; }
+    .clear-time { font-size: 1.2rem; margin: 10px 0 20px 0; font-weight: bold; }
+
+    #confetti-canvas {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none; z-index: 99;
+    }
   </style>
 </head>
 <body>
@@ -176,18 +265,65 @@
     <button id="new-game-btn">新規作成</button>
   </div>
 
+  <div class="status-bar">
+    <div class="timer-container">
+      ⏱️ <span id="timer">00:00</span>
+      <button id="pause-btn" class="secondary" style="padding: 2px 6px; font-size: 0.75rem;">一時停止</button>
+    </div>
+    <div class="best-time" id="best-time">自己ベスト: --:--</div>
+  </div>
+
+  <div class="usage-guide">
+    💡 <b>操作方法:</b> ①マスを選択 ➔ ②画面下の数字/カラーまたはキーボード入力<br>
+    ⌨️ <b>キー入力:</b> [1-9]=1-9, [0]=10, [Q-P]=11-20, [Delete/BS]=消去
+  </div>
+
   <div class="board-container">
     <div id="sudoku-board"></div>
+    <div id="pause-overlay" class="pause-overlay" style="display: none;">一時停止中 (クリックで再開)</div>
+  </div>
+
+  <div class="action-bar">
+    <button id="tab-num" class="tab-btn active">数字入力</button>
+    <button id="tab-memo" class="tab-btn">メモ (OFF)</button>
+    <button id="tab-color" class="tab-btn">カラー着色</button>
+    <button id="undo-btn" class="secondary" style="flex: 0.5;">↩ 戻す</button>
+    <button id="hint-btn" class="secondary" style="flex: 0.5;">💡 ヒント</button>
   </div>
 
   <div class="num-pad" id="num-pad"></div>
+  <div class="color-pad" id="color-pad" style="display: none;"></div>
 
-  <div id="message"></div>
+  <canvas id="confetti-canvas"></canvas>
+
+  <div id="clear-modal" class="clear-modal-overlay">
+    <div class="clear-modal-card">
+      <div class="clear-title">🎉 CLEAR!</div>
+      <div>見事に盤面を完成させました！</div>
+      <div class="clear-time" id="clear-final-time">⏱️ 00:00</div>
+      <button id="modal-restart-btn" style="padding: 10px 20px; font-size: 1rem;">もう一度遊ぶ</button>
+    </div>
+  </div>
 
   <script>
-    const STORAGE_KEY = 'sudoku_app_state_v3';
+    const STORAGE_KEY = 'sudoku_app_state_v6';
 
-    // 状態変数
+    const PASTEL_COLORS = [
+      { name: 'なし(白)', code: '' },
+      { name: '赤', code: '#ffcdd2' },
+      { name: '青', code: '#bbdefb' },
+      { name: '黄', code: '#fff9c4' },
+      { name: '緑', code: '#c8e6c9' },
+      { name: '紫', code: '#e1bee7' },
+      { name: '橙', code: '#ffe0b2' },
+      { name: '桃', code: '#f8bbd0' }
+    ];
+
+    const KEY_MAP = {
+      '0': 10, 'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15,
+      'y': 16, 'u': 17, 'i': 18, 'o': 19, 'p': 20
+    };
+
     let N = 6;
     let boxRows = 2, boxCols = 3;
     let fontSize = 18;
@@ -197,120 +333,198 @@
     let solutionBoard = [];
     let initialBoard = [];
     let currentBoard = [];
+    let memoBoard = [];
+    let colorBoard = [];
     let selectedCell = null;
 
-    // 初期化ロード
+    let isMemoMode = false;
+    let activeTab = 'num';
+    let historyStack = [];
+
+    let timerSeconds = 0;
+    let timerInterval = null;
+    let isPaused = false;
+
     window.addEventListener('DOMContentLoaded', () => {
       initSelectOptions();
       loadSettingsAndState();
       setupEventListeners();
+      startTimer();
     });
 
-    // セレクトボックスのオプション作成
+    // 盤面サイズに応じて安全な文字サイズの上限を計算
+    function getMaxFontSizeForSize(n) {
+      // 盤面全体の最大幅450pxに対するマスの近似サイズ
+      const maxBoardWidth = Math.min(window.innerWidth - 30, 450);
+      const cellSize = maxBoardWidth / n;
+      
+      // 2桁表示（10〜20）を考慮してマスの約55%〜60%を文字サイズ上限にする
+      const maxFont = Math.floor(cellSize * 0.58);
+      return Math.max(8, Math.min(36, maxFont));
+    }
+
+    function updateFontSizeOptions() {
+      const fontSelect = document.getElementById('font-size');
+      const maxFont = getMaxFontSizeForSize(N);
+      const currentVal = parseInt(fontSelect.value) || fontSize;
+
+      fontSelect.innerHTML = '';
+      for (let i = 8; i <= maxFont; i += 2) {
+        const opt = document.createElement('option');
+        opt.value = i; opt.textContent = i;
+        fontSelect.appendChild(opt);
+      }
+
+      // 現在の値が新しい上限を超えていたら自動補正
+      if (currentVal > maxFont) {
+        fontSize = maxFont;
+      } else if (currentVal < 8) {
+        fontSize = 8;
+      } else {
+        fontSize = currentVal;
+      }
+      fontSelect.value = fontSize;
+    }
+
     function initSelectOptions() {
       const sizeSelect = document.getElementById('size-select');
       sizeSelect.innerHTML = '';
       for (let i = 2; i <= 20; i++) {
         const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
+        opt.value = i; opt.textContent = i;
         sizeSelect.appendChild(opt);
       }
-
-      const fontSelect = document.getElementById('font-size');
-      fontSelect.innerHTML = '';
-      for (let i = 8; i <= 36; i += 2) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = i;
-        fontSelect.appendChild(opt);
-      }
+      updateFontSizeOptions();
     }
 
-    // ブロック形状の決定
     function getBlockDimensions(n) {
       for (let r = Math.floor(Math.sqrt(n)); r >= 1; r--) {
-        if (n % r === 0) {
-          return [r, n / r];
-        }
+        if (n % r === 0) return [r, n / r];
       }
       return [1, n];
     }
 
-    // サイズごとの推奨フォントサイズ算出
     function getRecommendedFontSize(n) {
-      if (n <= 4) return 24;
-      if (n <= 6) return 18;
-      if (n <= 9) return 14;
-      if (n <= 12) return 12;
-      return 10;
+      const maxFont = getMaxFontSizeForSize(n);
+      if (n <= 4) return Math.min(24, maxFont);
+      if (n <= 6) return Math.min(18, maxFont);
+      if (n <= 9) return Math.min(14, maxFont);
+      if (n <= 12) return Math.min(12, maxFont);
+      return Math.min(10, maxFont);
     }
 
-    // イベント設定
     function setupEventListeners() {
-      // サイズ変更：即座に全作成
       document.getElementById('size-select').addEventListener('change', (e) => {
         N = parseInt(e.target.value);
+        updateFontSizeOptions();
         fontSize = getRecommendedFontSize(N);
         document.getElementById('font-size').value = fontSize;
+        if (isPaused) resumeGame();
         startNewGame();
       });
 
-      // 文字サイズ変更：スタイルのみ即時変更
       document.getElementById('font-size').addEventListener('change', (e) => {
         fontSize = parseInt(e.target.value);
-        applyStyles();
-        saveState();
+        applyStyles(); saveState();
       });
 
-      // 難易度変更：即座に再作成
       document.getElementById('diff-select').addEventListener('change', (e) => {
         difficulty = e.target.value;
+        if (isPaused) resumeGame();
         startNewGame();
       });
 
-      // テーマ変更：即時変更
       document.getElementById('theme-select').addEventListener('change', (e) => {
         theme = e.target.value;
         document.documentElement.setAttribute('data-theme', theme);
         saveState();
       });
 
-      // 手動で盤面をリセット/新規作成するボタン
       document.getElementById('new-game-btn').addEventListener('click', () => {
+        if (isPaused) resumeGame();
         startNewGame();
       });
 
-      // キーボード入力サポート
+      document.getElementById('pause-btn').addEventListener('click', togglePause);
+      document.getElementById('pause-overlay').addEventListener('click', resumeGame);
+
+      document.getElementById('tab-num').addEventListener('click', () => setTab('num'));
+      document.getElementById('tab-memo').addEventListener('click', toggleMemoMode);
+      document.getElementById('tab-color').addEventListener('click', () => setTab('color'));
+
+      document.getElementById('undo-btn').addEventListener('click', undoAction);
+      document.getElementById('hint-btn').addEventListener('click', giveHint);
+
+      document.getElementById('modal-restart-btn').addEventListener('click', () => {
+        hideClearModal();
+        startNewGame();
+      });
+
       document.addEventListener('keydown', (e) => {
-        if (!selectedCell) return;
+        if (isPaused || !selectedCell) return;
         const { r, c } = selectedCell;
         if (initialBoard[r] && initialBoard[r][c] !== 0) return;
 
-        const val = parseInt(e.key);
-        if (!isNaN(val) && val >= 1 && val <= N) {
-          setCellValue(r, c, val);
+        const key = e.key.toLowerCase();
+        let val = null;
+
+        if (key >= '1' && key <= '9') {
+          val = parseInt(key);
+        } else if (KEY_MAP[key] !== undefined) {
+          val = KEY_MAP[key];
+        }
+
+        if (val !== null && val <= N) {
+          if (isMemoMode) toggleMemoValue(r, c, val);
+          else setCellValue(r, c, val);
         } else if (e.key === 'Backspace' || e.key === 'Delete') {
           setCellValue(r, c, 0);
         }
       });
+
+      window.addEventListener('resize', () => {
+        updateFontSizeOptions();
+        applyStyles();
+      });
     }
 
-    // 新規ゲーム開始（完全再作成）
+    function setTab(tab) {
+      activeTab = tab;
+      document.getElementById('tab-num').classList.toggle('active', tab === 'num');
+      document.getElementById('tab-color').classList.toggle('active', tab === 'color');
+      document.getElementById('num-pad').style.display = tab === 'num' ? 'flex' : 'none';
+      document.getElementById('color-pad').style.display = tab === 'color' ? 'flex' : 'none';
+    }
+
+    function toggleMemoMode() {
+      isMemoMode = !isMemoMode;
+      const btn = document.getElementById('tab-memo');
+      btn.textContent = `メモ (${isMemoMode ? 'ON' : 'OFF'})`;
+      btn.style.background = isMemoMode ? '#ff9800' : '';
+      btn.style.color = isMemoMode ? '#fff' : '';
+      if (isMemoMode) setTab('num');
+    }
+
     function startNewGame() {
       [boxRows, boxCols] = getBlockDimensions(N);
       solutionBoard = generateCompleteBoard(N, boxRows, boxCols);
       initialBoard = createPuzzle(solutionBoard, N, difficulty);
       currentBoard = initialBoard.map(row => [...row]);
+      
+      memoBoard = Array.from({ length: N }, () => Array.from({ length: N }, () => new Set()));
+      colorBoard = Array.from({ length: N }, () => Array(N).fill(''));
+      
       selectedCell = null;
-      document.getElementById('message').textContent = '';
+      historyStack = [];
+      timerSeconds = 0;
+      hideClearModal();
 
       renderBoard();
       renderNumPad();
+      renderColorPad();
+      updateBestTimeDisplay();
       saveState();
     }
-
-    /* --- ナンプレ生成アルゴリズム --- */
 
     function generateCompleteBoard(n, bRows, bCols) {
       const board = Array.from({ length: n }, () => Array(n).fill(0));
@@ -333,9 +547,7 @@
         for (let r = 0; r < n; r++) {
           for (let c = 0; c < n; c++) {
             if (b[r][c] === 0) {
-              const nums = Array.from({ length: n }, (_, i) => i + 1);
-              nums.sort(() => Math.random() - 0.5);
-
+              const nums = Array.from({ length: n }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
               for (let num of nums) {
                 if (isValid(b, r, c, num)) {
                   b[r][c] = num;
@@ -356,15 +568,13 @@
 
     function createPuzzle(sol, n, diff) {
       const puzzle = sol.map(row => [...row]);
-      const totalCells = n * n;
-      
-      // 数学的基準に基づいたヒント割合（非常に難しく修正）
-      let fillRatio = 0.45; // 簡単（約45%）
-      if (diff === 'normal') fillRatio = 0.30; // 普通（約30%）
-      if (diff === 'hard') fillRatio = 0.20;   // 難しい（約20%: 9x9で約16-17個レベル）
+      const total = n * n;
+      let fillRatio = 0.45;
+      if (diff === 'normal') fillRatio = 0.30;
+      if (diff === 'hard') fillRatio = 0.20;
 
-      let targetVisible = Math.max(n, Math.floor(totalCells * fillRatio));
-      let cellsToRemove = totalCells - targetVisible;
+      let targetVisible = Math.max(n, Math.floor(total * fillRatio));
+      let cellsToRemove = total - targetVisible;
 
       const coords = [];
       for (let r = 0; r < n; r++) {
@@ -379,37 +589,59 @@
       return puzzle;
     }
 
-    /* --- UI 描画 --- */
-
     function renderBoard() {
       const boardEl = document.getElementById('sudoku-board');
       boardEl.innerHTML = '';
-      
       boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
 
       for (let r = 0; r < N; r++) {
         for (let c = 0; c < N; c++) {
           const cell = document.createElement('div');
           cell.className = 'cell';
-          cell.dataset.r = r;
-          cell.dataset.c = c;
+          cell.dataset.r = r; cell.dataset.c = c;
 
-          // 太線強調
           if ((c + 1) % boxCols === 0 && c < N - 1) cell.classList.add('border-right-thick');
           if ((r + 1) % boxRows === 0 && r < N - 1) cell.classList.add('border-bottom-thick');
 
-          const val = currentBoard[r][c];
-          cell.textContent = val !== 0 ? val : '';
+          if (initialBoard[r][c] !== 0) cell.classList.add('fixed');
+          if (colorBoard[r][c]) cell.style.backgroundColor = colorBoard[r][c];
 
-          if (initialBoard[r][c] !== 0) {
-            cell.classList.add('fixed');
-          }
-
+          updateCellContent(cell, r, c);
           cell.addEventListener('click', () => selectCell(r, c));
           boardEl.appendChild(cell);
         }
       }
       applyStyles();
+      checkErrors();
+    }
+
+    function updateCellContent(cell, r, c) {
+      const val = currentBoard[r][c];
+      cell.innerHTML = '';
+
+      if (val !== 0) {
+        cell.textContent = val;
+        // 2桁表示の際の縮小調整
+        if (val >= 10) {
+          cell.style.letterSpacing = '-1px';
+        } else {
+          cell.style.letterSpacing = 'normal';
+        }
+      } else if (memoBoard[r][c] && memoBoard[r][c].size > 0) {
+        const memoGrid = document.createElement('div');
+        memoGrid.className = 'memo-grid';
+        const side = Math.ceil(Math.sqrt(N));
+        memoGrid.style.gridTemplateColumns = `repeat(${side}, 1fr)`;
+
+        for (let i = 1; i <= side * side; i++) {
+          const item = document.createElement('div');
+          item.className = 'memo-num';
+          item.style.fontSize = `${Math.max(6, fontSize * 0.4)}px`;
+          if (i <= N && memoBoard[r][c].has(i)) item.textContent = i;
+          memoGrid.appendChild(item);
+        }
+        cell.appendChild(memoGrid);
+      }
     }
 
     function renderNumPad() {
@@ -421,12 +653,14 @@
         btn.className = 'num-btn';
         btn.textContent = i;
         btn.addEventListener('click', () => {
-          if (selectedCell) setCellValue(selectedCell.r, selectedCell.c, i);
+          if (!selectedCell) return;
+          const { r, c } = selectedCell;
+          if (isMemoMode) toggleMemoValue(r, c, i);
+          else setCellValue(r, c, i);
         });
         padEl.appendChild(btn);
       }
 
-      // 消去ボタン
       const delBtn = document.createElement('button');
       delBtn.className = 'num-btn';
       delBtn.textContent = '✕';
@@ -435,6 +669,24 @@
         if (selectedCell) setCellValue(selectedCell.r, selectedCell.c, 0);
       });
       padEl.appendChild(delBtn);
+    }
+
+    function renderColorPad() {
+      const padEl = document.getElementById('color-pad');
+      padEl.innerHTML = '';
+
+      PASTEL_COLORS.forEach(col => {
+        const btn = document.createElement('button');
+        btn.className = 'color-btn';
+        btn.title = col.name;
+        btn.style.backgroundColor = col.code || '#ffffff';
+        
+        btn.addEventListener('click', () => {
+          if (!selectedCell) return;
+          setCellColor(selectedCell.r, selectedCell.c, col.code);
+        });
+        padEl.appendChild(btn);
+      });
     }
 
     function applyStyles() {
@@ -451,17 +703,98 @@
       if (target) target.classList.add('selected');
     }
 
+    function saveHistory() {
+      historyStack.push({
+        currentBoard: currentBoard.map(r => [...r]),
+        memoBoard: memoBoard.map(r => r.map(set => new Set(set))),
+        colorBoard: colorBoard.map(r => [...r])
+      });
+      if (historyStack.length > 30) historyStack.shift();
+    }
+
+    function undoAction() {
+      if (historyStack.length === 0) return;
+      const last = historyStack.pop();
+      currentBoard = last.currentBoard;
+      memoBoard = last.memoBoard;
+      colorBoard = last.colorBoard;
+      renderBoard();
+      saveState();
+    }
+
     function setCellValue(r, c, val) {
       if (initialBoard[r][c] !== 0) return;
+      saveHistory();
 
       currentBoard[r][c] = val;
-      const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
-      if (target) {
-        target.textContent = val !== 0 ? val : '';
-      }
+      memoBoard[r][c].clear();
 
+      const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      if (target) updateCellContent(target, r, c);
+
+      checkErrors();
       saveState();
       checkWinCondition();
+    }
+
+    function toggleMemoValue(r, c, val) {
+      if (initialBoard[r][c] !== 0 || currentBoard[r][c] !== 0) return;
+      saveHistory();
+
+      if (memoBoard[r][c].has(val)) memoBoard[r][c].delete(val);
+      else memoBoard[r][c].add(val);
+
+      const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      if (target) updateCellContent(target, r, c);
+      saveState();
+    }
+
+    function setCellColor(r, c, colorCode) {
+      saveHistory();
+      colorBoard[r][c] = colorCode;
+      const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      if (target) {
+        target.style.backgroundColor = colorCode || (initialBoard[r][c] !== 0 ? 'var(--cell-fixed)' : 'var(--panel-bg)');
+      }
+      saveState();
+    }
+
+    function giveHint() {
+      if (!selectedCell) return;
+      const { r, c } = selectedCell;
+      if (initialBoard[r][c] !== 0 || currentBoard[r][c] === solutionBoard[r][c]) return;
+
+      setCellValue(r, c, solutionBoard[r][c]);
+    }
+
+    function checkErrors() {
+      document.querySelectorAll('.cell').forEach(el => el.classList.remove('invalid'));
+
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const val = currentBoard[r][c];
+          if (val === 0) continue;
+
+          let isDup = false;
+          for (let i = 0; i < N; i++) {
+            if (i !== c && currentBoard[r][i] === val) isDup = true;
+            if (i !== r && currentBoard[i][c] === val) isDup = true;
+          }
+          const startR = Math.floor(r / boxRows) * boxRows;
+          const startC = Math.floor(c / boxCols) * boxCols;
+          for (let i = 0; i < boxRows; i++) {
+            for (let j = 0; j < boxCols; j++) {
+              const nr = startR + i, nc = startC + j;
+              if ((nr !== r || nc !== c) && currentBoard[nr][nc] === val) isDup = true;
+            }
+          }
+
+          if (isDup) {
+            const el = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+            if (el) el.classList.add('invalid');
+          }
+        }
+      }
     }
 
     function checkWinCondition() {
@@ -470,15 +803,134 @@
           if (currentBoard[r][c] !== solutionBoard[r][c]) return;
         }
       }
-      document.getElementById('message').textContent = '🎉 クリアおめでとうございます！';
+      pauseTimer();
+      saveBestTime();
+      showClearModal();
+      triggerConfetti();
     }
 
-    /* --- 状態の復元と保存 --- */
+    function showClearModal() {
+      const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+      const s = String(timerSeconds % 60).padStart(2, '0');
+      document.getElementById('clear-final-time').textContent = `⏱️ クリアタイム: ${m}:${s}`;
+      document.getElementById('clear-modal').classList.add('show');
+    }
+
+    function hideClearModal() {
+      document.getElementById('clear-modal').classList.remove('show');
+    }
+
+    function triggerConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const pieces = [];
+      const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800'];
+
+      for (let i = 0; i < 100; i++) {
+        pieces.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height - canvas.height,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          speedY: Math.random() * 3 + 2,
+          speedX: Math.random() * 2 - 1,
+          rotation: Math.random() * 360,
+          rotSpeed: Math.random() * 10 - 5
+        });
+      }
+
+      let animationFrame;
+      let duration = 0;
+
+      function update() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        pieces.forEach(p => {
+          p.y += p.speedY;
+          p.x += p.speedX;
+          p.rotation += p.rotSpeed;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        });
+
+        duration++;
+        if (duration < 200) {
+          animationFrame = requestAnimationFrame(update);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      update();
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!isPaused) {
+          timerSeconds++;
+          updateTimerDisplay();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() { clearInterval(timerInterval); }
+
+    function togglePause() {
+      if (isPaused) resumeGame();
+      else {
+        isPaused = true;
+        document.getElementById('pause-overlay').style.display = 'flex';
+        document.getElementById('pause-btn').textContent = '再開';
+      }
+    }
+
+    function resumeGame() {
+      isPaused = false;
+      document.getElementById('pause-overlay').style.display = 'none';
+      document.getElementById('pause-btn').textContent = '一時停止';
+    }
+
+    function updateTimerDisplay() {
+      const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+      const s = String(timerSeconds % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = `${m}:${s}`;
+    }
+
+    function saveBestTime() {
+      const key = `best_time_${N}_${difficulty}`;
+      const best = localStorage.getItem(key);
+      if (!best || timerSeconds < parseInt(best)) {
+        localStorage.setItem(key, timerSeconds);
+        updateBestTimeDisplay();
+      }
+    }
+
+    function updateBestTimeDisplay() {
+      const key = `best_time_${N}_${difficulty}`;
+      const best = localStorage.getItem(key);
+      const el = document.getElementById('best-time');
+      if (best) {
+        const m = String(Math.floor(best / 60)).padStart(2, '0');
+        const s = String(best % 60).padStart(2, '0');
+        el.textContent = `自己ベスト: ${m}:${s}`;
+      } else {
+        el.textContent = `自己ベスト: --:--`;
+      }
+    }
 
     function saveState() {
       const state = {
-        N, fontSize, difficulty, theme,
-        solutionBoard, initialBoard, currentBoard
+        N, fontSize, difficulty, theme, timerSeconds,
+        solutionBoard, initialBoard, currentBoard,
+        colorBoard,
+        memoBoard: memoBoard.map(row => row.map(set => Array.from(set)))
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
@@ -489,12 +941,18 @@
         try {
           const state = JSON.parse(data);
           N = state.N || 6;
-          fontSize = state.fontSize || getRecommendedFontSize(N);
           difficulty = state.difficulty || 'hard';
           theme = state.theme || 'classic';
+          timerSeconds = state.timerSeconds || 0;
+
+          updateFontSizeOptions();
+          fontSize = state.fontSize || getRecommendedFontSize(N);
+
           solutionBoard = state.solutionBoard;
           initialBoard = state.initialBoard;
           currentBoard = state.currentBoard;
+          colorBoard = state.colorBoard || Array.from({ length: N }, () => Array(N).fill(''));
+          memoBoard = state.memoBoard ? state.memoBoard.map(row => row.map(arr => new Set(arr))) : Array.from({ length: N }, () => Array.from({ length: N }, () => new Set()));
 
           [boxRows, boxCols] = getBlockDimensions(N);
 
@@ -506,13 +964,16 @@
 
           renderBoard();
           renderNumPad();
+          renderColorPad();
+          updateTimerDisplay();
+          updateBestTimeDisplay();
           return;
         } catch (e) {
-          console.error("状態復元エラー:", e);
+          console.error("データ復元エラー:", e);
         }
       }
 
-      // デフォルト設定
+      updateFontSizeOptions();
       fontSize = getRecommendedFontSize(N);
       document.getElementById('size-select').value = N;
       document.getElementById('font-size').value = fontSize;
