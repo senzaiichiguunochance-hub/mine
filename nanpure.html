@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>可変サイズ ナンプレ</title>
+  <style>
+    /* --- カラーテーマ定義 --- */
+    :root[data-theme="classic"] {
+      --bg-color: #f4f6f9;
+      --panel-bg: #ffffff;
+      --text-color: #333333;
+      --border-color: #cccccc;
+      --thick-border: #333333;
+      --cell-fixed: #e9ecef;
+      --cell-selected: #bbdefb;
+      --primary-color: #1e88e5;
+      --primary-hover: #1565c0;
+    }
+    :root[data-theme="dark"] {
+      --bg-color: #121212;
+      --panel-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --border-color: #444444;
+      --thick-border: #ffffff;
+      --cell-fixed: #2d2d2d;
+      --cell-selected: #0d47a1;
+      --primary-color: #90caf9;
+      --primary-hover: #64b5f6;
+    }
+    :root[data-theme="pastel"] {
+      --bg-color: #fef6f6;
+      --panel-bg: #ffffff;
+      --text-color: #4a4a4a;
+      --border-color: #f3d1d1;
+      --thick-border: #e5989b;
+      --cell-fixed: #fbefff;
+      --cell-selected: #ffd1dc;
+      --primary-color: #b5e2fa;
+      --primary-hover: #9cd5f4;
+    }
+    :root[data-theme="retro"] {
+      --bg-color: #f4ebd9;
+      --panel-bg: #fdf8ec;
+      --text-color: #463f3a;
+      --border-color: #bcb8b1;
+      --thick-border: #8a5a44;
+      --cell-fixed: #e0d8c3;
+      --cell-selected: #d7b9d5;
+      --primary-color: #b07d62;
+      --primary-hover: #8a5a44;
+    }
+
+    * { box-sizing: border-box; font-family: sans-serif; }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0; padding: 15px;
+      display: flex; flex-direction: column; align-items: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    h1 { margin: 5px 0 15px 0; font-size: 1.5rem; }
+
+    /* 設定エリア */
+    .controls-panel {
+      background: var(--panel-bg);
+      padding: 12px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; align-items: center;
+      max-width: 500px; width: 100%; margin-bottom: 15px;
+    }
+    .control-group {
+      display: flex; align-items: center; gap: 5px; font-size: 0.85rem;
+    }
+    select {
+      padding: 4px 8px; border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background: var(--panel-bg); color: var(--text-color);
+    }
+
+    button {
+      background: var(--primary-color);
+      color: #fff; border: none; padding: 6px 12px;
+      border-radius: 4px; cursor: pointer; font-weight: bold;
+      transition: background 0.2s;
+    }
+    button:hover { background: var(--primary-hover); }
+
+    /* 盤面コンテナ */
+    .board-container {
+      width: 100%; max-width: 450px;
+      display: flex; justify-content: center;
+      overflow-x: auto; margin-bottom: 15px;
+    }
+    #sudoku-board {
+      display: grid;
+      border: 2px solid var(--thick-border);
+      background: var(--thick-border);
+      gap: 1px;
+      width: 100%;
+      max-width: 450px;
+    }
+
+    /* マス目スタイル（正方形固定） */
+    .cell {
+      background: var(--panel-bg);
+      display: flex; justify-content: center; align-items: center;
+      font-weight: bold; cursor: pointer; user-select: none;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+    }
+    .cell.fixed {
+      background: var(--cell-fixed);
+      cursor: default;
+    }
+    .cell.selected {
+      background: var(--cell-selected) !important;
+    }
+
+    /* サブブロック太線強調 */
+    .border-right-thick { border-right: 2px solid var(--thick-border) !important; }
+    .border-bottom-thick { border-bottom: 2px solid var(--thick-border) !important; }
+
+    /* テンキーパレット */
+    .num-pad {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      justify-content: center; max-width: 450px; margin-bottom: 15px;
+    }
+    .num-btn {
+      width: 38px; height: 38px; font-size: 1rem;
+      border: 1px solid var(--border-color);
+      background: var(--panel-bg); color: var(--text-color);
+      border-radius: 4px; cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+    }
+
+    #message { font-weight: bold; min-height: 24px; color: #2e7d32; }
+  </style>
+</head>
+<body>
+
+  <h1>可変サイズ ナンプレ</h1>
+
+  <div class="controls-panel">
+    <div class="control-group">
+      <label for="size-select">サイズ:</label>
+      <select id="size-select"></select>
+    </div>
+
+    <div class="control-group">
+      <label for="font-size">文字(px):</label>
+      <select id="font-size"></select>
+    </div>
+
+    <div class="control-group">
+      <label for="diff-select">難易度:</label>
+      <select id="diff-select">
+        <option value="easy">簡単</option>
+        <option value="normal">普通</option>
+        <option value="hard" selected>難しい</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="theme-select">テーマ:</label>
+      <select id="theme-select">
+        <option value="classic">クラシック</option>
+        <option value="dark">ダーク</option>
+        <option value="pastel">パステル</option>
+        <option value="retro">レトロ</option>
+      </select>
+    </div>
+
+    <button id="new-game-btn">新規作成</button>
+  </div>
+
+  <div class="board-container">
+    <div id="sudoku-board"></div>
+  </div>
+
+  <div class="num-pad" id="num-pad"></div>
+
+  <div id="message"></div>
+
+  <script>
+    const STORAGE_KEY = 'sudoku_app_state_v3';
+
+    // 状態変数
+    let N = 6;
+    let boxRows = 2, boxCols = 3;
+    let fontSize = 18;
+    let difficulty = 'hard';
+    let theme = 'classic';
+
+    let solutionBoard = [];
+    let initialBoard = [];
+    let currentBoard = [];
+    let selectedCell = null;
+
+    // 初期化ロード
+    window.addEventListener('DOMContentLoaded', () => {
+      initSelectOptions();
+      loadSettingsAndState();
+      setupEventListeners();
+    });
+
+    // セレクトボックスのオプション作成
+    function initSelectOptions() {
+      const sizeSelect = document.getElementById('size-select');
+      sizeSelect.innerHTML = '';
+      for (let i = 2; i <= 20; i++) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i;
+        sizeSelect.appendChild(opt);
+      }
+
+      const fontSelect = document.getElementById('font-size');
+      fontSelect.innerHTML = '';
+      for (let i = 8; i <= 36; i += 2) {
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = i;
+        fontSelect.appendChild(opt);
+      }
+    }
+
+    // ブロック形状の決定
+    function getBlockDimensions(n) {
+      for (let r = Math.floor(Math.sqrt(n)); r >= 1; r--) {
+        if (n % r === 0) {
+          return [r, n / r];
+        }
+      }
+      return [1, n];
+    }
+
+    // サイズごとの推奨フォントサイズ算出
+    function getRecommendedFontSize(n) {
+      if (n <= 4) return 24;
+      if (n <= 6) return 18;
+      if (n <= 9) return 14;
+      if (n <= 12) return 12;
+      return 10;
+    }
+
+    // イベント設定
+    function setupEventListeners() {
+      // サイズ変更：即座に全作成
+      document.getElementById('size-select').addEventListener('change', (e) => {
+        N = parseInt(e.target.value);
+        fontSize = getRecommendedFontSize(N);
+        document.getElementById('font-size').value = fontSize;
+        startNewGame();
+      });
+
+      // 文字サイズ変更：スタイルのみ即時変更
+      document.getElementById('font-size').addEventListener('change', (e) => {
+        fontSize = parseInt(e.target.value);
+        applyStyles();
+        saveState();
+      });
+
+      // 難易度変更：即座に再作成
+      document.getElementById('diff-select').addEventListener('change', (e) => {
+        difficulty = e.target.value;
+        startNewGame();
+      });
+
+      // テーマ変更：即時変更
+      document.getElementById('theme-select').addEventListener('change', (e) => {
+        theme = e.target.value;
+        document.documentElement.setAttribute('data-theme', theme);
+        saveState();
+      });
+
+      // 手動で盤面をリセット/新規作成するボタン
+      document.getElementById('new-game-btn').addEventListener('click', () => {
+        startNewGame();
+      });
+
+      // キーボード入力サポート
+      document.addEventListener('keydown', (e) => {
+        if (!selectedCell) return;
+        const { r, c } = selectedCell;
+        if (initialBoard[r] && initialBoard[r][c] !== 0) return;
+
+        const val = parseInt(e.key);
+        if (!isNaN(val) && val >= 1 && val <= N) {
+          setCellValue(r, c, val);
+        } else if (e.key === 'Backspace' || e.key === 'Delete') {
+          setCellValue(r, c, 0);
+        }
+      });
+    }
+
+    // 新規ゲーム開始（完全再作成）
+    function startNewGame() {
+      [boxRows, boxCols] = getBlockDimensions(N);
+      solutionBoard = generateCompleteBoard(N, boxRows, boxCols);
+      initialBoard = createPuzzle(solutionBoard, N, difficulty);
+      currentBoard = initialBoard.map(row => [...row]);
+      selectedCell = null;
+      document.getElementById('message').textContent = '';
+
+      renderBoard();
+      renderNumPad();
+      saveState();
+    }
+
+    /* --- ナンプレ生成アルゴリズム --- */
+
+    function generateCompleteBoard(n, bRows, bCols) {
+      const board = Array.from({ length: n }, () => Array(n).fill(0));
+
+      function isValid(b, r, c, val) {
+        for (let i = 0; i < n; i++) {
+          if (b[r][i] === val || b[i][c] === val) return false;
+        }
+        const startR = Math.floor(r / bRows) * bRows;
+        const startC = Math.floor(c / bCols) * bCols;
+        for (let i = 0; i < bRows; i++) {
+          for (let j = 0; j < bCols; j++) {
+            if (b[startR + i][startC + j] === val) return false;
+          }
+        }
+        return true;
+      }
+
+      function solve(b) {
+        for (let r = 0; r < n; r++) {
+          for (let c = 0; c < n; c++) {
+            if (b[r][c] === 0) {
+              const nums = Array.from({ length: n }, (_, i) => i + 1);
+              nums.sort(() => Math.random() - 0.5);
+
+              for (let num of nums) {
+                if (isValid(b, r, c, num)) {
+                  b[r][c] = num;
+                  if (solve(b)) return true;
+                  b[r][c] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      solve(board);
+      return board;
+    }
+
+    function createPuzzle(sol, n, diff) {
+      const puzzle = sol.map(row => [...row]);
+      const totalCells = n * n;
+      
+      // 数学的基準に基づいたヒント割合（非常に難しく修正）
+      let fillRatio = 0.45; // 簡単（約45%）
+      if (diff === 'normal') fillRatio = 0.30; // 普通（約30%）
+      if (diff === 'hard') fillRatio = 0.20;   // 難しい（約20%: 9x9で約16-17個レベル）
+
+      let targetVisible = Math.max(n, Math.floor(totalCells * fillRatio));
+      let cellsToRemove = totalCells - targetVisible;
+
+      const coords = [];
+      for (let r = 0; r < n; r++) {
+        for (let c = 0; c < n; c++) coords.push([r, c]);
+      }
+      coords.sort(() => Math.random() - 0.5);
+
+      for (let i = 0; i < cellsToRemove; i++) {
+        const [r, c] = coords[i];
+        puzzle[r][c] = 0;
+      }
+      return puzzle;
+    }
+
+    /* --- UI 描画 --- */
+
+    function renderBoard() {
+      const boardEl = document.getElementById('sudoku-board');
+      boardEl.innerHTML = '';
+      
+      boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+
+          // 太線強調
+          if ((c + 1) % boxCols === 0 && c < N - 1) cell.classList.add('border-right-thick');
+          if ((r + 1) % boxRows === 0 && r < N - 1) cell.classList.add('border-bottom-thick');
+
+          const val = currentBoard[r][c];
+          cell.textContent = val !== 0 ? val : '';
+
+          if (initialBoard[r][c] !== 0) {
+            cell.classList.add('fixed');
+          }
+
+          cell.addEventListener('click', () => selectCell(r, c));
+          boardEl.appendChild(cell);
+        }
+      }
+      applyStyles();
+    }
+
+    function renderNumPad() {
+      const padEl = document.getElementById('num-pad');
+      padEl.innerHTML = '';
+
+      for (let i = 1; i <= N; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.textContent = i;
+        btn.addEventListener('click', () => {
+          if (selectedCell) setCellValue(selectedCell.r, selectedCell.c, i);
+        });
+        padEl.appendChild(btn);
+      }
+
+      // 消去ボタン
+      const delBtn = document.createElement('button');
+      delBtn.className = 'num-btn';
+      delBtn.textContent = '✕';
+      delBtn.style.color = '#d32f2f';
+      delBtn.addEventListener('click', () => {
+        if (selectedCell) setCellValue(selectedCell.r, selectedCell.c, 0);
+      });
+      padEl.appendChild(delBtn);
+    }
+
+    function applyStyles() {
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.style.fontSize = `${fontSize}px`;
+      });
+    }
+
+    function selectCell(r, c) {
+      document.querySelectorAll('.cell').forEach(el => el.classList.remove('selected'));
+      selectedCell = { r, c };
+
+      const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      if (target) target.classList.add('selected');
+    }
+
+    function setCellValue(r, c, val) {
+      if (initialBoard[r][c] !== 0) return;
+
+      currentBoard[r][c] = val;
+      const target = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);
+      if (target) {
+        target.textContent = val !== 0 ? val : '';
+      }
+
+      saveState();
+      checkWinCondition();
+    }
+
+    function checkWinCondition() {
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (currentBoard[r][c] !== solutionBoard[r][c]) return;
+        }
+      }
+      document.getElementById('message').textContent = '🎉 クリアおめでとうございます！';
+    }
+
+    /* --- 状態の復元と保存 --- */
+
+    function saveState() {
+      const state = {
+        N, fontSize, difficulty, theme,
+        solutionBoard, initialBoard, currentBoard
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadSettingsAndState() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        try {
+          const state = JSON.parse(data);
+          N = state.N || 6;
+          fontSize = state.fontSize || getRecommendedFontSize(N);
+          difficulty = state.difficulty || 'hard';
+          theme = state.theme || 'classic';
+          solutionBoard = state.solutionBoard;
+          initialBoard = state.initialBoard;
+          currentBoard = state.currentBoard;
+
+          [boxRows, boxCols] = getBlockDimensions(N);
+
+          document.getElementById('size-select').value = N;
+          document.getElementById('font-size').value = fontSize;
+          document.getElementById('diff-select').value = difficulty;
+          document.getElementById('theme-select').value = theme;
+          document.documentElement.setAttribute('data-theme', theme);
+
+          renderBoard();
+          renderNumPad();
+          return;
+        } catch (e) {
+          console.error("状態復元エラー:", e);
+        }
+      }
+
+      // デフォルト設定
+      fontSize = getRecommendedFontSize(N);
+      document.getElementById('size-select').value = N;
+      document.getElementById('font-size').value = fontSize;
+      document.documentElement.setAttribute('data-theme', theme);
+      startNewGame();
+    }
+  </script>
+</body>
+</html>
