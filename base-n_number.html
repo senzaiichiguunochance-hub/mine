@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>N進数ビジュアル変換ツール</title>
+  <title>N進数ビジュアル学習ツール</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -33,6 +33,70 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
+  
+    html { scroll-behavior: smooth; }
+    .back-link { position: fixed; left: 12px; bottom: 12px; z-index: 100; background: rgba(15,23,42,.92); color: white; padding: 8px 12px; border-radius: 10px; font-size: 12px; text-decoration: none; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+    .menu-btn { padding: 7px 10px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; font-size: 12px; transition: .15s; }
+    .menu-btn:hover { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+    .tab-btn { padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: 13px; color: #475569; background: #f8fafc; border: 1px solid transparent; transition: .15s; }
+    .tab-btn:hover { background: #f1f5f9; }
+    .tab-btn.active { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+    .field-label { display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:5px; }
+    .input-main { width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:10px 14px; font-size:17px; font-weight:700; color:#1e293b; outline:none; }
+    .input-main:focus,.input-base:focus { border-color:#818cf8; box-shadow:0 0 0 3px rgba(99,102,241,.15); }
+    .input-base { width:92px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:10px 12px; font-size:17px; font-weight:700; color:#1e293b; outline:none; }
+    .help-text { font-size:11px; color:#64748b; line-height:1.65; margin-top:5px; }
+    .info-card { background:white; border:1px solid #e2e8f0; border-radius:12px; padding:12px; text-align:center; }
+    .info-card b,.info-card span,.info-card small { display:block; }
+    .info-card b { color:#4338ca; font-size:13px; }
+    .info-card span { font-family:'Fira Code',monospace; margin:4px 0; font-size:12px; }
+    .info-card small { color:#94a3b8; font-size:10px; }
+    .section-title { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .section-title > i { font-size:20px; }
+    .section-title h2 { font-size:16px; font-weight:800; }
+    .section-title p { font-size:12px; color:#64748b; margin-top:3px; }
+    .digit-card { min-width:115px; max-width:145px; flex:1; background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:12px; text-align:center; transition:.15s; }
+    .digit-card:hover,.digit-card.selected { border-color:#818cf8; box-shadow:0 0 0 3px rgba(99,102,241,.12); background:#eef2ff; }
+    .action-btn { padding:8px 12px; border-radius:9px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-size:12px; font-weight:700; }
+    .action-btn:hover { background:#f8fafc; }
+    .action-btn.primary { background:#4f46e5; color:white; border-color:#4f46e5; }
+    .action-btn.primary:hover { background:#4338ca; }
+    .action-btn:disabled { opacity:.4; cursor:not-allowed; }
+    .step-row { display:flex; gap:12px; padding:12px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; opacity:.25; transform:translateY(3px); transition:.2s; }
+    .step-row.visible { opacity:1; transform:none; }
+    .step-number { width:26px; height:26px; flex:none; border-radius:50%; background:#10b981; color:white; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; }
+    .dot-group { position:relative; max-width:180px; padding:12px 8px 8px; border:2px solid #a5b4fc; background:#eef2ff; border-radius:12px; display:flex; flex-wrap:wrap; gap:4px; align-items:center; justify-content:center; }
+    .dot-group.remainder { border-style:dashed; border-color:#fbbf24; background:#fffbeb; }
+    .dot { width:14px; height:14px; border-radius:50%; background:#6366f1; box-shadow:0 1px 2px rgba(0,0,0,.12); }
+    .remainder .dot { background:#f59e0b; }
+    .dot-label { position:absolute; top:-10px; right:7px; background:#4f46e5; color:white; font-size:9px; padding:2px 6px; border-radius:6px; font-weight:700; }
+    .remainder .dot-label { background:#d97706; }
+    .bit-row { display:flex; gap:4px; min-width:max-content; justify-content:center; }
+    .bit-cell { width:64px; padding:10px 5px; border-radius:10px; text-align:center; border:1px solid #e2e8f0; }
+    .bit-cell b,.bit-cell span,.bit-cell small { display:block; }
+    .bit-cell b { font:700 22px 'Fira Code',monospace; }
+    .bit-cell span { font-size:10px; color:#64748b; margin-top:3px; }
+    .bit-cell small { font-size:10px; color:#94a3b8; }
+    .bit-cell.on { background:#ecfdf5; border-color:#86efac; }
+    .bit-cell.on b { color:#059669; }
+    .bit-cell.off { background:#f8fafc; }
+    .hex-map { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:6px 2px; font:10px 'Fira Code',monospace; }
+    .hex-map span { display:block; color:#4f46e5; font-size:15px; font-weight:800; margin-top:2px; }
+    .practice-level { padding:14px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:12px; font-weight:800; color:#334155; }
+    .practice-level:hover { background:#eef2ff; border-color:#a5b4fc; color:#4338ca; }
+    .practice-level small { font-weight:400; color:#64748b; }
+    .result-good,.result-bad { padding:12px; border-radius:10px; font-size:13px; }
+    .result-good { background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; }
+    .result-bad { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+    .usage-card { padding:18px; border:1px solid #e2e8f0; border-radius:14px; background:#f8fafc; }
+    .usage-base { display:inline-block; padding:3px 8px; border-radius:999px; background:#e0e7ff; color:#4338ca; font:700 12px 'Fira Code',monospace; }
+    .usage-card h3 { font-weight:800; margin:10px 0 6px; font-size:14px; }
+    .usage-card p { color:#64748b; font-size:12px; line-height:1.7; }
+    @media (max-width: 640px) {
+      .back-link { position:static; display:inline-block; margin:10px 12px 0; }
+      .bit-cell { width:52px; }
+    }
+
   </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
@@ -40,586 +104,784 @@
   <a href="menu.html" class="back-link">メニューに戻る</a>
 
   <header class="bg-indigo-600 text-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col lg:flex-row justify-between items-center gap-3">
       <div class="flex items-center space-x-3">
         <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
           <i class="fa-solid fa-calculator text-2xl text-yellow-300"></i>
         </div>
         <div>
-          <h1 class="text-xl sm:text-2xl font-bold tracking-tight">N進数ビジュアル変換ツール</h1>
-          <p class="text-xs text-indigo-200">基数の仕組みと変換プロセスをグラフィカルに学べる学習アプリ</p>
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight">N進数ビジュアル学習ツール</h1>
+          <p class="text-xs text-indigo-200">変換するだけでなく、桁の意味と計算の仕組みを目で理解する</p>
         </div>
       </div>
-      <!-- Quick Presets -->
-      <div class="flex items-center space-x-2 text-xs bg-indigo-700/50 p-1.5 rounded-lg border border-indigo-500/30">
+      <div class="flex flex-wrap items-center justify-center gap-2 text-xs bg-indigo-700/50 p-1.5 rounded-lg border border-indigo-500/30">
         <span class="text-indigo-200 font-medium px-1">プリセット:</span>
-        <button onclick="applyPreset(10, 2)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition">2進数</button>
-        <button onclick="applyPreset(10, 8)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition">8進数</button>
-        <button onclick="applyPreset(10, 16)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition">16進数</button>
+        <button onclick="applyPreset(10,2)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition">2進数</button>
+        <button onclick="applyPreset(10,8)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition">8進数</button>
+        <button onclick="applyPreset(10,16)" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition">16進数</button>
+        <button onclick="scrollToId('practice')" class="bg-emerald-500 hover:bg-emerald-400 text-white px-2 py-1 rounded transition">練習問題</button>
       </div>
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 mt-6">
-
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <button id="tab-1" onclick="switchTab(1)" class="tab-btn active flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
-          <i class="fa-solid fa-arrow-right-long text-indigo-500"></i>
-          <span>モード 1: 10進数 → N進数</span>
-        </button>
-        <button id="tab-2" onclick="switchTab(2)" class="tab-btn flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-100">
-          <i class="fa-solid fa-arrow-left-long text-slate-400"></i>
-          <span>モード 2: N進数 → 10進数</span>
-        </button>
-        <button id="tab-3" onclick="switchTab(3)" class="tab-btn flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-100">
-          <i class="fa-solid fa-right-left text-slate-400"></i>
-          <span>モード 3: N進数 → M進数</span>
-        </button>
+  <div class="max-w-7xl mx-auto px-4 mt-4">
+    <nav class="bg-white border border-slate-200 rounded-2xl shadow-sm p-3 sticky top-[88px] z-40">
+      <div class="flex items-center justify-between gap-3 mb-2">
+        <div class="font-bold text-sm text-slate-700"><i class="fa-solid fa-bars text-indigo-500 mr-2"></i>このページのメニュー</div>
+        <button id="menu-toggle" onclick="toggleMenu()" class="lg:hidden text-xs px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200">開く</button>
       </div>
-    </div>
+      <div id="page-menu" class="hidden lg:flex flex-wrap gap-2">
+        <button onclick="scrollToId('intro')" class="menu-btn">N進数とは？</button>
+        <button onclick="scrollToId('converter')" class="menu-btn">進数変換</button>
+        <button onclick="scrollToId('place-values')" class="menu-btn">桁の重み</button>
+        <button onclick="scrollToId('steps')" class="menu-btn">計算手順</button>
+        <button onclick="scrollToId('visual')" class="menu-btn">ドット視覚化</button>
+        <button onclick="scrollToId('bits')" class="menu-btn">ビット表示</button>
+        <button onclick="scrollToId('hex')" class="menu-btn">2進数 ↔ 16進数</button>
+        <button onclick="scrollToId('direct')" class="menu-btn">直接変換</button>
+        <button onclick="scrollToId('digits')" class="menu-btn">数字と文字</button>
+        <button onclick="scrollToId('practice')" class="menu-btn">練習問題</button>
+        <button onclick="scrollToId('usage')" class="menu-btn">どこで使う？</button>
+      </div>
+    </nav>
+  </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-        
-        <!-- Input Controls Area -->
-        <div class="md:col-span-8 space-y-4">
-          
-          <!-- Mode 1 Inputs -->
+  <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
+
+    <section id="intro" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="fa-solid fa-lightbulb"></i></div>
+        <div>
+          <h2 class="text-lg font-bold">N進数とは？</h2>
+          <p class="text-xs text-slate-500">まず「N」の意味を押さえよう</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="bg-slate-50 rounded-xl p-5">
+          <p class="text-sm leading-7">N進数の「N」は、1つの桁で使える数字の種類数を表します。</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+            <div class="info-card"><b>2進数</b><span>0, 1</span><small>2種類</small></div>
+            <div class="info-card"><b>8進数</b><span>0〜7</span><small>8種類</small></div>
+            <div class="info-card"><b>10進数</b><span>0〜9</span><small>10種類</small></div>
+            <div class="info-card"><b>16進数</b><span>0〜9, A〜F</span><small>16種類</small></div>
+          </div>
+        </div>
+        <div class="border border-indigo-100 bg-indigo-50 rounded-xl p-5">
+          <h3 class="font-bold text-sm text-indigo-800 mb-2">このアプリで見ること</h3>
+          <ul class="text-sm leading-7 text-indigo-900 list-disc pl-5">
+            <li>同じ「量」を別の進数で表すとどうなるか</li>
+            <li>各桁がどれだけの値を持っているか</li>
+            <li>割り算と余りから桁が作られる仕組み</li>
+            <li>2進数がビットとしてどう見えるか</li>
+            <li>2進数と16進数がなぜ対応しやすいか</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="converter" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-bold"><i class="fa-solid fa-right-left text-indigo-500 mr-2"></i>進数変換</h2>
+          <p id="mode-description" class="text-xs text-slate-500 mt-1">10進数の量を、指定したN進数で表します。</p>
+        </div>
+        <span class="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1 rounded-lg">2〜36進数</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
+        <button id="tab-1" onclick="switchTab(1)" class="tab-btn active">10進数 → N進数</button>
+        <button id="tab-2" onclick="switchTab(2)" class="tab-btn">N進数 → 10進数</button>
+        <button id="tab-3" onclick="switchTab(3)" class="tab-btn">N進数 → M進数</button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-8 space-y-4">
           <div id="mode-1-inputs" class="mode-input-group space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換元 (10進数の数値)</label>
-                <input type="number" id="m1-val" value="27" min="0" max="999999" oninput="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                <label class="field-label">変換元：10進数の整数</label>
+                <input type="text" id="m1-val" value="27" inputmode="numeric" oninput="calculate()" class="input-main">
+                <p class="help-text">例：27 と入力すると、10進数の「27」という量を変換します。整数のみ対応。</p>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換先 N進数 (2〜36)</label>
-                <div class="flex items-center space-x-2">
-                  <input type="number" id="m1-base" value="2" min="2" max="36" oninput="calculate()" class="w-24 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <input type="range" id="m1-base-slider" value="2" min="2" max="36" oninput="document.getElementById('m1-base').value=this.value; calculate()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                <label class="field-label">変換先：N進数</label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="m1-base" value="2" min="2" max="36" oninput="syncBaseFromInput(); calculate()" class="input-base">
+                  <input type="range" id="m1-base-slider" value="2" min="2" max="36" oninput="syncBaseFromSlider(); calculate()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
                 </div>
+                <p class="help-text">2なら2進数、16なら16進数です。1桁で使える数字の数を指定します。</p>
               </div>
             </div>
           </div>
 
-          <!-- Mode 2 Inputs -->
           <div id="mode-2-inputs" class="mode-input-group hidden space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換元 N進数の基数 N (2〜36)</label>
-                <input type="number" id="m2-base" value="16" min="2" max="36" oninput="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <label class="field-label">変換元：基数 N</label>
+                <input type="number" id="m2-base" value="16" min="2" max="36" oninput="calculate()" class="input-main">
+                <p class="help-text">例：16なら16進数として読み取ります。</p>
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換元 N進数の値</label>
-                <input type="text" id="m2-val" value="1F" oninput="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase">
+                <label class="field-label">変換元の値</label>
+                <input type="text" id="m2-val" value="1F" oninput="calculate()" class="input-main uppercase">
+                <p class="help-text">例：1Fは16進数なら 1×16 + 15 を表します。A〜Zも使用できます。</p>
               </div>
             </div>
           </div>
 
-          <!-- Mode 3 Inputs -->
           <div id="mode-3-inputs" class="mode-input-group hidden space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換元 基数 N</label>
-                <input type="number" id="m3-baseN" value="8" min="2" max="36" oninput="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <label class="field-label">変換元：基数 N</label>
+                <input type="number" id="m3-baseN" value="8" min="2" max="36" oninput="calculate()" class="input-main">
+                <p class="help-text">入力値を何進数として読むか指定します。</p>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換元の値</label>
-                <input type="text" id="m3-val" value="33" oninput="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase">
+                <label class="field-label">変換元の値</label>
+                <input type="text" id="m3-val" value="33" oninput="calculate()" class="input-main uppercase">
+                <p class="help-text">例：8進数の33です。10進数の「33」とは意味が違います。</p>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">変換先 基数 M</label>
-                <input type="number" id="m3-baseM" value="2" min="2" max="36" oninput="calculate()" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-lg font-bold code-font text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <label class="field-label">変換先：基数 M</label>
+                <input type="number" id="m3-baseM" value="2" min="2" max="36" oninput="calculate()" class="input-main">
+                <p class="help-text">例：2なら2進数へ変換します。</p>
               </div>
             </div>
           </div>
 
-          <!-- Input error message alert -->
-          <div id="error-box" class="hidden p-3 bg-red-50 border-l-4 border-red-500 rounded-r-xl text-red-700 text-sm flex items-center space-x-2">
-            <i class="fa-solid fa-circle-exclamation text-red-500"></i>
-            <span id="error-msg">入力形式が不正です</span>
+          <div id="error-box" class="hidden p-3 bg-red-50 border-l-4 border-red-500 rounded-r-xl text-red-700 text-sm flex items-center gap-2">
+            <i class="fa-solid fa-circle-exclamation"></i><span id="error-msg"></span>
           </div>
 
+          <div id="available-digits" class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div class="text-xs font-bold text-slate-600 mb-2">現在の基数で使える数字・文字</div>
+            <div id="available-digits-list" class="code-font text-lg tracking-widest break-all"></div>
+            <p id="available-digits-help" class="text-xs text-slate-500 mt-2"></p>
+          </div>
         </div>
 
-        <!-- Output Result Display Badge -->
-        <div class="md:col-span-4 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl p-6 text-white text-center shadow-md relative overflow-hidden">
-          <div class="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+        <div class="lg:col-span-4 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl p-6 text-white text-center shadow-md relative overflow-hidden">
           <span class="text-xs font-semibold tracking-wider text-indigo-200 uppercase block mb-1">変換結果</span>
-          <div id="result-display" class="text-3xl sm:text-4xl font-extrabold code-font my-2 break-all tracking-wider text-yellow-300">
-            0
-          </div>
-          <div id="result-subtext" class="text-xs text-indigo-100 font-medium bg-indigo-800/40 py-1 px-3 rounded-full inline-block mt-1">
-            (基数 2)
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
-      
-      <!-- Left side: Digit Place Value Cards -->
-      <div class="lg:col-span-12 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2">
-            <i class="fa-solid fa-cubes text-indigo-500"></i>
-            <span>桁ごとの重み breakdown (位の値)</span>
-          </h2>
-          <span class="text-xs text-slate-500">各桁の数字 × 基数の乗数</span>
-        </div>
-        
-        <div id="digit-cards-container" class="flex flex-wrap gap-3 justify-center sm:justify-start items-stretch overflow-x-auto py-2">
-          <!-- Dynamically populated digit cards -->
+          <div id="result-display" class="text-3xl sm:text-4xl font-extrabold code-font my-2 break-all tracking-wider text-yellow-300">0</div>
+          <div id="result-subtext" class="text-xs text-indigo-100 font-medium bg-indigo-800/40 py-1 px-3 rounded-full inline-block mt-1">(基数 2 / 2進数)</div>
+          <div id="result-explanation" class="text-xs text-indigo-100 mt-4 leading-6">入力した量を基数2で表した結果です。</div>
         </div>
       </div>
+    </section>
 
-    </div>
+    <section id="place-values" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-cubes text-indigo-500"></i><div><h2>桁の重みと位取り</h2><p>各桁は「基数の何乗」の重みを持っています。</p></div></div>
+      <div id="digit-cards-container" class="flex flex-wrap gap-3 justify-center sm:justify-start items-stretch overflow-x-auto py-2"></div>
+      <div id="place-summary" class="mt-4 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-sm"></div>
+    </section>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <section id="steps" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-list-ol text-emerald-500"></i><div><h2>計算手順と数式展開</h2><p id="steps-intro">計算がどのように答えへつながるかを順番に確認できます。</p></div></div>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button id="step-prev" onclick="prevStep()" class="action-btn">← 前へ</button>
+        <button id="step-next" onclick="nextStep()" class="action-btn primary">次へ →</button>
+        <button onclick="showAllSteps()" class="action-btn">すべて表示</button>
+        <button onclick="resetSteps()" class="action-btn">最初から</button>
+      </div>
+      <div id="math-steps-container" class="space-y-2"></div>
+      <div id="math-explanation-footer" class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500"></div>
+    </section>
 
-      <!-- Calculation Steps Visualizer -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+    <section id="visual" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-shapes text-amber-500"></i><div><h2>ドットによる数量の視覚化</h2><p>10進数としての「量」を、現在の基数ごとのまとまりとして見ます。</p></div></div>
+      <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-900 mb-4">
+        <b>ここで表しているもの：</b> これは変換手順そのものを描いたものではなく、「何個のものがあるか」を基数ごとにまとめたイメージです。
+      </div>
+      <div id="visual-blocks-wrapper" class="bg-slate-50 rounded-xl p-4 border border-slate-100 min-h-[240px] flex flex-col justify-center"></div>
+      <div id="visual-block-count-badge" class="text-xs text-slate-500 mt-3"></div>
+    </section>
+
+    <section id="bits" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-microchip text-cyan-600"></i><div><h2>2進数をビットとして見る</h2><p>2進数では、各桁を0/1のビットとして見ることができます。</p></div></div>
+      <div id="bit-view" class="bg-slate-50 rounded-xl p-5"></div>
+    </section>
+
+    <section id="hex" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-code text-violet-600"></i><div><h2>2進数 ↔ 16進数</h2><p>2進数4桁と16進数1桁の対応を確認します。</p></div></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div>
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2">
-              <i class="fa-solid fa-square-root-variable text-emerald-500"></i>
-              <span>計算手順と数式展開</span>
-            </h2>
-            <span class="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 font-medium rounded-md border border-emerald-200">ステップ表示</span>
-          </div>
-
-          <!-- Step by Step Math Container -->
-          <div id="math-steps-container" class="space-y-2 text-sm max-h-[350px] overflow-y-auto pr-1">
-            <!-- Math calculation steps injected here -->
-          </div>
+          <label class="field-label">2進数を入力</label>
+          <input id="hex-binary-input" value="10101111" oninput="renderHexView()" class="input-main code-font">
+          <p class="help-text">例：10101111。4桁ずつ区切ると16進数1桁に対応します。</p>
         </div>
-
-        <div id="math-explanation-footer" class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
-          <!-- Dynamic hint text -->
+        <div>
+          <label class="field-label">16進数への対応</label>
+          <div id="hex-result" class="bg-slate-50 rounded-xl border border-slate-200 p-4 min-h-[100px]"></div>
         </div>
       </div>
+      <div class="mt-5 grid grid-cols-4 sm:grid-cols-8 md:grid-cols-16 gap-2">
+        <div class="hex-map">0000<span>0</span></div><div class="hex-map">0001<span>1</span></div>
+        <div class="hex-map">0010<span>2</span></div><div class="hex-map">0011<span>3</span></div>
+        <div class="hex-map">0100<span>4</span></div><div class="hex-map">0101<span>5</span></div>
+        <div class="hex-map">0110<span>6</span></div><div class="hex-map">0111<span>7</span></div>
+        <div class="hex-map">1000<span>8</span></div><div class="hex-map">1001<span>9</span></div>
+        <div class="hex-map">1010<span>A</span></div><div class="hex-map">1011<span>B</span></div>
+        <div class="hex-map">1100<span>C</span></div><div class="hex-map">1101<span>D</span></div>
+        <div class="hex-map">1110<span>E</span></div><div class="hex-map">1111<span>F</span></div>
+      </div>
+    </section>
 
-      <!-- Graphical Blocks / Groupings Container -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2">
-            <i class="fa-solid fa-shapes text-amber-500"></i>
-            <span>視覚的グループ（ドット/ブロック表示）</span>
-          </h2>
-          <span id="visual-block-count-badge" class="text-xs text-slate-500">10進数の「量」をグループ化</span>
+    <section id="direct" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-bolt text-orange-500"></i><div><h2>2進数への直接変換</h2><p>8進数や16進数は、2進数との対応を使って直接変換できます。</p></div></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="bg-slate-50 rounded-xl p-5">
+          <h3 class="font-bold text-sm mb-3">8進数 → 2進数</h3>
+          <input id="direct-octal" value="33" oninput="renderDirect()" class="input-main code-font">
+          <p class="help-text">8進数1桁は、2進数3桁に対応します。例：3 → 011。</p>
+          <div id="direct-octal-result" class="mt-4"></div>
         </div>
-
-        <p class="text-xs text-slate-500 mb-4">
-          数が基数（N）ごとにグループにまとまって次の桁へ繰り上がる様子を表しています。
-        </p>
-
-        <!-- Dynamic Visual Blocks Container -->
-        <div id="visual-blocks-wrapper" class="flex-1 bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-center min-h-[220px]">
-          <!-- Rendered dot groups go here -->
+        <div class="bg-slate-50 rounded-xl p-5">
+          <h3 class="font-bold text-sm mb-3">16進数 → 2進数</h3>
+          <input id="direct-hex" value="AF" oninput="renderDirect()" class="input-main code-font uppercase">
+          <p class="help-text">16進数1桁は、2進数4桁に対応します。例：A → 1010。</p>
+          <div id="direct-hex-result" class="mt-4"></div>
         </div>
       </div>
+    </section>
 
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-      <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center space-x-2">
-        <i class="fa-solid fa-font text-indigo-500"></i>
-        <span>10以上の数字と英文字の対応表（11進数〜36進数用）</span>
-      </h3>
-      <div class="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-13 gap-2 text-center text-xs code-font">
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">10</span><span class="font-bold text-indigo-600">A</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">11</span><span class="font-bold text-indigo-600">B</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">12</span><span class="font-bold text-indigo-600">C</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">13</span><span class="font-bold text-indigo-600">D</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">14</span><span class="font-bold text-indigo-600">E</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">15</span><span class="font-bold text-indigo-600">F</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">16</span><span class="font-bold text-indigo-600">G</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">17</span><span class="font-bold text-indigo-600">H</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">18</span><span class="font-bold text-indigo-600">I</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">19</span><span class="font-bold text-indigo-600">J</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">20</span><span class="font-bold text-indigo-600">K</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">25</span><span class="font-bold text-indigo-600">P</span></div>
-        <div class="bg-slate-50 p-1.5 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">35</span><span class="font-bold text-indigo-600">Z</span></div>
+    <section id="digits" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-font text-indigo-500"></i><div><h2>数字と英字の対応</h2><p>10進数の10〜35を、36進数まで使われる文字に対応させます。</p></div></div>
+      <div id="digit-table" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-13 gap-2 text-center text-xs code-font"></div>
+      <div class="mt-4 bg-slate-50 rounded-xl p-4 text-sm">
+        例えば16進数では <b>A=10</b>、<b>F=15</b> です。36進数まで広げると、<b>Z=35</b> になります。
       </div>
-    </div>
+    </section>
 
+    <section id="practice" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-graduation-cap text-emerald-600"></i><div><h2>練習問題</h2><p>自分で答えを入力してから答え合わせをしてみましょう。</p></div></div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+        <button onclick="setPractice(1)" class="practice-level">初級<br><small>10進数 → 2進数</small></button>
+        <button onclick="setPractice(2)" class="practice-level">中級<br><small>2進数 → 10進数</small></button>
+        <button onclick="setPractice(3)" class="practice-level">上級<br><small>16進数 → 2進数</small></button>
+      </div>
+      <div class="bg-slate-50 rounded-xl border border-slate-200 p-5">
+        <div id="practice-question" class="font-bold text-lg mb-2"></div>
+        <p id="practice-hint" class="text-xs text-slate-500 mb-4"></p>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input id="practice-answer" class="input-main code-font" placeholder="答えを入力">
+          <button onclick="checkPractice()" class="action-btn primary">答え合わせ</button>
+          <button onclick="showPracticeHint()" class="action-btn">ヒント</button>
+          <button onclick="newPractice()" class="action-btn">新しい問題</button>
+        </div>
+        <div id="practice-result" class="mt-4"></div>
+      </div>
+    </section>
+
+    <section id="usage" class="scroll-mt-28 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+      <div class="section-title"><i class="fa-solid fa-laptop-code text-slate-700"></i><div><h2>N進数はどこで使う？</h2><p>数学だけでなく、コンピューターの世界でも進数は登場します。</p></div></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="usage-card"><span class="usage-base">2進数</span><h3>コンピューター</h3><p>ビット、フラグ、ビット演算など、0と1を使う処理の基本になります。</p></div>
+        <div class="usage-card"><span class="usage-base">8進数</span><h3>Unix/Linux</h3><p>ファイル権限など、8進数が登場する場面があります。</p></div>
+        <div class="usage-card"><span class="usage-base">10進数</span><h3>日常生活</h3><p>普段の計算や数量の表現で使っている、もっとも身近な進数です。</p></div>
+        <div class="usage-card"><span class="usage-base">16進数</span><h3>プログラミング</h3><p>カラーコード、バイナリデータ、メモリやデバッグなどでよく見かけます。</p></div>
+      </div>
+    </section>
+
+    <section class="bg-indigo-50 border border-indigo-100 rounded-2xl p-6">
+      <h2 class="font-bold text-indigo-900 mb-2"><i class="fa-solid fa-circle-info mr-2"></i>このツールの見方</h2>
+      <p class="text-sm text-indigo-900 leading-7">
+        変換結果だけを見るのではなく、「各桁の重み」「計算手順」「数量のまとまり」「ビット」「別の進数との対応」を順番に見てみてください。
+        同じ数を別の表現で眺めることで、N進数の仕組みを立体的に理解できます。
+      </p>
+    </section>
   </main>
 
   <script>
     let currentTab = 1;
+    let currentStepIndex = 0;
+    let currentSteps = [];
+    let practice = { level: 1, value: 13, base: 2, answer: "1101" };
 
-    // Digit to Character conversion helper
     function digitToChar(d) {
-      if (d < 10) return d.toString();
-      return String.fromCharCode(55 + d); // 10 -> 'A', 11 -> 'B', etc.
+      return d < 10 ? String(d) : String.fromCharCode(55 + d);
     }
 
-    // Character to Digit conversion helper
     function charToDigit(c) {
-      const upper = c.toUpperCase();
-      if (upper >= '0' && upper <= '9') return upper.charCodeAt(0) - 48;
-      if (upper >= 'A' && upper <= 'Z') return upper.charCodeAt(0) - 55;
+      const u = c.toUpperCase();
+      if (u >= "0" && u <= "9") return u.charCodeAt(0) - 48;
+      if (u >= "A" && u <= "Z") return u.charCodeAt(0) - 55;
       return -1;
     }
 
-    // Tab switcher
+    function scrollToId(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (window.innerWidth < 1024) {
+          document.getElementById("page-menu").classList.add("hidden");
+          document.getElementById("menu-toggle").innerText = "開く";
+        }
+      }
+    }
+
+    function toggleMenu() {
+      const menu = document.getElementById("page-menu");
+      menu.classList.toggle("hidden");
+      document.getElementById("menu-toggle").innerText = menu.classList.contains("hidden") ? "開く" : "閉じる";
+    }
+
     function switchTab(tabNum) {
       currentTab = tabNum;
       for (let i = 1; i <= 3; i++) {
         const btn = document.getElementById(`tab-${i}`);
         const inputs = document.getElementById(`mode-${i}-inputs`);
-        if (i === tabNum) {
-          btn.className = "tab-btn active flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm";
-          inputs.classList.remove('hidden');
-        } else {
-          btn.className = "tab-btn flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-100";
-          inputs.classList.add('hidden');
-        }
+        btn.classList.toggle("active", i === tabNum);
+        inputs.classList.toggle("hidden", i !== tabNum);
+      }
+      const desc = {
+        1: "10進数の量を、指定したN進数で表します。割り算と余りから桁が作られる様子を確認できます。",
+        2: "N進数の各桁に重みを掛けて足し合わせ、10進数の量に戻します。",
+        3: "N進数をいったん10進数にしてからM進数へ変換します。途中の値も確認できます。"
+      };
+      document.getElementById("mode-description").innerText = desc[tabNum];
+      calculate();
+    }
+
+    function applyPreset(fromBase, toBase) {
+      if (currentTab === 1) {
+        document.getElementById("m1-base").value = toBase;
+        document.getElementById("m1-base-slider").value = toBase;
+      } else if (currentTab === 2) {
+        document.getElementById("m2-base").value = toBase;
+      } else {
+        document.getElementById("m3-baseN").value = fromBase;
+        document.getElementById("m3-baseM").value = toBase;
       }
       calculate();
     }
 
-    // Apply quick presets
-    function applyPreset(fromBase, toBase) {
-      if (currentTab === 1) {
-        document.getElementById('m1-base').value = toBase;
-        document.getElementById('m1-base-slider').value = toBase;
-      } else if (currentTab === 2) {
-        document.getElementById('m2-base').value = toBase;
-      } else {
-        document.getElementById('m3-baseN').value = fromBase;
-        document.getElementById('m3-baseM').value = toBase;
-      }
-      calculate();
+    function syncBaseFromInput() {
+      const input = document.getElementById("m1-base");
+      const slider = document.getElementById("m1-base-slider");
+      const n = Number(input.value);
+      if (Number.isInteger(n) && n >= 2 && n <= 36) slider.value = n;
+    }
+
+    function syncBaseFromSlider() {
+      document.getElementById("m1-base").value = document.getElementById("m1-base-slider").value;
     }
 
     function showError(msg) {
-      const errBox = document.getElementById('error-box');
-      document.getElementById('error-msg').innerText = msg;
-      errBox.classList.remove('hidden');
+      document.getElementById("error-msg").innerText = msg;
+      document.getElementById("error-box").classList.remove("hidden");
     }
 
     function hideError() {
-      document.getElementById('error-box').classList.add('hidden');
+      document.getElementById("error-box").classList.add("hidden");
+    }
+
+    function parseBigIntDecimal(str) {
+      if (!/^\d+$/.test(str)) throw new Error("10進数は0以上の整数で入力してください。");
+      return BigInt(str);
+    }
+
+    function parseBaseBigInt(str, base) {
+      if (!str || !/^[0-9A-Za-z]+$/.test(str)) throw new Error("数字または英字で入力してください。");
+      let value = 0n;
+      const b = BigInt(base);
+      for (const ch of str.toUpperCase()) {
+        const d = charToDigit(ch);
+        if (d < 0 || d >= base) throw new Error(`基数${base}では「${ch}」は使用できません。使える値は0〜${digitToChar(base - 1)}です。`);
+        value = value * b + BigInt(d);
+      }
+      return value;
+    }
+
+    function bigIntToBase(value, base) {
+      if (value === 0n) return "0";
+      const b = BigInt(base);
+      let result = "";
+      let n = value;
+      while (n > 0n) {
+        const rem = Number(n % b);
+        result = digitToChar(rem) + result;
+        n /= b;
+      }
+      return result;
+    }
+
+    function formatBigInt(value) {
+      return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
 
     function calculate() {
       hideError();
+      try {
+        let result = "0";
+        let resultBase = 10;
+        let decimalValue = 0n;
+        let sourceValue = "";
+        let sourceBase = 10;
 
-      if (currentTab === 1) {
-        // Mode 1: Decimal (10) -> N
-        const valStr = document.getElementById('m1-val').value;
-        const targetBase = parseInt(document.getElementById('m1-base').value, 10);
-        
-        if (!valStr || isNaN(valStr) || parseInt(valStr, 10) < 0) {
-          showError("有効な非負の10進数を入力してください。");
-          return;
-        }
-        if (isNaN(targetBase) || targetBase < 2 || targetBase > 36) {
-          showError("基数Nは2から36の範囲で指定してください。");
-          return;
-        }
-
-        const decVal = parseInt(valStr, 10);
-        const converted = decVal.toString(targetBase).toUpperCase();
-
-        updateOutput(converted, targetBase);
-        renderMode1Steps(decVal, targetBase, converted);
-        renderDigitCards(converted, targetBase);
-        renderVisualBlocks(decVal, targetBase);
-
-      } else if (currentTab === 2) {
-        // Mode 2: N -> Decimal (10)
-        const sourceBase = parseInt(document.getElementById('m2-base').value, 10);
-        const sourceVal = document.getElementById('m2-val').value.trim().toUpperCase();
-
-        if (isNaN(sourceBase) || sourceBase < 2 || sourceBase > 36) {
-          showError("基数Nは2から36の範囲で指定してください。");
-          return;
-        }
-        if (!sourceVal) {
-          showError("値を入力してください。");
-          return;
-        }
-
-        // Validate string digits against sourceBase
-        for (let char of sourceVal) {
-          const d = charToDigit(char);
-          if (d < 0 || d >= sourceBase) {
-            showError(`基数 ${sourceBase} において 文字 '${char}' は不正です (桁は0〜${digitToChar(sourceBase-1)}まで)`);
-            return;
-          }
+        if (currentTab === 1) {
+          const valStr = document.getElementById("m1-val").value.trim();
+          const targetBase = Number(document.getElementById("m1-base").value);
+          if (!/^\d+$/.test(valStr)) throw new Error("10進数は0以上の整数で入力してください。");
+          if (!Number.isInteger(targetBase) || targetBase < 2 || targetBase > 36) throw new Error("基数Nは2〜36で指定してください。");
+          decimalValue = parseBigIntDecimal(valStr);
+          result = bigIntToBase(decimalValue, targetBase);
+          resultBase = targetBase;
+          sourceValue = valStr;
+          sourceBase = 10;
+          buildMode1Steps(decimalValue, targetBase, result);
+        } else if (currentTab === 2) {
+          sourceBase = Number(document.getElementById("m2-base").value);
+          sourceValue = document.getElementById("m2-val").value.trim().toUpperCase();
+          if (!Number.isInteger(sourceBase) || sourceBase < 2 || sourceBase > 36) throw new Error("基数Nは2〜36で指定してください。");
+          decimalValue = parseBaseBigInt(sourceValue, sourceBase);
+          result = decimalValue.toString();
+          resultBase = 10;
+          buildMode2Steps(sourceValue, sourceBase, decimalValue);
+        } else {
+          const baseN = Number(document.getElementById("m3-baseN").value);
+          const baseM = Number(document.getElementById("m3-baseM").value);
+          sourceValue = document.getElementById("m3-val").value.trim().toUpperCase();
+          if (![baseN, baseM].every(n => Number.isInteger(n) && n >= 2 && n <= 36)) throw new Error("基数NとMは2〜36で指定してください。");
+          decimalValue = parseBaseBigInt(sourceValue, baseN);
+          result = bigIntToBase(decimalValue, baseM);
+          resultBase = baseM;
+          sourceBase = baseN;
+          buildMode3Steps(sourceValue, baseN, decimalValue, result, baseM);
         }
 
-        const decVal = parseInt(sourceVal, sourceBase);
-
-        updateOutput(decVal.toString(), 10);
-        renderMode2Steps(sourceVal, sourceBase, decVal);
-        renderDigitCards(sourceVal, sourceBase);
-        renderVisualBlocks(decVal, 10);
-
-      } else if (currentTab === 3) {
-        // Mode 3: N -> M
-        const baseN = parseInt(document.getElementById('m3-baseN').value, 10);
-        const valN = document.getElementById('m3-val').value.trim().toUpperCase();
-        const baseM = parseInt(document.getElementById('m3-baseM').value, 10);
-
-        if (isNaN(baseN) || baseN < 2 || baseN > 36 || isNaN(baseM) || baseM < 2 || baseM > 36) {
-          showError("基数NおよびMは2から36の範囲で指定してください。");
-          return;
-        }
-        if (!valN) {
-          showError("値を入力してください。");
-          return;
-        }
-
-        for (let char of valN) {
-          const d = charToDigit(char);
-          if (d < 0 || d >= baseN) {
-            showError(`基数 ${baseN} において 文字 '${char}' は不正です`);
-            return;
-          }
-        }
-
-        const decVal = parseInt(valN, baseN);
-        const resultVal = decVal.toString(baseM).toUpperCase();
-
-        updateOutput(resultVal, baseM);
-        renderMode3Steps(valN, baseN, decVal, resultVal, baseM);
-        renderDigitCards(resultVal, baseM);
-        renderVisualBlocks(decVal, baseM);
+        updateOutput(result, resultBase, decimalValue);
+        renderDigitCards(result, resultBase);
+        renderVisualBlocks(decimalValue, currentTab === 1 ? resultBase : currentTab === 2 ? 10 : resultBase);
+        renderBitView(decimalValue, result, resultBase);
+        updateAvailableDigits(currentTab === 1 ? resultBase : sourceBase);
+        currentStepIndex = 0;
+        renderSteps();
+      } catch (e) {
+        showError(e.message);
       }
     }
 
-    function updateOutput(val, base) {
-      document.getElementById('result-display').innerText = val;
-      document.getElementById('result-subtext').innerText = `(基数 ${base} / ${base}進数)`;
+    function updateOutput(result, base, decimalValue) {
+      document.getElementById("result-display").innerText = result;
+      document.getElementById("result-subtext").innerText = `(基数 ${base} / ${base}進数)`;
+      document.getElementById("result-explanation").innerText =
+        `10進数で見ると ${formatBigInt(decimalValue)} という量を、基数${base}で表した結果です。`;
+    }
+
+    function updateAvailableDigits(base) {
+      let text = "";
+      for (let i = 0; i < base; i++) text += digitToChar(i) + (i < base - 1 ? " " : "");
+      document.getElementById("available-digits-list").innerText = text;
+      document.getElementById("available-digits-help").innerText =
+        `基数${base}では0〜${digitToChar(base - 1)}の${base}種類を使います。これより大きい値を1桁として入力することはできません。`;
     }
 
     function renderDigitCards(strVal, base) {
-      const container = document.getElementById('digit-cards-container');
-      container.innerHTML = '';
-
+      const container = document.getElementById("digit-cards-container");
+      container.innerHTML = "";
       const len = strVal.length;
+      const contributions = [];
+
       for (let i = 0; i < len; i++) {
         const char = strVal[i];
         const digitVal = charToDigit(char);
         const power = len - 1 - i;
-        const placeValue = Math.pow(base, power);
-        const totalDigitContribution = digitVal * placeValue;
+        const placeValue = BigInt(base) ** BigInt(power);
+        const contribution = BigInt(digitVal) * placeValue;
+        contributions.push(contribution);
 
-        const card = document.createElement('div');
-        card.className = "flex-1 min-w-[100px] max-w-[140px] bg-slate-50 rounded-xl p-3 border border-slate-200 text-center relative flex flex-col justify-between hover:border-indigo-400 transition shadow-sm";
-
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "digit-card";
+        card.onclick = () => highlightDigitCard(i);
         card.innerHTML = `
-          <div>
-            <span class="text-[10px] font-bold text-slate-400 block mb-1">桁の重み: ${base}<sup>${power}</sup> (${placeValue.toLocaleString()})</span>
-            <div class="text-2xl font-extrabold code-font text-indigo-600 my-1">${char}</div>
-            ${digitVal >= 10 ? `<span class="inline-block text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold mb-1">= ${digitVal}</span>` : ''}
-          </div>
-          <div class="pt-2 border-t border-slate-200/80 text-[11px] text-slate-600 font-medium">
-            ${digitVal} × ${placeValue.toLocaleString()} <br>
-            <span class="font-bold text-emerald-600 code-font">= ${totalDigitContribution.toLocaleString()}</span>
-          </div>
+          <span class="text-[10px] font-bold text-slate-400 block mb-1">桁の重み</span>
+          <span class="text-sm text-slate-500">${base}<sup>${power}</sup></span>
+          <span class="text-2xl font-extrabold code-font text-indigo-600 my-1">${char}</span>
+          ${digitVal >= 10 ? `<span class="inline-block text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold mb-1">= ${digitVal}</span>` : ""}
+          <span class="text-[11px] text-slate-600">${formatBigInt(placeValue)}</span>
+          <span class="pt-2 mt-2 border-t border-slate-200 text-[11px] text-slate-600">${digitVal} × ${formatBigInt(placeValue)}</span>
+          <span class="font-bold text-emerald-600 code-font">= ${formatBigInt(contribution)}</span>
         `;
+        card.dataset.index = i;
         container.appendChild(card);
       }
+
+      const total = contributions.reduce((a, b) => a + b, 0n);
+      document.getElementById("place-summary").innerHTML =
+        `<b>この表示が表していること：</b> 各桁の「数字 × 桁の重み」を全部足すと、元の10進数の量になります。<br>
+         合計：<span class="code-font font-bold text-indigo-700">${formatBigInt(total)}</span>`;
     }
 
-    function renderMode1Steps(decVal, base, resultStr) {
-      const container = document.getElementById('math-steps-container');
-      const footer = document.getElementById('math-explanation-footer');
-      container.innerHTML = '';
+    function highlightDigitCard(index) {
+      document.querySelectorAll(".digit-card").forEach((el, i) => el.classList.toggle("selected", i === index));
+    }
 
-      if (decVal === 0) {
-        container.innerHTML = `<div class="p-3 bg-slate-50 rounded-lg text-slate-600">値は 0 です。</div>`;
-        footer.innerText = '0の変換結果はどの進数でも0になります。';
+    function buildMode1Steps(value, base, result) {
+      currentSteps = [];
+      if (value === 0n) {
+        currentSteps.push({ title: "0の変換", html: "0はどの進数で表しても <b>0</b> です。" });
+        document.getElementById("steps-intro").innerText = "0は特別なケースです。割り算を繰り返す必要がありません。";
         return;
       }
-
-      let current = decVal;
-      let stepsHtml = '';
-      const remainders = [];
-
-      stepsHtml += `<div class="font-semibold text-slate-700 mb-2">10進数 (${decVal}) を 基数 ${base} で割っていき、余りを下から順に並べます:</div>`;
-      stepsHtml += `<div class="space-y-1.5 font-mono text-xs">`;
-
-      while (current > 0) {
-        const quot = Math.floor(current / base);
-        const rem = current % base;
-        const remChar = digitToChar(rem);
-        remainders.push(remChar);
-
-        stepsHtml += `
-          <div class="flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-100">
-            <span class="w-16 text-right font-bold text-slate-700">${current}</span>
-            <span class="text-slate-400">÷</span>
-            <span class="font-bold text-indigo-600">${base}</span>
-            <span class="text-slate-400">=</span>
-            <span class="w-16 font-bold text-slate-700">${quot}</span>
-            <span class="text-slate-400">あまり</span>
-            <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded border border-amber-300 text-sm">${remChar} ${rem >= 10 ? `(${rem})` : ''}</span>
-          </div>
-        `;
-        current = quot;
+      let current = value;
+      while (current > 0n) {
+        const q = current / BigInt(base);
+        const r = Number(current % BigInt(base));
+        currentSteps.push({
+          title: `${formatBigInt(current)} ÷ ${base}`,
+          html: `<span class="code-font">${formatBigInt(current)} ÷ ${base} = ${formatBigInt(q)} あまり <b>${digitToChar(r)}</b></span><br><span class="text-slate-500">この「あまり」が右側から1桁ずつ決まります。</span>`
+        });
+        current = q;
       }
-      stepsHtml += `</div>`;
-
-      stepsHtml += `
-        <div class="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-indigo-900 text-xs">
-          <i class="fa-solid fa-arrow-up-long text-indigo-600 mr-1"></i>
-          あまりを下から順に（逆順に）読むと: <span class="font-extrabold text-base code-font text-indigo-700 ml-1">${resultStr}</span>
-        </div>
-      `;
-
-      container.innerHTML = stepsHtml;
-      footer.innerText = `10進数からN進数への変換では、基数 ${base} で割ったあまりを繰り上がりとして扱います。`;
+      currentSteps.push({
+        title: "最後に、あまりを下から読む",
+        html: `あまりを逆順に並べると <span class="code-font font-extrabold text-indigo-700">${result}</span> になります。`
+      });
+      document.getElementById("steps-intro").innerText = `10進数 ${formatBigInt(value)} を基数${base}で割り続け、あまりを下から読むことで各桁を求めます。`;
     }
 
-    function renderMode2Steps(strVal, base, decVal) {
-      const container = document.getElementById('math-steps-container');
-      const footer = document.getElementById('math-explanation-footer');
-      container.innerHTML = '';
-
-      const len = strVal.length;
+    function buildMode2Steps(str, base, value) {
+      currentSteps = [];
       let terms = [];
-      let expandedHtml = '';
-
-      expandedHtml += `<div class="font-semibold text-slate-700 mb-2">${base}進数 (${strVal}) の各桁を重み ($N^k$) に応じて展開します:</div>`;
-      expandedHtml += `<div class="space-y-2 text-xs">`;
-
-      for (let i = 0; i < len; i++) {
-        const char = strVal[i];
-        const d = charToDigit(char);
-        const power = len - 1 - i;
-        const placeVal = Math.pow(base, power);
-        const partVal = d * placeVal;
-        terms.push(partVal);
-
-        expandedHtml += `
-          <div class="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
-            <div class="flex items-center space-x-2">
-              <span class="font-bold code-font text-indigo-600 text-sm">${char}</span>
-              ${d >= 10 ? `<span class="text-slate-400">(${d})</span>` : ''}
-              <span class="text-slate-400">×</span>
-              <span class="font-semibold">${base}<sup>${power}</sup></span>
-              <span class="text-slate-400">(${placeVal.toLocaleString()})</span>
-            </div>
-            <span class="font-bold text-emerald-600 code-font">= ${partVal.toLocaleString()}</span>
-          </div>
-        `;
+      for (let i = 0; i < str.length; i++) {
+        const d = charToDigit(str[i]);
+        const power = str.length - 1 - i;
+        const weight = BigInt(base) ** BigInt(power);
+        const contribution = BigInt(d) * weight;
+        terms.push(formatBigInt(contribution));
+        currentSteps.push({
+          title: `${str[i]} の桁`,
+          html: `<span class="code-font">${str[i]} × ${base}<sup>${power}</sup> = ${formatBigInt(contribution)}</span><br><span class="text-slate-500">この桁は ${formatBigInt(weight)} の重みを持ちます。</span>`
+        });
       }
-
-      const sumExpr = terms.join(' + ');
-      expandedHtml += `</div>`;
-
-      expandedHtml += `
-        <div class="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-900 text-xs">
-          <strong>合計:</strong> ${sumExpr} = <span class="font-extrabold text-base code-font text-emerald-700 ml-1">${decVal.toLocaleString()}</span> (10進数)
-        </div>
-      `;
-
-      container.innerHTML = expandedHtml;
-      footer.innerText = `N進数から10進数への変換は、各桁の数値にその位置の重み (${base}^k) を掛けて足し合わせます。`;
+      currentSteps.push({
+        title: "各桁を合計",
+        html: `<span class="code-font">${terms.join(" + ")} = <b>${formatBigInt(value)}</b></span>`
+      });
+      document.getElementById("steps-intro").innerText = `${base}進数の各桁に、位置に応じた ${base}^k の重みを掛けて足し合わせます。`;
     }
 
-    function renderMode3Steps(valN, baseN, decVal, valM, baseM) {
-      const container = document.getElementById('math-steps-container');
-      const footer = document.getElementById('math-explanation-footer');
-
-      let html = `
-        <div class="space-y-3 text-xs">
-          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <span class="font-bold text-slate-700 block mb-1">ステップ 1: N進数 (${baseN}進数) を一度 10進数 に変換</span>
-            <div class="code-font text-indigo-600 font-semibold">${valN} (${baseN}進数) = ${decVal.toLocaleString()} (10進数)</div>
-          </div>
-          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-            <span class="font-bold text-slate-700 block mb-1">ステップ 2: 10進数 を M進数 (${baseM}進数) に割り算で変換</span>
-            <div class="code-font text-emerald-600 font-semibold">${decVal.toLocaleString()} (10進数) = ${valM} (${baseM}進数)</div>
-          </div>
-        </div>
-      `;
-
-      container.innerHTML = html;
-      footer.innerText = `異なる進数同士の変換（N進数→M進数）は、一度基準となる10進数を経由するとスムーズに計算できます。`;
+    function buildMode3Steps(str, baseN, value, result, baseM) {
+      currentSteps = [
+        { title: "ステップ1：N進数を10進数へ", html: `<span class="code-font">${str} (${baseN}進数) = ${formatBigInt(value)} (10進数)</span><br><span class="text-slate-500">各桁の重みを使って、まず共通の10進数の量にします。</span>` },
+      ];
+      let n = value;
+      if (n === 0n) {
+        currentSteps.push({ title: "ステップ2：0をM進数へ", html: `0はどの進数でも <b>0</b> です。` });
+      } else {
+        while (n > 0n) {
+          const q = n / BigInt(baseM);
+          const r = Number(n % BigInt(baseM));
+          currentSteps.push({ title: `ステップ2：${formatBigInt(n)} ÷ ${baseM}`, html: `<span class="code-font">${formatBigInt(n)} ÷ ${baseM} = ${formatBigInt(q)} あまり <b>${digitToChar(r)}</b></span>` });
+          n = q;
+        }
+        currentSteps.push({ title: "ステップ3：あまりを逆順に読む", html: `<span class="code-font font-extrabold text-emerald-700">${result}</span> (${baseM}進数)` });
+      }
+      document.getElementById("steps-intro").innerText = `${baseN}進数 → 10進数 → ${baseM}進数という2段階で変換しています。`;
     }
 
-    function renderVisualBlocks(decVal, base) {
-      const wrapper = document.getElementById('visual-blocks-wrapper');
-      const badge = document.getElementById('visual-block-count-badge');
-      wrapper.innerHTML = '';
+    function renderSteps() {
+      const container = document.getElementById("math-steps-container");
+      if (!currentSteps.length) return;
+      container.innerHTML = currentSteps.map((step, i) => `
+        <div class="step-row ${i <= currentStepIndex ? "visible" : ""}">
+          <div class="step-number">${i + 1}</div>
+          <div class="flex-1"><div class="font-bold text-slate-700 mb-1">${step.title}</div><div class="text-sm leading-6">${step.html}</div></div>
+        </div>`).join("");
+      document.getElementById("step-prev").disabled = currentStepIndex <= 0;
+      document.getElementById("step-next").disabled = currentStepIndex >= currentSteps.length - 1;
+    }
 
-      if (decVal > 256) {
-        wrapper.innerHTML = `
-          <div class="text-center py-6 text-slate-400 text-xs">
-            <i class="fa-solid fa-eye-slash text-2xl mb-2 block text-slate-300"></i>
-            数値が大きいため（> 256）、ドット視覚化を省略しています。<br>スライダーで小さな値（例: 27など）に設定して体験できます。
-          </div>
-        `;
-        badge.innerText = `合計: ${decVal}`;
+    function nextStep() {
+      if (currentStepIndex < currentSteps.length - 1) {
+        currentStepIndex++;
+        renderSteps();
+      }
+    }
+
+    function prevStep() {
+      if (currentStepIndex > 0) {
+        currentStepIndex--;
+        renderSteps();
+      }
+    }
+
+    function showAllSteps() {
+      currentStepIndex = currentSteps.length - 1;
+      renderSteps();
+    }
+
+    function resetSteps() {
+      currentStepIndex = 0;
+      renderSteps();
+    }
+
+    function renderVisualBlocks(value, base) {
+      const wrapper = document.getElementById("visual-blocks-wrapper");
+      const badge = document.getElementById("visual-block-count-badge");
+      wrapper.innerHTML = "";
+      if (value === 0n) {
+        wrapper.innerHTML = `<div class="text-center text-slate-400 py-8">要素はありません（0個）</div>`;
+        badge.innerText = "合計：0";
         return;
       }
-
-      if (decVal === 0) {
-        wrapper.innerHTML = `<div class="text-center text-slate-400 text-xs py-4">要素はありません (0)</div>`;
-        badge.innerText = `合計: 0`;
+      const limit = 256n;
+      if (value > limit) {
+        wrapper.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm"><i class="fa-solid fa-eye-slash text-2xl mb-2 block text-slate-300"></i>値が256を超えるため、ドット表示を省略しています。<br>計算自体はBigIntで正確に行っています。</div>`;
+        badge.innerText = `10進数の量 = ${formatBigInt(value)} 個`;
         return;
       }
-
-      badge.innerText = `10進数の量 = ${decVal} 個のドット`;
-
-      // Grouping dots into groups of base
-      const fullGroups = Math.floor(decVal / base);
-      const remainderDots = decVal % base;
-
-      const container = document.createElement('div');
-      container.className = "flex flex-wrap gap-3 items-end justify-center max-h-[220px] overflow-y-auto p-2";
-
-      // Render full groups
-      for (let g = 0; g < fullGroups; g++) {
-        const groupEl = document.createElement('div');
-        groupEl.className = "bg-indigo-50 border-2 border-indigo-300 rounded-xl p-2 flex flex-wrap gap-1 items-center justify-center relative";
-        groupEl.style.maxWidth = `${Math.min(base * 16 + 20, 160)}px`;
-
-        // Tooltip label for group
-        const groupLabel = document.createElement('span');
-        groupLabel.className = "absolute -top-2.5 right-2 bg-indigo-600 text-white text-[9px] px-1.5 py-0.2 rounded font-bold";
-        groupLabel.innerText = `${base}個のまとまり (${g + 1})`;
-        groupEl.appendChild(groupLabel);
-
-        for (let d = 0; d < base; d++) {
-          const dot = document.createElement('div');
-          dot.className = "w-3.5 h-3.5 bg-indigo-500 rounded-full shadow-sm";
-          groupEl.appendChild(dot);
-        }
-        container.appendChild(groupEl);
-      }
-
-      // Render remainder dots
-      if (remainderDots > 0) {
-        const remGroup = document.createElement('div');
-        remGroup.className = "bg-amber-50 border-2 border-dashed border-amber-300 rounded-xl p-2 flex flex-wrap gap-1 items-center justify-center relative";
-        remGroup.style.maxWidth = `${Math.min(base * 16 + 20, 160)}px`;
-
-        const remLabel = document.createElement('span');
-        remLabel.className = "absolute -top-2.5 right-2 bg-amber-500 text-white text-[9px] px-1.5 py-0.2 rounded font-bold";
-        remLabel.innerText = `あまり (${remainderDots}個)`;
-        remGroup.appendChild(remLabel);
-
-        for (let d = 0; d < remainderDots; d++) {
-          const dot = document.createElement('div');
-          dot.className = "w-3.5 h-3.5 bg-amber-500 rounded-full shadow-sm";
-          remGroup.appendChild(dot);
-        }
-        container.appendChild(remGroup);
-      }
-
+      const num = Number(value);
+      const groups = Math.floor(num / base);
+      const rem = num % base;
+      const container = document.createElement("div");
+      container.className = "flex flex-wrap gap-3 items-end justify-center max-h-[320px] overflow-y-auto p-3";
+      for (let g = 0; g < groups; g++) container.appendChild(makeDotGroup(base, g + 1, false));
+      if (rem > 0) container.appendChild(makeDotGroup(rem, rem, true));
       wrapper.appendChild(container);
+      badge.innerText = `10進数の量 = ${formatBigInt(value)} 個。基数${base}ごとにグループ化しています。`;
     }
 
-    // Initialize application on load
+    function makeDotGroup(count, labelValue, remainder) {
+      const group = document.createElement("div");
+      group.className = remainder ? "dot-group remainder" : "dot-group";
+      const label = document.createElement("span");
+      label.className = "dot-label";
+      label.innerText = remainder ? `あまり ${count}個` : `${count}個のまとまり`;
+      group.appendChild(label);
+      for (let i = 0; i < count; i++) {
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        group.appendChild(dot);
+      }
+      return group;
+    }
+
+    function renderBitView(decimalValue, result, resultBase) {
+      const el = document.getElementById("bit-view");
+      if (decimalValue === 0n) {
+        el.innerHTML = `<div class="text-center text-slate-500">値が0なので、ビット表示も0です。</div>`;
+        return;
+      }
+      const binary = decimalValue.toString(2);
+      const bits = binary.split("");
+      const startPower = bits.length - 1;
+      let rows = "";
+      bits.forEach((bit, i) => {
+        const power = startPower - i;
+        const weight = 2n ** BigInt(power);
+        rows += `<div class="bit-cell ${bit === "1" ? "on" : "off"}"><b>${bit}</b><span>2<sup>${power}</sup></span><small>${formatBigInt(weight)}</small></div>`;
+      });
+      el.innerHTML = `
+        <div class="overflow-x-auto"><div class="bit-row">${rows}</div></div>
+        <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+          <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3"><b>1 = ON</b><br>その桁の値を使います。</div>
+          <div class="bg-slate-100 border border-slate-200 rounded-lg p-3"><b>0 = OFF</b><br>その桁の値を使いません。</div>
+          <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3"><b>${binary}</b><br>10進数では ${formatBigInt(decimalValue)} です。</div>
+        </div>`;
+    }
+
+    function renderHexView() {
+      const input = document.getElementById("hex-binary-input").value.trim();
+      const out = document.getElementById("hex-result");
+      if (!/^[01]*$/.test(input) || !input) {
+        out.innerHTML = `<span class="text-red-600 text-sm">0と1だけで入力してください。</span>`;
+        return;
+      }
+      const padded = input.padStart(Math.ceil(input.length / 4) * 4, "0");
+      const groups = padded.match(/.{4}/g) || [];
+      const hex = groups.map(g => parseInt(g, 2).toString(16).toUpperCase()).join("");
+      out.innerHTML = `
+        <div class="code-font text-xl font-bold text-indigo-700 break-all">${groups.join(" ")}</div>
+        <div class="text-slate-400 my-2">↓ 4桁ずつ対応</div>
+        <div class="code-font text-2xl font-extrabold text-violet-700">${hex}</div>
+        <p class="text-xs text-slate-500 mt-2">左側を0で補って4桁ずつ区切っています。元の入力：${input}</p>`;
+    }
+
+    function renderDirect() {
+      renderDirectBase("direct-octal", 8, "direct-octal-result", 3);
+      renderDirectBase("direct-hex", 16, "direct-hex-result", 4);
+    }
+
+    function renderDirectBase(inputId, base, resultId, width) {
+      const input = document.getElementById(inputId).value.trim().toUpperCase();
+      const out = document.getElementById(resultId);
+      if (!input) { out.innerHTML = ""; return; }
+      try {
+        const value = parseBaseBigInt(input, base);
+        const binary = value.toString(2).padStart(Math.max(width, Math.ceil(input.length * width / 1)), "0");
+        const chunks = input.split("").map(ch => {
+          const d = charToDigit(ch);
+          return d.toString(2).padStart(width, "0");
+        });
+        out.innerHTML = `<div class="code-font text-lg font-bold">${input} <span class="text-slate-400">→</span> ${chunks.join(" ")}</div><div class="mt-2 text-sm text-slate-500">10進数では ${formatBigInt(value)}、2進数では <span class="code-font font-bold text-indigo-700">${binary}</span> です。</div>`;
+      } catch (e) {
+        out.innerHTML = `<span class="text-red-600 text-sm">${e.message}</span>`;
+      }
+    }
+
+    function renderDigitTable() {
+      const el = document.getElementById("digit-table");
+      el.innerHTML = "";
+      for (let i = 10; i <= 35; i++) {
+        el.innerHTML += `<div class="bg-slate-50 p-2 rounded border border-slate-200"><span class="text-slate-400 block text-[10px]">${i}</span><span class="font-bold text-indigo-600 text-base">${digitToChar(i)}</span></div>`;
+      }
+    }
+
+    function setPractice(level) {
+      practice.level = level;
+      newPractice();
+    }
+
+    function newPractice() {
+      const n = Math.floor(Math.random() * 46) + 5;
+      if (practice.level === 1) {
+        practice.value = n;
+        practice.base = 2;
+        practice.answer = bigIntToBase(BigInt(n), 2);
+        document.getElementById("practice-question").innerText = `10進数の ${n} を2進数に変換してください。`;
+        document.getElementById("practice-hint").innerText = "答えは0と1だけで表します。";
+      } else if (practice.level === 2) {
+        const b = bigIntToBase(BigInt(n), 2);
+        practice.value = n;
+        practice.base = 2;
+        practice.answer = String(n);
+        document.getElementById("practice-question").innerText = `2進数の ${b} は10進数でいくつですか？`;
+        document.getElementById("practice-hint").innerText = "各桁の2のべき乗を足してみましょう。";
+      } else {
+        const h = bigIntToBase(BigInt(Math.floor(Math.random() * 240) + 16), 16);
+        const value = parseBaseBigInt(h, 16);
+        practice.value = Number(value);
+        practice.base = 16;
+        practice.answer = value.toString(2);
+        document.getElementById("practice-question").innerText = `16進数の ${h} を2進数に変換してください。`;
+        document.getElementById("practice-hint").innerText = "16進数1桁を2進数4桁に置き換えてみましょう。";
+      }
+      document.getElementById("practice-answer").value = "";
+      document.getElementById("practice-result").innerHTML = "";
+    }
+
+    function checkPractice() {
+      const answer = document.getElementById("practice-answer").value.trim().toUpperCase().replace(/^0+(?=.)/, "");
+      const correct = practice.answer.toUpperCase().replace(/^0+(?=.)/, "");
+      const out = document.getElementById("practice-result");
+      if (answer === correct) {
+        out.innerHTML = `<div class="result-good"><i class="fa-solid fa-circle-check mr-2"></i>正解です！答えは <span class="code-font">${practice.answer}</span> です。</div>`;
+      } else {
+        out.innerHTML = `<div class="result-bad"><i class="fa-solid fa-circle-xmark mr-2"></i>不正解です。もう一度、桁の重みや対応表を確認してみましょう。</div>`;
+      }
+    }
+
+    function showPracticeHint() {
+      document.getElementById("practice-result").innerHTML = `<div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3 text-sm"><b>ヒント：</b>${document.getElementById("practice-hint").innerText}</div>`;
+    }
+
     window.onload = function() {
+      renderDigitTable();
+      renderHexView();
+      renderDirect();
+      newPractice();
       calculate();
     };
   </script>
