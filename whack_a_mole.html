@@ -170,6 +170,56 @@
     outline-offset: 2px;
   }
 
+  .key-layout-select {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 14px;
+    padding: 8px 10px;
+    background: var(--surface-2);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+  }
+  .key-layout-select .kls-title {
+    font-size: 0.65em;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 2px;
+  }
+  .key-layout-select label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72em;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .key-layout-select input[type="checkbox"] {
+    accent-color: var(--cyan);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .key-hint {
+    position: absolute;
+    top: 8%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 5;
+    text-transform: uppercase;
+  }
+  .key-hint span { min-width: 1px; }
+
   #startButton {
     padding: 16px;
     font-size: 1.15em;
@@ -410,6 +460,13 @@
         <button class="diff-btn selected" data-diff="normal">ふつう</button>
         <button class="diff-btn" data-diff="hard">むずい</button>
       </div>
+
+      <div class="key-layout-select" id="key-layout-select">
+        <div class="kls-title">キー操作 (クリックに加えて)</div>
+        <label><input type="checkbox" data-layout="numpad"> テンキー (7 8 9 / 4 5 6 / 1 2 3)</label>
+        <label><input type="checkbox" data-layout="qwe"> Q W E / A S D / Z X C</label>
+        <label><input type="checkbox" data-layout="uio"> U I O / J K L / M , .</label>
+      </div>
     </div>
     <button id="startButton">ゲーム開始</button>
   </div>
@@ -440,6 +497,7 @@
   const startButton = document.getElementById('startButton');
   const countdownOverlay = document.getElementById('countdown-overlay');
   const difficultySelect = document.getElementById('difficulty-select');
+  const keyLayoutSelect = document.getElementById('key-layout-select');
   const resultOverlay = document.getElementById('result-overlay');
   const resultScore = document.getElementById('result-score');
   const resultHighScore = document.getElementById('result-highscore');
@@ -452,6 +510,55 @@
     hard:   { duration: 15, startInterval: 550, minInterval: 260, speedUp: 0.965 },
   };
   let currentDifficulty = 'normal';
+
+  // 穴のインデックス0-8は左上→右下(行優先)。各レイアウトは物理キー位置(e.code)で判定する。
+  const KEY_LAYOUTS = {
+    numpad: {
+      codes: ['Numpad7', 'Numpad8', 'Numpad9', 'Numpad4', 'Numpad5', 'Numpad6', 'Numpad1', 'Numpad2', 'Numpad3'],
+      labels: ['7', '8', '9', '4', '5', '6', '1', '2', '3'],
+    },
+    qwe: {
+      codes: ['KeyQ', 'KeyW', 'KeyE', 'KeyA', 'KeyS', 'KeyD', 'KeyZ', 'KeyX', 'KeyC'],
+      labels: ['Q', 'W', 'E', 'A', 'S', 'D', 'Z', 'X', 'C'],
+    },
+    uio: {
+      codes: ['KeyU', 'KeyI', 'KeyO', 'KeyJ', 'KeyK', 'KeyL', 'KeyM', 'Comma', 'Period'],
+      labels: ['U', 'I', 'O', 'J', 'K', 'L', 'M', ',', '.'],
+    },
+  };
+  const KEY_LAYOUT_NAMES = Object.keys(KEY_LAYOUTS);
+  const keyLayoutStorageKey = 'neonMoguraKeyLayouts';
+
+  function loadKeyLayoutState() {
+    const state = {};
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(keyLayoutStorageKey)); } catch (e) { saved = null; }
+    KEY_LAYOUT_NAMES.forEach(name => {
+      state[name] = (saved && typeof saved[name] === 'boolean') ? saved[name] : true; // 初回はデフォルトで全ON
+    });
+    return state;
+  }
+  function saveKeyLayoutState() {
+    localStorage.setItem(keyLayoutStorageKey, JSON.stringify(keyLayoutState));
+  }
+  let keyLayoutState = loadKeyLayoutState();
+
+  function updateKeyHints() {
+    KEY_LAYOUT_NAMES.forEach(name => {
+      const on = keyLayoutState[name];
+      document.querySelectorAll(`.kh-${name}`).forEach(el => { el.style.display = on ? '' : 'none'; });
+    });
+  }
+
+  KEY_LAYOUT_NAMES.forEach(name => {
+    const cb = keyLayoutSelect.querySelector(`input[data-layout="${name}"]`);
+    cb.checked = keyLayoutState[name];
+    cb.addEventListener('change', () => {
+      keyLayoutState[name] = cb.checked;
+      saveKeyLayoutState();
+      updateKeyHints();
+    });
+  });
 
   const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🐺', '🐴', '🐝', '🐢', '🐍', '🦎', '🐙', '🦑', '🦀', '🐠', '🐬', '🦈', '🐊', '🐅', '🦓', '🐘', '🦒', '🐕', '🐈', '🦃', '🦢', '🐇', '🦔'];
 
@@ -481,6 +588,17 @@
       const mole = document.createElement('div');
       mole.classList.add('mole');
       hole.appendChild(mole);
+
+      const keyHint = document.createElement('div');
+      keyHint.classList.add('key-hint');
+      KEY_LAYOUT_NAMES.forEach(name => {
+        const span = document.createElement('span');
+        span.classList.add(`kh-${name}`);
+        span.textContent = KEY_LAYOUTS[name].labels[i];
+        keyHint.appendChild(span);
+      });
+      hole.appendChild(keyHint);
+
       gameContainer.appendChild(hole);
       holes.push({ hole, mole });
 
@@ -496,7 +614,25 @@
       hole.addEventListener('touchstart', (e) => { e.preventDefault(); handler(e); }, { passive: false });
       hole.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); } });
     }
+    updateKeyHints();
   }
+
+  document.addEventListener('keydown', (e) => {
+    if (!gameRunning || e.repeat) return;
+    for (const name of KEY_LAYOUT_NAMES) {
+      if (!keyLayoutState[name]) continue;
+      const idx = KEY_LAYOUTS[name].codes.indexOf(e.code);
+      if (idx === -1) continue;
+      e.preventDefault();
+      const { hole, mole } = holes[idx];
+      if (idx === activeIndex && mole.classList.contains('up') && !moleHit) {
+        whack(mole, hole, idx, e);
+      } else {
+        missClick(hole);
+      }
+      break;
+    }
+  });
 
   function ensureAudio() {
     if (!audioCtx) {
