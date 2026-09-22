@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>サイコロシミュレーター</title>
+    <meta name="description" content="3Dサイコロシミュレーター。最大10個まで同時に振れて、出目の統計・確率も見られます。">
+    <meta property="og:title" content="サイコロシミュレーター">
+    <meta property="og:description" content="3Dサイコロシミュレーター。最大10個まで同時に振れて、出目の統計・確率も見られます。">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
     <style>
         body { 
             margin: 0; 
@@ -186,6 +191,131 @@
             font-weight: bold;
         }
 
+        /* ⚙️ 設定トグル（効果音・振動） */
+        .settings-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 38px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #333333;
+            border: 1px solid var(--theme-primary, #00ffff);
+            transition: 0.2s;
+        }
+        .toggle-slider::before {
+            content: "";
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            left: 2px;
+            top: 2px;
+            background: #777777;
+            transition: 0.2s;
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--theme-primary, #00ffff);
+        }
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+            background: #000000;
+        }
+
+        /* 🔊 効果音・振動・シェア/リセットの小ボタン共通 */
+        .btn-small {
+            background: transparent;
+            color: #ffffff;
+            border: 1px solid var(--theme-primary, #00ffff);
+            padding: 6px 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+        .btn-small:hover { background: var(--theme-primary, #00ffff); color: #000000; }
+
+        .share-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .share-row .btn-small { flex: 1; }
+
+        .reset-row { margin-top: 10px; text-align: right; }
+
+        /* 📊 確率バー */
+        .prob-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+        .prob-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #ffffff; }
+        .prob-label { width: 14px; flex-shrink: 0; }
+        .prob-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.1); position: relative; }
+        .prob-bar-fill { height: 100%; background: var(--theme-total-border, #00ffff); transition: width 0.3s ease; }
+        .prob-pct { width: 34px; text-align: right; flex-shrink: 0; color: #aaaaaa; }
+
+        /* 🕓 履歴 */
+        .history-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .history-chip {
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 2px 6px;
+            color: #ffffff;
+        }
+
+        /* ⚠️ 読み込みエラー表示 */
+        #load-error {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: #000000;
+            color: #ffffff;
+            font-family: 'Share Tech Mono', monospace;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #load-error p { max-width: 420px; line-height: 1.6; }
+        #load-error button {
+            margin-top: 16px;
+            background: #00ffff;
+            color: #000000;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
         /* 📱 レスポンシブ設定 */
         @media (max-width: 768px) {
             #ui { padding: 12px; justify-content: space-between; overflow-y: hidden; }
@@ -199,12 +329,26 @@
             .total-container { font-size: 14px; margin-bottom: 4px;}
             .total-val-box { font-size: 16px; padding: 1px 6px; }
             .count-row { font-size: 12px; padding-bottom: 1px; }
+            .settings-row { gap: 12px; margin-bottom: 8px; }
+            .prob-row, .history-chip { font-size: 10px; }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
+    <div id="load-error">
+        <p>読み込みに失敗しました。<br>ネットワーク接続をご確認のうえ、再読み込みしてください。</p>
+        <button onclick="location.reload()">再読み込み</button>
+    </div>
+    <script>
+        // 3D初期化が一定時間内に完了しない場合はエラー表示にフォールバック
+        setTimeout(() => {
+            if (!window.__diceInited) {
+                document.getElementById('load-error').style.display = 'flex';
+            }
+        }, 9000);
+    </script>
     <a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
 
     <div id="ui">
@@ -221,6 +365,23 @@
                         <option value="beautiful">キレイ</option>
                         <option value="hot">かっこいい</option>
                     </select>
+                </div>
+
+                <div class="settings-row">
+                    <label class="toggle-item">
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="sound-toggle">
+                            <span class="toggle-slider"></span>
+                        </span>
+                        SE
+                    </label>
+                    <label class="toggle-item">
+                        <span class="toggle-switch">
+                            <input type="checkbox" id="vibration-toggle">
+                            <span class="toggle-slider"></span>
+                        </span>
+                        VIBRATION
+                    </label>
                 </div>
 
                 <div style="font-size: 12px; margin-bottom: 6px; color: var(--theme-primary, #00ffff); font-weight: bold;">QUANTITY SELECT:</div>
@@ -244,6 +405,10 @@
                     <div class="count-row"><span>[⚄ 5]</span><span class="count-num" id="count-5">0</span></div>
                     <div class="count-row"><span>[⚅ 6]</span><span class="count-num" id="count-6">0</span></div>
                 </div>
+                <div class="share-row">
+                    <button class="btn-small" id="share-x-btn" type="button">Xでシェア</button>
+                    <button class="btn-small" id="share-line-btn" type="button">LINEでシェア</button>
+                </div>
             </div>
 
             <div class="cyber-panel panel-total" id="total-panel" style="display: none;">
@@ -263,6 +428,14 @@
                     <div class="count-row"><span>[⚃ 4] ALL</span><span class="count-num" id="all-count-4">0</span></div>
                     <div class="count-row"><span>[⚄ 5] ALL</span><span class="count-num" id="all-count-5">0</span></div>
                     <div class="count-row"><span>[⚅ 6] ALL</span><span class="count-num" id="all-count-6">0</span></div>
+                </div>
+
+                <div class="prob-list" id="prob-list"></div>
+
+                <div class="history-row" id="history-row"></div>
+
+                <div class="reset-row">
+                    <button class="btn-small" id="reset-stats-btn" type="button">RESET STATS</button>
                 </div>
             </div>
         </div>
@@ -289,6 +462,11 @@
         let diceArray = []; 
         let isRolling = false;
         let currentThemeKey = 'cool';
+
+        // ジオメトリ・テーマ別マテリアルのキャッシュ（init()より前に実行される setupDice() から
+        // 参照されるため、必ずスクリプトの先頭付近で宣言しておく）
+        let cachedGeometry = null;
+        const materialCache = {};
 
         // 🎨 各カラーテーマの設定（かわいい・キレイの1の目をはっきりした赤色 #ff0000 に指定）
         const THEMES = {
@@ -346,19 +524,101 @@
             }
         };
 
-        const globalStats = {
-            rolls: 0,
-            sum: 0,
-            counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
-        };
+        // 📦 累計統計はlocalStorageに保存し、リロードしても保持する
+        const STATS_KEY = 'cyber-dice-stats';
+        const HISTORY_KEY = 'cyber-dice-history';
+        const MAX_HISTORY = 12;
+
+        function loadStats() {
+            try {
+                const raw = localStorage.getItem(STATS_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed.rolls === 'number' && parsed.counts) {
+                        return parsed;
+                    }
+                }
+            } catch (e) { /* 壊れたデータは無視して初期化 */ }
+            return { rolls: 0, sum: 0, counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 } };
+        }
+
+        function loadHistory() {
+            try {
+                const raw = localStorage.getItem(HISTORY_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) return parsed;
+                }
+            } catch (e) { /* 壊れたデータは無視 */ }
+            return [];
+        }
+
+        const globalStats = loadStats();
+        let rollHistory = loadHistory();
+
+        function persistStats() {
+            try {
+                localStorage.setItem(STATS_KEY, JSON.stringify(globalStats));
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(rollHistory));
+            } catch (e) { /* 保存に失敗しても続行 */ }
+        }
+
+        // 🔊 効果音・📳 振動設定（SEはデフォルトOFF、振動はデフォルトON）
+        let soundEnabled = localStorage.getItem('cyber-dice-sound') === 'true';
+        let vibrationEnabled = localStorage.getItem('cyber-dice-vibration') !== 'false';
+
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            return audioCtx;
+        }
+
+        function playTone(freq, duration, type, delay = 0, gain = 0.15) {
+            if (!soundEnabled) return;
+            const ctx = getAudioCtx();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            const startTime = ctx.currentTime + delay;
+            gainNode.gain.setValueAtTime(0.0001, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(gain, startTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration + 0.02);
+        }
+
+        function playRollSound() {
+            if (!soundEnabled) return;
+            // 短いクリック音を連続で鳴らしてカラカラと転がる雰囲気を出す
+            for (let i = 0; i < 10; i++) {
+                playTone(180 + Math.random() * 260, 0.05, 'square', i * 0.11, 0.06);
+            }
+        }
+
+        function playResultSound() {
+            playTone(660, 0.12, 'sine', 0, 0.18);
+            playTone(880, 0.18, 'sine', 0.08, 0.16);
+        }
+
+        function vibrate(pattern) {
+            if (!vibrationEnabled) return;
+            if (navigator.vibrate) navigator.vibrate(pattern);
+        }
 
         const DICE_ROTATIONS = {
             1: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, 0)),
-            2: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI, 0, 0)),
+            2: new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),
             3: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),
             4: new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, -Math.PI / 2)),
-            5: new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)),
-            6: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0))
+            5: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)),
+            6: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI, 0, 0))
         };
 
         const views = [
@@ -377,9 +637,60 @@
             container.appendChild(label);
         }
 
+        const soundToggle = document.getElementById('sound-toggle');
+        const vibrationToggle = document.getElementById('vibration-toggle');
+        soundToggle.checked = soundEnabled;
+        vibrationToggle.checked = vibrationEnabled;
+
+        soundToggle.addEventListener('change', (e) => {
+            soundEnabled = e.target.checked;
+            localStorage.setItem('cyber-dice-sound', soundEnabled ? 'true' : 'false');
+            if (soundEnabled) getAudioCtx(); // ユーザー操作の中で生成してブラウザの自動再生制限を回避
+        });
+        vibrationToggle.addEventListener('change', (e) => {
+            vibrationEnabled = e.target.checked;
+            localStorage.setItem('cyber-dice-vibration', vibrationEnabled ? 'true' : 'false');
+        });
+
+        document.getElementById('reset-stats-btn').addEventListener('click', () => {
+            globalStats.rolls = 0;
+            globalStats.sum = 0;
+            for (let i = 1; i <= 6; i++) globalStats.counts[i] = 0;
+            rollHistory = [];
+            persistStats();
+            renderTotalStats();
+        });
+
+        document.getElementById('share-x-btn').addEventListener('click', () => {
+            const text = buildShareText();
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank', 'noopener');
+        });
+        document.getElementById('share-line-btn').addEventListener('click', () => {
+            const text = buildShareText();
+            const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank', 'noopener');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code !== 'Space') return;
+            const tag = document.activeElement ? document.activeElement.tagName : '';
+            if (tag === 'SELECT' || tag === 'INPUT' || tag === 'BUTTON') return;
+            e.preventDefault();
+            rollDice();
+        });
+
         init();
         animate();
-        setupDice(getSelectedIndex()); 
+        setupDice(getSelectedIndex());
+        renderTotalStats();
+        window.__diceInited = true;
+
+        function buildShareText() {
+            const last = rollHistory[rollHistory.length - 1];
+            if (!last) return 'サイコロシミュレーターで遊んでいます！';
+            return `サイコロを${last.values.length}個振って合計${last.total}が出ました！(出目: ${last.values.join(',')})`;
+        }
 
         function applyTheme(themeKey) {
             currentThemeKey = themeKey;
@@ -450,7 +761,7 @@
             p.position.set(5, 15, 5); 
             scene.add(p);
             
-            adjustCameraForMobile();
+            adjustCameraForMobile(getSelectedIndex());
 
             const dropdown = document.getElementById('theme-dropdown');
             const savedTheme = localStorage.getItem('cyber-dice-theme') || 'cool';
@@ -509,39 +820,47 @@
             return 3;
         }
 
+        // ジオメトリはテーマ・個数に依存しないので1回だけ作って使い回す
+        function getSharedGeometry() {
+            if (!cachedGeometry) {
+                cachedGeometry = new RoundedBoxGeometry(1.3, 1.3, 1.3, 4, 0.1);
+            }
+            return cachedGeometry;
+        }
+
+        // マテリアル(テクスチャ)はテーマごとにキャッシュし、リサイズ/個数変更のたびに作り直さない
+        function getMaterialsForTheme(themeKey) {
+            if (materialCache[themeKey]) return materialCache[themeKey];
+
+            // 対面の合計が7になる標準的なサイコロの目の配置: (1,6) (2,5) (3,4)
+            const textures = [
+                createDiceTexture(3, false), // +x
+                createDiceTexture(4, false), // -x
+                createDiceTexture(1, true),  // +y (上面)
+                createDiceTexture(6, false), // -y
+                createDiceTexture(2, false), // +z
+                createDiceTexture(5, false)  // -z
+            ];
+
+            materialCache[themeKey] = textures.map(tex => new THREE.MeshStandardMaterial({
+                map: tex,
+                roughness: 0.7,
+                metalness: 0.0,
+            }));
+            return materialCache[themeKey];
+        }
+
         function clearExistingDice() {
-            diceArray.forEach(dice => {
-                scene.remove(dice);
-                if (dice.geometry) dice.geometry.dispose();
-                if (dice.material) {
-                    dice.material.forEach(mat => {
-                        if (mat.map) mat.map.dispose();
-                        mat.dispose();
-                    });
-                }
-            });
+            // ジオメトリ・マテリアルはキャッシュを使い回すため破棄しない。シーンから外すだけ。
+            diceArray.forEach(dice => scene.remove(dice));
             diceArray = [];
         }
         
         function setupDice(count) {
             clearExistingDice();
         
-            const geom = new RoundedBoxGeometry(1.3, 1.3, 1.3, 4, 0.1); 
-        
-            const textures = [
-                createDiceTexture(3, false), 
-                createDiceTexture(4, false), 
-                createDiceTexture(1, true),  
-                createDiceTexture(2, false), 
-                createDiceTexture(5, false), 
-                createDiceTexture(6, false)  
-            ];
-        
-            const materials = textures.map(tex => new THREE.MeshStandardMaterial({
-                map: tex,
-                roughness: 0.7, 
-                metalness: 0.0,  
-            }));
+            const geom = getSharedGeometry();
+            const materials = getMaterialsForTheme(currentThemeKey);
         
             const isMobile = window.innerWidth <= 768;
             const spacing = isMobile ? (count > 6 ? 1.2 : 1.4) : 1.7;
@@ -562,7 +881,9 @@
             if(!isRolling) {
                 const count = getSelectedIndex();
                 localStorage.setItem('cyber-dice-count', count);
+                document.getElementById('results-panel').style.display = 'none'; // 個数が変わったら前回の結果表示は消す
                 setupDice(count);
+                adjustCameraForMobile(count);
             }
         });
 
@@ -598,6 +919,9 @@
             for (let i = 0; i < count; i++) {
                 results.push(Math.floor(Math.random() * 6) + 1);
             }
+
+            playRollSound();
+            vibrate([40, 60, 40, 60, 40]);
 
             const duration = 1200; 
             const startTime = Date.now();
@@ -647,6 +971,8 @@
 
             txt.innerText = "PROTOCOL_COMPLETED";
             stab.innerText = "100.0";
+            playResultSound();
+            vibrate(80);
             await triggerPulse();
 
             updateAndDisplayResults(results);
@@ -666,27 +992,71 @@
                 globalStats.counts[i] += currentCounts[i];
             }
 
+            rollHistory.push({ total: currentTotal, values: results.slice() });
+            if (rollHistory.length > MAX_HISTORY) rollHistory.shift();
+            persistStats();
+
             document.getElementById('res-total').innerText = currentTotal;
             for(let i = 1; i <= 6; i++) {
                 document.getElementById(`count-${i}`).innerText = currentCounts[i];
             }
             document.getElementById('results-panel').style.display = 'block';
 
+            renderTotalStats();
+        }
+
+        function renderTotalStats() {
             document.getElementById('total-rolls').innerText = globalStats.rolls;
             document.getElementById('total-sum').innerText = globalStats.sum;
             for(let i = 1; i <= 6; i++) {
                 document.getElementById(`all-count-${i}`).innerText = globalStats.counts[i];
             }
-            document.getElementById('total-panel').style.display = 'block';
+
+            const totalPips = Object.values(globalStats.counts).reduce((a, b) => a + b, 0);
+            const probList = document.getElementById('prob-list');
+            probList.innerHTML = '';
+            for (let i = 1; i <= 6; i++) {
+                const pct = totalPips > 0 ? (globalStats.counts[i] / totalPips) * 100 : 0;
+                const row = document.createElement('div');
+                row.className = 'prob-row';
+                row.innerHTML = `
+                    <span class="prob-label">${i}</span>
+                    <span class="prob-bar-bg"><span class="prob-bar-fill" style="width:${pct}%"></span></span>
+                    <span class="prob-pct">${pct.toFixed(1)}%</span>
+                `;
+                probList.appendChild(row);
+            }
+
+            const historyRow = document.getElementById('history-row');
+            historyRow.innerHTML = '';
+            rollHistory.slice().reverse().forEach(entry => {
+                const chip = document.createElement('span');
+                chip.className = 'history-chip';
+                chip.textContent = entry.total;
+                historyRow.appendChild(chip);
+            });
+
+            document.getElementById('total-panel').style.display = globalStats.rolls > 0 ? 'block' : 'none';
         }
 
-        function adjustCameraForMobile() {
+        function adjustCameraForMobile(count) {
             if(!mainCamera) return;
-            if (window.innerWidth <= 768) {
-                mainCamera.position.set(0, 10, 14);
-            } else {
-                mainCamera.position.set(0, 8, 11);
-            }
+            const n = count || getSelectedIndex();
+            const isMobile = window.innerWidth <= 768;
+            const spacing = isMobile ? (n > 6 ? 1.2 : 1.4) : 1.7;
+            const totalWidth = (n - 1) * spacing + 2.5; // サイコロ自体の幅の余白
+
+            const baseY = isMobile ? 10 : 8;
+            const baseZ = isMobile ? 14 : 11;
+            const baseDist = Math.hypot(baseY, baseZ);
+
+            // 個数が多く横幅が広がる場合は、全部が画面内に収まるようカメラを引く
+            const fovRad = THREE.MathUtils.degToRad(mainCamera.fov);
+            const requiredDist = (totalWidth / 2) / Math.tan(fovRad / 2) * 1.25;
+            const dist = Math.max(baseDist, requiredDist);
+            const scale = dist / baseDist;
+
+            mainCamera.position.set(0, baseY * scale, baseZ * scale);
             mainCamera.lookAt(0,0,0);
         }
 
@@ -714,19 +1084,24 @@
             });
         }
 
+        let resizeDebounceTimer = null;
         window.addEventListener('resize', () => {
+            // renderer/カメラのアスペクト更新は毎回、負荷の大きいサイコロ再配置だけデバウンスする
             const w = window.innerWidth, h = window.innerHeight;
             renderer.setSize(w, h);
             composer.setSize(w, h);
-            
-            adjustCameraForMobile();
 
             views.forEach(v => {
                 v.camera.aspect = (w*v.w)/(h*v.h);
                 v.camera.updateProjectionMatrix();
             });
-            
-            if(!isRolling) setupDice(getSelectedIndex());
+
+            clearTimeout(resizeDebounceTimer);
+            resizeDebounceTimer = setTimeout(() => {
+                const count = getSelectedIndex();
+                adjustCameraForMobile(count);
+                if(!isRolling) setupDice(count);
+            }, 150);
         });
 
         window.rollDice = rollDice;
