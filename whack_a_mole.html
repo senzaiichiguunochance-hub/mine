@@ -383,6 +383,27 @@
     letter-spacing: 0.05em;
   }
   #result-highscore { color: var(--muted); font-size: 0.85em; margin-bottom: 20px; }
+  
+  .share-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .btn-share {
+    flex: 1;
+    background: transparent;
+    color: #ffffff;
+    border: 1px solid var(--cyan);
+    padding: 8px 10px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 0.8em;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .btn-share:hover { background: var(--cyan); color: #041018; }
+
   #retryButton {
     width: 100%;
     padding: 14px;
@@ -483,6 +504,10 @@
     <div id="new-record-badge">✨ NEW RECORD ✨</div>
     <div id="result-score">0</div>
     <div id="result-highscore">ハイスコア: 0</div>
+    <div class="share-row">
+      <button class="btn-share" id="share-x-btn" type="button">Xでシェア</button>
+      <button class="btn-share" id="share-line-btn" type="button">LINEでシェア</button>
+    </div>
     <button id="retryButton">もう一度あそぶ</button>
   </div>
 </div>
@@ -503,13 +528,16 @@
   const resultHighScore = document.getElementById('result-highscore');
   const newRecordBadge = document.getElementById('new-record-badge');
   const retryButton = document.getElementById('retryButton');
+  const shareXBtn = document.getElementById('share-x-btn');
+  const shareLineBtn = document.getElementById('share-line-btn');
 
   const DIFFICULTIES = {
-    easy:   { duration: 30, startInterval: 1200, minInterval: 700, speedUp: 0.990 },
-    normal: { duration: 25, startInterval: 950,  minInterval: 500, speedUp: 0.985 },
-    hard:   { duration: 20, startInterval: 650,  minInterval: 320, speedUp: 0.970 },
+    easy:   { duration: 30, startInterval: 1200, minInterval: 700, speedUp: 0.990, label: 'かんたん' },
+    normal: { duration: 25, startInterval: 950,  minInterval: 500, speedUp: 0.985, label: 'ふつう' },
+    hard:   { duration: 20, startInterval: 650,  minInterval: 320, speedUp: 0.970, label: 'むずい' },
   };
   let currentDifficulty = 'normal';
+  let gameEndedDate = null;
 
   // 穴のインデックス0-8は左上→右下(行優先)。各レイアウトは物理キー位置(e.code)で判定する。
   const KEY_LAYOUTS = {
@@ -560,7 +588,7 @@
     });
   });
 
-  const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🐺', '🐴', '🐝', '🐢', '🐍', '🦎', '🐙', '🦑', '🦀', '🐠', '🐬', '🦈', '🐊', '🐅', '🦓', '🐘', '🦒', '🐕', '🐈', '🦃', '🦢', '🐇', '🦔'];
+  const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🐺', '🐴', '🐝', '🐢', '🐍', '🦎', '🐙', '🦑', '🦀', '🐠', '🐬', '🦈', '🐊', '🐅', 'ZEBRA', '🐘', '🦒', '🐕', '🐈', '🦃', '🦢', '🐇', '🦔'];
 
   let score = 0;
   let combo = 0;
@@ -830,10 +858,26 @@
     if (time <= 0) endGame();
   }
 
+  function formatDate(d) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const date = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}/${month}/${date} ${hours}:${minutes}`;
+  }
+
+  function buildShareText() {
+    const diffLabel = DIFFICULTIES[currentDifficulty].label;
+    const dateStr = gameEndedDate ? formatDate(gameEndedDate) : formatDate(new Date());
+    return `ネオンモグラで ${score}点 を獲得しました！\n(難易度: ${diffLabel} / 日時: ${dateStr})\n#ネオンモグラ\n`;
+  }
+
   function endGame() {
     clearInterval(timerId);
     clearTimeout(holeTimer);
     gameRunning = false;
+    gameEndedDate = new Date();
     holes.forEach(h => h.mole.classList.remove('up', 'golden'));
     startButton.disabled = false;
     [...difficultySelect.children].forEach(btn => btn.disabled = false);
@@ -852,6 +896,18 @@
     newRecordBadge.style.display = isRecord ? 'block' : 'none';
     resultOverlay.style.display = 'flex';
   }
+
+  shareXBtn.addEventListener('click', () => {
+    const text = buildShareText();
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(url, '_blank', 'noopener');
+  });
+
+  shareLineBtn.addEventListener('click', () => {
+    const text = buildShareText() + window.location.href;
+    const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener');
+  });
 
   retryButton.addEventListener('click', () => {
     resultOverlay.style.display = 'none';
