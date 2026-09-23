@@ -275,7 +275,7 @@
     position: absolute;
     left: 9px;
     bottom: -110px;
-    transition: bottom 0.28s cubic-bezier(.34,1.56,.64,1);
+    transition: bottom 0.2s cubic-bezier(.34,1.56,.64,1);
     box-shadow: 0 0 20px #00aaff, 0 0 34px rgba(0,170,255,0.5);
     display: flex;
     justify-content: center;
@@ -505,9 +505,9 @@
   const retryButton = document.getElementById('retryButton');
 
   const DIFFICULTIES = {
-    easy:   { duration: 25, startInterval: 950, minInterval: 550, speedUp: 0.985 },
-    normal: { duration: 20, startInterval: 750, minInterval: 380, speedUp: 0.975 },
-    hard:   { duration: 15, startInterval: 550, minInterval: 260, speedUp: 0.965 },
+    easy:   { duration: 30, startInterval: 1200, minInterval: 700, speedUp: 0.990 },
+    normal: { duration: 25, startInterval: 950,  minInterval: 500, speedUp: 0.985 },
+    hard:   { duration: 20, startInterval: 650,  minInterval: 320, speedUp: 0.970 },
   };
   let currentDifficulty = 'normal';
 
