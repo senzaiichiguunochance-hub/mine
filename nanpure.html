@@ -104,6 +104,7 @@
       button.secondary:hover { background: #546e7a; }
       .num-btn:hover, .tab-btn:hover { background: var(--cell-fixed); }
       .tab-btn.active:hover { background: var(--primary-hover); }
+      .btn-share:hover { background: var(--primary-color); color: var(--primary-text); }
     }
 
     /* タイマー＆情報エリア */
@@ -235,7 +236,26 @@
     }
     .clear-modal-overlay.show .clear-modal-card { transform: scale(1); }
     .clear-title { font-size: 2rem; font-weight: 900; color: #ff9800; margin-bottom: 10px; }
-    .clear-time { font-size: 1.2rem; margin: 10px 0 20px 0; font-weight: bold; }
+    .clear-time { font-size: 1.2rem; margin: 10px 0 15px 0; font-weight: bold; }
+
+    /* シェアボタンのスタイル */
+    .share-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .btn-share {
+      flex: 1;
+      background: transparent;
+      color: var(--text-color);
+      border: 1px solid var(--primary-color);
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
 
     #confetti-canvas {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -318,7 +338,13 @@
       <div class="clear-title">🎉 CLEAR!</div>
       <div>見事に盤面を完成させました！</div>
       <div class="clear-time" id="clear-final-time">⏱️ 00:00</div>
-      <button id="modal-restart-btn" style="padding: 10px 20px; font-size: 1rem;">もう一度遊ぶ</button>
+      
+      <div class="share-row">
+        <button class="btn-share" id="share-x-btn" type="button">Xでシェア</button>
+        <button class="btn-share" id="share-line-btn" type="button">LINEでシェア</button>
+      </div>
+
+      <button id="modal-restart-btn" style="padding: 10px 20px; font-size: 1rem; width: 100%;">もう一度遊ぶ</button>
     </div>
   </div>
 
@@ -339,6 +365,12 @@
     const KEY_MAP = {
       '0': 10, 'q': 11, 'w': 12, 'e': 13, 'r': 14, 't': 15,
       'y': 16, 'u': 17, 'i': 18, 'o': 19, 'p': 20
+    };
+
+    const DIFF_LABELS = {
+      easy: '簡単',
+      normal: '普通',
+      hard: '難しい'
     };
 
     let N = 6;
@@ -363,6 +395,7 @@
     let isPaused = false;
     let isCompleted = false;   // クリア済み(タイマー停止・入力ロック)
     let confettiFrame = null;
+    let gameEndedDate = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initSelectOptions();
@@ -487,6 +520,9 @@
         startNewGame();
       });
 
+      document.getElementById('share-x-btn').addEventListener('click', shareToX);
+      document.getElementById('share-line-btn').addEventListener('click', shareToLine);
+
       document.addEventListener('keydown', (e) => {
         if (isPaused || isCompleted || !selectedCell) return;
         // Ctrl+R などブラウザのショートカットを数字入力として誤処理しない
@@ -560,6 +596,7 @@
       historyStack = [];
       timerSeconds = 0;
       isCompleted = false;
+      gameEndedDate = null;
       hideClearModal();
 
       renderBoard();
@@ -908,9 +945,41 @@
     function checkWinCondition() {
       if (isCompleted || !isBoardSolved()) return;
       isCompleted = true; // タイマー停止・入力ロック
+      gameEndedDate = new Date(); // クリア日時を記録
       saveBestTime();
       showClearModal();
       triggerConfetti();
+    }
+
+    function formatDate(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${year}/${month}/${date} ${hours}:${minutes}`;
+    }
+
+    function buildShareText() {
+      const diffLabel = DIFF_LABELS[difficulty] || difficulty;
+      const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+      const s = String(timerSeconds % 60).padStart(2, '0');
+      const timeStr = `${m}:${s}`;
+      const dateStr = gameEndedDate ? formatDate(gameEndedDate) : formatDate(new Date());
+
+      return `可変サイズ ナンプレ(${N}x${N})をクリアしました！\nクリアタイム: ${timeStr} (難易度: ${diffLabel} / 日時: ${dateStr})\n#ナンプレ #可変サイズナンプレ\n`;
+    }
+
+    function shareToX() {
+      const text = buildShareText();
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+      window.open(url, '_blank', 'noopener');
+    }
+
+    function shareToLine() {
+      const text = buildShareText() + window.location.href;
+      const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank', 'noopener');
     }
 
     function showClearModal() {
