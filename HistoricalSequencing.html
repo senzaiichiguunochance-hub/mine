@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>歴史年代淳 並び替えクイズ</title>
+  <style>
+    :root {
+      --primary-color: #8E44AD; /* 歴史っぽい紫 */
+      --accent-color: #E67E22;
+      --bg-color: #F5F6FA;
+      --card-bg: #FFFFFF;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background-color: var(--bg-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      color: #2C3E50;
+    }
+
+    .container {
+      background: white;
+      max-width: 500px;
+      width: 100%;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      text-align: center;
+      margin-top: 0;
+      color: var(--primary-color);
+    }
+
+    /* セレクトボックス（テーマ選択） */
+    .theme-selector {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .theme-selector select {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 2px solid #3498DB;
+      font-weight: bold;
+    }
+
+    .instruction {
+      background: #EBF5FB;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: bold;
+      color: #2980B9;
+    }
+
+    /* カードリスト */
+    .card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 2px solid #E0E0E0;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    /* 矢印ボタンエリア */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .arrow-btn {
+      background: #F0F3F4;
+      border: 1px solid #BDC3C7;
+      border-radius: 6px;
+      width: 36px;
+      height: 32px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+    }
+
+    .arrow-btn:active {
+      background: #BDC3C7;
+    }
+
+    .arrow-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* カード本文 */
+    .card-content {
+      flex: 1;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: #7F8C8D;
+    }
+
+    /* 西暦表示バッジ（正解時に表示） */
+    .year-badge {
+      display: none; /* 最初は隠す */
+      background: #2ECC71;
+      color: white;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    /* 操作ボタン */
+    .action-btn {
+      width: 100%;
+      background: #2ECC71;
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #27AE60;
+    }
+
+    .action-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #27AE60;
+    }
+
+    .btn-next {
+      background: var(--primary-color);
+      box-shadow: 0 4px 0 #6C3483;
+    }
+
+    /* 結果メッセージ */
+    .result-msg {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 15px;
+      min-height: 1.8rem;
+    }
+
+    .correct-msg { color: #2ECC71; }
+    .wrong-msg { color: #E74C3C; }
+
+    /* 正解時のカード演出 */
+    .is-correct {
+      border-color: #2ECC71;
+      background-color: #EAFAF1;
+    }
+  </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+<a class="back-link" href="menu.html">メニューに戻る</a>
+
+<div class="container">
+  <h1>🛡️ 歴史年代淳 並び替えクイズ</h1>
+
+  <!-- テーマ選択 -->
+  <div class="theme-selector">
+    <select id="theme-select" onchange="loadSelectedTheme()">
+      <!-- JSで動的に追加 -->
+    </select>
+  </div>
+
+  <div class="instruction">
+    ▲▼ ボタンで【古い順（昔 ➔ 最近）】に並べ替えよう！
+  </div>
+
+  <!-- カード一覧 -->
+  <div class="card-list" id="card-list">
+    <!-- JSで動的に追加 -->
+  </div>
+
+  <!-- こたえあわせボタン -->
+  <button class="action-btn" id="check-btn" onclick="checkAnswer()">⭕ こたえあわせ</button>
+
+  <!-- 結果フィードバック -->
+  <div class="result-msg" id="result-msg"></div>
+</div>
+
+<script>
+  // -------------------------------------------------------------
+  // ★ AI（私）がいつでも生成・追加できる問題データ（JSON形式）
+  // -------------------------------------------------------------
+  const quizData = [
+    {
+      themeId: "bakumatsu",
+      themeTitle: "【幕末】激動の15年（超頻出！）",
+      events: [
+        { id: 1, title: "ペリーが浦賀にやってくる（黒船来航）", desc: "アメリカからやってきて開国を迫った", year: 1853 },
+        { id: 2, title: "坂本龍馬らの仲介で「薩長同盟」", desc: "ライバル同士の薩摩藩と長州藩が手を組んだ", year: 1866 },
+        { id: 3, title: "徳川慶喜による「大政奉還」", desc: "江戸幕府が政権を朝廷（天皇）に返した", year: 1867 },
+        { id: 4, title: "戊辰戦争（ぼしんせんそう）が始まる", desc: "新政府軍と旧幕府軍の間で起きた戦い", year: 1868 }
+      ]
+    },
+    {
+      themeId: "sengoku",
+      themeTitle: "【戦国】織田信長の天下統一への道",
+      events: [
+        { id: 1, title: "桶狭間（おけはざま）の戦い", desc: "少数の軍で今川義元を倒して有名に！", year: 1560 },
+        { id: 2, title: "長篠（ながしの）の戦い", desc: "鉄砲隊を上手く使って武田軍を破った", year: 1575 },
+        { id: 3, title: "本能寺（ほんのうじ）の変", desc: "家臣の明智光秀に襲われて信長が倒れる", year: 1582 },
+        { id: 4, title: "関ヶ原（せきがはら）の戦い", desc: "信長の死後、徳川家康が天下を取った戦い", year: 1600 }
+      ]
+    },
+    {
+      themeId: "ancient",
+      themeTitle: "【古代】飛鳥〜奈良時代の大きな流れ",
+      events: [
+        { id: 1, title: "聖徳太子が「十七条の憲法」をつくる", desc: "役人の心構えをまとめたルール", year: 604 },
+        { id: 2, title: "「大化の改新（たいかのかいしん）」が始まる", desc: "中ノ大兄皇子らが蘇我氏を倒した政治改革", year: 645 },
+        { id: 3, title: "「大宝律令（たいほうりつりょう）」の完成", desc: "唐（中国）にならった本格的な法律", year: 701 },
+        { id: 4, title: "聖武天皇が「大仏造立の詔」をだす", desc: "仏教の力で国を安定させようとした", year: 743 }
+      ]
+    }
+  ];
+
+  let currentEvents = []; // 現在画面に表示中のイベント配列
+
+  // 初期化
+  window.onload = () => {
+    initThemeSelect();
+    loadSelectedTheme();
+  };
+
+  // テーマセレクトボックスの初期化
+  function initThemeSelect() {
+    const select = document.getElementById('theme-select');
+    select.innerHTML = quizData.map((q, index) => 
+      `<option value="${index}">${q.themeTitle}</option>`
+    ).join('');
+  }
+
+  // 選択されたテーマの読み込み
+  function loadSelectedTheme() {
+    const selectIndex = document.getElementById('theme-select').value;
+    const rawEvents = quizData[selectIndex].events;
+
+    // 問題用に順番をシャッフル（正解のまま表示されないように）
+    currentEvents = [...rawEvents].sort(() => Math.random() - 0.5);
+
+    // UIリセット
+    document.getElementById('result-msg').textContent = '';
+    document.getElementById('result-msg').className = 'result-msg';
+    const checkBtn = document.getElementById('check-btn');
+    checkBtn.textContent = '⭕ こたえあわせ';
+    checkBtn.className = 'action-btn';
+    checkBtn.onclick = checkAnswer;
+
+    renderCards();
+  }
+
+  // カード一覧の描画
+  function renderCards() {
+    const listContainer = document.getElementById('card-list');
+    listContainer.innerHTML = '';
+
+    currentEvents.forEach((item, index) => {
+      const isFirst = (index === 0);
+      const isLast = (index === currentEvents.length - 1);
+
+      const cardHTML = `
+        <div class="card" id="card-${index}">
+          <div class="btn-group">
+            <button class="arrow-btn" onclick="moveCard(${index}, -1)" ${isFirst ? 'disabled' : ''}>▲</button>
+            <button class="arrow-btn" onclick="moveCard(${index}, 1)" ${isLast ? 'disabled' : ''}>▼</button>
+          </div>
+          <div class="card-content">
+            <div class="card-title">${item.title}</div>
+            <div class="card-desc">${item.desc}</div>
+          </div>
+          <!-- 最初は隠れている西暦バッジ -->
+          <div class="year-badge" id="year-${index}">${item.year}年</div>
+        </div>
+      `;
+      listContainer.innerHTML += cardHTML;
+    });
+  }
+
+  // カードの位置を上下に入れ替える処理
+  function moveCard(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= currentEvents.length) return;
+
+    // 配列要素の入れ替え
+    const temp = currentEvents[index];
+    currentEvents[index] = currentEvents[newIndex];
+    currentEvents[newIndex] = temp;
+
+    // 画面再描画
+    renderCards();
+  }
+
+  // こたえあわせ処理
+  function checkAnswer() {
+    const resultDiv = document.getElementById('result-msg');
+    let isCorrect = true;
+
+    // 西暦（year）が昇順（小さい順）に並んでいるかチェック
+    for (let i = 0; i < currentEvents.length - 1; i++) {
+      if (currentEvents[i].year > currentEvents[i + 1].year) {
+        isCorrect = false;
+        break;
+      }
+    }
+
+    if (isCorrect) {
+      resultDiv.textContent = '🎉 せいかい！ 正しい歴史の流れです！';
+      resultDiv.className = 'result-msg correct-msg';
+
+      // ★重要：正解したら西暦をオープンし、カードを緑色にする！
+      currentEvents.forEach((_, index) => {
+        document.getElementById(`year-${index}`).style.display = 'block';
+        document.getElementById(`card-${index}`).classList.add('is-correct');
+      });
+
+      // ボタンを「次の問題（テーマ）」に変更
+      const checkBtn = document.getElementById('check-btn');
+      checkBtn.textContent = 'つぎの テーマへ';
+      checkBtn.className = 'action-btn btn-next';
+      checkBtn.onclick = loadNextTheme;
+
+    } else {
+      resultDiv.textContent = '❌ ざんねん！ もう一度 じゅんばんを かんがえてみよう';
+      resultDiv.className = 'result-msg wrong-msg';
+    }
+  }
+
+  // 次のテーマへ進む
+  function loadNextTheme() {
+    const select = document.getElementById('theme-select');
+    let nextIndex = (parseInt(select.value) + 1) % quizData.length;
+    select.value = nextIndex;
+    loadSelectedTheme();
+  }
+</script>
+</body>
+</html>
