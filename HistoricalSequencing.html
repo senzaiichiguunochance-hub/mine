@@ -3,28 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>歴史年代淳 並び替えクイズ</title>
+  <title>歴史年代順 並び替えクイズ</title>
   <style>
     :root {
       --primary-color: #8E44AD; /* 歴史っぽい紫 */
       --accent-color: #E67E22;
       --bg-color: #F5F6FA;
       --card-bg: #FFFFFF;
+      --success-color: #2ECC71;
+      --gold-color: #F39C12;
+      --danger-color: #E74C3C;
     }
+
+    * { box-sizing: border-box; }
 
     body {
       font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
       background-color: var(--bg-color);
       margin: 0;
-      padding: 20px;
+      padding: 60px 16px 24px;
       display: flex;
       justify-content: center;
       color: #2C3E50;
+      user-select: none;
+    }
+
+    /* 右上メニューリンク */
+    .back-link {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      text-decoration: none;
+      background: white;
+      border: 2px solid var(--primary-color);
+      padding: 6px 14px;
+      border-radius: 20px;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      background: var(--primary-color);
+      color: white;
     }
 
     .container {
       background: white;
-      max-width: 500px;
+      max-width: 480px;
       width: 100%;
       padding: 20px;
       border-radius: 16px;
@@ -35,31 +63,63 @@
       font-size: 1.3rem;
       text-align: center;
       margin-top: 0;
+      margin-bottom: 14px;
       color: var(--primary-color);
     }
 
-    /* セレクトボックス（テーマ選択） */
+    /* テーマ選択 */
     .theme-selector {
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       text-align: center;
     }
 
     .theme-selector select {
       width: 100%;
       padding: 10px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       border-radius: 8px;
-      border: 2px solid #3498DB;
+      border: 2px solid var(--primary-color);
       font-weight: bold;
+      color: var(--primary-color);
+      background: white;
+      outline: none;
+    }
+
+    /* 成績表示（前回情報保持） */
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      background: #F4ECF7;
+      border: 1px solid #EBDEF0;
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: #666;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .stat-value {
+      font-size: 1rem;
+      font-weight: bold;
+      color: var(--primary-color);
     }
 
     .instruction {
       background: #EBF5FB;
-      padding: 10px;
+      padding: 8px;
       border-radius: 8px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 14px;
       font-weight: bold;
       color: #2980B9;
     }
@@ -68,92 +128,84 @@
     .card-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+      gap: 10px;
+      margin-bottom: 16px;
+      position: relative;
     }
 
     .card {
       background: var(--card-bg);
       border: 2px solid #E0E0E0;
       border-radius: 12px;
-      padding: 12px;
+      padding: 10px 12px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      transition: all 0.2s ease;
+      gap: 10px;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.2s;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      cursor: grab;
+      touch-action: none;
     }
 
-    /* 矢印ボタンエリア */
-    .btn-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    .card:active { cursor: grabbing; }
+
+    .card.dragging {
+      opacity: 0.4;
+      border-style: dashed;
+      border-color: var(--primary-color);
     }
 
-    .arrow-btn {
-      background: #F0F3F4;
-      border: 1px solid #BDC3C7;
-      border-radius: 6px;
-      width: 36px;
-      height: 32px;
-      font-size: 1rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.1s;
+    .drag-handle {
+      font-size: 1.1rem;
+      color: #BDC3C7;
+      cursor: grab;
     }
 
-    .arrow-btn:active {
-      background: #BDC3C7;
-    }
-
-    .arrow-btn:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    /* カード本文 */
-    .card-content {
-      flex: 1;
-    }
+    .card-content { flex: 1; }
 
     .card-title {
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-weight: bold;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
+      color: #2C3E50;
     }
 
     .card-desc {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: #7F8C8D;
+      line-height: 1.3;
     }
 
-    /* 西暦表示バッジ（正解時に表示） */
     .year-badge {
-      display: none; /* 最初は隠す */
-      background: #2ECC71;
+      display: none;
+      background: var(--success-color);
       color: white;
       font-weight: bold;
       padding: 4px 8px;
       border-radius: 6px;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       white-space: nowrap;
     }
 
-    /* 操作ボタン */
+    /* ボタン群 */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
     .action-btn {
-      width: 100%;
-      background: #2ECC71;
+      flex: 1;
+      background: var(--success-color);
       color: white;
       border: none;
-      padding: 14px;
-      font-size: 1.1rem;
+      padding: 12px;
+      font-size: 0.95rem;
       font-weight: bold;
       border-radius: 30px;
       cursor: pointer;
       box-shadow: 0 4px 0 #27AE60;
+      transition: transform 0.1s;
     }
 
     .action-btn:active {
@@ -161,36 +213,138 @@
       box-shadow: 0 2px 0 #27AE60;
     }
 
+    .btn-giveup {
+      background: var(--gold-color);
+      box-shadow: 0 4px 0 #D68910;
+    }
+
     .btn-next {
       background: var(--primary-color);
       box-shadow: 0 4px 0 #6C3483;
     }
 
+    .btn-share {
+      background: white;
+      color: var(--primary-color);
+      border: 2px solid var(--primary-color);
+      box-shadow: 0 2px 0 var(--primary-color);
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      border-radius: 20px;
+      margin-top: 12px;
+      width: 100%;
+      cursor: pointer;
+    }
+
     /* 結果メッセージ */
     .result-msg {
       text-align: center;
-      font-size: 1.2rem;
+      font-size: 1.05rem;
       font-weight: bold;
-      margin-top: 15px;
-      min-height: 1.8rem;
+      margin-top: 12px;
+      min-height: 1.5rem;
     }
 
-    .correct-msg { color: #2ECC71; }
-    .wrong-msg { color: #E74C3C; }
+    .correct-msg { color: var(--success-color); }
+    .wrong-msg { color: var(--danger-color); }
+    .giveup-msg { color: var(--gold-color); }
 
-    /* 正解時のカード演出 */
     .is-correct {
-      border-color: #2ECC71;
+      border-color: var(--success-color);
       background-color: #EAFAF1;
     }
+
+    /* ログ表示ボックス */
+    .log-box {
+      margin-top: 16px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      text-align: left;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+
+    .log-title {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #666;
+      margin-bottom: 4px;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 2px;
+    }
+
+    .log-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.8rem;
+    }
+
+    .log-item { margin-bottom: 2px; }
+    .log-item.ok { color: var(--success-color); font-weight: bold; }
+    .log-item.ng { color: var(--danger-color); }
+    .log-item.giveup { color: var(--gold-color); }
+
+    /* モーダル (SNSシェア) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .modal-card h2 {
+      font-size: 1.2rem;
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .modal-share-btns {
+      display: flex;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .btn-sns {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+    }
+    .btn-x { background: #000000; }
+    .btn-line { background: #06C755; }
   </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
-<a class="back-link" href="menu.html">メニューに戻る</a>
+
+  <!-- 右上メニューに戻るボタン -->
+  <a class="back-link" href="menu.html">メニューに戻る</a>
 
 <div class="container">
-  <h1>🛡️ 歴史年代淳 並び替えクイズ</h1>
+  <h1>🛡️ 歴史年代順 並び替えクイズ</h1>
 
   <!-- テーマ選択 -->
   <div class="theme-selector">
@@ -199,68 +353,267 @@
     </select>
   </div>
 
+  <!-- 成績表示（前回情報保持） -->
+  <div class="stats-row">
+    <div class="stat-item">
+      <span class="stat-label">問題数</span>
+      <span class="stat-value" id="stat-total">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">正解</span>
+      <span class="stat-value" id="stat-correct">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">不正解</span>
+      <span class="stat-value" id="stat-wrong">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">ギブアップ</span>
+      <span class="stat-value" id="stat-giveup">0</span>
+    </div>
+  </div>
+
   <div class="instruction">
-    ▲▼ ボタンで【古い順（昔 ➔ 最近）】に並べ替えよう！
+    🖐️ カードをドラッグして【古い順（昔 ➔ 最近）】に並べ替えよう！
   </div>
 
   <!-- カード一覧 -->
-  <div class="card-list" id="card-list">
-    <!-- JSで動的に追加 -->
-  </div>
+  <div class="card-list" id="card-list"></div>
 
-  <!-- こたえあわせボタン -->
-  <button class="action-btn" id="check-btn" onclick="checkAnswer()">⭕ こたえあわせ</button>
+  <!-- 操作ボタン -->
+  <div class="btn-group">
+    <button class="action-btn" id="check-btn" onclick="checkAnswer()">⭕ 答え合わせ</button>
+    <button class="action-btn btn-giveup" id="giveup-btn" onclick="giveUp()">💡 ギブアップ</button>
+    <button class="action-btn btn-next" id="next-btn" onclick="loadNextTheme()" style="display:none;">次のテーマへ</button>
+  </div>
 
   <!-- 結果フィードバック -->
   <div class="result-msg" id="result-msg"></div>
+
+  <!-- SNSシェアボタン -->
+  <button class="btn-share" onclick="openShareModal()">結果をSNSでシェア</button>
+
+  <!-- 今回の解答ログ -->
+  <div class="log-box">
+    <div class="log-title">今回の解答ログ</div>
+    <ul id="log-list" class="log-list"></ul>
+  </div>
+</div>
+
+<!-- SNSシェアモーダル -->
+<div class="modal-overlay" id="share-modal">
+  <div class="modal-card">
+    <h2>結果をシェアする</h2>
+    <p id="share-text-preview" style="font-size:0.85rem; color:#555; white-space:pre-wrap; margin-bottom:12px;"></p>
+    <div class="modal-share-btns">
+      <button class="btn-sns btn-x" id="share-x-btn">Xでシェア</button>
+      <button class="btn-sns btn-line" id="share-line-btn">LINEでシェア</button>
+    </div>
+    <button class="action-btn" style="background:#888; box-shadow:none; padding:6px 16px; font-size:0.85rem;" onclick="closeShareModal()">閉じる</button>
+  </div>
 </div>
 
 <script>
   // -------------------------------------------------------------
-  // ★ AI（私）がいつでも生成・追加できる問題データ（JSON形式）
+  // 中学校歴史（日本史・世界史）の大幅拡充問題データ
   // -------------------------------------------------------------
   const quizData = [
     {
-      themeId: "bakumatsu",
-      themeTitle: "【幕末】激動の15年（超頻出！）",
+      themeId: "jp_ancient1",
+      themeTitle: "【日本史】古代① 縄文〜飛鳥時代",
       events: [
-        { id: 1, title: "ペリーが浦賀にやってくる（黒船来航）", desc: "アメリカからやってきて開国を迫った", year: 1853 },
-        { id: 2, title: "坂本龍馬らの仲介で「薩長同盟」", desc: "ライバル同士の薩摩藩と長州藩が手を組んだ", year: 1866 },
-        { id: 3, title: "徳川慶喜による「大政奉還」", desc: "江戸幕府が政権を朝廷（天皇）に返した", year: 1867 },
-        { id: 4, title: "戊辰戦争（ぼしんせんそう）が始まる", desc: "新政府軍と旧幕府軍の間で起きた戦い", year: 1868 }
+        { id: 1, title: "邪馬台国の卑弥呼が魏に使者を送る", desc: "「親魏倭王」の称号と金印を授かる", year: 239 },
+        { id: 2, title: "聖徳太子が「十七条の憲法」を制定", desc: "和を以て貴しとなし、役人の心構えを定めた", year: 604 },
+        { id: 3, title: "小野妹子らを「遣隋使」として派遣", desc: "中国（隋）と対等な外交を目指した", year: 607 },
+        { id: 4, title: "「大化の改新」が始まる", desc: "中大兄皇子や中臣鎌足らが蘇我氏を倒す", year: 645 }
       ]
     },
     {
-      themeId: "sengoku",
-      themeTitle: "【戦国】織田信長の天下統一への道",
+      themeId: "jp_ancient2",
+      themeTitle: "【日本史】古代② 奈良〜平安時代",
       events: [
-        { id: 1, title: "桶狭間（おけはざま）の戦い", desc: "少数の軍で今川義元を倒して有名に！", year: 1560 },
-        { id: 2, title: "長篠（ながしの）の戦い", desc: "鉄砲隊を上手く使って武田軍を破った", year: 1575 },
-        { id: 3, title: "本能寺（ほんのうじ）の変", desc: "家臣の明智光秀に襲われて信長が倒れる", year: 1582 },
-        { id: 4, title: "関ヶ原（せきがはら）の戦い", desc: "信長の死後、徳川家康が天下を取った戦い", year: 1600 }
+        { id: 1, title: "「大宝律令」の完成", desc: "律令国家の体制が整う", year: 701 },
+        { id: 2, title: "聖武天皇が「大仏造立の詔」を出す", desc: "東大寺に巨大な大仏を建立", year: 743 },
+        { id: 3, title: "平安京への遷都（桓武天皇）", desc: "鳴くよウグイス平安京（京都へ）", year: 794 },
+        { id: 4, title: "菅原道真の提案で「遣唐使」を停止", desc: "日本独自の国風文化が花開くきっかけに", year: 894 }
       ]
     },
     {
-      themeId: "ancient",
-      themeTitle: "【古代】飛鳥〜奈良時代の大きな流れ",
+      themeId: "jp_medieval1",
+      themeTitle: "【日本史】中世① 平安末期〜鎌倉時代",
       events: [
-        { id: 1, title: "聖徳太子が「十七条の憲法」をつくる", desc: "役人の心構えをまとめたルール", year: 604 },
-        { id: 2, title: "「大化の改新（たいかのかいしん）」が始まる", desc: "中ノ大兄皇子らが蘇我氏を倒した政治改革", year: 645 },
-        { id: 3, title: "「大宝律令（たいほうりつりょう）」の完成", desc: "唐（中国）にならった本格的な法律", year: 701 },
-        { id: 4, title: "聖武天皇が「大仏造立の詔」をだす", desc: "仏教の力で国を安定させようとした", year: 743 }
+        { id: 1, title: "壇ノ浦の戦いで平氏が滅亡", desc: "源義経らの活躍により源氏が勝利", year: 1185 },
+        { id: 2, title: "源頼朝が「鎌倉幕府」を開く", desc: "日本初の本格的な武家政権が誕生", year: 1192 },
+        { id: 3, title: "承久の乱（じょうきゅうのらん）", desc: "後鳥羽上皇が挙兵するも幕府軍が勝利", year: 1221 },
+        { id: 4, title: "元寇（文永の役・弘安の役）", desc: "フビライ＝ハンの率いるモンゴル軍の襲来", year: 1274 }
+      ]
+    },
+    {
+      themeId: "jp_medieval2",
+      themeTitle: "【日本史】中世② 室町〜戦国時代",
+      events: [
+        { id: 1, title: "足利尊氏が「室町幕府」を開く", desc: "南北朝の対立時代へ入る", year: 1336 },
+        { id: 2, title: "足利義満が「日明貿易（勘合貿易）」を開始", desc: "倭寇と区別するために勘合符を使用", year: 1404 },
+        { id: 3, title: "応仁の乱が勃発", desc: "10年以上続き、戦国時代の引き金となる", year: 1467 },
+        { id: 4, title: "種子島に「鉄砲」が伝来", desc: "ポルトガル人によって伝来し戦術が激変", year: 1543 }
+      ]
+    },
+    {
+      themeId: "jp_azuchi_edo1",
+      themeTitle: "【日本史】近世① 安土桃山〜江戸初期",
+      events: [
+        { id: 1, title: "長篠の戦い（織田信長）", desc: "鉄砲隊を活用して武田騎馬軍を撃破", year: 1575 },
+        { id: 2, title: "本能寺の変", desc: "明智光秀の謀反により信長が倒れる", year: 1582 },
+        { id: 3, title: "関ヶ原の戦い", desc: "徳川家康が天下分け目の戦いに勝利", year: 1600 },
+        { id: 4, title: "「鎖国」体制の完成", desc: "ポルトガル船の来航禁止・出島での限定貿易", year: 1639 }
+      ]
+    },
+    {
+      themeId: "jp_edo2",
+      themeTitle: "【日本史】近世② 江戸の改革と文化",
+      events: [
+        { id: 1, title: "享保の改革（徳川吉宗）", desc: "目安箱の設置や「上げ米の制」を実施", year: 1716 },
+        { id: 2, title: "杉田玄白らが『解体新書』を出版", desc: "オランダ語の医学書『ターヘル・アナトミア』を翻訳", year: 1774 },
+        { id: 3, title: "大塩平八郎の乱", desc: "天保のききんの中、元役人が大阪で挙兵", year: 1837 },
+        { id: 4, title: "天保の改革（水野忠邦）", desc: "株仲間の解散や質素倹約を命じる", year: 1841 }
+      ]
+    },
+    {
+      themeId: "jp_bakumatsu",
+      themeTitle: "【日本史】幕末の激動",
+      events: [
+        { id: 1, title: "ペリーが浦賀に来航（黒船来航）", desc: "アメリカが江戸幕府に開国を迫る", year: 1853 },
+        { id: 2, title: "坂本龍馬らの仲介で「薩長同盟」", desc: "薩摩藩と長州藩が密かに手を組む", year: 1866 },
+        { id: 3, title: "徳川慶喜による「大政奉還」", desc: "政権を朝廷（天皇）に返上する", year: 1867 },
+        { id: 4, title: "戊辰戦争（ぼしんせんそう）", desc: "新政府軍と旧幕府軍による最後の内戦", year: 1868 }
+      ]
+    },
+    {
+      themeId: "jp_meiji",
+      themeTitle: "【日本史】近代① 明治維新と立憲国家",
+      events: [
+        { id: 1, title: "「廃藩置県」の断行", desc: "藩を廃止して県を置き中央集権を強める", year: 1871 },
+        { id: 2, title: "「地租改正」と「徴兵令」の実施", desc: "近代国家としての税制・軍制を整える", year: 1873 },
+        { id: 3, title: "「大日本帝国憲法」の発布", desc: "伊藤博文らが中心となり作成した憲法", year: 1889 },
+        { id: 4, title: "日清戦争（にっしんせんそう）の勃発", desc: "下関条約により台湾などを獲得", year: 1894 }
+      ]
+    },
+    {
+      themeId: "jp_modern1",
+      themeTitle: "【日本史】近代② 大正〜昭和初期",
+      events: [
+        { id: 1, title: "日露戦争の勃発", desc: "ポーツマス条約で小村寿太郎らが講和", year: 1904 },
+        { id: 2, title: "「普通選挙法」と「治安維持法」の制定", desc: "25歳以上の全男子に選挙権（大正デモクラシー）", year: 1925 },
+        { id: 3, title: "満州事変（まんしゅうじへん）", desc: "関東軍が柳条湖事件を引き起こす", year: 1931 },
+        { id: 4, title: "日中戦争の勃発", desc: "盧溝橋事件をきっかけに全面戦争へ", year: 1937 }
+      ]
+    },
+    {
+      themeId: "jp_modern2",
+      themeTitle: "【日本史】現代 太平洋戦争〜戦後",
+      events: [
+        { id: 1, title: "太平洋戦争の開戦", desc: "真珠湾攻撃およびマレー半島進撃", year: 1941 },
+        { id: 2, title: "「日本国憲法」の施行", desc: "主権在民・平和主義・基本的人権の尊重", year: 1947 },
+        { id: 3, title: "サンフランシスコ平和条約の調印", desc: "主権を回復し国際社会へ復帰", year: 1951 },
+        { id: 4, title: "東京オリンピックの開催", desc: "新幹線開通など高度経済成長の象徴", year: 1964 }
+      ]
+    },
+
+    /* --- 世界史 --- */
+    {
+      themeId: "world_ancient",
+      themeTitle: "【世界史】古代文明〜ギリシャ・ローマ",
+      events: [
+        { id: 1, title: "ハンムラビ王が「ハンムラビ法典」を制定", desc: "「目には目を、歯には歯を」で有名な法典", year: -1750 },
+        { id: 2, title: "アレクサンドロス大王の東方遠征", desc: "ヘレニズム文化が生まれるきっかけに", year: -334 },
+        { id: 3, title: "秦の始皇帝が中国を統一", desc: "万里の長城の建設や度量衡の統一", year: -221 },
+        { id: 4, title: "西ローマ帝国の滅亡", desc: "ゲルマン人の大移動により滅亡", year: 476 }
+      ]
+    },
+    {
+      themeId: "world_early_modern",
+      themeTitle: "【世界史】大航海時代〜絶対王政",
+      events: [
+        { id: 1, title: "コロンブスがサンサルバドル島に到達", desc: "大西洋を渡り新大陸（アメリカ）を発見", year: 1492 },
+        { id: 2, title: "ルターが「95箇条の論題」を発表（宗教改革）", desc: "キリスト教カトリックへの批判とプロテスタントの誕生", year: 1517 },
+        { id: 3, title: "マゼラン一行が人類初の「世界一周」を達成", desc: "地球が丸いことを証明（マゼラン自身は途中で戦死）", year: 1522 },
+        { id: 4, title: "イギリスで「権利の章典」が制定（名誉革命）", desc: "立憲君主制の基礎が確立される", year: 1689 }
+      ]
+    },
+    {
+      themeId: "world_revolution",
+      themeTitle: "【世界史】市民革命と産業革命",
+      events: [
+        { id: 1, title: "アメリカの「独立宣言」", desc: "13州がイギリスからの独立を宣言", year: 1776 },
+        { id: 2, title: "「フランス革命」の勃発", desc: "バスティーユ牢獄を襲撃、人権宣言の採択へ", year: 1789 },
+        { id: 3, title: "ナポレオンがフランス皇帝に即位", desc: "ヨーロッパの大部分を支配下におさめる", year: 1804 },
+        { id: 4, title: "アメリカで南北戦争が始まる", desc: "リンカーン大統領が奴隷解放宣言を出す", year: 1861 }
+      ]
+    },
+    {
+      themeId: "world_ww1",
+      themeTitle: "【世界史】第一次世界大戦〜世界恐慌",
+      events: [
+        { id: 1, title: "サラエボ事件をきっかけに「第一次世界大戦」勃発", desc: "三国協商と三国同盟の全面衝突", year: 1914 },
+        { id: 2, title: "「ロシア革命」が起こる", desc: "レーニンらの指導により世界初の社会主義国へ", year: 1917 },
+        { id: 3, title: "ベルサイユ条約の調印", desc: "第一次世界大戦が講和を迎える", year: 1919 },
+        { id: 4, title: "ニューヨークでの「世界恐慌」勃発", desc: "株価暴落により世界的な大不況に", year: 1929 }
+      ]
+    },
+    {
+      themeId: "world_ww2",
+      themeTitle: "【世界史】第二次世界大戦〜冷戦",
+      events: [
+        { id: 1, title: "ナチス・ドイツがポーランドへ侵攻（第二次世界大戦）", desc: "英仏が宣戦布告し世界大戦へ", year: 1939 },
+        { id: 2, title: "「国際連合（UN）」の発足", desc: "国際連盟の反省を生かし51か国でスタート", year: 1945 },
+        { id: 3, title: "「朝鮮戦争」の勃発", desc: "南北分断に伴う冷戦の激化", year: 1950 },
+        { id: 4, title: "「ベルリンの壁」崩壊", desc: "冷戦の終結の象徴となった歴史的出来事", year: 1989 }
       ]
     }
   ];
 
-  let currentEvents = []; // 現在画面に表示中のイベント配列
+  let currentEvents = []; 
+  let draggedElement = null;
+  let activeTouchCard = null;
+
+  // 成績の記憶（LocalStorage）
+  const STORAGE_KEY = 'history_quiz_stats';
+  let stats = loadStats();
+
+  function loadStats() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (data && typeof data.total === 'number') return data;
+    } catch(e){}
+    return { total: 0, correct: 0, wrong: 0, giveup: 0 };
+  }
+
+  function saveStats() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  }
+
+  function updateStatsUI() {
+    document.getElementById('stat-total').textContent = stats.total;
+    document.getElementById('stat-correct').textContent = stats.correct;
+    document.getElementById('stat-wrong').textContent = stats.wrong;
+    document.getElementById('stat-giveup').textContent = stats.giveup;
+  }
+
+  function addLog(text, className) {
+    const list = document.getElementById('log-list');
+    const li = document.createElement('li');
+    li.className = `log-item ${className}`;
+    li.textContent = text;
+    list.prepend(li);
+  }
 
   // 初期化
   window.onload = () => {
     initThemeSelect();
+    updateStatsUI();
     loadSelectedTheme();
   };
 
-  // テーマセレクトボックスの初期化
   function initThemeSelect() {
     const select = document.getElementById('theme-select');
     select.innerHTML = quizData.map((q, index) => 
@@ -268,72 +621,137 @@
     ).join('');
   }
 
-  // 選択されたテーマの読み込み
   function loadSelectedTheme() {
     const selectIndex = document.getElementById('theme-select').value;
     const rawEvents = quizData[selectIndex].events;
 
-    // 問題用に順番をシャッフル（正解のまま表示されないように）
+    // シャッフル
     currentEvents = [...rawEvents].sort(() => Math.random() - 0.5);
 
     // UIリセット
     document.getElementById('result-msg').textContent = '';
     document.getElementById('result-msg').className = 'result-msg';
-    const checkBtn = document.getElementById('check-btn');
-    checkBtn.textContent = '⭕ こたえあわせ';
-    checkBtn.className = 'action-btn';
-    checkBtn.onclick = checkAnswer;
+    
+    document.getElementById('check-btn').style.display = 'block';
+    document.getElementById('giveup-btn').style.display = 'block';
+    document.getElementById('next-btn').style.display = 'none';
 
     renderCards();
   }
 
-  // カード一覧の描画
   function renderCards() {
     const listContainer = document.getElementById('card-list');
     listContainer.innerHTML = '';
 
     currentEvents.forEach((item, index) => {
-      const isFirst = (index === 0);
-      const isLast = (index === currentEvents.length - 1);
-
+      const yearText = item.year < 0 ? `紀元前${Math.abs(item.year)}年` : `${item.year}年`;
       const cardHTML = `
-        <div class="card" id="card-${index}">
-          <div class="btn-group">
-            <button class="arrow-btn" onclick="moveCard(${index}, -1)" ${isFirst ? 'disabled' : ''}>▲</button>
-            <button class="arrow-btn" onclick="moveCard(${index}, 1)" ${isLast ? 'disabled' : ''}>▼</button>
-          </div>
+        <div class="card" id="card-${index}" draggable="true">
+          <div class="drag-handle">☰</div>
           <div class="card-content">
             <div class="card-title">${item.title}</div>
             <div class="card-desc">${item.desc}</div>
           </div>
-          <!-- 最初は隠れている西暦バッジ -->
-          <div class="year-badge" id="year-${index}">${item.year}年</div>
+          <div class="year-badge" id="year-${index}">${yearText}</div>
         </div>
       `;
       listContainer.innerHTML += cardHTML;
     });
+
+    setupDragAndDrop();
   }
 
-  // カードの位置を上下に入れ替える処理
-  function moveCard(index, direction) {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= currentEvents.length) return;
+  // ドラッグ＆ドロップ設定
+  function setupDragAndDrop() {
+    const cards = document.querySelectorAll('.card');
+    const container = document.getElementById('card-list');
 
-    // 配列要素の入れ替え
-    const temp = currentEvents[index];
-    currentEvents[index] = currentEvents[newIndex];
-    currentEvents[newIndex] = temp;
+    cards.forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        draggedElement = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
 
-    // 画面再描画
-    renderCards();
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        draggedElement = null;
+        updateCurrentEventsFromDOM();
+      });
+
+      card.addEventListener('touchstart', (e) => {
+        activeTouchCard = card;
+        card.classList.add('dragging');
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        if (!activeTouchCard) return;
+        const touchLocation = e.touches[0];
+        const targetElement = document.elementFromPoint(touchLocation.clientX, touchLocation.clientY);
+        const targetCard = targetElement ? targetElement.closest('.card') : null;
+
+        if (targetCard && targetCard !== activeTouchCard) {
+          const bounding = targetCard.getBoundingClientRect();
+          const offset = touchLocation.clientY - bounding.top - (bounding.height / 2);
+          if (offset > 0) {
+            container.insertBefore(activeTouchCard, targetCard.nextSibling);
+          } else {
+            container.insertBefore(activeTouchCard, targetCard);
+          }
+        }
+      }, { passive: true });
+
+      card.addEventListener('touchend', () => {
+        if (activeTouchCard) {
+          activeTouchCard.classList.remove('dragging');
+          activeTouchCard = null;
+          updateCurrentEventsFromDOM();
+        }
+      });
+    });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const afterElement = getDragAfterElement(container, e.clientY);
+      if (afterElement == null) {
+        container.appendChild(draggedElement);
+      } else {
+        container.insertBefore(draggedElement, afterElement);
+      }
+    });
   }
 
-  // こたえあわせ処理
+  function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  function updateCurrentEventsFromDOM() {
+    const cards = document.querySelectorAll('.card');
+    const newEvents = [];
+    cards.forEach(card => {
+      const title = card.querySelector('.card-title').textContent;
+      const item = currentEvents.find(e => e.title === title);
+      if (item) newEvents.push(item);
+    });
+    currentEvents = newEvents;
+  }
+
+  // 答え合わせ
   function checkAnswer() {
+    updateCurrentEventsFromDOM();
     const resultDiv = document.getElementById('result-msg');
     let isCorrect = true;
 
-    // 西暦（year）が昇順（小さい順）に並んでいるかチェック
     for (let i = 0; i < currentEvents.length - 1; i++) {
       if (currentEvents[i].year > currentEvents[i + 1].year) {
         isCorrect = false;
@@ -341,35 +759,107 @@
       }
     }
 
+    const select = document.getElementById('theme-select');
+    const themeTitle = quizData[select.value].themeTitle.replace(/【.*?】/, '');
+
+    stats.total++;
+
     if (isCorrect) {
-      resultDiv.textContent = '🎉 せいかい！ 正しい歴史の流れです！';
+      stats.correct++;
+      saveStats();
+      updateStatsUI();
+
+      resultDiv.textContent = '🎉 正解！ 正しい歴史の流れです！';
       resultDiv.className = 'result-msg correct-msg';
 
-      // ★重要：正解したら西暦をオープンし、カードを緑色にする！
-      currentEvents.forEach((_, index) => {
-        document.getElementById(`year-${index}`).style.display = 'block';
-        document.getElementById(`card-${index}`).classList.add('is-correct');
+      const cards = document.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.querySelector('.year-badge').style.display = 'block';
+        card.classList.add('is-correct');
       });
 
-      // ボタンを「次の問題（テーマ）」に変更
-      const checkBtn = document.getElementById('check-btn');
-      checkBtn.textContent = 'つぎの テーマへ';
-      checkBtn.className = 'action-btn btn-next';
-      checkBtn.onclick = loadNextTheme;
+      addLog(`[正解] ${themeTitle}`, 'ok');
+
+      document.getElementById('check-btn').style.display = 'none';
+      document.getElementById('giveup-btn').style.display = 'none';
+      document.getElementById('next-btn').style.display = 'block';
 
     } else {
-      resultDiv.textContent = '❌ ざんねん！ もう一度 じゅんばんを かんがえてみよう';
+      stats.wrong++;
+      saveStats();
+      updateStatsUI();
+
+      resultDiv.textContent = '❌ 残念！ もう一度 順番を考えてみよう';
       resultDiv.className = 'result-msg wrong-msg';
+      addLog(`[不正解] ${themeTitle}`, 'ng');
     }
   }
 
-  // 次のテーマへ進む
+  // ギブアップ
+  function giveUp() {
+    const select = document.getElementById('theme-select');
+    const themeTitle = quizData[select.value].themeTitle.replace(/【.*?】/, '');
+
+    stats.total++;
+    stats.giveup++;
+    saveStats();
+    updateStatsUI();
+
+    // 正解の年代順にソートして再描画
+    currentEvents.sort((a, b) => a.year - b.year);
+    renderCards();
+
+    // 全バッジ表示
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+      card.querySelector('.year-badge').style.display = 'block';
+    });
+
+    const resultDiv = document.getElementById('result-msg');
+    resultDiv.textContent = '💡 正解の順番はこちらです！';
+    resultDiv.className = 'result-msg giveup-msg';
+
+    addLog(`[ギブアップ] ${themeTitle}`, 'giveup');
+
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('giveup-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'block';
+  }
+
   function loadNextTheme() {
     const select = document.getElementById('theme-select');
     let nextIndex = (parseInt(select.value) + 1) % quizData.length;
     select.value = nextIndex;
     loadSelectedTheme();
   }
+
+  // SNSシェア関連
+  function getShareText() {
+    const select = document.getElementById('theme-select');
+    const themeName = quizData[select.value].themeTitle;
+    return `🛡️ 歴史年代順 並び替えクイズ\n「${themeName}」に挑戦！\n通算成績: ${stats.correct}勝${stats.wrong}敗 (ギブアップ${stats.giveup}回)\n#歴史並び替えクイズ\n`;
+  }
+
+  function openShareModal() {
+    document.getElementById('share-text-preview').textContent = getShareText();
+    document.getElementById('share-modal').style.display = 'flex';
+  }
+
+  function closeShareModal() {
+    document.getElementById('share-modal').style.display = 'none';
+  }
+
+  document.getElementById('share-x-btn').addEventListener('click', () => {
+    const text = getShareText();
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(url, '_blank', 'noopener');
+  });
+
+  document.getElementById('share-line-btn').addEventListener('click', () => {
+    const text = getShareText() + window.location.href;
+    const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener');
+  });
 </script>
 </body>
 </html>
