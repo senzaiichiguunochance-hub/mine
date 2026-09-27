@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>とけいの れんしゅう</title>
+  <style>
+    :root {
+      --primary-color: #4A90E2;
+      --accent-color: #FF6B6B;
+      --bg-color: #F0F4F8;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background-color: var(--bg-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      user-select: none; /* ドラッグ時のテキスト選択を防止 */
+    }
+
+    .container {
+      background: white;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      text-align: center;
+      max-width: 450px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    /* モード切替タブ */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: 2px solid var(--primary-color);
+      background: white;
+      color: var(--primary-color);
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    /* 問題表示エリア */
+    .question-box {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #2C3E50;
+      margin-bottom: 15px;
+      min-height: 2.2rem;
+    }
+
+    .highlight {
+      color: var(--accent-color);
+      font-size: 1.8rem;
+    }
+
+    /* 時計SVGスタイル */
+    .clock-container {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto 20px auto;
+      touch-action: none; /* スマホでのスクロール防止 */
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .hand {
+      cursor: pointer;
+      transition: transform 0.05s ease-out;
+    }
+
+    /* 回答入力エリア */
+    .answer-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .answer-box select {
+      font-size: 1.2rem;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 2px solid #CCC;
+    }
+
+    /* ボタン類 */
+    .btn {
+      background: #2ECC71;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #27AE60;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .btn:active {
+      transform: translateY(4px);
+      box-shadow: none;
+    }
+
+    .btn-next {
+      background: var(--primary-color);
+      box-shadow: 0 4px 0 #357ABD;
+    }
+
+    /* 正解・不正解メッセージ */
+    .result-msg {
+      font-size: 1.3rem;
+      font-weight: bold;
+      height: 1.8rem;
+      margin-top: 10px;
+    }
+
+    .correct { color: #2ECC71; }
+    .wrong { color: var(--accent-color); }
+  </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+  <a href="menu.html" class="back-link">メニューに戻る</a>
+
+<div class="container">
+  <h1>⏰ とけいの れんしゅう</h1>
+
+  <!-- モード切替 -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-read" onclick="switchMode('read')">① よみかた</button>
+    <button class="tab-btn" id="tab-set" onclick="switchMode('set')">② はりあわせ</button>
+  </div>
+
+  <!-- 問題表示 -->
+  <div class="question-box" id="question">問題を読み込み中...</div>
+
+  <!-- 時計表示 (SVG) -->
+  <div class="clock-container" id="clock-container">
+    <svg viewBox="0 0 200 200">
+      <!-- 文字盤の円 -->
+      <circle cx="100" cy="100" r="95" fill="#FFF" stroke="#333" stroke-width="6"/>
+      <circle cx="100" cy="100" r="90" fill="none" stroke="#E0E0E0" stroke-width="1"/>
+
+      <!-- 目盛りと数字 (JSで動的生成) -->
+      <g id="clock-face"></g>
+
+      <!-- 短針（時針・赤い針） -->
+      <line id="hour-hand" class="hand" x1="100" y1="100" x2="100" y2="45" 
+            stroke="#FF6B6B" stroke-width="8" stroke-linecap="round"/>
+
+      <!-- 長針（分針・青い針） -->
+      <line id="minute-hand" class="hand" x1="100" y1="100" x2="100" y2="25" 
+            stroke="#4A90E2" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- 中心軸 -->
+      <circle cx="100" cy="100" r="6" fill="#333"/>
+    </svg>
+  </div>
+
+  <!-- 回答入力 (読み方モードのみ表示) -->
+  <div class="answer-box" id="read-inputs">
+    <select id="ans-hour"></select> じ
+    <select id="ans-minute"></select> ふん
+  </div>
+
+  <!-- 操作ボタン -->
+  <div>
+    <button class="btn" id="check-btn" onclick="checkAnswer()">こたえあわせ</button>
+    <button class="btn btn-next" id="next-btn" onclick="generateQuestion()" style="display:none;">つぎの もんだい</button>
+  </div>
+
+  <!-- 結果フィードバック -->
+  <div class="result-msg" id="result"></div>
+</div>
+
+<script>
+  // グローバル変数
+  let currentMode = 'read'; // 'read' or 'set'
+  let targetHour = 0;
+  let targetMinute = 0;
+  let currentMinute = 0; // 針合わせモード用の現在の分
+  let isDragging = false;
+
+  // 初期化処理
+  window.onload = () => {
+    drawClockFace();
+    populateSelects();
+    setupDragEvents();
+    generateQuestion();
+  };
+
+  // 時計の文字盤（数字と目盛り）を描画
+  function drawClockFace() {
+    const face = document.getElementById('clock-face');
+    let html = '';
+
+    // 60個の小目盛りと12個の数字
+    for (let i = 0; i < 60; i++) {
+      const angle = i * 6 - 90;
+      const rad = angle * Math.PI / 180;
+      const isHour = i % 5 === 0;
+
+      // 目盛りの線
+      const r1 = isHour ? 82 : 86;
+      const r2 = 88;
+      const x1 = 100 + r1 * Math.cos(rad);
+      const y1 = 100 + r1 * Math.sin(rad);
+      const x2 = 100 + r2 * Math.cos(rad);
+      const y2 = 100 + r2 * Math.sin(rad);
+
+      html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isHour ? '#333' : '#999'}" stroke-width="${isHour ? 2 : 1}"/>`;
+
+      // 数字（1〜12）
+      if (isHour) {
+        const hourNum = i === 0 ? 12 : i / 5;
+        const nx = 100 + 70 * Math.cos(rad);
+        const ny = 100 + 70 * Math.sin(rad) + 5; // 微調整
+        html += `<text x="${nx}" y="${ny}" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">${hourNum}</text>`;
+      }
+    }
+    face.innerHTML = html;
+  }
+
+  // ドロップダウンの選択肢を作成
+  function populateSelects() {
+    const hSelect = document.getElementById('ans-hour');
+    const mSelect = document.getElementById('ans-minute');
+
+    for (let h = 1; h <= 12; h++) {
+      hSelect.innerHTML += `<option value="${h}">${h}</option>`;
+    }
+    for (let m = 0; m < 60; m += 5) { // わかりやすく5分刻み
+      mSelect.innerHTML += `<option value="${m}">${m}</option>`;
+    }
+  }
+
+  // モード切替
+  function switchMode(mode) {
+    currentMode = mode;
+    document.getElementById('tab-read').classList.toggle('active', mode === 'read');
+    document.getElementById('tab-set').classList.toggle('active', mode === 'set');
+    document.getElementById('read-inputs').style.display = mode === 'read' ? 'flex' : 'none';
+    generateQuestion();
+  }
+
+  // 問題を生成
+  function generateQuestion() {
+    // ランダムな時間（1〜12時、0〜55分の5分単位）
+    targetHour = Math.floor(Math.random() * 12) + 1;
+    targetMinute = Math.floor(Math.random() * 12) * 5;
+
+    // UIリセット
+    document.getElementById('result').textContent = '';
+    document.getElementById('result').className = 'result-msg';
+    document.getElementById('check-btn').style.display = 'inline-block';
+    document.getElementById('next-btn').style.display = 'none';
+
+    if (currentMode === 'read') {
+      document.getElementById('question').innerHTML = 'なんじ なんふん かな？';
+      setClockHands(targetHour, targetMinute);
+    } else {
+      document.getElementById('question').innerHTML = 
+        `<span class="highlight">${targetHour}じ ${targetMinute}ふん</span> に はりを あわせよう！`;
+      // 初期状態は12時00分にしておく
+      currentMinute = 0;
+      setClockHands(12, 0);
+    }
+  }
+
+  // 時計の針の位置（回転角度）を更新
+  function setClockHands(hour, minute) {
+    const minuteAngle = minute * 6; // 360度 / 60分 = 6度/分
+    // 短針は長針の位置（分）に応じて少しずつ進む
+    const hourAngle = ((hour % 12) + minute / 60) * 30; // 360度 / 12時 = 30度/時
+
+    document.getElementById('minute-hand').style.transform = `rotate(${minuteAngle}deg)`;
+    document.getElementById('minute-hand').style.transformOrigin = '100px 100px';
+
+    document.getElementById('hour-hand').style.transform = `rotate(${hourAngle}deg)`;
+    document.getElementById('hour-hand').style.transformOrigin = '100px 100px';
+  }
+
+  // ドラッグ操作で針を動かす処理（針合わせモード用）
+  function setupDragEvents() {
+    const clock = document.getElementById('clock-container');
+
+    const handleMove = (e) => {
+      if (!isDragging || currentMode !== 'set') return;
+      
+      const rect = clock.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      // 時計の中心からの相対座標
+      const x = clientX - (rect.left + rect.width / 2);
+      const y = clientY - (rect.top + rect.height / 2);
+
+      // 角度の計算 (上を0度とする)
+      let rad = Math.atan2(y, x);
+      let deg = rad * (180 / Math.PI) + 90;
+      if (deg < 0) deg += 360;
+
+      // 角度から「分」を算出（5分単位にスナップ）
+      let rawMinute = Math.round(deg / 6);
+      let snappedMinute = Math.round(rawMinute / 5) * 5;
+      if (snappedMinute === 60) snappedMinute = 0;
+
+      currentMinute = snappedMinute;
+
+      // 表示を更新（時針は目標時間に近づける簡易計算）
+      let displayHour = targetHour;
+      // 55分から0分を跨ぐ時の簡易補正（※発展実装用）
+      setClockHands(displayHour, currentMinute);
+    };
+
+    const handleStart = (e) => {
+      if (currentMode === 'set') isDragging = true;
+    };
+
+    const handleEnd = () => { isDragging = false; };
+
+    clock.addEventListener('mousedown', handleStart);
+    clock.addEventListener('touchstart', handleStart);
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchmove', handleMove);
+
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchend', handleEnd);
+  }
+
+  // 答えあわせ
+  function checkAnswer() {
+    const resultDiv = document.getElementById('result');
+    let isCorrect = false;
+
+    if (currentMode === 'read') {
+      const userH = parseInt(document.getElementById('ans-hour').value);
+      const userM = parseInt(document.getElementById('ans-minute').value);
+      isCorrect = (userH === targetHour && userM === targetMinute);
+    } else {
+      isCorrect = (currentMinute === targetMinute);
+    }
+
+    if (isCorrect) {
+      resultDiv.textContent = '⭕ せいかい！ すごいね！';
+      resultDiv.className = 'result-msg correct';
+      document.getElementById('check-btn').style.display = 'none';
+      document.getElementById('next-btn').style.display = 'inline-block';
+    } else {
+      resultDiv.textContent = '❌ ざんねん！ もういちど かんがえてみよう';
+      resultDiv.className = 'result-msg wrong';
+    }
+  }
+</script>
+</body>
+</html>
