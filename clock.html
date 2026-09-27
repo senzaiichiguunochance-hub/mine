@@ -9,7 +9,13 @@
       --primary-color: #4A90E2;
       --accent-color: #FF6B6B;
       --bg-color: #F0F4F8;
+      --success-color: #2ECC71;
+      --gold-color: #F39C12;
+      --card-bg: #FFFFFF;
+      --text-color: #333333;
     }
+
+    * { box-sizing: border-box; }
 
     body {
       font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
@@ -17,49 +23,72 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       min-height: 100vh;
       margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
-      user-select: none; /* ドラッグ時のテキスト選択を防止 */
+      padding: 60px 12px 24px; /* 右上リンク用に上部余白確保 */
+      user-select: none;
+      color: var(--text-color);
+    }
+
+    /* 右上メニューリンク */
+    .back-link {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      text-decoration: none;
+      background: white;
+      border: 2px solid var(--primary-color);
+      padding: 6px 14px;
+      border-radius: 20px;
+      z-index: 1000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transition: all 0.2s;
+    }
+    .back-link:hover {
+      background: var(--primary-color);
+      color: white;
     }
 
     .container {
-      background: white;
-      padding: 25px;
+      background: var(--card-bg);
+      padding: 20px;
       border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
       text-align: center;
       max-width: 450px;
       width: 100%;
     }
 
     h1 {
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       color: #333;
       margin-top: 0;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
     /* モード切替タブ */
     .tabs {
       display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 8px;
+      margin-bottom: 14px;
     }
 
     .tab-btn {
       flex: 1;
-      padding: 10px;
+      padding: 8px 4px;
       border: 2px solid var(--primary-color);
       background: white;
       color: var(--primary-color);
       font-weight: bold;
       border-radius: 10px;
       cursor: pointer;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
       transition: all 0.2s;
+      font-family: inherit;
     }
 
     .tab-btn.active {
@@ -67,27 +96,80 @@
       color: white;
     }
 
+    /* レベル選択エリア */
+    .level-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .level-select {
+      font-size: 0.9rem;
+      font-weight: bold;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 2px solid var(--primary-color);
+      background: white;
+      color: var(--primary-color);
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* スタッツ表示（前回保持） */
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: #666;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
     /* 問題表示エリア */
     .question-box {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       font-weight: bold;
       color: #2C3E50;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       min-height: 2.2rem;
     }
 
     .highlight {
       color: var(--accent-color);
-      font-size: 1.8rem;
+      font-size: 1.6rem;
     }
 
-    /* 時計SVGスタイル */
+    /* 時計SVGスタイル（レスポンシブ対応） */
     .clock-container {
       position: relative;
-      width: 260px;
-      height: 260px;
-      margin: 0 auto 20px auto;
-      touch-action: none; /* スマホでのスクロール防止 */
+      width: 100%;
+      max-width: 250px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto 14px auto;
+      touch-action: none; /* スマホスクロール防止 */
     }
 
     svg {
@@ -105,31 +187,41 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 8px;
-      font-size: 1.3rem;
+      gap: 6px;
+      font-size: 1.2rem;
       font-weight: bold;
-      margin-bottom: 15px;
+      margin-bottom: 14px;
     }
 
     .answer-box select {
-      font-size: 1.2rem;
-      padding: 5px 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      padding: 4px 8px;
       border-radius: 8px;
       border: 2px solid #CCC;
+      background: white;
     }
 
-    /* ボタン類 */
+    /* ボタン群 */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
     .btn {
-      background: #2ECC71;
+      background: var(--success-color);
       color: white;
       border: none;
-      padding: 12px 24px;
-      font-size: 1.1rem;
+      padding: 10px 18px;
+      font-size: 1rem;
       font-weight: bold;
       border-radius: 30px;
       cursor: pointer;
       box-shadow: 0 4px 0 #27AE60;
       transition: transform 0.1s, box-shadow 0.1s;
+      font-family: inherit;
     }
 
     .btn:active {
@@ -137,25 +229,149 @@
       box-shadow: none;
     }
 
+    .btn-giveup {
+      background: var(--gold-color);
+      box-shadow: 0 4px 0 #D68910;
+    }
+
     .btn-next {
       background: var(--primary-color);
       box-shadow: 0 4px 0 #357ABD;
     }
 
-    /* 正解・不正解メッセージ */
-    .result-msg {
-      font-size: 1.3rem;
-      font-weight: bold;
-      height: 1.8rem;
+    .btn-share {
+      background: white;
+      color: var(--primary-color);
+      border: 2px solid var(--primary-color);
+      box-shadow: 0 2px 0 var(--primary-color);
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      border-radius: 20px;
       margin-top: 10px;
     }
 
-    .correct { color: #2ECC71; }
+    /* 正解・不正解メッセージ */
+    .result-msg {
+      font-size: 1.15rem;
+      font-weight: bold;
+      min-height: 1.6rem;
+      margin-top: 10px;
+    }
+
+    .correct { color: var(--success-color); }
     .wrong { color: var(--accent-color); }
+    .giveup-text { color: var(--gold-color); }
+
+    /* ログ表示ボックス */
+    .log-box {
+      margin-top: 16px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      text-align: left;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+
+    .log-title {
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #666;
+      margin-bottom: 4px;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 2px;
+    }
+
+    .log-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.8rem;
+    }
+
+    .log-item {
+      margin-bottom: 2px;
+    }
+    .log-item.ok { color: var(--success-color); font-weight: bold; }
+    .log-item.giveup { color: var(--gold-color); }
+
+    /* モーダル (SNSシェア) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    .modal-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .modal-card h2 {
+      font-size: 1.2rem;
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .modal-share-btns {
+      display: flex;
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .btn-sns {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+    }
+    .btn-x { background: #000000; }
+    .btn-line { background: #06C755; }
+
+    /* スマホ（縦長）最適化 */
+    @media (max-width: 480px) {
+      body {
+        padding: 50px 8px 16px;
+      }
+      .container {
+        padding: 16px 12px;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .clock-container {
+        max-width: 210px;
+      }
+      .btn {
+        padding: 8px 14px;
+        font-size: 0.9rem;
+      }
+      .stat-value {
+        font-size: 1rem;
+      }
+    }
   </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
+
+  <!-- 右上メニューに戻るボタン -->
   <a href="menu.html" class="back-link">メニューに戻る</a>
 
 <div class="container">
@@ -165,6 +381,32 @@
   <div class="tabs">
     <button class="tab-btn active" id="tab-read" onclick="switchMode('read')">① よみかた</button>
     <button class="tab-btn" id="tab-set" onclick="switchMode('set')">② はりあわせ</button>
+  </div>
+
+  <!-- レベル選択コンボボックス -->
+  <div class="level-box">
+    <label for="level-select">難易度：</label>
+    <select id="level-select" class="level-select" onchange="changeLevel(this.value)">
+      <option value="1">レベル1 (〇時・〇時半)</option>
+      <option value="2">レベル2 (5分単位)</option>
+      <option value="3">レベル3 (1分単位)</option>
+    </select>
+  </div>
+
+  <!-- 問題数・正解数・ギブアップ数（前回保持） -->
+  <div class="stats-row">
+    <div class="stat-item">
+      <span class="stat-label">問題数</span>
+      <span class="stat-value" id="stat-total">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">正解数</span>
+      <span class="stat-value" id="stat-correct">0</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">ギブアップ</span>
+      <span class="stat-value" id="stat-giveup">0</span>
+    </div>
   </div>
 
   <!-- 問題表示 -->
@@ -200,26 +442,81 @@
   </div>
 
   <!-- 操作ボタン -->
-  <div>
+  <div class="btn-group">
     <button class="btn" id="check-btn" onclick="checkAnswer()">こたえあわせ</button>
+    <button class="btn btn-giveup" id="giveup-btn" onclick="giveUp()">ギブアップ</button>
     <button class="btn btn-next" id="next-btn" onclick="generateQuestion()" style="display:none;">つぎの もんだい</button>
   </div>
 
   <!-- 結果フィードバック -->
   <div class="result-msg" id="result"></div>
+
+  <!-- SNS投稿ボタン -->
+  <button class="btn btn-share" onclick="openShareModal()">結果をSNSでシェア</button>
+
+  <!-- 解答ログ (今回起動分) -->
+  <div class="log-box">
+    <div class="log-title">今回の解答ログ</div>
+    <ul id="log-list" class="log-list"></ul>
+  </div>
+</div>
+
+<!-- SNSシェアモーダル -->
+<div class="modal-overlay" id="share-modal">
+  <div class="modal-card">
+    <h2>結果をシェアする</h2>
+    <p id="share-text-preview" style="font-size:0.85rem; color:#555; white-space:pre-wrap; margin-bottom:12px;"></p>
+    <div class="modal-share-btns">
+      <button class="btn-sns btn-x" id="share-x-btn">Xでシェア</button>
+      <button class="btn-sns btn-line" id="share-line-btn">LINEでシェア</button>
+    </div>
+    <button class="btn" style="background:#888; box-shadow:none; padding:6px 16px; font-size:0.85rem;" onclick="closeShareModal()">とじる</button>
+  </div>
 </div>
 
 <script>
   // グローバル変数
   let currentMode = 'read'; // 'read' or 'set'
+  let currentLevel = 1;     // 1, 2, 3
   let targetHour = 0;
   let targetMinute = 0;
-  let currentMinute = 0; // 針合わせモード用の現在の分
+  let currentMinute = 0;   // 針合わせモード用
   let isDragging = false;
 
-  // 初期化処理
+  // 成績（LocalStorageで前回保持）
+  const STORAGE_KEY = 'clock_stats_data';
+  let stats = loadStats();
+
+  function loadStats() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (data && typeof data.total === 'number') return data;
+    } catch(e){}
+    return { total: 0, correct: 0, giveup: 0 };
+  }
+
+  function saveStats() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+  }
+
+  function updateStatsUI() {
+    document.getElementById('stat-total').textContent = stats.total;
+    document.getElementById('stat-correct').textContent = stats.correct;
+    document.getElementById('stat-giveup').textContent = stats.giveup;
+  }
+
+  function addLog(text, className) {
+    const list = document.getElementById('log-list');
+    const li = document.createElement('li');
+    li.className = `log-item ${className}`;
+    li.textContent = text;
+    list.prepend(li);
+  }
+
+  // 初期化
   window.onload = () => {
     drawClockFace();
+    updateStatsUI();
     populateSelects();
     setupDragEvents();
     generateQuestion();
@@ -230,13 +527,11 @@
     const face = document.getElementById('clock-face');
     let html = '';
 
-    // 60個の小目盛りと12個の数字
     for (let i = 0; i < 60; i++) {
       const angle = i * 6 - 90;
       const rad = angle * Math.PI / 180;
       const isHour = i % 5 === 0;
 
-      // 目盛りの線
       const r1 = isHour ? 82 : 86;
       const r2 = 88;
       const x1 = 100 + r1 * Math.cos(rad);
@@ -246,31 +541,40 @@
 
       html += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${isHour ? '#333' : '#999'}" stroke-width="${isHour ? 2 : 1}"/>`;
 
-      // 数字（1〜12）
       if (isHour) {
         const hourNum = i === 0 ? 12 : i / 5;
         const nx = 100 + 70 * Math.cos(rad);
-        const ny = 100 + 70 * Math.sin(rad) + 5; // 微調整
+        const ny = 100 + 70 * Math.sin(rad) + 5;
         html += `<text x="${nx}" y="${ny}" font-size="14" font-weight="bold" text-anchor="middle" fill="#333">${hourNum}</text>`;
       }
     }
     face.innerHTML = html;
   }
 
-  // ドロップダウンの選択肢を作成
+  // レベルに応じたプルダウン選択肢を生成
   function populateSelects() {
     const hSelect = document.getElementById('ans-hour');
     const mSelect = document.getElementById('ans-minute');
 
+    hSelect.innerHTML = '';
     for (let h = 1; h <= 12; h++) {
       hSelect.innerHTML += `<option value="${h}">${h}</option>`;
     }
-    for (let m = 0; m < 60; m += 5) { // わかりやすく5分刻み
-      mSelect.innerHTML += `<option value="${m}">${m}</option>`;
+
+    mSelect.innerHTML = '';
+    if (currentLevel === 1) {
+      mSelect.innerHTML = `<option value="0">0</option><option value="30">30</option>`;
+    } else if (currentLevel === 2) {
+      for (let m = 0; m < 60; m += 5) {
+        mSelect.innerHTML += `<option value="${m}">${m}</option>`;
+      }
+    } else {
+      for (let m = 0; m < 60; m++) {
+        mSelect.innerHTML += `<option value="${m}">${m}</option>`;
+      }
     }
   }
 
-  // モード切替
   function switchMode(mode) {
     currentMode = mode;
     document.getElementById('tab-read').classList.toggle('active', mode === 'read');
@@ -279,16 +583,29 @@
     generateQuestion();
   }
 
-  // 問題を生成
+  function changeLevel(val) {
+    currentLevel = parseInt(val, 10);
+    populateSelects();
+    generateQuestion();
+  }
+
+  // 問題作成
   function generateQuestion() {
-    // ランダムな時間（1〜12時、0〜55分の5分単位）
     targetHour = Math.floor(Math.random() * 12) + 1;
-    targetMinute = Math.floor(Math.random() * 12) * 5;
+
+    if (currentLevel === 1) {
+      targetMinute = Math.random() < 0.5 ? 0 : 30;
+    } else if (currentLevel === 2) {
+      targetMinute = Math.floor(Math.random() * 12) * 5;
+    } else {
+      targetMinute = Math.floor(Math.random() * 60);
+    }
 
     // UIリセット
     document.getElementById('result').textContent = '';
     document.getElementById('result').className = 'result-msg';
     document.getElementById('check-btn').style.display = 'inline-block';
+    document.getElementById('giveup-btn').style.display = 'inline-block';
     document.getElementById('next-btn').style.display = 'none';
 
     if (currentMode === 'read') {
@@ -297,17 +614,15 @@
     } else {
       document.getElementById('question').innerHTML = 
         `<span class="highlight">${targetHour}じ ${targetMinute}ふん</span> に はりを あわせよう！`;
-      // 初期状態は12時00分にしておく
       currentMinute = 0;
       setClockHands(12, 0);
     }
   }
 
-  // 時計の針の位置（回転角度）を更新
+  // 時計の針を回転
   function setClockHands(hour, minute) {
-    const minuteAngle = minute * 6; // 360度 / 60分 = 6度/分
-    // 短針は長針の位置（分）に応じて少しずつ進む
-    const hourAngle = ((hour % 12) + minute / 60) * 30; // 360度 / 12時 = 30度/時
+    const minuteAngle = minute * 6;
+    const hourAngle = ((hour % 12) + minute / 60) * 30;
 
     document.getElementById('minute-hand').style.transform = `rotate(${minuteAngle}deg)`;
     document.getElementById('minute-hand').style.transformOrigin = '100px 100px';
@@ -316,7 +631,7 @@
     document.getElementById('hour-hand').style.transformOrigin = '100px 100px';
   }
 
-  // ドラッグ操作で針を動かす処理（針合わせモード用）
+  // ドラッグ操作（針合わせモード用）
   function setupDragEvents() {
     const clock = document.getElementById('clock-container');
 
@@ -327,32 +642,28 @@
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-      // 時計の中心からの相対座標
       const x = clientX - (rect.left + rect.width / 2);
       const y = clientY - (rect.top + rect.height / 2);
 
-      // 角度の計算 (上を0度とする)
       let rad = Math.atan2(y, x);
       let deg = rad * (180 / Math.PI) + 90;
       if (deg < 0) deg += 360;
 
-      // 角度から「分」を算出（5分単位にスナップ）
       let rawMinute = Math.round(deg / 6);
-      let snappedMinute = Math.round(rawMinute / 5) * 5;
-      if (snappedMinute === 60) snappedMinute = 0;
+      let snapped = rawMinute;
 
-      currentMinute = snappedMinute;
+      if (currentLevel === 1) {
+        snapped = Math.round(rawMinute / 30) * 30;
+      } else if (currentLevel === 2) {
+        snapped = Math.round(rawMinute / 5) * 5;
+      }
+      if (snapped >= 60) snapped = 0;
 
-      // 表示を更新（時針は目標時間に近づける簡易計算）
-      let displayHour = targetHour;
-      // 55分から0分を跨ぐ時の簡易補正（※発展実装用）
-      setClockHands(displayHour, currentMinute);
+      currentMinute = snapped;
+      setClockHands(targetHour, currentMinute);
     };
 
-    const handleStart = (e) => {
-      if (currentMode === 'set') isDragging = true;
-    };
-
+    const handleStart = () => { if (currentMode === 'set') isDragging = true; };
     const handleEnd = () => { isDragging = false; };
 
     clock.addEventListener('mousedown', handleStart);
@@ -371,23 +682,86 @@
     let isCorrect = false;
 
     if (currentMode === 'read') {
-      const userH = parseInt(document.getElementById('ans-hour').value);
-      const userM = parseInt(document.getElementById('ans-minute').value);
+      const userH = parseInt(document.getElementById('ans-hour').value, 10);
+      const userM = parseInt(document.getElementById('ans-minute').value, 10);
       isCorrect = (userH === targetHour && userM === targetMinute);
     } else {
       isCorrect = (currentMinute === targetMinute);
     }
 
+    stats.total++;
+
     if (isCorrect) {
+      stats.correct++;
+      saveStats();
+      updateStatsUI();
+
       resultDiv.textContent = '⭕ せいかい！ すごいね！';
       resultDiv.className = 'result-msg correct';
+      addLog(`[正解] ${targetHour}時${targetMinute}分`, 'ok');
+
       document.getElementById('check-btn').style.display = 'none';
+      document.getElementById('giveup-btn').style.display = 'none';
       document.getElementById('next-btn').style.display = 'inline-block';
     } else {
+      saveStats();
+      updateStatsUI();
+
       resultDiv.textContent = '❌ ざんねん！ もういちど かんがえてみよう';
       resultDiv.className = 'result-msg wrong';
     }
   }
+
+  // ギブアップ
+  function giveUp() {
+    stats.total++;
+    stats.giveup++;
+    saveStats();
+    updateStatsUI();
+
+    // 正解を針と選択肢に反映
+    setClockHands(targetHour, targetMinute);
+    if (currentMode === 'read') {
+      document.getElementById('ans-hour').value = targetHour;
+      document.getElementById('ans-minute').value = targetMinute;
+    }
+
+    const resultDiv = document.getElementById('result');
+    resultDiv.textContent = `💡 こたえは ${targetHour}じ ${targetMinute}ふん でした！`;
+    resultDiv.className = 'result-msg giveup-text';
+
+    addLog(`[ギブアップ] ${targetHour}時${targetMinute}分`, 'giveup');
+
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('giveup-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+  }
+
+  // SNSシェア関連
+  function getShareText() {
+    return `⏰ 「とけいの れnしゅう」で遊んだよ！\n問題数: ${stats.total} | 正解数: ${stats.correct} | ギブアップ: ${stats.giveup}\n#とけいのれんしゅう\n`;
+  }
+
+  function openShareModal() {
+    document.getElementById('share-text-preview').textContent = getShareText();
+    document.getElementById('share-modal').style.display = 'flex';
+  }
+
+  function closeShareModal() {
+    document.getElementById('share-modal').style.display = 'none';
+  }
+
+  document.getElementById('share-x-btn').addEventListener('click', () => {
+    const text = getShareText();
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
+    window.open(url, '_blank', 'noopener');
+  });
+
+  document.getElementById('share-line-btn').addEventListener('click', () => {
+    const text = getShareText() + window.location.href;
+    const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener');
+  });
 </script>
 </body>
 </html>
