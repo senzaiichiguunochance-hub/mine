@@ -170,7 +170,6 @@
 <script type="module">
     import * as THREE from 'three';
 
-    // --- 【提供元 script.js のマップ生成ロジック：変更なし】 ---
     const TILE = { FLOOR: 0, WALL: 1, PLAYER: 2, BOX: 3, GOAL: 4, BOX_ON_GOAL: 5, PLAYER_ON_GOAL: 6 };
     let level, originalLevel, initialLevel, playerPos, initialPlayerPos;
     const GRID_SIZE = 2;
@@ -210,12 +209,10 @@
         return false;
     }
 
-    // 変更点：箱の数(bNum)だけをステージ進行に応じて緩やかに増やせるよう引数化。
-    // 盤面サイズ(w,h)や探索アルゴリズム自体は元のまま。安全のため箱数の上限は5個に抑制し、
-    // 世代の計算コスト（BFSの状態爆発）が大きくなりすぎないようにしている。
+    // 箱の数を常に「3個固定」にして全ステージで同じ軽い生成ロジックを使用
     function generateLevel(stage = 1) {
         const w = 10, h = 8;
-        const bNum = Math.min(3 + Math.floor((stage - 1) / 3), 5);
+        const bNum = 3; // 常に3個に固定
         while (true) {
             let nl = Array.from({length: h}, () => Array(w).fill(TILE.WALL));
             let cells = [];
@@ -234,7 +231,7 @@
         }
     }
 
-    // --- ここからレンダリング／演出まわり ---
+    // --- レンダリング／演出 ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xa3d8f0);
     scene.fog = new THREE.FogExp2(0xa3d8f0, 0.015);
@@ -266,11 +263,9 @@
     let boxMeshes = {}, tiles = [], goalMeshes = [];
     let shadowBlob;
 
-    // マテリアル・色定義
     const boxMatNormal = new THREE.MeshStandardMaterial({ color: 0xffa726, roughness: 0.45, metalness: 0.1 });
-    const boxMatOnGoal = new THREE.MeshStandardMaterial({ color: 0x66bb6a, roughness: 0.35, metalness: 0.1 }); // ゴール設置時の箱色（鮮やかな緑）
+    const boxMatOnGoal = new THREE.MeshStandardMaterial({ color: 0x66bb6a, roughness: 0.35, metalness: 0.1 });
 
-    // 画面サイズ・向きに合わせてカメラ距離を自動調整し、盤面全体が画角に収まるようにする
     function fitCameraToLevel() {
         if (!level) return;
         const w = level[0].length, h = level.length;
@@ -373,10 +368,8 @@
         goalMeshes.forEach(g => scene.remove(g));
         tiles = []; boxMeshes = {}; goalMeshes = [];
 
-        // 通常床：明るいグリーン市松模様
         const floorMatA = new THREE.MeshStandardMaterial({ color: 0x6fc47c, roughness: 0.8 });
         const floorMatB = new THREE.MeshStandardMaterial({ color: 0x59ab68, roughness: 0.8 });
-        // ゴール（〇）の床：一目で視認できる明るい黄色タイル
         const goalFloorMat = new THREE.MeshStandardMaterial({ color: 0xffd54f, roughness: 0.6 });
         
         const wallMat = new THREE.MeshStandardMaterial({ color: 0x7a4a2b, roughness: 0.75, metalness: 0.05 });
@@ -386,7 +379,6 @@
             const px = x * 2, pz = y * 2;
             const isGoalTile = originalLevel[y][x] === TILE.GOAL;
             
-            // 床の作成（ゴール地点の床は専用色）
             const floorMat = isGoalTile ? goalFloorMat : ((x + y) % 2 === 0 ? floorMatA : floorMatB);
             const floor = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), floorMat);
             floor.rotation.x = -Math.PI / 2; floor.position.set(px, -1, pz);
@@ -404,7 +396,6 @@
             }
 
             if (isGoalTile) {
-                // 移動先のマーク（〇）
                 const g = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.55, 32), new THREE.MeshBasicMaterial({ color: 0xe65100, transparent: true, opacity: 0.9, side: THREE.DoubleSide }));
                 g.rotation.x = -Math.PI / 2; g.position.set(px, -0.97, pz);
                 g.userData.baseY = -0.97;
@@ -439,7 +430,6 @@
         fitCameraToLevel();
     }
 
-    // --- 状態管理（連続プレイ用） ---
     let stage = 1;
     let moveCount = 0;
     let history = [];
@@ -545,11 +535,7 @@
         history = []; moveCount = 0; updateHUD(); sync();
     }
 
-    function newGame() {
-        stage = 1; startStage(true);
-    }
-
-    // --- 入力まわり ---
+    // 入力
     document.getElementById('new-stage-btn').onclick = () => { stage++; startStage(true); };
     document.getElementById('retry-btn').onclick = retryStage;
     document.getElementById('undo').onclick = undo;
@@ -569,7 +555,6 @@
         if (k === 'r') retryStage();
     });
 
-    // スワイプ操作（スマホでの操作性向上）
     let touchStart = null;
     window.addEventListener('touchstart', e => {
         if (e.target.closest('#touch-controls') || e.target.closest('#btn-row')) return;
