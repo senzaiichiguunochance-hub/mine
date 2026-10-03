@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>50音スロット言葉合わせ</title>
+<meta name="theme-color" content="#312e81">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="slot.css">
+</head>
+<body>
+<a href="../menu.html" class="back-link">メニューに戻る</a>
+<main class="container">
+  <header class="header">
+    <h1>🎰 50音スロット言葉合わせ</h1>
+    <p>揃った言葉が日本語（Wiktionary）にあるか判定！</p>
+  </header>
+  <div class="main-box">
+    <div class="controls">
+      <label>文字数 <select id="charCount"></select></label>
+      <label>スピード <select id="spinSpeed"><option value="240">低速</option><option value="480" selected>中速</option><option value="960">高速</option></select></label>
+      <label>文字種 <select id="script"><option value="h">ひらがな</option><option value="k">カタカナ</option></select></label>
+      <label>モード <select id="mode"><option value="free">フリー</option><option value="10">10回チャレンジ</option></select></label>
+      <label><input type="checkbox" id="optDaku">濁音・半濁音</label>
+      <label><input type="checkbox" id="optSmall">拗音・小書き</label>
+      <label><input type="checkbox" id="optEasy">やさしい（頻出音多め）</label>
+    </div>
+    <div class="tools">
+      <button id="soundBtn" type="button" aria-label="効果音の切替">🔊</button>
+      <input id="vol" type="range" min="0" max="1" step="0.1" aria-label="音量">
+      <button id="themeBtn" type="button" aria-label="テーマ切替">🌙</button>
+      <span id="scoreBar" class="score" aria-live="polite"></span>
+    </div>
+    <div class="slot-machine-casing">
+      <div class="reel-container" id="reelContainer"></div>
+      <p class="hint">リールをタップで🔒ロック（スタート前のみ）／ キー：Space＝スタート・一括STOP、1〜7＝各STOP</p>
+      <div class="action-area">
+        <button id="startBtn" class="start-lever-btn" type="button">🎰 スタート</button>
+        <button id="allStopBtn" class="all-stop-btn" type="button" disabled>一括 STOP</button>
+      </div>
+    </div>
+    <div class="result-display">
+      <div class="result-word" id="resultWord" aria-live="polite">--</div>
+      <div class="status-message" id="statusMessage" aria-live="polite">「スタート」を押してね！</div>
+      <div class="mean" id="meaning"></div>
+      <div class="link-container" id="linkContainer"></div>
+    </div>
+    <section class="log-section">
+      <div class="log-header">
+        <h2>📋 判定ログ</h2>
+        <span>
+          <label><input type="checkbox" id="onlyWin">成功のみ</label>
+          <button id="csvBtn" class="mini" type="button">CSVコピー</button>
+          <button id="clearLogBtn" class="mini" type="button">消去</button>
+        </span>
+      </div>
+      <div class="log-table-wrapper">
+        <table class="log-table">
+          <thead><tr><th>文字</th><th>判定</th><th>Wiktionary</th></tr></thead>
+          <tbody id="logTbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</main>
+<script src="slot.js"></script>
+</body>
+</html>
