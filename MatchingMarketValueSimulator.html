@@ -265,9 +265,6 @@ const SPEC = [
       male:[ O('細身のみ','細身',.18), O('細身〜標準体型まで','標準・引き締まっている',.78), O(null,'ぽっちゃり・がっしり',1,'my') ],
       female:[ O('細身のみ','細身',.25), O('細身〜標準体型まで','標準・引き締まっている',.78), O(null,'ぽっちゃり・がっしり',1,'my') ]
     } },
-  { id:'bust', group:'basic', corr:'body', short:'バスト', showTarget:true, genders:['female'], weight:{ female:.5 },
-    title:{ des:'バストサイズ（下限）', my:'あなたのバストサイズ' },
-    opts:{ female:[ O('Fカップ以上','Fカップ以上',.02), O('Eカップ以上','Eカップ',.06), O('Dカップ以上','Dカップ',.18), O('Cカップ以上','Cカップ',.45), O('Bカップ以上','Bカップ',.75), O('Aカップ以上','Aカップ以下',.95) ] } },
 
   { id:'income', group:'econ', corr:'econ', short:'年収', showTarget:true, weight:{ male:1.6, female:.8 },
     title:{ des:'年収・額面（下限）', my:'あなたの年収（額面）' },
