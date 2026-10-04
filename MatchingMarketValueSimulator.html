@@ -1,731 +1,745 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>婚活スペック相互変換＆市場価値診断シミュレーター</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#fdf2f8',
-              100: '#fce7f3',
-              500: '#ec4899',
-              600: '#db2777',
-              700: '#be185d',
-            },
-            male: {
-              500: '#3b82f6',
-              600: '#2563eb',
-            },
-            female: {
-              500: '#ec4899',
-              600: '#db2777',
-            }
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
-    body { font-family: 'Noto Sans JP', sans-serif; }
-    .glass-card {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(229, 231, 235, 0.8);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>婚活スペック相互変換＆市場価値診断シミュレーター</title>
+<meta name="description" content="婚活の希望条件の希少度と、あなた自身の市場価値を目安で診断。同等スペックへの相互変換、釣り合い診断つき。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pink:#ec4899; --pink-d:#be185d; --pink-l:#fdf2f8;
+  --blue:#3b82f6; --blue-d:#1d4ed8; --blue-l:#eff6ff;
+  --indigo:#4f46e5; --indigo-l:#eef2ff;
+  --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --bg:#f8fafc; --radius:16px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font-family:'Noto Sans JP',system-ui,-apple-system,'Hiragino Sans',sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;padding-bottom:96px}
+.wrap{max-width:56rem;margin:0 auto;padding:0 16px}
+b{font-weight:700}
+
+/* header */
+.site-header{background:linear-gradient(90deg,#ec4899,#f43f5e 50%,#4f46e5);color:#fff;position:sticky;top:0;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px;padding-bottom:12px}
+h1{margin:0;font-size:1.05rem;font-weight:900;letter-spacing:-.01em}
+@media(min-width:640px){h1{font-size:1.4rem}}
+.back-link{color:#fff;background:rgba(255,255,255,.22);padding:6px 12px;border-radius:8px;text-decoration:none;font-size:.78rem;white-space:nowrap}
+.back-link:hover{background:rgba(255,255,255,.35)}
+main{margin-top:20px}
+
+/* cards */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.card-h{margin:0 0 12px;font-size:1rem;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.step{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--pink);color:#fff;font-size:.75rem}
+.req{font-size:.72rem;color:#ef4444;font-weight:700}
+.muted{color:var(--muted);font-size:.78rem}
+
+/* gender */
+.gender-card{border:2px solid #fbcfe8}
+.gender-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gbtn{padding:12px;border:2px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-weight:700;color:#475569;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.gbtn .sym{font-size:1.4rem}
+.gbtn.female .sym{color:var(--pink)} .gbtn.male .sym{color:var(--blue)}
+.gbtn.female:hover{border-color:#f9a8d4} .gbtn.male:hover{border-color:#93c5fd}
+.gbtn.female[aria-pressed=true]{border-color:var(--pink);background:var(--pink-l);color:var(--pink-d);box-shadow:0 1px 4px rgba(236,72,153,.25)}
+.gbtn.male[aria-pressed=true]{border-color:var(--blue);background:var(--blue-l);color:var(--blue-d);box-shadow:0 1px 4px rgba(59,130,246,.25)}
+
+/* tabs */
+.tabs{display:flex;gap:4px;background:#fff;padding:4px;border-radius:12px;border:1px solid var(--line);margin-bottom:16px}
+.tab{flex:1;padding:12px 8px;border:1px solid transparent;border-radius:8px;background:none;font:inherit;font-weight:700;font-size:.82rem;color:var(--muted);cursor:pointer}
+.tab:hover{color:var(--ink)}
+.tab[data-tab=desired][aria-selected=true]{color:var(--pink-d);background:var(--pink-l);border-color:#fbcfe8}
+.tab[data-tab=myspec][aria-selected=true]{color:var(--indigo);background:var(--indigo-l);border-color:#c7d2fe}
+.note-box{background:var(--blue-l);border-left:4px solid var(--blue);padding:12px 16px;border-radius:0 12px 12px 0;font-size:.85rem;margin-bottom:16px}
+
+/* form */
+.form-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:6px}
+.form-head h3{margin:0;font-size:1rem}
+fieldset{border:0;padding:0;margin:0;min-width:0}
+fieldset:disabled{opacity:.45}
+.lock-msg{background:#fef3c7;color:#92400e;border-radius:10px;padding:10px 14px;font-size:.85rem;font-weight:700;margin:12px 0}
+.group-title{font-size:.72rem;font-weight:700;color:#94a3b8;letter-spacing:.08em;margin:18px 0 10px;padding-top:12px;border-top:1px solid #f1f5f9}
+.group-title:first-child{border-top:0;padding-top:0;margin-top:10px}
+.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+label{display:block;font-size:.75rem;font-weight:700;margin-bottom:4px}
+select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;color:var(--ink);font:inherit;font-size:.9rem}
+select:focus{outline:2px solid var(--pink);background:#fff}
+.btn-sub{margin-top:16px;background:none;border:1px solid #cbd5e1;border-radius:8px;padding:6px 14px;font:inherit;font-size:.78rem;color:var(--muted);cursor:pointer}
+.btn-sub:hover{background:#f1f5f9}
+
+/* result */
+.result{border:2px solid #f9a8d4;background:linear-gradient(#fff,rgba(253,242,248,.45))}
+.result-head{text-align:center;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.badge{display:inline-block;padding:3px 12px;background:#fce7f3;color:var(--pink-d);font-weight:700;font-size:.72rem;border-radius:99px;margin-bottom:6px}
+.result-head h3{margin:0;font-size:1.3rem;font-weight:900}
+.result-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:20px 0}
+.rank-box{background:linear-gradient(135deg,#0f172a,#1e1b4b);color:#fff;border-radius:16px;padding:24px 20px;text-align:center;position:relative;overflow:hidden}
+.rank-box .sub{font-size:.75rem;color:#cbd5e1}
+.rank{font-size:2.8rem;font-weight:900;line-height:1.2;margin:4px 0;background:linear-gradient(90deg,#fcd34d,#f9a8d4,#d8b4fe);-webkit-background-clip:text;background-clip:text;color:transparent}
+.rank-desc{font-size:.78rem;color:#cbd5e1;margin:6px 0 0}
+.gauge-box{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+.gauge-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.gauge-top span:first-child{font-size:.75rem;font-weight:700;color:var(--muted)}
+.pct{font-size:1.2rem;font-weight:900;color:var(--pink-d)}
+.gauge{height:16px;background:#f1f5f9;border:1px solid var(--line);border-radius:99px;padding:2px;overflow:hidden}
+.gauge i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#ec4899,#7c3aed);transition:width .5s}
+.gauge-scale{display:flex;justify-content:space-between;font-size:.62rem;color:#94a3b8;margin-top:4px}
+.advice{font-size:.78rem;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:12px 0 0}
+.conf{font-size:.72rem;color:var(--muted);margin-top:8px}
+
+.sub-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+.sub-title{margin:0 0 12px;padding-bottom:8px;border-bottom:1px solid var(--line);font-size:.95rem;font-weight:700}
+.sub-note{font-size:.72rem;color:var(--muted);margin:10px 0 0}
+.chip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.chip{background:var(--pink-l);border-radius:10px;padding:10px 12px;font-size:.85rem}
+.chip.blue{background:var(--blue-l)}
+.chip.na{opacity:.55}
+.chip small{display:block;color:var(--muted);font-size:.7rem;font-weight:700}
+.chip .eq{margin-top:2px}
+.rowlist{list-style:none;margin:0;padding:0}
+.rowitem{padding:10px 0;border-bottom:1px dashed var(--line);font-size:.85rem}
+.rowitem:last-child{border-bottom:0}
+.r-sub{font-size:.78rem;color:#475569;margin-top:2px}
+.pos{margin-bottom:10px;font-size:.82rem}
+.pos-top{display:flex;justify-content:space-between;gap:8px}
+.pos-bar{height:8px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-top:3px}
+.pos-bar i{display:block;height:100%;background:linear-gradient(90deg,#ec4899,#7c3aed);border-radius:99px}
+.verdict{border-radius:12px;padding:12px 14px;margin-top:12px;background:var(--indigo-l);border:1px solid #c7d2fe}
+.verdict strong{font-size:1.05rem;display:block}
+.verdict p{margin:4px 0 0;font-size:.82rem}
+.verdict.warn{background:#fff7ed;border-color:#fed7aa}
+.verdict.ok{background:#f0fdf4;border-color:#bbf7d0}
+.hint-box{background:#f8fafc;border:1px dashed #cbd5e1;border-radius:12px;padding:12px 14px;font-size:.82rem;color:var(--muted)}
+
+.result-foot{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid var(--line)}
+.disclaimer{font-size:.72rem;color:var(--muted);flex:1 1 320px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-x{background:#000;color:#fff;border:0;border-radius:12px;padding:10px 18px;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer}
+.btn-x:hover{background:#334155}
+.btn-line{background:#fff;color:var(--ink);border:1px solid #cbd5e1;border-radius:12px;padding:10px 18px;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer}
+.btn-line:hover{background:#f1f5f9}
+
+/* mini bar (mobile friendly) */
+.mini-bar{position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(15,23,42,.96);color:#fff;padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:12px;transform:translateY(120%);transition:transform .25s}
+.mini-bar.show{transform:none}
+.mini-bar .m-rank{font-weight:900;font-size:1.1rem;color:#fcd34d}
+.mini-bar button{background:var(--pink);color:#fff;border:0;border-radius:8px;padding:6px 14px;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:#0f172a;color:#fff;font-size:.8rem;padding:8px 16px;border-radius:99px;z-index:70}
+</style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+<body>
 
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <h1><span aria-hidden="true">♥ </span>婚活市場価値＆相互変換アナライザー</h1>
+    <a class="back-link" href="menu.html">メニューに戻る</a>
+  </div>
+</header>
 
+<main class="wrap">
 
-  <!-- Header -->
-  <header class="bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 text-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-      <div class="flex items-center space-x-2">
-        <i class="fa-solid fa-heart-circle-check text-2xl text-pink-200"></i>
-        <h1 class="text-xl md:text-2xl font-black tracking-tight">婚活市場価値＆相互変換アナライザー</h1>
-      </div>
+  <section class="card gender-card" aria-labelledby="gender-h">
+    <h2 class="card-h" id="gender-h"><span class="step">1</span>まず「あなたの性別」を選択してください <span class="req">【必須】</span></h2>
+    <div class="gender-grid">
+      <button type="button" id="gender-female" class="gbtn female" aria-pressed="false"><span class="sym" aria-hidden="true">♀</span><span>女性</span></button>
+      <button type="button" id="gender-male" class="gbtn male" aria-pressed="false"><span class="sym" aria-hidden="true">♂</span><span>男性</span></button>
     </div>
-  </header>
+  </section>
 
-  <!-- Main Container -->
-  <main class="max-w-4xl mx-auto px-4 mt-6">
+  <div class="tabs" role="tablist" aria-label="入力モード">
+    <button type="button" class="tab" role="tab" data-tab="desired" aria-selected="true"><span id="tab-desired-text"></span></button>
+    <button type="button" class="tab" role="tab" data-tab="myspec" aria-selected="false"><span id="tab-myspec-text"></span></button>
+  </div>
 
-    <!-- Gender Selector (Mandatory) -->
-    <section class="glass-card rounded-2xl p-6 mb-6 shadow-sm border-2 border-pink-200">
-      <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center">
-        <span class="bg-pink-500 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">1</span>
-        まず「あなたの性別」を選択してください <span class="text-xs font-bold text-red-500 ml-2">【必須】</span>
-      </h2>
-      <div class="grid grid-cols-2 gap-4">
-        <button type="button" id="gender-female" onclick="setGender('female')" className="py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-pink-300">
-          <i class="fa-solid fa-venus text-pink-500 text-xl"></i>
-          <span>女性</span>
-        </button>
-        <button type="button" id="gender-male" onclick="setGender('male')" className="py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-blue-300">
-          <i class="fa-solid fa-mars text-blue-500 text-xl"></i>
-          <span>男性</span>
-        </button>
-      </div>
-    </section>
+  <div class="note-box"><b>【機能解説】</b> <span id="mode-desc"></span></div>
 
-    <!-- Mode Tabs -->
-    <div class="flex border-b border-slate-200 mb-6 bg-white rounded-t-xl p-1 shadow-sm">
-      <button id="tab-desired" onclick="switchTab('desired')" class="flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-pink-600 bg-pink-50 shadow-sm border border-pink-200 flex items-center justify-center space-x-2">
-        <i class="fa-solid fa-arrows-rotate"></i>
-        <span id="tab-desired-text">【タブ1】相手への希望を入力（女 → 男）</span>
-      </button>
-      <button id="tab-myspec" onclick="switchTab('myspec')" class="flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center space-x-2">
-        <i class="fa-solid fa-user-check"></i>
-        <span id="tab-myspec-text">【タブ2】私のスペックを入力（私の市場価値）</span>
-      </button>
+  <section class="card" aria-labelledby="form-title">
+    <div class="form-head">
+      <h3 id="form-title"></h3>
+      <span class="muted">※すべて<b>任意（未指定OK）</b>です。入力内容はタブごとに保持されます。</span>
+    </div>
+    <div id="lock-msg" class="lock-msg">先に上の「あなたの性別」を選択すると、入力できるようになります。</div>
+    <form id="sim-form" onsubmit="return false">
+      <fieldset id="sim-fieldset" disabled>
+        <div id="fields"></div>
+      </fieldset>
+    </form>
+    <button type="button" id="reset-btn" class="btn-sub">このタブの入力をリセット</button>
+  </section>
+
+  <section id="result-card" class="card result" aria-live="polite" aria-labelledby="result-title">
+    <div class="result-head">
+      <span id="result-badge" class="badge">診断結果</span>
+      <h3 id="result-title">診断結果</h3>
     </div>
 
-    <!-- Description Card -->
-    <div id="mode-description" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl mb-6 text-sm text-slate-700">
-      <span class="font-bold text-blue-900">【機能解説】</span>
-      <span id="mode-desc-text">男性に求める希望条件を入力してください。その希少度（上位%）を算出し、<b>「あなたが男性なら同じ希少度になる同等スペック」</b>に換算します。</span>
+    <div class="result-top">
+      <div class="rank-box">
+        <span class="sub" id="rank-subtext">総合ランク</span>
+        <div id="result-rank" class="rank">—</div>
+        <p id="rank-desc" class="rank-desc"></p>
+      </div>
+      <div class="gauge-box">
+        <div class="gauge-top"><span id="gauge-label">全体における位置</span><span id="result-percentile" class="pct">—</span></div>
+        <div class="gauge" id="gauge" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="希少度ゲージ"><i id="percentile-bar"></i></div>
+        <div class="gauge-scale"><span>ありふれた層</span><span>上位50%</span><span>幻・最上位</span></div>
+        <p class="advice" id="percentile-advice"></p>
+        <p class="conf" id="confidence"></p>
+      </div>
     </div>
 
-    <!-- Form Section -->
-    <section class="glass-card rounded-2xl p-6 shadow-sm mb-8">
-      <div class="flex justify-between items-center mb-4 pb-2 border-b">
-        <h3 class="font-bold text-slate-800 text-base md:text-lg flex items-center">
-          <i class="fa-solid fa-sliders text-pink-500 mr-2"></i>
-          <span id="form-title">相手（男性）に求める希望条件を入力</span>
-        </h3>
-        <span class="text-xs text-slate-500">※すべて<b>任意選択（未指定OK）</b>です</span>
+    <div class="sub-card" id="detail-card" hidden>
+      <h4 class="sub-title" id="detail-title"></h4>
+      <div id="detail-body"></div>
+    </div>
+
+    <div class="sub-card" id="equiv-card" hidden>
+      <h4 class="sub-title" id="equiv-title"></h4>
+      <div class="chip-grid" id="equiv-list"></div>
+      <p class="sub-note" id="equiv-note"></p>
+    </div>
+
+    <div class="sub-card" id="compare-card" hidden>
+      <h4 class="sub-title">⚖ 釣り合い診断（希望条件 × あなたの市場価値）</h4>
+      <div id="compare-body"></div>
+    </div>
+
+    <div class="result-foot">
+      <p class="disclaimer">
+        ※数値は公的統計などを参考にした作者の<b>概算値（目安）</b>で、特定の統計そのものではありません。比較対象は「同性の婚活層全体」を想定しています。
+        結果は娯楽・目安であり、実際の相性や成婚の可否を示すものではありません。
+      </p>
+      <div class="actions">
+        <button type="button" id="copy-btn" class="btn-line" hidden>条件つきリンクをコピー</button>
+        <button type="button" id="share-btn" class="btn-x">𝕏 診断結果をシェア</button>
       </div>
-
-      <form id="sim-form" class="space-y-6">
-
-        <!-- Category: 基本・身体 -->
-        <div>
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
-            <i class="fa-solid fa-user mr-1.5"></i> 基本・身体スペック
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <!-- 年齢 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-age">年齢</label>
-              <select name="age" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="22">20代前半 (20〜24歳)</option>
-                <option value="27">20代後半 (25〜29歳)</option>
-                <option value="32">30代前半 (30〜34歳)</option>
-                <option value="37">30代後半 (35〜39歳)</option>
-                <option value="42">40代前半 (40〜44歳)</option>
-                <option value="47">40代後半 (45歳以上)</option>
-              </select>
-            </div>
-
-            <!-- 身長 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-height">身長</label>
-              <select name="height" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="160">160cm 以上</option>
-                <option value="165">165cm 以上</option>
-                <option value="170">170cm 以上</option>
-                <option value="175">175cm 以上</option>
-                <option value="180">180cm 以上</option>
-              </select>
-            </div>
-
-            <!-- 容姿・清潔感 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-looks">容姿・雰囲気・レベル</label>
-              <select name="looks" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="top">芸能人・モデル級 / アナウンサー風超イケメン・美人 (上位 2%)</option>
-                <option value="high">イケメン・美人 / 人目を引く魅力的なルックス (上位 10%)</option>
-                <option value="mid_high">清潔感あり・整った容姿 / 清楚系・爽やか (上位 30%)</option>
-                <option value="average">平均的・普通 (上位 60%)</option>
-              </select>
-            </div>
-
-            <!-- 体型 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-body">体型</label>
-              <select name="body" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="slender">スレンダー・細身</option>
-                <option value="normal">標準・引き締まっている</option>
-                <option value="chubby">ぽっちゃり・がっしり</option>
-              </select>
-            </div>
-
-            <!-- バストサイズ（女性対象時のみ動的表示） -->
-            <div id="field-bust" class="hidden">
-              <label class="block text-xs font-bold text-slate-700 mb-1">バストサイズ</label>
-              <select name="bust" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="A">Aカップ 以上</option>
-                <option value="B">Bカップ 以上</option>
-                <option value="C">Cカップ 以上</option>
-                <option value="D">Dカップ 以上</option>
-                <option value="E">Eカップ 以上</option>
-                <option value="F">Fカップ 以上</option>
-              </select>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Category: 経済・キャリア -->
-        <div class="pt-2 border-t border-slate-100">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
-            <i class="fa-solid fa-briefcase mr-1.5"></i> 経済力・学歴・キャリア
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <!-- 年収 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-income">年収（額面）</label>
-              <select name="income" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="400">400万円 以上</option>
-                <option value="500">500万円 以上</option>
-                <option value="600">600万円 以上</option>
-                <option value="800">800万円 以上</option>
-                <option value="1000">1000万円 以上</option>
-                <option value="1500">1500万円 以上</option>
-              </select>
-            </div>
-
-            <!-- 学歴 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">最終学歴</label>
-              <select name="edu" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="top">最難関大（東大・京大・旧帝・医学部・早慶など）</option>
-                <option value="univ">4年制大学卒 以上</option>
-                <option value="short">短大・専門・高専卒 以上</option>
-              </select>
-            </div>
-
-            <!-- 職業・企業規模 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">職業・勤務先</label>
-              <select name="job" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="major">大手上場企業 / 公務員 / 医療従事者</option>
-                <option value="regular">正社員・専門職</option>
-              </select>
-            </div>
-
-            <!-- 個人資産・貯金 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">個人資産・貯金額</label>
-              <select name="asset" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="500">500万円 以上</option>
-                <option value="1000">1000万円 以上</option>
-                <option value="3000">3000万円 以上</option>
-              </select>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Category: 生活観・家庭環境 -->
-        <div class="pt-2 border-t border-slate-100">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
-            <i class="fa-solid fa-house-user mr-1.5"></i> 生活観・家庭環境（※統一基準）
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            <!-- 婚姻歴 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">婚姻歴</label>
-              <select name="marriage" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="never">未婚（初婚）</option>
-                <option value="divorced1">バツ1（離婚歴1回）</option>
-                <option value="divorced2">バツ2（離婚歴2回）</option>
-                <option value="divorced3">バツ3以上</option>
-              </select>
-            </div>
-
-            <!-- たばこ -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">たばこ・喫煙</label>
-              <select name="tobacco" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="no">吸わない</option>
-                <option value="vape">加熱式タバコ・電子タバコ</option>
-                <option value="paper">紙タバコ</option>
-              </select>
-            </div>
-
-            <!-- 長男・長女 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">長男・長女かどうか</label>
-              <select name="family" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="not_first">長男・長女以外（次男・次女以下）</option>
-              </select>
-            </div>
-
-            <!-- 家事育児方針 -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">共働き・家事育児方針</label>
-              <select name="housework" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
-                <option value="">未指定</option>
-                <option value="active">完全折半・積極的に分担したい</option>
-                <option value="support">メインで担当 / 相手に合わせる</option>
-              </select>
-            </div>
-
-          </div>
-        </div>
-
-      </form>
-    </section>
-
-    <!-- Result Section -->
-    <section id="result-container" class="glass-card rounded-2xl p-6 shadow-md border-2 border-pink-300 bg-gradient-to-b from-white to-pink-50/30 mb-12">
-      <div class="text-center pb-4 border-b">
-        <span id="result-badge" class="inline-block px-3 py-1 bg-pink-100 text-pink-700 font-bold text-xs rounded-full mb-2">診断結果</span>
-        <h3 id="result-title" class="text-xl md:text-2xl font-black text-slate-800">高望み度・市場価値アナライズ</h3>
-      </div>
-
-      <!-- Main Percentile & Rank Box -->
-      <div class="my-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-        <!-- Rank Box -->
-        <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-          <div class="absolute -right-4 -bottom-4 text-white/5 text-8xl font-black select-none">RANK</div>
-          <span class="text-xs text-slate-300 font-medium block mb-1" id="rank-subtext">条件の総合希少度ランク</span>
-          <div id="result-rank" class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-300 to-purple-300 my-1">
-            B+ ランク
-          </div>
-          <p id="rank-desc" class="text-xs text-slate-300 mt-2">平均以上の良条件・標準的な層です</p>
-        </div>
-
-        <!-- Percentile Gauge -->
-        <div class="bg-white rounded-2xl p-5 border shadow-sm">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-slate-500">全体における出現確率（希少度）</span>
-            <span id="result-percentile" class="text-lg font-black text-pink-600">上位 25.4%</span>
-          </div>
-          <!-- Progress Bar -->
-          <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-0.5 border">
-            <div id="percentile-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-full rounded-full transition-all duration-500" style="width: 25.4%"></div>
-          </div>
-          <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-medium">
-            <span>上位 0% (幻)</span>
-            <span>50% (平均)</span>
-            <span>100%</span>
-          </div>
-          <p class="text-xs text-slate-600 mt-3 bg-slate-50 p-2 rounded border" id="percentile-advice">
-            約 4 人に 1 人の割合で存在するレベルの条件セットです。
-          </p>
-        </div>
-      </div>
-
-      <!-- Output Speccard (Equivalent Mapping) -->
-      <div class="bg-white rounded-2xl p-6 border shadow-sm my-6">
-        <h4 id="equivalent-card-title" class="font-bold text-slate-800 text-sm md:text-base mb-3 flex items-center border-b pb-2">
-          <i class="fa-solid fa-scale-balanced text-pink-500 mr-2"></i>
-          <span>【相互変換】同じ価値・希少度になる自分側の同等スペック</span>
-        </h4>
-        <div id="equivalent-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-          <!-- JSで動的割り当て -->
-        </div>
-      </div>
-
-      <!-- Share Button Section -->
-      <div class="pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="text-xs text-slate-500">
-          <i class="fa-solid fa-circle-info mr-1"></i> 統計データ: 国税庁・厚生労働省・IBJ成婚白書等を参考に自動補正算出
-        </div>
-        <button type="button" onclick="shareX()" class="w-full sm:w-auto bg-black text-white hover:bg-slate-800 px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-sm">
-          <i class="fa-brands fa-x-twitter text-base"></i>
-          <span>診断結果を X でシェア</span>
-        </button>
-      </div>
-
-    </section>
-
-  </main>
-
-  <script>
-    // State
-    let userGender = 'female'; // 'female' or 'male'
-    let currentTab = 'desired'; // 'desired' or 'myspec'
-
-    function setGender(gender) {
-      userGender = gender;
-      
-      const btnFemale = document.getElementById('gender-female');
-      const btnMale = document.getElementById('gender-male');
-
-      if (gender === 'female') {
-        btnFemale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-pink-500 bg-pink-50 text-pink-700 shadow-sm";
-        btnMale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-blue-300";
-      } else {
-        btnMale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-blue-500 bg-blue-50 text-blue-700 shadow-sm";
-        btnFemale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-pink-300";
-      }
-
-      updateUIState();
-      calculate();
-    }
-
-    function switchTab(tab) {
-      currentTab = tab;
-      const btnDesired = document.getElementById('tab-desired');
-      const btnMySpec = document.getElementById('tab-myspec');
-
-      if (tab === 'desired') {
-        btnDesired.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-pink-600 bg-pink-50 shadow-sm border border-pink-200 flex items-center justify-center space-x-2";
-        btnMySpec.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center space-x-2";
-      } else {
-        btnMySpec.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-indigo-600 bg-indigo-50 shadow-sm border border-indigo-200 flex items-center justify-center space-x-2";
-        btnDesired.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center space-x-2";
-      }
-
-      updateUIState();
-      calculate();
-    }
-
-    function updateUIState() {
-      const targetGender = (currentTab === 'desired') 
-        ? (userGender === 'female' ? 'male' : 'female')
-        : userGender;
-
-      // Bust size field visibility
-      const bustField = document.getElementById('field-bust');
-      if (targetGender === 'female') {
-        bustField.classList.remove('hidden');
-      } else {
-        bustField.classList.add('hidden');
-      }
-
-      // Labels & Text updates
-      const tabDesiredText = document.getElementById('tab-desired-text');
-      const tabMySpecText = document.getElementById('tab-myspec-text');
-      const modeDescText = document.getElementById('mode-desc-text');
-      const formTitle = document.getElementById('form-title');
-
-      if (userGender === 'female') {
-        tabDesiredText.innerText = "【タブ1】相手への希望を入力（女 → 男）";
-        tabMySpecText.innerText = "【タブ2】私のスペックを入力（私の市場価値）";
-        
-        if (currentTab === 'desired') {
-          modeDescText.innerHTML = "男性に求める希望条件を入力してください。その希少度（上位%）を算出し、<b>「あなたが男性なら同じ希少度になる同等スペック」</b>に換算します。";
-          formTitle.innerText = "相手（男性）に求める希望条件を入力";
-        } else {
-          modeDescText.innerHTML = "あなたご自身のスペックを入力してください。婚活市場における<b>「あなたの市場価値ランク」</b>と<b>「現実に狙える男性層のレベル感」</b>を判定します。";
-          formTitle.innerText = "あなた（女性）の現実のスペックを入力";
-        }
-      } else {
-        tabDesiredText.innerText = "【タブ1】相手への希望を入力（男 → 女）";
-        tabMySpecText.innerText = "【タブ2】私のスペックを入力（私の市場価値）";
-
-        if (currentTab === 'desired') {
-          modeDescText.innerHTML = "女性に求める希望条件を入力してください。その希少度（上位%）を算出し、<b>「あなたが女性なら同じ希少度になる同等スペック」</b>に換算します。";
-          formTitle.innerText = "相手（女性）に求める希望条件を入力";
-        } else {
-          modeDescText.innerHTML = "あなたご自身のスペックを入力してください。婚活市場における<b>「あなたの市場価値ランク」</b>と<b>「現実に狙える女性層のレベル感」</b>を判定します。";
-          formTitle.innerText = "あなた（男性）の現実のスペックを入力";
-        }
-      }
-    }
-
-    function calculate() {
-      const form = document.getElementById('sim-form');
-      const formData = new FormData(form);
-
-      let probability = 1.0;
-      let count = 0;
-
-      // Evaluation target attributes
-      const targetGender = (currentTab === 'desired') 
-        ? (userGender === 'female' ? 'male' : 'female')
-        : userGender;
-
-      // 1. Income (Male standard vs Female standard)
-      const income = formData.get('income');
-      if (income) {
-        count++;
-        let p = 1.0;
-        const v = parseInt(income);
-        if (targetGender === 'male') {
-          if (v >= 1500) p = 0.008;
-          else if (v >= 1000) p = 0.035;
-          else if (v >= 800) p = 0.11;
-          else if (v >= 600) p = 0.28;
-          else if (v >= 500) p = 0.45;
-          else if (v >= 400) p = 0.68;
-        } else {
-          if (v >= 1000) p = 0.008;
-          else if (v >= 800) p = 0.025;
-          else if (v >= 600) p = 0.09;
-          else if (v >= 500) p = 0.20;
-          else if (v >= 400) p = 0.42;
-        }
-        probability *= p;
-      }
-
-      // 2. Height
-      const height = formData.get('height');
-      if (height) {
-        count++;
-        let p = 1.0;
-        const v = parseInt(height);
-        if (targetGender === 'male') {
-          if (v >= 180) p = 0.067;
-          else if (v >= 175) p = 0.271;
-          else if (v >= 170) p = 0.603;
-          else if (v >= 165) p = 0.880;
-          else if (v >= 160) p = 0.980;
-        } else {
-          if (v >= 170) p = 0.025;
-          else if (v >= 165) p = 0.120;
-          else if (v >= 160) p = 0.450;
-          else if (v >= 155) p = 0.820;
-        }
-        probability *= p;
-      }
-
-      // 3. Age
-      const age = formData.get('age');
-      if (age) {
-        count++;
-        let p = 1.0;
-        const v = parseInt(age);
-        if (v <= 22) p = 0.05;
-        else if (v <= 27) p = 0.18;
-        else if (v <= 32) p = 0.45;
-        else if (v <= 37) p = 0.72;
-        else if (v <= 42) p = 0.88;
-        else p = 0.98;
-        probability *= p;
-      }
-
-      // 4. Looks
-      const looks = formData.get('looks');
-      if (looks) {
-        count++;
-        if (looks === 'top') probability *= 0.02;
-        else if (looks === 'high') probability *= 0.10;
-        else if (looks === 'mid_high') probability *= 0.30;
-        else if (looks === 'average') probability *= 0.60;
-      }
-
-      // 5. Bust (Female target)
-      if (targetGender === 'female') {
-        const bust = formData.get('bust');
-        if (bust) {
-          count++;
-          if (bust === 'F') probability *= 0.02;
-          else if (bust === 'E') probability *= 0.06;
-          else if (bust === 'D') probability *= 0.18;
-          else if (bust === 'C') probability *= 0.45;
-          else if (bust === 'B') probability *= 0.75;
-          else if (bust === 'A') probability *= 0.95;
-        }
-      }
-
-      // 6. Education
-      const edu = formData.get('edu');
-      if (edu) {
-        count++;
-        if (edu === 'top') probability *= 0.05;
-        else if (edu === 'univ') probability *= 0.55;
-        else if (edu === 'short') probability *= 0.85;
-      }
-
-      // 7. Job
-      const job = formData.get('job');
-      if (job) {
-        count++;
-        if (job === 'major') probability *= 0.20;
-        else if (job === 'regular') probability *= 0.70;
-      }
-
-      // 8. Asset
-      const asset = formData.get('asset');
-      if (asset) {
-        count++;
-        const v = parseInt(asset);
-        if (v >= 3000) probability *= 0.03;
-        else if (v >= 1000) probability *= 0.15;
-        else if (v >= 500) probability *= 0.38;
-      }
-
-      // 9. Tobacco
-      const tobacco = formData.get('tobacco');
-      if (tobacco) {
-        count++;
-        if (tobacco === 'no') probability *= 0.78;
-        else if (tobacco === 'vape') probability *= 0.12;
-        else if (tobacco === 'paper') probability *= 0.10;
-      }
-
-      // 10. Marriage
-      const marriage = formData.get('marriage');
-      if (marriage) {
-        count++;
-        if (marriage === 'never') probability *= 0.82;
-        else if (marriage === 'divorced1') probability *= 0.14;
-        else if (marriage === 'divorced2') probability *= 0.03;
-        else if (marriage === 'divorced3') probability *= 0.01;
-      }
-
-      // Correlation coefficient correction
-      if (count > 1) {
-        probability = Math.pow(probability, 1 / Math.sqrt(count * 0.75));
-      }
-
-      if (count === 0) probability = 0.5;
-
-      const percentile = Math.min(Math.max((probability * 100), 0.1), 99.9);
-
-      // Render Results
-      renderResults(percentile, count);
-    }
-
-    function renderResults(percentile, count) {
-      const resultRank = document.getElementById('result-rank');
-      const rankSubtext = document.getElementById('rank-subtext');
-      const rankDesc = document.getElementById('rank-desc');
-      const resultPercentile = document.getElementById('result-percentile');
-      const percentileBar = document.getElementById('percentile-bar');
-      const percentileAdvice = document.getElementById('percentile-advice');
-      const equivalentTitle = document.getElementById('equivalent-card-title');
-      const equivalentList = document.getElementById('equivalent-list');
-
-      resultPercentile.innerText = `上位 ${percentile.toFixed(1)}%`;
-      percentileBar.style.width = `${percentile.toFixed(1)}%`;
-
-      let rank = 'B';
-      let desc = '標準・平均的な層です';
-
-      if (percentile <= 2.0) {
-        rank = 'S';
-        desc = '超ハイスペック・100人に1〜2人の幻のハイエンド層';
-      } else if (percentile <= 5.0) {
-        rank = 'A+';
-        desc = '最上位人気層・極めて人気が集中する好条件';
-      } else if (percentile <= 15.0) {
-        rank = 'A';
-        desc = '上位・人気層・非常にマッチング率が高い好条件';
-      } else if (percentile <= 35.0) {
-        rank = 'B+';
-        desc = '平均以上・婚活市場でしっかり需要のある層';
-      } else if (percentile <= 60.0) {
-        rank = 'B';
-        desc = '標準・平均的な層です';
-      } else {
-        rank = 'C';
-        desc = '条件を緩めることでマッチング率が大幅アップする層';
-      }
-
-      resultRank.innerText = `${rank} ランク`;
-      rankDesc.innerText = desc;
-
-      if (currentTab === 'desired') {
-        rankSubtext.innerText = "提示した希望条件の総合高望み度";
-        percentileAdvice.innerText = count === 0 
-          ? '条件を選択すると高望み度と同等スペックが試算されます。'
-          : `あなたが求めている相手は、全婚活人口の【上位 ${percentile.toFixed(1)}%】の存在です。`;
-
-        const mirrorGender = userGender === 'female' ? '女性' : '男性';
-        equivalentTitle.innerHTML = `<i class="fa-solid fa-scale-balanced text-pink-500 mr-2"></i> <span>【同等価値】求める相手に釣り合う『${mirrorGender}側』の同等スペック</span>`;
-        equivalentList.innerHTML = getEquivalentSpecsText(percentile, mirrorGender);
-      } else {
-        rankSubtext.innerText = "あなたの婚活市場での総合市場価値ランク";
-        percentileAdvice.innerText = count === 0 
-          ? 'あなたのスペックを選択すると市場ランクが試算されます。'
-          : `あなたの婚活市場での立ち位置は【上位 ${percentile.toFixed(1)}%】レベルです。`;
-
-        const targetGender = userGender === 'female' ? '男性' : '女性';
-        equivalentTitle.innerHTML = `<i class="fa-solid fa-bullseye text-pink-500 mr-2"></i> <span>【ターゲット】あなたのスペックで高確率で狙える『${targetGender}』の条件上限</span>`;
-        equivalentList.innerHTML = getTargetSpecsText(percentile, targetGender);
-      }
-    }
-
-    function getEquivalentSpecsText(percentile, gender) {
-      if (gender === '女性') {
-        if (percentile <= 2.0) {
-          return `
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">年齢：</span> 20代前半 (20〜24歳)</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">容姿：</span> 芸能人・モデル・女子アナ級</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">スタイル：</span> スレンダー・バストD~Eカップ以上</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">学歴・家柄：</span> 難関大卒・教養良好</div>
-          `;
-        } else if (percentile <= 15.0) {
-          return `
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">年齢：</span> 26〜29歳 (20代後半)</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">容姿：</span> 清楚系美人・街で目を引くレベル</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">スタイル：</span> スレンダー〜標準体型</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">職業・学歴：</span> 4年制大卒・大手会社員 / 看護師</div>
-          `;
-        } else {
-          return `
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">年齢：</span> 30〜34歳</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">容姿：</span> 平均的・親しみやすい愛嬌</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">スタイル：</span> 標準体型</div>
-            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">生活感：</span> 家事・仕事をしっかり両立</div>
-          `;
-        }
-      } else {
-        if (percentile <= 2.0) {
-          return `
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">年収：</span> 1200万円以上</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">身長：</span> 178cm以上 / イケメン</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">学歴・職業：</span> 東大・早慶・医師・経営者・大手</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">資産：</span> 3000万円以上</div>
-          `;
-        } else if (percentile <= 15.0) {
-          return `
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">年収：</span> 700万〜900万円</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">身長：</span> 172cm以上 / 清潔感あり</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">学歴・職業：</span> 大卒・大手企業・公務員</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">婚姻・喫煙：</span> 未婚・非喫煙</div>
-          `;
-        } else {
-          return `
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">年収：</span> 450万〜600万円</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">身長：</span> 168cm以上</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">職業：</span> 正社員</div>
-            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">人柄：</span> 誠実・協調性がある</div>
-          `;
-        }
-      }
-    }
-
-    function getTargetSpecsText(percentile, targetGender) {
-      return getEquivalentSpecsText(percentile, targetGender);
-    }
-
-    function shareX() {
-      const rank = document.getElementById('result-rank').innerText;
-      const percentile = document.getElementById('result-percentile').innerText;
-      const mode = currentTab === 'desired' ? '希望条件診断' : '市場価値診断';
-      const text = `【婚活市場価値＆相互変換アナライザー】\n診断モード: ${mode}\n判定ランク: ${rank} (${percentile})\n\nあなたの婚活市場価値・希望条件のバランスをチェックしよう！\n#婚活シミュレーター #婚活市場価値 #婚活`;
-      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-      window.open(url, '_blank');
-    }
-
-    // Initialize
-    window.onload = function() {
-      setGender('female');
-    };
-  </script>
+    </div>
+  </section>
+</main>
+
+<div class="mini-bar" id="mini-bar" aria-hidden="true">
+  <div><span class="m-rank" id="mini-rank"></span> <span id="mini-pct"></span></div>
+  <button type="button" id="mini-go" tabindex="-1">結果を見る</button>
+</div>
+
+<script>
+/* ==== LOGIC START ==== */
+const GL = { male: '男性', female: '女性' };
+const opp = g => (g === 'male' ? 'female' : 'male');
+
+/* 選択肢: label=希望モードの表記 / my=自分モードの表記 / p=「その水準以上」の累積シェア / only='my' は自分モード専用 */
+const O = (label, my, p, only) => ({ label, my: my || label, p, only });
+const both = list => ({ male: list, female: list });
+
+/* corr = 相関グループ（同じグループ内の条件は重なりが大きいとみなす）
+   weight = 自分モードの総合スコアにおける重み（性別ごと） */
+const SPEC = [
+  { id:'age', group:'basic', corr:'age', short:'年齢', showTarget:true, weight:{ male:.8, female:1.4 },
+    title:{ des:'年齢（上限）', my:'あなたの年齢' },
+    opts:{
+      male:[ O('24歳まで','20〜24歳',.05), O('29歳まで','25〜29歳',.18), O('34歳まで','30〜34歳',.45), O('39歳まで','35〜39歳',.72), O('44歳まで','40〜44歳',.88), O(null,'45歳以上',1,'my') ],
+      female:[ O('24歳まで','20〜24歳',.06), O('29歳まで','25〜29歳',.26), O('34歳まで','30〜34歳',.55), O('39歳まで','35〜39歳',.78), O('44歳まで','40〜44歳',.90), O(null,'45歳以上',1,'my') ]
+    } },
+  { id:'height', group:'basic', corr:'body', short:'身長', showTarget:true, weight:{ male:1.0, female:.3 },
+    title:{ des:'身長（下限）', my:'あなたの身長' },
+    opts:{
+      male:[ O('180cm以上','180cm以上',.067), O('175cm以上','175〜179cm',.271), O('170cm以上','170〜174cm',.603), O('165cm以上','165〜169cm',.88), O('160cm以上','160〜164cm',.98), O(null,'160cm未満',1,'my') ],
+      female:[ O('170cm以上','170cm以上',.025), O('165cm以上','165〜169cm',.12), O('160cm以上','160〜164cm',.45), O('155cm以上','155〜159cm',.82), O('150cm以上','150〜154cm',.97), O(null,'150cm未満',1,'my') ]
+    } },
+  { id:'looks', group:'basic', corr:'looks', short:'容姿', showTarget:true, weight:{ male:1.0, female:1.3 },
+    title:{ des:'容姿・雰囲気・レベル（下限）', my:'あなたの容姿・雰囲気' },
+    opts: both([
+      O('芸能人・モデル級（超イケメン・美人）','芸能人・モデル級（超イケメン・美人）',.02),
+      O('イケメン・美人（人目を引くルックス）','イケメン・美人（人目を引くルックス）',.10),
+      O('清潔感のある整った容姿（爽やか・清楚系）','清潔感のある整った容姿（爽やか・清楚系）',.30),
+      O('平均以上','平均的・普通',.60),
+      O(null,'平均よりやや控えめ',1,'my')
+    ]) },
+  { id:'body', group:'basic', corr:'body', short:'体型', weight:{ male:.3, female:.6 },
+    title:{ des:'体型', my:'あなたの体型' },
+    opts:{
+      male:[ O('細身のみ','細身',.18), O('細身〜標準体型まで','標準・引き締まっている',.78), O(null,'ぽっちゃり・がっしり',1,'my') ],
+      female:[ O('細身のみ','細身',.25), O('細身〜標準体型まで','標準・引き締まっている',.78), O(null,'ぽっちゃり・がっしり',1,'my') ]
+    } },
+  { id:'bust', group:'basic', corr:'body', short:'バスト', showTarget:true, genders:['female'], weight:{ female:.5 },
+    title:{ des:'バストサイズ（下限）', my:'あなたのバストサイズ' },
+    opts:{ female:[ O('Fカップ以上','Fカップ以上',.02), O('Eカップ以上','Eカップ',.06), O('Dカップ以上','Dカップ',.18), O('Cカップ以上','Cカップ',.45), O('Bカップ以上','Bカップ',.75), O('Aカップ以上','Aカップ以下',.95) ] } },
+
+  { id:'income', group:'econ', corr:'econ', short:'年収', showTarget:true, weight:{ male:1.6, female:.8 },
+    title:{ des:'年収・額面（下限）', my:'あなたの年収（額面）' },
+    opts:{
+      male:[ O('1500万円以上','1500万円以上',.008), O('1000万円以上','1000〜1499万円',.035), O('800万円以上','800〜999万円',.11), O('600万円以上','600〜799万円',.28), O('500万円以上','500〜599万円',.45), O('400万円以上','400〜499万円',.68), O(null,'400万円未満',1,'my') ],
+      female:[ O('1000万円以上','1000万円以上',.008), O('800万円以上','800〜999万円',.025), O('600万円以上','600〜799万円',.09), O('500万円以上','500〜599万円',.20), O('400万円以上','400〜499万円',.42), O(null,'400万円未満',1,'my') ]
+    } },
+  { id:'edu', group:'econ', corr:'econ', short:'学歴', showTarget:true, weight:{ male:.8, female:.6 },
+    title:{ des:'最終学歴（下限）', my:'あなたの最終学歴' },
+    opts: both([
+      O('最難関大卒（東大・京大・旧帝・医学部・早慶など）','最難関大卒（東大・京大・旧帝・医学部・早慶など）',.05),
+      O('4年制大学卒以上','4年制大学卒',.55),
+      O('短大・専門・高専卒以上','短大・専門・高専卒',.85),
+      O(null,'高卒以下',1,'my')
+    ]) },
+  { id:'job', group:'econ', corr:'econ', short:'職業', showTarget:true, weight:{ male:.9, female:.7 },
+    title:{ des:'職業・勤務先（下限）', my:'あなたの職業・勤務先' },
+    opts: both([
+      O('大手上場企業・公務員・医療従事者','大手上場企業・公務員・医療従事者',.20),
+      O('正社員・専門職以上','正社員・専門職',.70),
+      O(null,'その他（自営・非正規など）',1,'my')
+    ]) },
+  { id:'asset', group:'econ', corr:'econ', short:'資産', showTarget:true, weight:{ male:.7, female:.4 },
+    title:{ des:'個人資産・貯金額（下限）', my:'あなたの個人資産・貯金額' },
+    opts: both([
+      O('3000万円以上','3000万円以上',.03),
+      O('1000万円以上','1000〜2999万円',.15),
+      O('500万円以上','500〜999万円',.38),
+      O(null,'500万円未満',1,'my')
+    ]) },
+
+  { id:'marriage', group:'life', corr:'life', short:'婚姻歴', showTarget:true, weight:{ male:.8, female:.8 },
+    title:{ des:'婚姻歴', my:'あなたの婚姻歴' },
+    opts: both([
+      O('未婚（初婚）のみ','未婚（初婚）',.82),
+      O('バツ1まで可','バツ1（離婚歴1回）',.94),
+      O('バツ2まで可','バツ2（離婚歴2回）',.985),
+      O(null,'バツ3以上',1,'my')
+    ]) },
+  { id:'tobacco', group:'life', corr:'life', short:'喫煙', weight:{ male:.5, female:.5 },
+    title:{ des:'たばこ・喫煙', my:'あなたの喫煙' },
+    opts:{
+      male:[ O('吸わない人のみ','吸わない',.75), O('加熱式・電子たばこまで可','加熱式・電子たばこ',.88), O(null,'紙たばこ',1,'my') ],
+      female:[ O('吸わない人のみ','吸わない',.92), O('加熱式・電子たばこまで可','加熱式・電子たばこ',.97), O(null,'紙たばこ',1,'my') ]
+    } },
+  { id:'family', group:'life', corr:'life', short:'兄弟順', weight:{ male:.35, female:.35 },
+    title:{ des:'兄弟順（長男・長女かどうか）', my:'あなたの兄弟順' },
+    opts: both([ O('長男・長女以外（次男・次女以下）','次男・次女以下',.42), O(null,'長男・長女',1,'my') ]) },
+  { id:'housework', group:'life', corr:'life', short:'家事育児', weight:{ male:.5, female:.4 },
+    title:{ des:'共働き・家事育児の姿勢', my:'あなたの家事育児の姿勢' },
+    opts:{
+      male:[ O('家事育児をメインで担える人','メインで担う（相手に合わせる）',.08), O('完全折半・積極的に分担できる人','完全折半・積極的に分担',.45), O(null,'相手に任せたい・最低限',1,'my') ],
+      female:[ O('家事育児をメインで担える人','メインで担う（相手に合わせる）',.25), O('完全折半・積極的に分担できる人','完全折半・積極的に分担',.60), O(null,'相手に任せたい・最低限',1,'my') ]
+    } }
+];
+
+const GROUPS = [ ['basic','基本・身体スペック'], ['econ','経済力・学歴・キャリア'], ['life','生活観・家庭環境'] ];
+const WITHIN = { econ:.5, body:.75, life:.85, age:1, looks:1 }; // グループ内の重なり（小さいほど強く相関）
+const ACROSS = .85;                                            // グループ間の重なり
+const RHO = .35;                                              // 自分モードで仮定する項目間の相関
+
+const RANKS = [ {max:2,r:'S'}, {max:5,r:'A+'}, {max:15,r:'A'}, {max:35,r:'B+'}, {max:60,r:'B'}, {max:Infinity,r:'C'} ];
+const RANK_TEXT = {
+  desired:{
+    'S':'条件を満たす人は100人に1〜2人。出会えたら奇跡級の「幻」レベルの高望みです',
+    'A+':'かなり希少。出会える母数が極めて限られます',
+    'A':'希少な人気層。競争率が高くなりがちです',
+    'B+':'やや希少。行動量しだいで十分出会える範囲です',
+    'B':'標準的な水準。出会いの母数は十分あります',
+    'C':'条件は広め。出会いの母数は非常に大きいです'
+  },
+  myspec:{
+    'S':'婚活市場の最上位。「選ばれる側」の筆頭層です',
+    'A+':'最上位の人気層。申し込みが集まりやすい好条件',
+    'A':'上位の人気層。マッチング率が高い好条件',
+    'B+':'平均以上。しっかり需要のある層です',
+    'B':'標準的な層。見せ方・出会い方で伸びる余地が大きい水準です',
+    'C':'現状の条件は控えめ。強みの打ち出し方で印象が大きく変わる層です'
+  }
+};
+
+const state = { gender:null, tab:'desired', values:{ desired:{}, myspec:{} }, results:{ desired:null, myspec:null } };
+const targetGender = (tab = state.tab) => state.gender ? (tab === 'desired' ? opp(state.gender) : state.gender) : null;
+const applies = (a, g) => !a.genders || a.genders.includes(g);
+
+/* ---- 正規分布 ---- */
+function normInv(p){ // Acklam: Φ(z)=p となる z
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425, ph=1-pl; let q,r;
+  if(p<pl){ q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if(p>ph){ q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  q=p-0.5; r=q*q;
+  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+function normCdf(x){ // Abramowitz-Stegun 26.2.17
+  const t=1/(1+0.2316419*Math.abs(x)), d=0.3989423*Math.exp(-x*x/2);
+  const p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+  return x>0 ? 1-p : p;
+}
+const clampShare = s => Math.min(Math.max(s, 0.0005), 0.9995);
+const topZ = share => -normInv(clampShare(share));   // 上位シェア → 高いほど優秀な z
+const shareFromZ = z => normCdf(-z);                 // z → 上位シェア
+
+/* ---- 希望モード: 条件の同時成立確率（条件を足しても必ず小さくなる＝単調） ---- */
+function combine(ps, alpha){
+  const s = [...ps].sort((a,b) => a-b);
+  return s.reduce((acc,p,i) => acc * (i === 0 ? p : Math.pow(p, alpha)), 1);
+}
+function jointShare(items){ // items: [{p, corr}]
+  const byGroup = {};
+  items.forEach(it => { (byGroup[it.corr] = byGroup[it.corr] || []).push(it.p); });
+  const gps = Object.entries(byGroup).map(([g,ps]) => combine(ps, WITHIN[g] ?? .7));
+  return combine(gps, ACROSS);
+}
+
+/* ---- 自分モード: 区間の中央値を取った「上位シェア」 ---- */
+function myShare(list, idx){
+  const prev = idx > 0 ? list[idx-1].p : 0;
+  return (prev + list[idx].p) / 2;
+}
+
+function collectItems(tab){
+  const tg = targetGender(tab); if(!tg) return [];
+  const items = [];
+  SPEC.forEach(a => {
+    if(!applies(a, tg)) return;
+    const v = state.values[tab][a.id]; if(v === undefined || v === '') return;
+    const idx = Number(v), list = a.opts[tg], o = list && list[idx]; if(!o) return;
+    if(tab === 'desired' && o.only === 'my') return;
+    const share = tab === 'desired' ? o.p : myShare(list, idx);
+    items.push({ attr:a, tg, idx, o, share, corr:a.corr });
+  });
+  return items;
+}
+
+function evaluate(tab){
+  const items = collectItems(tab); if(!items.length) return null;
+  const tg = targetGender(tab);
+  let share;
+  if(tab === 'desired'){
+    share = jointShare(items.map(i => ({ p:i.share, corr:i.corr })));
+  } else {
+    let sw = 0, sw2 = 0, sz = 0;
+    items.forEach(i => { const w = i.attr.weight[tg] ?? .5; i.z = topZ(i.share); sw += w; sw2 += w * w; sz += w * i.z; });
+    // 重み付き平均はばらつきが縮むため、項目間の相関RHOを仮定した標準偏差で割り戻す（項目が1つなら補正なし）
+    const sd = Math.sqrt(RHO + (1 - RHO) * sw2 / (sw * sw));
+    share = shareFromZ(sz / sw / sd);
+  }
+  const pct = Math.min(Math.max(share * 100, 0.01), 99.9);
+  return { tab, tg, items, count:items.length, pct, z:topZ(pct / 100) };
+}
+function recalc(){ state.results.desired = evaluate('desired'); state.results.myspec = evaluate('myspec'); }
+
+const rankOf = pct => RANKS.find(r => pct <= r.max).r;
+const confOf = n => (n >= 6 ? '高' : n >= 3 ? '中' : '低');
+const totalFields = () => { const tg = targetGender() || 'male'; return SPEC.filter(a => applies(a, tg)).length; };
+
+/* ---- 寄与度（希望モード） ---- */
+function contributions(res){
+  const items = res.items;
+  const base = jointShare(items.map(i => ({ p:i.share, corr:i.corr })));
+  return items.map((it, k) => {
+    const rest = items.filter((_, j) => j !== k);
+    const without = rest.length ? jointShare(rest.map(i => ({ p:i.share, corr:i.corr }))) : 1;
+    const list = it.attr.opts[it.tg];
+    let next = null;
+    for(let j = it.idx + 1; j < list.length; j++){ if(list[j].only !== 'my'){ next = { o:list[j], idx:j }; break; } }
+    let relaxed = null;
+    if(next) relaxed = jointShare(items.map((x, j) => ({ p: j === k ? next.o.p : x.share, corr:x.corr })));
+    return { item:it, base, without, ratio: without / base, next, relaxed };
+  }).sort((a, b) => b.ratio - a.ratio);
+}
+
+/* ---- 相互変換: 近い希少度の選択肢を逆引き ---- */
+function nearestOpt(attr, gender, share){
+  if(!applies(attr, gender)) return null;
+  const t = Math.max(share, 0.0005);
+  let best = null, bd = Infinity;
+  attr.opts[gender].filter(o => o.only !== 'my').forEach(o => {
+    const d = Math.abs(Math.log(o.p / t));
+    if(d < bd){ bd = d; best = o; }
+  });
+  return best;
+}
+
+/* ---- 釣り合い診断 ---- */
+function compareResults(){
+  const d = state.results.desired, m = state.results.myspec;
+  if(!d || !m) return null;
+  const dz = d.z - m.z;
+  let tone, title, text;
+  if(dz > 1.0){ tone = 'warn'; title = 'かなりの高望み気味'; text = '求める相手は、あなたの市場価値より大きく上位に位置します。寄与度の大きい条件を一段階緩めるか、強みを伸ばすと現実度が上がります。'; }
+  else if(dz > .5){ tone = 'warn'; title = 'ややチャレンジ気味'; text = '理想はやや高めです。条件の優先順位をつけると、出会える母数を増やせます。'; }
+  else if(dz >= -.5){ tone = 'ok'; title = 'おおむね釣り合っています'; text = 'あなたの市場価値と希望条件のバランスは現実的な範囲です。'; }
+  else { tone = 'ok'; title = '余裕あり（もう少し上も狙える）'; text = 'あなたの市場価値に対して、希望条件は控えめです。理想を少し上げても現実的です。'; }
+  return { d, m, dz, tone, title, text, lowConf: Math.min(d.count, m.count) < 3 };
+}
+
+function fmtPct(x){ if(x <= 0.01) return '0.01%未満'; return (x < 1 ? x.toFixed(2) : x.toFixed(1)) + '%'; }
+const fmtTop = x => '上位 ' + fmtPct(x);
+const toPct = share => Math.min(Math.max(share * 100, 0.01), 99.9);
+function oneIn(pct){
+  if(pct >= 50) return '半数以上の人が該当します';
+  const n = 100 / pct;
+  return '約 ' + (n >= 100 ? Math.round(n).toLocaleString('ja-JP') : n.toFixed(n < 10 ? 1 : 0)) + ' 人に 1 人の割合です';
+}
+/* ==== LOGIC END ==== */
+
+/* ================= UI ================= */
+const $ = id => document.getElementById(id);
+let resultVisible = false;
+
+function modeKey(tab){ return tab === 'desired' ? 'des' : 'my'; }
+
+function renderChrome(){
+  const g = state.gender, tab = state.tab, tg = targetGender();
+  $('gender-female').setAttribute('aria-pressed', String(g === 'female'));
+  $('gender-male').setAttribute('aria-pressed', String(g === 'male'));
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  $('tab-desired-text').textContent = g ? `【タブ1】相手への希望を入力（${GL[g]} → ${GL[opp(g)]}）` : '【タブ1】相手への希望を入力';
+  $('tab-myspec-text').textContent = '【タブ2】私のスペックを入力（私の市場価値）';
+
+  if(!g){
+    $('mode-desc').innerHTML = tab === 'desired'
+      ? '相手に求める希望条件を入力すると、条件を満たす人の<b>希少度（上位％）</b>と、<b>同じ希少度になる自分側のスペック</b>を算出します。'
+      : 'あなた自身のスペックを入力すると、<b>市場価値ランク</b>と<b>同格の相手の目安</b>を判定します。';
+    $('form-title').textContent = tab === 'desired' ? '相手に求める希望条件を入力' : 'あなたの現実のスペックを入力';
+  } else if(tab === 'desired'){
+    $('mode-desc').innerHTML = `${GL[tg]}に求める希望条件を入力すると、条件を満たす人の希少度（上位％）を算出し、<b>「同じ希少度になる${GL[g]}側（あなた側）のスペック」</b>に項目ごとに換算します。`;
+    $('form-title').textContent = `相手（${GL[tg]}）に求める希望条件を入力`;
+  } else {
+    $('mode-desc').innerHTML = `あなた自身（${GL[g]}）のスペックを入力してください。同性の婚活層の中での<b>「あなたの市場価値ランク」</b>と、<b>「同格の${GL[opp(g)]}の目安」</b>を判定します。`;
+    $('form-title').textContent = `あなた（${GL[g]}）の現実のスペックを入力`;
+  }
+  $('lock-msg').hidden = !!g;
+  $('sim-fieldset').disabled = !g;
+  $('copy-btn').hidden = !/^https?:$/.test(location.protocol);
+}
+
+function renderForm(){
+  const wrap = $('fields'); wrap.innerHTML = '';
+  const tab = state.tab, tg = targetGender() || 'male', mk = modeKey(tab);
+  GROUPS.forEach(([gid, gname]) => {
+    const attrs = SPEC.filter(a => a.group === gid && applies(a, tg));
+    if(!attrs.length) return;
+    const h = document.createElement('div'); h.className = 'group-title'; h.textContent = gname; wrap.appendChild(h);
+    const grid = document.createElement('div'); grid.className = 'field-grid'; wrap.appendChild(grid);
+    attrs.forEach(a => {
+      const box = document.createElement('div');
+      const lab = document.createElement('label'); lab.htmlFor = 'f-' + a.id; lab.textContent = a.title[mk];
+      const sel = document.createElement('select'); sel.id = 'f-' + a.id; sel.name = a.id; sel.dataset.attr = a.id;
+      const o0 = document.createElement('option'); o0.value = ''; o0.textContent = '未指定'; sel.appendChild(o0);
+      a.opts[tg].forEach((o, idx) => {
+        if(tab === 'desired' && o.only === 'my') return;
+        const op = document.createElement('option'); op.value = String(idx);
+        op.textContent = tab === 'desired' ? o.label : o.my; sel.appendChild(op);
+      });
+      const cur = state.values[tab][a.id];
+      if(cur !== undefined && cur !== '' && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
+      box.appendChild(lab); box.appendChild(sel); grid.appendChild(box);
+    });
+  });
+}
+
+function setEmpty(msg){
+  $('result-rank').textContent = '—';
+  $('rank-desc').textContent = '';
+  $('result-percentile').textContent = '—';
+  $('percentile-bar').style.width = '0%';
+  $('gauge').setAttribute('aria-valuenow', '0');
+  $('percentile-advice').textContent = msg;
+  $('confidence').textContent = '';
+  $('detail-card').hidden = true;
+  $('equiv-card').hidden = true;
+}
+
+function renderResults(){
+  const tab = state.tab, res = state.results[tab], tg = targetGender();
+  $('result-badge').textContent = tab === 'desired' ? '希望条件の診断結果' : '市場価値の診断結果';
+  $('result-title').textContent = tab === 'desired' ? '高望み度アナライズ' : 'あなたの市場価値アナライズ';
+  $('rank-subtext').textContent = tab === 'desired' ? '希望条件の希少度ランク' : '総合市場価値ランク';
+  $('gauge-label').textContent = tab === 'desired' ? '条件を満たす人の割合（希少度）' : '同性の婚活層での位置';
+
+  if(!state.gender){ setEmpty('先に性別を選択してください。'); renderCompare(); updateMini(null); return; }
+  if(!res){
+    setEmpty(tab === 'desired' ? '条件を選択すると、希少度と同等スペックが試算されます。' : 'スペックを選択すると、市場価値ランクが試算されます。');
+    renderCompare(); updateMini(null); return;
+  }
+
+  const rank = rankOf(res.pct);
+  $('result-rank').textContent = rank + ' ランク';
+  $('rank-desc').textContent = RANK_TEXT[tab][rank];
+  $('result-percentile').textContent = fmtTop(res.pct);
+  const fill = Math.max(2, 100 - res.pct);
+  $('percentile-bar').style.width = fill.toFixed(1) + '%';
+  $('gauge').setAttribute('aria-valuenow', String(Math.round(fill)));
+  $('percentile-advice').textContent = tab === 'desired'
+    ? `すべての条件を満たす${GL[tg]}は、${oneIn(res.pct)}`
+    : `あなたは同性の婚活層の【${fmtTop(res.pct)}】あたりに位置します。`;
+  const conf = confOf(res.count);
+  $('confidence').textContent = `入力 ${res.count} / ${totalFields()} 項目｜精度の目安：${conf}` + (res.count < 3 ? '（入力が少ないほど目安の幅が広がります）' : '');
+
+  if(tab === 'desired') renderDesired(res); else renderMy(res);
+  renderCompare();
+  updateMini({ rank, pct:res.pct });
+}
+
+function renderDesired(res){
+  const self = state.gender;
+  const multi = res.items.length >= 2;
+  const cs = contributions(res).slice(0, 3).filter(c => (multi && c.ratio >= 1.05) || c.relaxed);
+  if(!cs.length){ $('detail-card').hidden = true; }
+  else {
+    $('detail-card').hidden = false;
+    $('detail-title').textContent = multi ? '🔎 高望み度への影響が大きい条件 TOP3' : '🔎 条件を緩めるなら';
+    $('detail-body').innerHTML = '<ul class="rowlist">' + cs.map(c => {
+      const parts = [];
+      if(multi) parts.push(`外すと ${fmtTop(toPct(c.base))} → <b>${fmtTop(toPct(c.without))}</b>`);
+      if(c.relaxed) parts.push(`1段階緩めて「${c.next.o.label}」にすると <b>${fmtTop(toPct(c.relaxed))}</b>`);
+      return `<li class="rowitem"><div><b>${c.item.attr.short}：${c.item.o.label}</b> <span class="muted">（単独で ${fmtTop(toPct(c.item.share))}）</span></div><div class="r-sub">${parts.join(' ／ ')}</div></li>`;
+    }).join('') + '</ul>';
+  }
+
+  $('equiv-card').hidden = false;
+  $('equiv-title').textContent = `⚖ 【同等価値】同じ希少度になる『${GL[self]}側（あなた側）』のスペック`;
+  let skipped = 0;
+  const cls = self === 'male' ? 'chip blue' : 'chip';
+  $('equiv-list').innerHTML = res.items.map(it => {
+    const eq = nearestOpt(it.attr, self, it.share);
+    if(!eq){ skipped++; return `<div class="chip na"><small>${it.attr.short}</small>希望：${it.o.label}<div class="eq">対応する項目なし</div></div>`; }
+    return `<div class="${cls}"><small>${it.attr.short}</small>希望：${it.o.label}（${fmtTop(toPct(it.share))}）<div class="eq">${GL[self]}なら → <b>${eq.label}</b>（${fmtTop(toPct(eq.p))}）</div></div>`;
+  }).join('');
+  $('equiv-note').textContent = '※各項目を「同じくらい珍しい水準」に1対1で置き換えた目安です。' + (skipped ? 'バストサイズなど対応する項目がない条件は変換できません。' : '');
+}
+
+function renderMy(res){
+  const opposite = opp(state.gender);
+  $('detail-card').hidden = false;
+  $('detail-title').textContent = '📊 項目別のポジション（強みが上）';
+  const sorted = [...res.items].sort((a, b) => a.share - b.share);
+  $('detail-body').innerHTML = sorted.map(it => {
+    const w = Math.max(4, Math.min(100, 100 - it.share * 100));
+    return `<div class="pos"><div class="pos-top"><span><b>${it.attr.short}</b>：${it.o.my}</span><span class="muted">${fmtTop(toPct(it.share))}</span></div><div class="pos-bar"><i style="width:${w.toFixed(0)}%"></i></div></div>`;
+  }).join('');
+
+  $('equiv-card').hidden = false;
+  $('equiv-title').textContent = `🎯 【ターゲット】あなたと同格（${fmtTop(res.pct)}）の『${GL[opposite]}』の目安`;
+  const cls = opposite === 'male' ? 'chip blue' : 'chip';
+  const t = res.pct / 100;
+  $('equiv-list').innerHTML = SPEC.filter(a => a.showTarget && applies(a, opposite)).map(a => {
+    const o = nearestOpt(a, opposite, t);
+    return `<div class="${cls}"><small>${a.short}</small><b>${o.label}</b><span class="muted">（${fmtTop(toPct(o.p))}）</span></div>`;
+  }).join('');
+  $('equiv-note').textContent = '※同じ上位％に相当する各項目の水準です。すべてを満たす相手を探す必要はなく、いくつかの項目で近い水準の相手が現実的な層の目安です。';
+}
+
+function renderCompare(){
+  const card = $('compare-card'), body = $('compare-body');
+  if(!state.gender){ card.hidden = true; return; }
+  const c = compareResults();
+  card.hidden = false;
+  if(!c){
+    const d = state.results.desired, m = state.results.myspec;
+    if(!d && !m){ card.hidden = true; return; }
+    body.innerHTML = `<div class="hint-box">${d ? 'タブ2で「私のスペック」も入力すると' : 'タブ1で「相手への希望」も入力すると'}、希望条件とあなたの市場価値の<b>釣り合い診断</b>がここに表示されます。</div>`;
+    return;
+  }
+  const bar = pct => Math.max(2, 100 - pct).toFixed(0);
+  body.innerHTML = `
+    <div class="pos"><div class="pos-top"><span><b>希望する相手の希少度</b></span><span class="muted">${fmtTop(c.d.pct)}</span></div><div class="pos-bar"><i style="width:${bar(c.d.pct)}%"></i></div></div>
+    <div class="pos"><div class="pos-top"><span><b>あなたの市場価値</b></span><span class="muted">${fmtTop(c.m.pct)}</span></div><div class="pos-bar"><i style="width:${bar(c.m.pct)}%"></i></div></div>
+    <div class="verdict ${c.tone}"><strong>${c.title}</strong><p>${c.text}</p>${c.lowConf ? '<p class="muted">※入力項目が少ないため、判定の幅は大きめです。</p>' : ''}</div>`;
+}
+
+function updateMini(info){
+  const bar = $('mini-bar');
+  if(!info){ bar.classList.remove('show'); bar.dataset.has = ''; return; }
+  $('mini-rank').textContent = info.rank + ' ランク';
+  $('mini-pct').textContent = fmtTop(info.pct);
+  bar.dataset.has = '1';
+  bar.classList.toggle('show', !resultVisible);
+}
+
+/* ---- URL（条件つきリンク） ---- */
+function syncUrl(){
+  try{
+    const p = new URLSearchParams();
+    if(state.gender) p.set('g', state.gender);
+    p.set('t', state.tab);
+    [['desired','d'], ['myspec','m']].forEach(([tab, key]) => {
+      const s = Object.entries(state.values[tab]).filter(([,v]) => v !== '').map(([k,v]) => k + '.' + v).join(',');
+      if(s) p.set(key, s);
+    });
+    history.replaceState(null, '', '?' + p.toString());
+  }catch(e){}
+}
+function parseUrl(){
+  try{
+    const q = new URLSearchParams(location.search);
+    const g = q.get('g'); if(g === 'male' || g === 'female') state.gender = g;
+    if(q.get('t') === 'myspec') state.tab = 'myspec';
+    if(!state.gender) return;
+    [['desired','d'], ['myspec','m']].forEach(([tab, key]) => {
+      const tg = targetGender(tab);
+      (q.get(key) || '').split(',').forEach(pair => {
+        const [id, v] = pair.split('.');
+        const a = SPEC.find(x => x.id === id); if(!a || !applies(a, tg)) return;
+        const o = a.opts[tg][Number(v)]; if(!o) return;
+        if(tab === 'desired' && o.only === 'my') return;
+        state.values[tab][id] = String(Number(v));
+      });
+    });
+  }catch(e){}
+}
+
+/* ---- 操作 ---- */
+function setGender(g){
+  if(state.gender === g) return;
+  state.gender = g; state.values = { desired:{}, myspec:{} };
+  renderAll();
+}
+function setTab(t){ state.tab = t; renderAll(); }
+function renderAll(){ renderChrome(); renderForm(); update(); }
+function update(){ recalc(); renderResults(); syncUrl(); }
+
+function toast(msg){
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 1800);
+}
+function shareX(){
+  const res = state.results[state.tab];
+  if(!res){ toast('先に条件を入力してください'); return; }
+  const mode = state.tab === 'desired' ? '希望条件診断' : '市場価値診断';
+  const text = `【婚活市場価値＆相互変換アナライザー】\n診断モード: ${mode}\n判定ランク: ${rankOf(res.pct)}ランク (${fmtTop(res.pct)})\n\nあなたの婚活市場価値・希望条件のバランスをチェックしよう！\n#婚活シミュレーター #婚活市場価値 #婚活`;
+  let url = 'https://x.com/intent/post?text=' + encodeURIComponent(text);
+  if(/^https?:$/.test(location.protocol)) url += '&url=' + encodeURIComponent(location.origin + location.pathname);
+  window.open(url, '_blank', 'noopener');
+}
+function copyLink(){
+  const href = location.href;
+  const done = () => toast('リンクをコピーしました');
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(href).then(done, () => window.prompt('コピーしてください', href));
+  else window.prompt('コピーしてください', href);
+}
+
+function init(){
+  parseUrl();
+  $('gender-female').addEventListener('click', () => setGender('female'));
+  $('gender-male').addEventListener('click', () => setGender('male'));
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+  $('fields').addEventListener('change', e => {
+    const s = e.target.closest('select'); if(!s) return;
+    state.values[state.tab][s.dataset.attr] = s.value;
+    update();
+  });
+  $('reset-btn').addEventListener('click', () => { state.values[state.tab] = {}; renderForm(); update(); });
+  $('share-btn').addEventListener('click', shareX);
+  $('copy-btn').addEventListener('click', copyLink);
+  $('mini-go').addEventListener('click', () => $('result-card').scrollIntoView({ behavior:'smooth', block:'start' }));
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(entries => {
+      resultVisible = entries[0].isIntersecting;
+      const bar = $('mini-bar');
+      bar.classList.toggle('show', !!bar.dataset.has && !resultVisible);
+    }, { threshold: .15 }).observe($('result-card'));
+  }
+  renderAll();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>
