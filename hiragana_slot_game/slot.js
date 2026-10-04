@@ -2,7 +2,7 @@
 const H=80,API='https://ja.wiktionary.org/w/api.php',MAX_LOG=100,ROUND_N=10,CHAR_OPTIONS=[1,2,3,4,5,6,7];
 const BASE='あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
 const DAKU='がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ',SMALL='ゃゅょっぁぃぅぇぉ',FREQ='あいうえかきくこさしすたとなにのはまもらりるれん';
-const ids=['charCount','spinSpeed','script','mode','optDaku','optSmall','optEasy','startBtn','allStopBtn','resultWord','statusMessage','meaning','linkContainer','logTbody','clearLogBtn','csvBtn','onlyWin','soundBtn','vol','themeBtn','reelContainer','scoreBar','shareBtn','shareModal','shareText','shareX','shareLine','shareCopy','shareClose'];
+const ids=['charCount','spinSpeed','script','mode','optDaku','optSmall','optEasy','startBtn','allStopBtn','resultWord','statusMessage','meaning','linkContainer','logTbody','clearLogBtn','csvBtn','onlyWin','soundBtn','vol','themeBtn','reelContainer','scoreBar','shareModal','shareText','shareX','shareLine','shareCopy','shareClose'];
 const E={};ids.forEach(i=>E[i]=document.getElementById(i));
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const SEL=['charCount','spinSpeed','script','mode'],CHK=['optDaku','optSmall','optEasy'];
@@ -100,11 +100,12 @@ function meaning(x){return(x||'').split('\n').map(l=>l.trim()).filter(l=>l&&!/^=
 async function onAllStopped(){
   setState('judge');const w=reels.map(r=>r.ch).join('');E.resultWord.textContent=w;status('Wiktionaryで判定中...');
   const res=await judge(w),url=`https://ja.wiktionary.org/wiki/${encodeURIComponent(w)}`;
+  lastRes={w,s:res.s};
   E.linkContainer.textContent='';E.meaning.textContent='';
   if(res.s==='yes'){play('win');status(`🎉 「${w}」は実在する言葉です！`,'success');E.resultWord.classList.add('success-anim');confetti();E.meaning.textContent=res.mean?'📝 '+res.mean:''}
   else if(res.s==='no')status(`❌ 「${w}」は辞書に見つかりませんでした${res.note?`（${res.note}）`:''}`,'fail');
   else status('⚠ 通信エラーで判定できませんでした（記録しません）','fail');
-  const a=document.createElement('a');a.className='dict-link';a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=`📖 Wiktionaryで「${w}」を確認 ↗`;E.linkContainer.append(a);
+  const a=document.createElement('a');a.className='dict-link';a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=`📖 Wiktionaryで「${w}」を確認 ↗`;const sh=document.createElement('button');sh.type='button';sh.className='dict-link share-open';sh.textContent='📣 SNSに投稿';sh.onclick=openShare;E.linkContainer.append(a,sh);
   if(res.s!=='err'){
     const ok=res.s==='yes';score.tries++;if(ok){score.wins++;score.streak++;score.best=Math.max(score.best,score.streak)}else score.streak=0;ls.set('slot_score',score);
     logs.unshift({w,ok});logs.splice(MAX_LOG);ls.set('slot_log',logs);renderLog();
@@ -152,19 +153,18 @@ addEventListener('keydown',e=>{
   if(e.code==='Space'){if(e.target.tagName==='BUTTON')return;e.preventDefault();if(st==='idle')startSlot();else if(st==='spin')stopAll()}
   else if(/^[1-7]$/.test(e.key)&&st==='spin')stopReel(+e.key-1)});
 
-/* ---- SNSシェア ---- */
+/* ---- SNS投稿（子画面） ---- */
+let lastRes=null;
 function buildShareText(){
   const s=score,rate=s.tries?Math.round(s.wins/s.tries*100):0;
   const ok=[...new Set(logs.filter(l=>l.ok).map(l=>l.w))].slice(0,6),L=['🎰 50音スロット言葉合わせで遊んだよ！'];
-  if(logs[0])L.push(`直近：「${logs[0].w}」${logs[0].ok?'⭕ 言葉になった！':'❌ 惜しい…'}`);
+  if(lastRes)L.push(`「${lastRes.w}」が揃った！`+(lastRes.s==='yes'?'⭕ 実在する言葉！':lastRes.s==='no'?'❌ 惜しい…':''));
   if(ok.length)L.push(`揃った言葉：${ok.join('、')}`);
   L.push(`成功 ${s.wins}/${s.tries}（${rate}%）｜最高連続 ${s.best}`,'#50音スロット');
   return L.join('\n')+'\n'}
-const closeShare=()=>{E.shareModal.style.display='none'};
-E.shareBtn.onclick=()=>{E.shareText.value=buildShareText();E.shareModal.style.display='flex';E.shareText.focus()};
-E.shareClose.onclick=closeShare;
-E.shareModal.onclick=e=>{if(e.target===E.shareModal)closeShare()};
-addEventListener('keydown',e=>{if(e.key==='Escape')closeShare()});
+function openShare(){E.shareText.value=buildShareText();E.shareModal.showModal()}
+E.shareClose.onclick=()=>E.shareModal.close();
+E.shareModal.addEventListener('click',e=>{if(e.target===E.shareModal)E.shareModal.close()});
 E.shareX.onclick=()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(E.shareText.value)}&url=${encodeURIComponent(location.href)}`,'_blank','noopener');
 E.shareLine.onclick=()=>window.open(`https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(E.shareText.value+'\n'+location.href)}`,'_blank','noopener');
 E.shareCopy.onclick=async()=>{
