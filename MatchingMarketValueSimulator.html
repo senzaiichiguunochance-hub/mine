@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>婚活スペック相互変換＆市場価値診断シミュレーター</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fdf2f8',
+              100: '#fce7f3',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+            },
+            male: {
+              500: '#3b82f6',
+              600: '#2563eb',
+            },
+            female: {
+              500: '#ec4899',
+              600: '#db2777',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+    body { font-family: 'Noto Sans JP', sans-serif; }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(229, 231, 235, 0.8);
+    }
+  </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
+
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-600 text-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa-solid fa-heart-circle-check text-2xl text-pink-200"></i>
+        <h1 class="text-xl md:text-2xl font-black tracking-tight">婚活市場価値＆相互変換アナライザー</h1>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto px-4 mt-6">
+
+    <!-- Gender Selector (Mandatory) -->
+    <section class="glass-card rounded-2xl p-6 mb-6 shadow-sm border-2 border-pink-200">
+      <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center">
+        <span class="bg-pink-500 text-white w-6 h-6 rounded-full inline-flex items-center justify-center text-xs mr-2">1</span>
+        まず「あなたの性別」を選択してください <span class="text-xs font-bold text-red-500 ml-2">【必須】</span>
+      </h2>
+      <div class="grid grid-cols-2 gap-4">
+        <button type="button" id="gender-female" onclick="setGender('female')" className="py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-pink-300">
+          <i class="fa-solid fa-venus text-pink-500 text-xl"></i>
+          <span>女性</span>
+        </button>
+        <button type="button" id="gender-male" onclick="setGender('male')" className="py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-blue-300">
+          <i class="fa-solid fa-mars text-blue-500 text-xl"></i>
+          <span>男性</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Mode Tabs -->
+    <div class="flex border-b border-slate-200 mb-6 bg-white rounded-t-xl p-1 shadow-sm">
+      <button id="tab-desired" onclick="switchTab('desired')" class="flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-pink-600 bg-pink-50 shadow-sm border border-pink-200 flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span id="tab-desired-text">【タブ1】相手への希望を入力（女 → 男）</span>
+      </button>
+      <button id="tab-myspec" onclick="switchTab('myspec')" class="flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center space-x-2">
+        <i class="fa-solid fa-user-check"></i>
+        <span id="tab-myspec-text">【タブ2】私のスペックを入力（私の市場価値）</span>
+      </button>
+    </div>
+
+    <!-- Description Card -->
+    <div id="mode-description" class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl mb-6 text-sm text-slate-700">
+      <span class="font-bold text-blue-900">【機能解説】</span>
+      <span id="mode-desc-text">男性に求める希望条件を入力してください。その希少度（上位%）を算出し、<b>「あなたが男性なら同じ希少度になる同等スペック」</b>に換算します。</span>
+    </div>
+
+    <!-- Form Section -->
+    <section class="glass-card rounded-2xl p-6 shadow-sm mb-8">
+      <div class="flex justify-between items-center mb-4 pb-2 border-b">
+        <h3 class="font-bold text-slate-800 text-base md:text-lg flex items-center">
+          <i class="fa-solid fa-sliders text-pink-500 mr-2"></i>
+          <span id="form-title">相手（男性）に求める希望条件を入力</span>
+        </h3>
+        <span class="text-xs text-slate-500">※すべて<b>任意選択（未指定OK）</b>です</span>
+      </div>
+
+      <form id="sim-form" class="space-y-6">
+
+        <!-- Category: 基本・身体 -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+            <i class="fa-solid fa-user mr-1.5"></i> 基本・身体スペック
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- 年齢 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-age">年齢</label>
+              <select name="age" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="22">20代前半 (20〜24歳)</option>
+                <option value="27">20代後半 (25〜29歳)</option>
+                <option value="32">30代前半 (30〜34歳)</option>
+                <option value="37">30代後半 (35〜39歳)</option>
+                <option value="42">40代前半 (40〜44歳)</option>
+                <option value="47">40代後半 (45歳以上)</option>
+              </select>
+            </div>
+
+            <!-- 身長 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-height">身長</label>
+              <select name="height" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="160">160cm 以上</option>
+                <option value="165">165cm 以上</option>
+                <option value="170">170cm 以上</option>
+                <option value="175">175cm 以上</option>
+                <option value="180">180cm 以上</option>
+              </select>
+            </div>
+
+            <!-- 容姿・清潔感 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-looks">容姿・雰囲気・レベル</label>
+              <select name="looks" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="top">芸能人・モデル級 / アナウンサー風超イケメン・美人 (上位 2%)</option>
+                <option value="high">イケメン・美人 / 人目を引く魅力的なルックス (上位 10%)</option>
+                <option value="mid_high">清潔感あり・整った容姿 / 清楚系・爽やか (上位 30%)</option>
+                <option value="average">平均的・普通 (上位 60%)</option>
+              </select>
+            </div>
+
+            <!-- 体型 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-body">体型</label>
+              <select name="body" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="slender">スレンダー・細身</option>
+                <option value="normal">標準・引き締まっている</option>
+                <option value="chubby">ぽっちゃり・がっしり</option>
+              </select>
+            </div>
+
+            <!-- バストサイズ（女性対象時のみ動的表示） -->
+            <div id="field-bust" class="hidden">
+              <label class="block text-xs font-bold text-slate-700 mb-1">バストサイズ</label>
+              <select name="bust" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="A">Aカップ 以上</option>
+                <option value="B">Bカップ 以上</option>
+                <option value="C">Cカップ 以上</option>
+                <option value="D">Dカップ 以上</option>
+                <option value="E">Eカップ 以上</option>
+                <option value="F">Fカップ 以上</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Category: 経済・キャリア -->
+        <div class="pt-2 border-t border-slate-100">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+            <i class="fa-solid fa-briefcase mr-1.5"></i> 経済力・学歴・キャリア
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- 年収 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1" id="label-income">年収（額面）</label>
+              <select name="income" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="400">400万円 以上</option>
+                <option value="500">500万円 以上</option>
+                <option value="600">600万円 以上</option>
+                <option value="800">800万円 以上</option>
+                <option value="1000">1000万円 以上</option>
+                <option value="1500">1500万円 以上</option>
+              </select>
+            </div>
+
+            <!-- 学歴 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">最終学歴</label>
+              <select name="edu" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="top">最難関大（東大・京大・旧帝・医学部・早慶など）</option>
+                <option value="univ">4年制大学卒 以上</option>
+                <option value="short">短大・専門・高専卒 以上</option>
+              </select>
+            </div>
+
+            <!-- 職業・企業規模 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">職業・勤務先</label>
+              <select name="job" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="major">大手上場企業 / 公務員 / 医療従事者</option>
+                <option value="regular">正社員・専門職</option>
+              </select>
+            </div>
+
+            <!-- 個人資産・貯金 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">個人資産・貯金額</label>
+              <select name="asset" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="500">500万円 以上</option>
+                <option value="1000">1000万円 以上</option>
+                <option value="3000">3000万円 以上</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Category: 生活観・家庭環境 -->
+        <div class="pt-2 border-t border-slate-100">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center">
+            <i class="fa-solid fa-house-user mr-1.5"></i> 生活観・家庭環境（※統一基準）
+          </h4>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- 婚姻歴 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">婚姻歴</label>
+              <select name="marriage" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="never">未婚（初婚）</option>
+                <option value="divorced1">バツ1（離婚歴1回）</option>
+                <option value="divorced2">バツ2（離婚歴2回）</option>
+                <option value="divorced3">バツ3以上</option>
+              </select>
+            </div>
+
+            <!-- たばこ -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">たばこ・喫煙</label>
+              <select name="tobacco" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="no">吸わない</option>
+                <option value="vape">加熱式タバコ・電子タバコ</option>
+                <option value="paper">紙タバコ</option>
+              </select>
+            </div>
+
+            <!-- 長男・長女 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">長男・長女かどうか</label>
+              <select name="family" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="not_first">長男・長女以外（次男・次女以下）</option>
+              </select>
+            </div>
+
+            <!-- 家事育児方針 -->
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">共働き・家事育児方針</label>
+              <select name="housework" onchange="calculate()" class="w-full text-sm border-slate-300 rounded-lg p-2.5 bg-slate-50 border focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all">
+                <option value="">未指定</option>
+                <option value="active">完全折半・積極的に分担したい</option>
+                <option value="support">メインで担当 / 相手に合わせる</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+      </form>
+    </section>
+
+    <!-- Result Section -->
+    <section id="result-container" class="glass-card rounded-2xl p-6 shadow-md border-2 border-pink-300 bg-gradient-to-b from-white to-pink-50/30 mb-12">
+      <div class="text-center pb-4 border-b">
+        <span id="result-badge" class="inline-block px-3 py-1 bg-pink-100 text-pink-700 font-bold text-xs rounded-full mb-2">診断結果</span>
+        <h3 id="result-title" class="text-xl md:text-2xl font-black text-slate-800">高望み度・市場価値アナライズ</h3>
+      </div>
+
+      <!-- Main Percentile & Rank Box -->
+      <div class="my-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+        <!-- Rank Box -->
+        <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+          <div class="absolute -right-4 -bottom-4 text-white/5 text-8xl font-black select-none">RANK</div>
+          <span class="text-xs text-slate-300 font-medium block mb-1" id="rank-subtext">条件の総合希少度ランク</span>
+          <div id="result-rank" class="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-300 to-purple-300 my-1">
+            B+ ランク
+          </div>
+          <p id="rank-desc" class="text-xs text-slate-300 mt-2">平均以上の良条件・標準的な層です</p>
+        </div>
+
+        <!-- Percentile Gauge -->
+        <div class="bg-white rounded-2xl p-5 border shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-slate-500">全体における出現確率（希少度）</span>
+            <span id="result-percentile" class="text-lg font-black text-pink-600">上位 25.4%</span>
+          </div>
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-100 h-4 rounded-full overflow-hidden p-0.5 border">
+            <div id="percentile-bar" class="bg-gradient-to-r from-pink-500 to-purple-600 h-full rounded-full transition-all duration-500" style="width: 25.4%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-medium">
+            <span>上位 0% (幻)</span>
+            <span>50% (平均)</span>
+            <span>100%</span>
+          </div>
+          <p class="text-xs text-slate-600 mt-3 bg-slate-50 p-2 rounded border" id="percentile-advice">
+            約 4 人に 1 人の割合で存在するレベルの条件セットです。
+          </p>
+        </div>
+      </div>
+
+      <!-- Output Speccard (Equivalent Mapping) -->
+      <div class="bg-white rounded-2xl p-6 border shadow-sm my-6">
+        <h4 id="equivalent-card-title" class="font-bold text-slate-800 text-sm md:text-base mb-3 flex items-center border-b pb-2">
+          <i class="fa-solid fa-scale-balanced text-pink-500 mr-2"></i>
+          <span>【相互変換】同じ価値・希少度になる自分側の同等スペック</span>
+        </h4>
+        <div id="equivalent-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <!-- JSで動的割り当て -->
+        </div>
+      </div>
+
+      <!-- Share Button Section -->
+      <div class="pt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-xs text-slate-500">
+          <i class="fa-solid fa-circle-info mr-1"></i> 統計データ: 国税庁・厚生労働省・IBJ成婚白書等を参考に自動補正算出
+        </div>
+        <button type="button" onclick="shareX()" class="w-full sm:w-auto bg-black text-white hover:bg-slate-800 px-6 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 shadow-sm">
+          <i class="fa-brands fa-x-twitter text-base"></i>
+          <span>診断結果を X でシェア</span>
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    // State
+    let userGender = 'female'; // 'female' or 'male'
+    let currentTab = 'desired'; // 'desired' or 'myspec'
+
+    function setGender(gender) {
+      userGender = gender;
+      
+      const btnFemale = document.getElementById('gender-female');
+      const btnMale = document.getElementById('gender-male');
+
+      if (gender === 'female') {
+        btnFemale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-pink-500 bg-pink-50 text-pink-700 shadow-sm";
+        btnMale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-blue-300";
+      } else {
+        btnMale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-blue-500 bg-blue-50 text-blue-700 shadow-sm";
+        btnFemale.className = "py-3 px-4 rounded-xl border-2 font-bold text-center transition-all flex items-center justify-center space-x-2 border-slate-200 bg-white text-slate-600 hover:border-pink-300";
+      }
+
+      updateUIState();
+      calculate();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const btnDesired = document.getElementById('tab-desired');
+      const btnMySpec = document.getElementById('tab-myspec');
+
+      if (tab === 'desired') {
+        btnDesired.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-pink-600 bg-pink-50 shadow-sm border border-pink-200 flex items-center justify-center space-x-2";
+        btnMySpec.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center space-x-2";
+      } else {
+        btnMySpec.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-indigo-600 bg-indigo-50 shadow-sm border border-indigo-200 flex items-center justify-center space-x-2";
+        btnDesired.className = "flex-1 py-3 px-4 font-bold text-center rounded-lg transition-all text-slate-500 hover:text-slate-800 flex items-center justify-center space-x-2";
+      }
+
+      updateUIState();
+      calculate();
+    }
+
+    function updateUIState() {
+      const targetGender = (currentTab === 'desired') 
+        ? (userGender === 'female' ? 'male' : 'female')
+        : userGender;
+
+      // Bust size field visibility
+      const bustField = document.getElementById('field-bust');
+      if (targetGender === 'female') {
+        bustField.classList.remove('hidden');
+      } else {
+        bustField.classList.add('hidden');
+      }
+
+      // Labels & Text updates
+      const tabDesiredText = document.getElementById('tab-desired-text');
+      const tabMySpecText = document.getElementById('tab-myspec-text');
+      const modeDescText = document.getElementById('mode-desc-text');
+      const formTitle = document.getElementById('form-title');
+
+      if (userGender === 'female') {
+        tabDesiredText.innerText = "【タブ1】相手への希望を入力（女 → 男）";
+        tabMySpecText.innerText = "【タブ2】私のスペックを入力（私の市場価値）";
+        
+        if (currentTab === 'desired') {
+          modeDescText.innerHTML = "男性に求める希望条件を入力してください。その希少度（上位%）を算出し、<b>「あなたが男性なら同じ希少度になる同等スペック」</b>に換算します。";
+          formTitle.innerText = "相手（男性）に求める希望条件を入力";
+        } else {
+          modeDescText.innerHTML = "あなたご自身のスペックを入力してください。婚活市場における<b>「あなたの市場価値ランク」</b>と<b>「現実に狙える男性層のレベル感」</b>を判定します。";
+          formTitle.innerText = "あなた（女性）の現実のスペックを入力";
+        }
+      } else {
+        tabDesiredText.innerText = "【タブ1】相手への希望を入力（男 → 女）";
+        tabMySpecText.innerText = "【タブ2】私のスペックを入力（私の市場価値）";
+
+        if (currentTab === 'desired') {
+          modeDescText.innerHTML = "女性に求める希望条件を入力してください。その希少度（上位%）を算出し、<b>「あなたが女性なら同じ希少度になる同等スペック」</b>に換算します。";
+          formTitle.innerText = "相手（女性）に求める希望条件を入力";
+        } else {
+          modeDescText.innerHTML = "あなたご自身のスペックを入力してください。婚活市場における<b>「あなたの市場価値ランク」</b>と<b>「現実に狙える女性層のレベル感」</b>を判定します。";
+          formTitle.innerText = "あなた（男性）の現実のスペックを入力";
+        }
+      }
+    }
+
+    function calculate() {
+      const form = document.getElementById('sim-form');
+      const formData = new FormData(form);
+
+      let probability = 1.0;
+      let count = 0;
+
+      // Evaluation target attributes
+      const targetGender = (currentTab === 'desired') 
+        ? (userGender === 'female' ? 'male' : 'female')
+        : userGender;
+
+      // 1. Income (Male standard vs Female standard)
+      const income = formData.get('income');
+      if (income) {
+        count++;
+        let p = 1.0;
+        const v = parseInt(income);
+        if (targetGender === 'male') {
+          if (v >= 1500) p = 0.008;
+          else if (v >= 1000) p = 0.035;
+          else if (v >= 800) p = 0.11;
+          else if (v >= 600) p = 0.28;
+          else if (v >= 500) p = 0.45;
+          else if (v >= 400) p = 0.68;
+        } else {
+          if (v >= 1000) p = 0.008;
+          else if (v >= 800) p = 0.025;
+          else if (v >= 600) p = 0.09;
+          else if (v >= 500) p = 0.20;
+          else if (v >= 400) p = 0.42;
+        }
+        probability *= p;
+      }
+
+      // 2. Height
+      const height = formData.get('height');
+      if (height) {
+        count++;
+        let p = 1.0;
+        const v = parseInt(height);
+        if (targetGender === 'male') {
+          if (v >= 180) p = 0.067;
+          else if (v >= 175) p = 0.271;
+          else if (v >= 170) p = 0.603;
+          else if (v >= 165) p = 0.880;
+          else if (v >= 160) p = 0.980;
+        } else {
+          if (v >= 170) p = 0.025;
+          else if (v >= 165) p = 0.120;
+          else if (v >= 160) p = 0.450;
+          else if (v >= 155) p = 0.820;
+        }
+        probability *= p;
+      }
+
+      // 3. Age
+      const age = formData.get('age');
+      if (age) {
+        count++;
+        let p = 1.0;
+        const v = parseInt(age);
+        if (v <= 22) p = 0.05;
+        else if (v <= 27) p = 0.18;
+        else if (v <= 32) p = 0.45;
+        else if (v <= 37) p = 0.72;
+        else if (v <= 42) p = 0.88;
+        else p = 0.98;
+        probability *= p;
+      }
+
+      // 4. Looks
+      const looks = formData.get('looks');
+      if (looks) {
+        count++;
+        if (looks === 'top') probability *= 0.02;
+        else if (looks === 'high') probability *= 0.10;
+        else if (looks === 'mid_high') probability *= 0.30;
+        else if (looks === 'average') probability *= 0.60;
+      }
+
+      // 5. Bust (Female target)
+      if (targetGender === 'female') {
+        const bust = formData.get('bust');
+        if (bust) {
+          count++;
+          if (bust === 'F') probability *= 0.02;
+          else if (bust === 'E') probability *= 0.06;
+          else if (bust === 'D') probability *= 0.18;
+          else if (bust === 'C') probability *= 0.45;
+          else if (bust === 'B') probability *= 0.75;
+          else if (bust === 'A') probability *= 0.95;
+        }
+      }
+
+      // 6. Education
+      const edu = formData.get('edu');
+      if (edu) {
+        count++;
+        if (edu === 'top') probability *= 0.05;
+        else if (edu === 'univ') probability *= 0.55;
+        else if (edu === 'short') probability *= 0.85;
+      }
+
+      // 7. Job
+      const job = formData.get('job');
+      if (job) {
+        count++;
+        if (job === 'major') probability *= 0.20;
+        else if (job === 'regular') probability *= 0.70;
+      }
+
+      // 8. Asset
+      const asset = formData.get('asset');
+      if (asset) {
+        count++;
+        const v = parseInt(asset);
+        if (v >= 3000) probability *= 0.03;
+        else if (v >= 1000) probability *= 0.15;
+        else if (v >= 500) probability *= 0.38;
+      }
+
+      // 9. Tobacco
+      const tobacco = formData.get('tobacco');
+      if (tobacco) {
+        count++;
+        if (tobacco === 'no') probability *= 0.78;
+        else if (tobacco === 'vape') probability *= 0.12;
+        else if (tobacco === 'paper') probability *= 0.10;
+      }
+
+      // 10. Marriage
+      const marriage = formData.get('marriage');
+      if (marriage) {
+        count++;
+        if (marriage === 'never') probability *= 0.82;
+        else if (marriage === 'divorced1') probability *= 0.14;
+        else if (marriage === 'divorced2') probability *= 0.03;
+        else if (marriage === 'divorced3') probability *= 0.01;
+      }
+
+      // Correlation coefficient correction
+      if (count > 1) {
+        probability = Math.pow(probability, 1 / Math.sqrt(count * 0.75));
+      }
+
+      if (count === 0) probability = 0.5;
+
+      const percentile = Math.min(Math.max((probability * 100), 0.1), 99.9);
+
+      // Render Results
+      renderResults(percentile, count);
+    }
+
+    function renderResults(percentile, count) {
+      const resultRank = document.getElementById('result-rank');
+      const rankSubtext = document.getElementById('rank-subtext');
+      const rankDesc = document.getElementById('rank-desc');
+      const resultPercentile = document.getElementById('result-percentile');
+      const percentileBar = document.getElementById('percentile-bar');
+      const percentileAdvice = document.getElementById('percentile-advice');
+      const equivalentTitle = document.getElementById('equivalent-card-title');
+      const equivalentList = document.getElementById('equivalent-list');
+
+      resultPercentile.innerText = `上位 ${percentile.toFixed(1)}%`;
+      percentileBar.style.width = `${percentile.toFixed(1)}%`;
+
+      let rank = 'B';
+      let desc = '標準・平均的な層です';
+
+      if (percentile <= 2.0) {
+        rank = 'S';
+        desc = '超ハイスペック・100人に1〜2人の幻のハイエンド層';
+      } else if (percentile <= 5.0) {
+        rank = 'A+';
+        desc = '最上位人気層・極めて人気が集中する好条件';
+      } else if (percentile <= 15.0) {
+        rank = 'A';
+        desc = '上位・人気層・非常にマッチング率が高い好条件';
+      } else if (percentile <= 35.0) {
+        rank = 'B+';
+        desc = '平均以上・婚活市場でしっかり需要のある層';
+      } else if (percentile <= 60.0) {
+        rank = 'B';
+        desc = '標準・平均的な層です';
+      } else {
+        rank = 'C';
+        desc = '条件を緩めることでマッチング率が大幅アップする層';
+      }
+
+      resultRank.innerText = `${rank} ランク`;
+      rankDesc.innerText = desc;
+
+      if (currentTab === 'desired') {
+        rankSubtext.innerText = "提示した希望条件の総合高望み度";
+        percentileAdvice.innerText = count === 0 
+          ? '条件を選択すると高望み度と同等スペックが試算されます。'
+          : `あなたが求めている相手は、全婚活人口の【上位 ${percentile.toFixed(1)}%】の存在です。`;
+
+        const mirrorGender = userGender === 'female' ? '女性' : '男性';
+        equivalentTitle.innerHTML = `<i class="fa-solid fa-scale-balanced text-pink-500 mr-2"></i> <span>【同等価値】求める相手に釣り合う『${mirrorGender}側』の同等スペック</span>`;
+        equivalentList.innerHTML = getEquivalentSpecsText(percentile, mirrorGender);
+      } else {
+        rankSubtext.innerText = "あなたの婚活市場での総合市場価値ランク";
+        percentileAdvice.innerText = count === 0 
+          ? 'あなたのスペックを選択すると市場ランクが試算されます。'
+          : `あなたの婚活市場での立ち位置は【上位 ${percentile.toFixed(1)}%】レベルです。`;
+
+        const targetGender = userGender === 'female' ? '男性' : '女性';
+        equivalentTitle.innerHTML = `<i class="fa-solid fa-bullseye text-pink-500 mr-2"></i> <span>【ターゲット】あなたのスペックで高確率で狙える『${targetGender}』の条件上限</span>`;
+        equivalentList.innerHTML = getTargetSpecsText(percentile, targetGender);
+      }
+    }
+
+    function getEquivalentSpecsText(percentile, gender) {
+      if (gender === '女性') {
+        if (percentile <= 2.0) {
+          return `
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">年齢：</span> 20代前半 (20〜24歳)</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">容姿：</span> 芸能人・モデル・女子アナ級</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">スタイル：</span> スレンダー・バストD~Eカップ以上</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">学歴・家柄：</span> 難関大卒・教養良好</div>
+          `;
+        } else if (percentile <= 15.0) {
+          return `
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">年齢：</span> 26〜29歳 (20代後半)</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">容姿：</span> 清楚系美人・街で目を引くレベル</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">スタイル：</span> スレンダー〜標準体型</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">職業・学歴：</span> 4年制大卒・大手会社員 / 看護師</div>
+          `;
+        } else {
+          return `
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">年齢：</span> 30〜34歳</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">容姿：</span> 平均的・親しみやすい愛嬌</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">スタイル：</span> 標準体型</div>
+            <div class="bg-pink-50 p-3 rounded-lg"><span class="font-bold text-pink-700">生活感：</span> 家事・仕事をしっかり両立</div>
+          `;
+        }
+      } else {
+        if (percentile <= 2.0) {
+          return `
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">年収：</span> 1200万円以上</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">身長：</span> 178cm以上 / イケメン</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">学歴・職業：</span> 東大・早慶・医師・経営者・大手</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">資産：</span> 3000万円以上</div>
+          `;
+        } else if (percentile <= 15.0) {
+          return `
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">年収：</span> 700万〜900万円</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">身長：</span> 172cm以上 / 清潔感あり</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">学歴・職業：</span> 大卒・大手企業・公務員</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">婚姻・喫煙：</span> 未婚・非喫煙</div>
+          `;
+        } else {
+          return `
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">年収：</span> 450万〜600万円</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">身長：</span> 168cm以上</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">職業：</span> 正社員</div>
+            <div class="bg-blue-50 p-3 rounded-lg"><span class="font-bold text-blue-700">人柄：</span> 誠実・協調性がある</div>
+          `;
+        }
+      }
+    }
+
+    function getTargetSpecsText(percentile, targetGender) {
+      return getEquivalentSpecsText(percentile, targetGender);
+    }
+
+    function shareX() {
+      const rank = document.getElementById('result-rank').innerText;
+      const percentile = document.getElementById('result-percentile').innerText;
+      const mode = currentTab === 'desired' ? '希望条件診断' : '市場価値診断';
+      const text = `【婚活市場価値＆相互変換アナライザー】\n診断モード: ${mode}\n判定ランク: ${rank} (${percentile})\n\nあなたの婚活市場価値・希望条件のバランスをチェックしよう！\n#婚活シミュレーター #婚活市場価値 #婚活`;
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    // Initialize
+    window.onload = function() {
+      setGender('female');
+    };
+  </script>
+</body>
+</html>
