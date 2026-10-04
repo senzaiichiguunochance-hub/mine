@@ -45,6 +45,7 @@
       <div class="mean" id="meaning"></div>
       <div class="link-container" id="linkContainer"></div>
     </div>
+    <button id="shareBtn" class="share-btn" type="button">📣 結果をSNSでシェア</button>
     <section class="log-section">
       <div class="log-header">
         <h2>📋 判定ログ</h2>
@@ -63,6 +64,19 @@
     </section>
   </div>
 </main>
+<div class="modal-overlay" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+  <div class="modal-card">
+    <h2 id="shareTitle">結果をシェアする</h2>
+    <textarea id="shareText" rows="6" aria-label="投稿文（編集できます）"></textarea>
+    <p class="note">投稿文は自由に編集できます。ページのURLは自動で付きます。</p>
+    <div class="modal-btns">
+      <button id="shareX" class="sns x" type="button">Xでシェア</button>
+      <button id="shareLine" class="sns line" type="button">LINEでシェア</button>
+      <button id="shareCopy" class="sns copy" type="button">コピー</button>
+    </div>
+    <button id="shareClose" class="mini" type="button">とじる</button>
+  </div>
+</div>
 <script src="slot.js"></script>
 </body>
 </html>

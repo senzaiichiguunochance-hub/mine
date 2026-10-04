@@ -2,7 +2,7 @@
 const H=80,API='https://ja.wiktionary.org/w/api.php',MAX_LOG=100,ROUND_N=10,CHAR_OPTIONS=[1,2,3,4,5,6,7];
 const BASE='あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
 const DAKU='がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ',SMALL='ゃゅょっぁぃぅぇぉ',FREQ='あいうえかきくこさしすたとなにのはまもらりるれん';
-const ids=['charCount','spinSpeed','script','mode','optDaku','optSmall','optEasy','startBtn','allStopBtn','resultWord','statusMessage','meaning','linkContainer','logTbody','clearLogBtn','csvBtn','onlyWin','soundBtn','vol','themeBtn','reelContainer','scoreBar'];
+const ids=['charCount','spinSpeed','script','mode','optDaku','optSmall','optEasy','startBtn','allStopBtn','resultWord','statusMessage','meaning','linkContainer','logTbody','clearLogBtn','csvBtn','onlyWin','soundBtn','vol','themeBtn','reelContainer','scoreBar','shareBtn','shareModal','shareText','shareX','shareLine','shareCopy','shareClose'];
 const E={};ids.forEach(i=>E[i]=document.getElementById(i));
 const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const SEL=['charCount','spinSpeed','script','mode'],CHK=['optDaku','optSmall','optEasy'];
@@ -151,6 +151,25 @@ addEventListener('keydown',e=>{
   if(/^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName))return;
   if(e.code==='Space'){if(e.target.tagName==='BUTTON')return;e.preventDefault();if(st==='idle')startSlot();else if(st==='spin')stopAll()}
   else if(/^[1-7]$/.test(e.key)&&st==='spin')stopReel(+e.key-1)});
+
+/* ---- SNSシェア ---- */
+function buildShareText(){
+  const s=score,rate=s.tries?Math.round(s.wins/s.tries*100):0;
+  const ok=[...new Set(logs.filter(l=>l.ok).map(l=>l.w))].slice(0,6),L=['🎰 50音スロット言葉合わせで遊んだよ！'];
+  if(logs[0])L.push(`直近：「${logs[0].w}」${logs[0].ok?'⭕ 言葉になった！':'❌ 惜しい…'}`);
+  if(ok.length)L.push(`揃った言葉：${ok.join('、')}`);
+  L.push(`成功 ${s.wins}/${s.tries}（${rate}%）｜最高連続 ${s.best}`,'#50音スロット');
+  return L.join('\n')+'\n'}
+const closeShare=()=>{E.shareModal.style.display='none'};
+E.shareBtn.onclick=()=>{E.shareText.value=buildShareText();E.shareModal.style.display='flex';E.shareText.focus()};
+E.shareClose.onclick=closeShare;
+E.shareModal.onclick=e=>{if(e.target===E.shareModal)closeShare()};
+addEventListener('keydown',e=>{if(e.key==='Escape')closeShare()});
+E.shareX.onclick=()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(E.shareText.value)}&url=${encodeURIComponent(location.href)}`,'_blank','noopener');
+E.shareLine.onclick=()=>window.open(`https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(E.shareText.value+'\n'+location.href)}`,'_blank','noopener');
+E.shareCopy.onclick=async()=>{
+  try{await navigator.clipboard.writeText(E.shareText.value+'\n'+location.href);E.shareCopy.textContent='コピーしました'}catch{E.shareCopy.textContent='コピー不可'}
+  setTimeout(()=>E.shareCopy.textContent='コピー',1500)};
 
 /* ---- アクセス解析（常時） ---- */
 (function(){const s=document.createElement('script');s.async=true;s.dataset.goatcounter='https://senzaiichiguunochance.goatcounter.com/count';s.src='//gc.zgo.at/count.js';document.head.append(s)})();
