@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ただ「そこにいる」だけ。気兼ねのない個人間同行マッチング　ペルソナ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        limeAccent: {
+                            50: '#f7fee7',
+                            100: '#ecfccb',
+                            200: '#d9f99d',
+                            300: '#bef264',
+                            400: '#a3e635',
+                            500: '#84cc16', // メインアクセント（ライムグリーン）
+                            600: '#65a30d',
+                            700: '#4d7c0f',
+                            800: '#3f6212',
+                        },
+                        neutralText: '#374151',
+                        neutralBg: '#fcfdfa',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #374151;
+            background-color: #ffffff;
+        }
+    </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body class="bg-white text-neutralText antialiased">
+
+    <!-- ヘッダー -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-limeAccent-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-limeAccent-400 to-limeAccent-600 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    L
+                </div>
+                <span class="text-xl font-bold tracking-tight text-limeAccent-800">個人間同行マッチング　ペルソナ</span>
+            </div>
+            
+            <nav class="hidden md:flex space-x-8 text-sm font-medium text-gray-600">
+                <a href="#story" class="hover:text-limeAccent-600 transition">私達の想い</a>
+                <a href="#services" class="hover:text-limeAccent-600 transition">主な用途例</a>
+                <a href="#pricing" class="hover:text-limeAccent-600 transition">取り決めルール</a>
+                <a href="#dresscode" class="hover:text-limeAccent-600 transition">服装指定</a>
+                <a href="#guidelines" class="hover:text-limeAccent-600 transition">安全ガイド・免責</a>
+            </nav>
+
+            <div>
+                <a href="#contact" class="inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-gradient-to-r from-limeAccent-500 to-limeAccent-600 hover:from-limeAccent-600 hover:to-limeAccent-700 shadow-sm transition-all transform hover:-translate-y-0.5">
+                    パートナーを探す
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ヒーローセクション -->
+    <section class="relative bg-gradient-to-b from-limeAccent-50/70 via-limeAccent-50/20 to-white py-16 md:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <!-- テキストエリア -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="inline-flex items-center space-x-2 bg-limeAccent-100/80 border border-limeAccent-200 text-limeAccent-800 px-3 py-1 rounded-full text-sm font-medium">
+                        <span class="w-2 h-2 rounded-full bg-limeAccent-500 animate-pulse"></span>
+                        <span>個人間の気軽な同行掲示板・マッチング</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-gray-800 leading-tight">
+                        ただ「そこにいる」だけ。<br>
+                        気兼ねのない、安心の同行パートナー。
+                    </h1>
+                    <p class="text-lg text-gray-600 leading-relaxed">
+                        子育てや高齢の親のケアで「ほんの少しだけ手が欲しい」とき。<br>
+                        一人暮らしを始めたばかりで周りに友達がおらず、「あの話題の店やイベントに行ってみたいけれど、一人じゃちょっと気恥ずかしい」と感じるとき。
+                    </p>
+                    <p class="text-base text-gray-600 leading-relaxed">
+                        「誰かが一緒にいてくれたら嬉しいけれど、気を使いすぎるのは疲れる」<br>
+                        そんな声にお応えする、存在するだけの同行パートナーマッチングです。
+                    </p>
+
+                    <div class="pt-4 flex flex-col sm:flex-row gap-4">
+                        <a href="#story" class="px-7 py-3.5 rounded-xl bg-limeAccent-500 hover:bg-limeAccent-600 text-white font-semibold text-center shadow-lg shadow-limeAccent-500/20 transition">
+                            サービス誕生のきっかけ
+                        </a>
+                        <button onclick="toggleDetails('hero-detail')" class="px-7 py-3.5 rounded-xl bg-limeAccent-100 hover:bg-limeAccent-200 text-limeAccent-800 font-semibold text-center transition flex items-center justify-center gap-2">
+                            <span>詳細はこちら</span>
+                            <svg id="hero-detail-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- アコーディオン詳細内容 -->
+                    <div id="hero-detail" class="hidden mt-4 p-5 rounded-2xl bg-white border border-limeAccent-200 shadow-sm text-sm text-gray-600 space-y-3 transition-all">
+                        <h4 class="font-bold text-gray-800 text-base border-b border-limeAccent-100 pb-2">個人間マッチングサービスの考え方</h4>
+                        <p>本プラットフォームは個人同士が条件を提示し合い、合意のうえで同行・お出かけを行うコミュニティです。</p>
+                        <p>過剰な接客や専門的な介護・労働を求めるのではなく、「隣にいる」「一緒に時間を過ごす」という気軽な助け合いや関係性を目的としています。</p>
+                    </div>
+                </div>
+
+                <!-- 画像プレースホルダー -->
+                <div class="lg:col-span-5">
+                    <div class="w-full h-80 sm:h-96 rounded-3xl bg-gradient-to-br from-limeAccent-100 via-limeAccent-50 to-limeAccent-200 border-2 border-dashed border-limeAccent-300 flex flex-col items-center justify-center text-limeAccent-800 p-6 shadow-inner relative overflow-hidden">
+                        <svg class="w-16 h-16 opacity-40 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="font-bold text-lg">now printing [メインビジュアル画像枠]</span>
+                        <span class="text-xs text-limeAccent-700 mt-1 text-center">ライムトーンの爽やかなお出かけ・同行シーンイラスト</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 私達の想い -->
+    <section id="story" class="py-20 bg-white border-y border-limeAccent-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                
+                <!-- 画像プレースホルダー -->
+                <div class="lg:col-span-5 order-2 lg:order-1">
+                    <div class="w-full h-80 rounded-3xl bg-limeAccent-50 border-2 border-dashed border-limeAccent-300 flex flex-col items-center justify-center text-limeAccent-800 p-6">
+                        <span class="font-bold text-base">now printing [画像枠: 暮らしのワンシーン]</span>
+                        <span class="text-xs text-limeAccent-700 mt-1 text-center">now printing 子育て・通院・買い物で「人が欲しい」イメージ画像</span>
+                    </div>
+                </div>
+
+                <!-- テキスト -->
+                <div class="lg:col-span-7 space-y-5 order-1 lg:order-2">
+                    <h2 class="text-xs font-bold tracking-widest text-limeAccent-600 uppercase">Brand Story</h2>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-gray-800 leading-snug">
+                        簡単なことなのに人手が足りないときや<br class="hidden sm:inline">一人じゃ踏み出せない気持ちに応えたい。
+                    </h3>
+                    <p class="text-gray-600 leading-relaxed text-sm sm:text-base">
+                        子どもや高齢の親の世話をしていると、ほんの少しの付き添いや見守りなど「簡単なことなのに手不足」な場面がよくあります。また、一人暮らしを始めたばかりで友達が少なく、「気になるお店やイベントがあるけれど一人じゃ気が引ける…」と諦めてしまうことも。
+                    </p>
+                    <p class="text-gray-600 leading-relaxed text-sm sm:text-base">
+                        気を使わずに済むけれど、一人ではない安心感。そんな**「ただそこにいてくれる人」**を個人同士で探せる場所としてこのサービスは生まれました。
+                    </p>
+
+                    <div class="pt-2">
+                        <button onclick="toggleDetails('story-detail')" class="px-5 py-2.5 rounded-xl border border-limeAccent-300 text-limeAccent-700 hover:bg-limeAccent-50 font-semibold text-sm transition inline-flex items-center gap-2">
+                            <span>活用例・詳細はこちら</span>
+                            <svg id="story-detail-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                    </div>
+
+                    <div id="story-detail" class="hidden p-5 rounded-2xl bg-neutralBg border border-gray-200 text-xs text-gray-600 space-y-2">
+                        <p>・「子どもと両手の荷物で大変なので、横に一緒に歩いていてほしい」</p>
+                        <p>・「親の通院で会計や薬の待ち時間を一緒に過ごしてほしい」</p>
+                        <p>・「新生活を始めた街で、行列ができる話題のお店に一緒に行ってほしい」</p>
+                        <p>無理な会話も気兼ねもいりません。お互いの同意のもとで心地よい時間を共有します。</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 主な用途例 -->
+    <section id="services" class="py-20 bg-neutralBg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-xs font-bold tracking-widest text-limeAccent-600 uppercase">Use Cases</h2>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">こんな目的で利用されています</p>
+                <p class="text-gray-500 mt-3">日常の小さな手不足から、一人で行くのがためらわれるお出かけまで。</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                
+                <!-- カード 1 -->
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-40 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-5">
+                            <span class="font-bold text-sm">[now printing 画像枠: 娯楽・イベント]</span>
+                            <span class="text-xs text-limeAccent-700">カフェ・映画・テーマパーク</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">お店・イベントへの同行</h3>
+                        <p class="text-sm text-gray-600">一人暮らしで知り合いが少ない時や、「一人だと浮いてしまいそう」な場所へ一緒に行ってほしいとき。</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button onclick="toggleDetails('service-1')" class="w-full text-left text-xs font-bold text-limeAccent-700 hover:text-limeAccent-800 flex items-center justify-between">
+                            <span>詳細はこちら</span>
+                            <svg id="service-1-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="service-1" class="hidden mt-3 text-xs text-gray-500 space-y-2 bg-neutralBg p-3 rounded-lg border border-limeAccent-100">
+                            <p>・チケット代や店内での飲食代は、依頼側（客）が支払う旨を事前に合意しておきます。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- カード 2 -->
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-40 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-5">
+                            <span class="font-bold text-sm">[now printing 画像枠: 病院受診]</span>
+                            <span class="text-xs text-limeAccent-700">通院・受付・長い待ち時間</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">通院・受付の付き添い</h3>
+                        <p class="text-sm text-gray-600">高齢の親の病院受診で、待ち時間の話し相手や受付・移動の見守りを行ってほしいとき。</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button onclick="toggleDetails('service-2')" class="w-full text-left text-xs font-bold text-limeAccent-700 hover:text-limeAccent-800 flex items-center justify-between">
+                            <span>詳細はこちら</span>
+                            <svg id="service-2-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="service-2" class="hidden mt-3 text-xs text-gray-500 space-y-2 bg-neutralBg p-3 rounded-lg border border-limeAccent-100">
+                            <p>・医療行為や身体介護（食事介助・車椅子の移乗等）はできません。あくまで付き添い・見守りとなります。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- カード 3 -->
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-40 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-5">
+                            <span class="font-bold text-sm">[now printing 画像枠: 買い物・手不足]</span>
+                            <span class="text-xs text-limeAccent-700">買い物同行・荷物持ち</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">買い物・荷物持ちのサポート</h3>
+                        <p class="text-sm text-gray-600">一人では大変な大きな買い物やまとめ買いの際に、横について歩いたり荷物を手伝ってほしいとき。</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button onclick="toggleDetails('service-3')" class="w-full text-left text-xs font-bold text-limeAccent-700 hover:text-limeAccent-800 flex items-center justify-between">
+                            <span>詳細はこちら</span>
+                            <svg id="service-3-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="service-3" class="hidden mt-3 text-xs text-gray-500 space-y-2 bg-neutralBg p-3 rounded-lg border border-limeAccent-100">
+                            <p>・過度の重量物や引越し等の重労働は対象外です。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- カード 4 -->
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="w-full h-40 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-5">
+                            <span class="font-bold text-sm">[now printing 画像枠: 子育て・外出]</span>
+                            <span class="text-xs text-limeAccent-700">ワンオペ時の外出サポート</span>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">子連れ外出のサポート</h3>
+                        <p class="text-sm text-gray-600">子どもとのお出かけで手が足りない時、移動や準備の際に横にいて手を貸してほしいとき。</p>
+                    </div>
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button onclick="toggleDetails('service-4')" class="w-full text-left text-xs font-bold text-limeAccent-700 hover:text-limeAccent-800 flex items-center justify-between">
+                            <span>詳細はこちら</span>
+                            <svg id="service-4-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="service-4" class="hidden mt-3 text-xs text-gray-500 space-y-2 bg-neutralBg p-3 rounded-lg border border-limeAccent-100">
+                            <p>・原則として保護者様同伴でのご利用をお願いします（託児・ベビーシッター業務ではありません）。</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 取り決め・費用ルール -->
+    <section id="pricing" class="py-20 bg-gradient-to-b from-limeAccent-50/40 to-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-xs font-bold tracking-widest text-limeAccent-600 uppercase">Terms & Rules</h2>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">個人間で取り決める費用のルール</p>
+                <p class="text-gray-500 mt-3">トラブルを防ぐため、事前のやりとりで以下の項目を明確にしておきます。</p>
+            </div>
+
+            <div class="max-w-4xl mx-auto bg-white rounded-3xl border border-limeAccent-200 shadow-xl overflow-hidden">
+                <div class="p-8 sm:p-10">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                        
+                        <div class="pt-4 md:pt-0">
+                            <div class="w-12 h-12 mx-auto rounded-full bg-limeAccent-100 text-limeAccent-800 flex items-center justify-center font-bold text-lg mb-3">1</div>
+                            <h3 class="font-bold text-gray-800">お礼・謝礼（任意）</h3>
+                            <div class="mt-3 text-xl font-extrabold text-limeAccent-600">当事者間で決定</div>
+                            <p class="text-xs text-gray-500 mt-2">無償または時給換算など、事前に合意した金額。</p>
+                        </div>
+
+                        <div class="pt-4 md:pt-0 md:pl-6">
+                            <div class="w-12 h-12 mx-auto rounded-full bg-limeAccent-200 text-limeAccent-800 flex items-center justify-center font-bold text-lg mb-3">2</div>
+                            <h3 class="font-bold text-gray-800">往復交通費</h3>
+                            <div class="mt-3 text-xl font-extrabold text-limeAccent-700">依頼側が負担</div>
+                            <p class="text-xs text-gray-500 mt-2">電車・タクシー・船などの実費を客が負担。</p>
+                        </div>
+
+                        <div class="pt-4 md:pt-0 md:pl-6">
+                            <div class="w-12 h-12 mx-auto rounded-full bg-limeAccent-100 text-limeAccent-800 flex items-center justify-center font-bold text-lg mb-3">3</div>
+                            <h3 class="font-bold text-gray-800">現地実費経費</h3>
+                            <div class="mt-3 text-xl font-extrabold text-limeAccent-600">依頼側が負担</div>
+                            <p class="text-xs text-gray-500 mt-2">飲食代や施設入場料等（客の許可のもと利用）。</p>
+                        </div>
+
+                    </div>
+
+                    <div class="mt-10 pt-6 border-t border-gray-100 flex flex-col items-center">
+                        <button onclick="toggleDetails('pricing-detail')" class="px-6 py-2.5 rounded-full border border-limeAccent-400 text-limeAccent-800 hover:bg-limeAccent-50 text-sm font-semibold transition flex items-center gap-2">
+                            <span>交通費や経費に関する詳しい注意点</span>
+                            <svg id="pricing-detail-icon" class="w-4 h-4 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+
+                        <div id="pricing-detail" class="hidden w-full mt-6 p-6 rounded-2xl bg-limeAccent-50/50 border border-limeAccent-200 text-sm text-gray-600 space-y-3 text-left">
+                            <h4 class="font-bold text-gray-800 text-base">【移動手段・経費のトラブル防止ルール】</h4>
+                            <ul class="list-disc list-inside space-y-2 text-xs sm:text-sm">
+                                <li><strong>移動手段の指定:</strong> 電車・バス・タクシー・飛行機・船など依頼者が指定できますが、極端な迂回や不合理な手段は断る・変更を相談することができます。</li>
+                                <li><strong>飲食・チケットの購入:</strong> スタッフ側から勝手に注文・要求することは禁止です。必ず依頼者の許可と負担合意のうえで利用します。</li>
+                                <li><strong>清算方法:</strong> トラブル防止のため、往復交通費の概算や謝礼は当日合流時または事前に明確にしておいてください。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 選べる服装スタイル -->
+    <section id="dresscode" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-xs font-bold tracking-widest text-limeAccent-600 uppercase">Dress Code</h2>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">目的に合わせた服装の指定</p>
+                <p class="text-gray-500 mt-3">周囲の目やその場の雰囲気に自然に溶け込めるよう、服装を指定できます。</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <div class="bg-neutralBg rounded-2xl p-6 border border-gray-200 flex flex-col items-center text-center">
+                    <div class="w-full h-48 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-6">
+                        <span class="font-bold">[now printing 画像枠: スーツ]</span>
+                    </div>
+                    <span class="px-3 py-1 bg-limeAccent-200 text-limeAccent-800 text-xs font-bold rounded-full mb-3">スタイル 01</span>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">スーツ</h3>
+                    <p class="text-sm text-gray-600">ビジネス同行、冠婚葬祭の列席、フォーマルな場所へ行く際。</p>
+                </div>
+
+                <div class="bg-neutralBg rounded-2xl p-6 border border-gray-200 flex flex-col items-center text-center">
+                    <div class="w-full h-48 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-6">
+                        <span class="font-bold">[now printing 画像枠: きれいめカジュアル]</span>
+                    </div>
+                    <span class="px-3 py-1 bg-limeAccent-200 text-limeAccent-800 text-xs font-bold rounded-full mb-3">スタイル 02</span>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">しっかりめカジュアル</h3>
+                    <p class="text-sm text-gray-600">カフェ、美術館、ホテルのラウンジ、通院などに適した上品な服。</p>
+                </div>
+
+                <div class="bg-neutralBg rounded-2xl p-6 border border-gray-200 flex flex-col items-center text-center">
+                    <div class="w-full h-48 rounded-xl bg-limeAccent-100/60 border border-limeAccent-200 flex flex-col items-center justify-center text-limeAccent-800 mb-6">
+                        <span class="font-bold">[now printing 画像枠: ラフカジュアル]</span>
+                    </div>
+                    <span class="px-3 py-1 bg-limeAccent-200 text-limeAccent-800 text-xs font-bold rounded-full mb-3">スタイル 03</span>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">緩めのカジュアル</h3>
+                    <p class="text-sm text-gray-600">テーマパーク、公園での散歩、日用品の買い物など動きやすい日常服。</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 安全ガイドライン ＆ 免責事項（CtoC向け） -->
+    <section id="guidelines" class="py-20 bg-gradient-to-b from-limeAccent-50/50 to-white border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <h2 class="text-xs font-bold tracking-widest text-limeAccent-600 uppercase">Guidelines & Disclaimer</h2>
+                <p class="text-3xl font-extrabold text-gray-800 mt-2">安全ガイドライン・ご利用条件</p>
+                <p class="text-gray-500 mt-3">当サービスは個人間取引の場を提供するプラットフォームです。事前に必ずご確認ください。</p>
+            </div>
+
+            <div class="max-w-4xl mx-auto space-y-6">
+                
+                <!-- ガイドライン 1 -->
+                <div class="bg-white rounded-2xl p-6 sm:p-8 border border-limeAccent-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-3 border-b border-limeAccent-100 pb-3">
+                        <span class="w-7 h-7 rounded-full bg-limeAccent-500 text-white flex items-center justify-center text-xs">!</span>
+                        待ち合わせ・同行場所は「公共の場所」限定
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-3 leading-relaxed">
+                        安全確保のため、自宅内・ホテルの客室・カラオケ個室などの**密室空間での待ち合わせや同行は禁止**です。必ず人通りのある駅の改札前、商業施設、カフェ、公園などの公共の場所を指定してください。
+                    </p>
+                </div>
+
+                <!-- ガイドライン 2 -->
+                <div class="bg-white rounded-2xl p-6 sm:p-8 border border-limeAccent-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-800 flex items-center gap-3 border-b border-limeAccent-100 pb-3">
+                        <span class="w-7 h-7 rounded-full bg-limeAccent-500 text-white flex items-center justify-center text-xs">!</span>
+                        禁止事項（性的目的・勧誘・違法行為の禁止）
+                    </h3>
+                    <ul class="text-sm text-gray-600 mt-3 space-y-2 list-disc list-inside">
+                        <li>売買春行為、わいせつ目的、身体的接触（手をつなぐ・抱きつく等）の要求および提供</li>
+                        <li>自動車やバイクの運転代行、危険を伴う作業の依頼</li>
+                        <li>宗教、マルチ商法、他サービスへの勧誘行為</li>
+                    </ul>
+                </div>
+
+                <!-- ガイドライン 3（免責事項） -->
+                <div class="bg-neutralBg rounded-2xl p-6 sm:p-8 border border-gray-300">
+                    <h3 class="text-lg font-bold text-gray-800 border-b border-gray-200 pb-3">
+                        免責事項（運営側の立ち位置）
+                    </h3>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-3 leading-relaxed">
+                        当プラットフォームは個人同士のマッチングの場を提供するものであり、当事者間の契約、やりとり、トラブル、事故、損害、金銭の不払い等について、**運営者は理由の如何を問わず一切の責任を負いません。**<br>
+                        当事者双方の自己責任と事前の相互確認のもとで安全にご利用ください。トラブルが生じた場合は当事者間で解決いただくか、警察等の専門機関へご相談ください。
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <footer id="contact" class="bg-limeAccent-50/60 border-t border-limeAccent-100 py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center space-x-3 mb-6">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-limeAccent-400 to-limeAccent-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
+                    L
+                </div>
+                <span class="text-lg font-bold text-limeAccent-800">個人間同行マッチング　ペルソナ</span>
+            </div>
+            
+            <p class="text-sm text-gray-500 max-w-md mx-auto mb-8">
+                ただ「そこにいる」だけ。気兼ねのないお出かけ・手不足解消のための個人間同行マッチング。
+            </p>
+
+            <a href="#" class="inline-block px-8 py-3.5 rounded-full text-base font-bold text-white bg-gradient-to-r from-limeAccent-500 to-limeAccent-600 hover:from-limeAccent-600 hover:to-limeAccent-700 shadow-md transition-all">
+                同行パートナーを探す・募集する
+            </a>
+
+            <div class="mt-12 text-xs text-gray-400">
+                &copy; 2026 Lime Mate Service Inc. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript: アコーディオン開閉ロジック -->
+    <script>
+        function toggleDetails(elementId) {
+            const element = document.getElementById(elementId);
+            const icon = document.getElementById(elementId + '-icon');
+            
+            if (element) {
+                if (element.classList.contains('hidden')) {
+                    element.classList.remove('hidden');
+                    if (icon) {
+                        icon.classList.add('rotate-180');
+                    }
+                } else {
+                    element.classList.add('hidden');
+                    if (icon) {
+                        icon.classList.remove('rotate-180');
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
