@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4D Geometry Visualizer / 4次元超立体モデラ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter & Fira Code -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js & OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-panel-sm {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.8);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative bg-gray-950 text-gray-100">
+<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- Header Overlay -->
+    <header class="absolute top-4 left-4 right-4 z-10 pointer-events-none flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+        <div class="glass-panel px-5 py-3 rounded-2xl pointer-events-auto flex items-center gap-3 shadow-2xl border border-indigo-500/20">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-cube text-lg animate-pulse"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+                    4D Hyper-Visualizer
+                </h1>
+                <p class="text-[11px] text-gray-400">4次元幾何学（X, Y, Z, W）リアルタイム投影モデラ</p>
+            </div>
+        </div>
+
+        <!-- Mode Select & Quick Toggles -->
+        <div class="glass-panel px-3 py-2 rounded-2xl pointer-events-auto flex items-center gap-2 shadow-2xl">
+            <div class="flex bg-gray-900/80 p-1 rounded-xl border border-gray-800 text-xs">
+                <button id="btn-mode-4d" class="px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white shadow transition">4D 投影表示</button>
+                <button id="btn-mode-slice" class="px-3 py-1.5 rounded-lg font-semibold text-gray-400 hover:text-white transition">W軸 3Dスライス</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Left Controls Drawer: Polytope Selector & Geometry Stats -->
+    <div class="absolute top-24 left-4 z-10 w-80 max-h-[calc(100vh-7.5rem)] flex flex-col gap-3 pointer-events-auto overflow-y-auto pr-1">
+        
+        <!-- Object Selection -->
+        <div class="glass-panel p-4 rounded-2xl shadow-xl flex flex-col gap-3">
+            <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-shapes"></i> 4次元オブジェクト選択
+            </h2>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button data-poly="tesseract" class="poly-btn active px-3 py-2 rounded-xl bg-indigo-600/30 border border-indigo-500 text-indigo-200 font-medium text-left transition hover:border-indigo-400">
+                    <div class="font-bold">超立方体</div>
+                    <div class="text-[10px] text-gray-400">Tesseract (16頂点)</div>
+                </button>
+                <button data-poly="simplex" class="poly-btn px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700/60 text-gray-300 font-medium text-left transition hover:border-indigo-400">
+                    <div class="font-bold">5胞体</div>
+                    <div class="text-[10px] text-gray-400">5-Cell (5頂点)</div>
+                </button>
+                <button data-poly="24cell" class="poly-btn px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700/60 text-gray-300 font-medium text-left transition hover:border-indigo-400">
+                    <div class="font-bold">24胞体</div>
+                    <div class="text-[10px] text-gray-400">24-Cell (24頂点)</div>
+                </button>
+                <button data-poly="hypersphere" class="poly-btn px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700/60 text-gray-300 font-medium text-left transition hover:border-indigo-400">
+                    <div class="font-bold">超球体</div>
+                    <div class="text-[10px] text-gray-400">Hypersphere (点群)</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4D Projection Parameters -->
+        <div class="glass-panel p-4 rounded-2xl shadow-xl flex flex-col gap-3">
+            <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-sliders"></i> 4D 投影パラメータ
+            </h2>
+            
+            <!-- Projection Mode -->
+            <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-300">投影方式:</span>
+                <div class="flex bg-gray-900/80 p-0.5 rounded-lg border border-gray-800">
+                    <button id="proj-persp" class="px-2 py-1 rounded-md text-[11px] font-medium bg-indigo-600 text-white">4D透視 (Perspective)</button>
+                    <button id="proj-ortho" class="px-2 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white">正射影 (Ortho)</button>
+                </div>
+            </div>
+
+            <!-- Camera Distance W -->
+            <div id="persp-w-container" class="flex flex-col gap-1">
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-300">4D 視線距離 ($d_w$):</span>
+                    <span id="val-camera-w" class="font-mono text-indigo-300">3.00</span>
+                </div>
+                <input type="range" id="slider-camera-w" min="2.2" max="8.0" step="0.1" value="3.0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+            </div>
+
+            <!-- Slice W Slider (Visible when in Slice Mode or Slider requested) -->
+            <div class="flex flex-col gap-1 pt-2 border-t border-gray-800/80">
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-300">W軸 スライス位置 (3D断面):</span>
+                    <span id="val-slice-w" class="font-mono text-pink-300">0.00</span>
+                </div>
+                <input type="range" id="slider-slice-w" min="-2" max="2" step="0.02" value="0.0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-pink-500">
+            </div>
+        </div>
+
+        <!-- Render Style Toggles -->
+        <div class="glass-panel p-4 rounded-2xl shadow-xl flex flex-col gap-2.5 text-xs">
+            <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2 mb-1">
+                <i class="fa-solid fa-palette"></i> 描画・視覚設定
+            </h2>
+            <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-gray-300">W座標グラデーション着色</span>
+                <input type="checkbox" id="chk-w-color" checked class="rounded bg-gray-800 border-gray-700 text-indigo-600 focus:ring-0">
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-gray-300">頂点ノード描画</span>
+                <input type="checkbox" id="chk-show-nodes" checked class="rounded bg-gray-800 border-gray-700 text-indigo-600 focus:ring-0">
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-gray-300">面 (セル) ポリゴン透過表示</span>
+                <input type="checkbox" id="chk-show-faces" checked class="rounded bg-gray-800 border-gray-700 text-indigo-600 focus:ring-0">
+            </label>
+            <label class="flex items-center justify-between cursor-pointer">
+                <span class="text-gray-300">4D座標軸ガイドを表示</span>
+                <input type="checkbox" id="chk-show-axes" checked class="rounded bg-gray-800 border-gray-700 text-indigo-600 focus:ring-0">
+            </label>
+        </div>
+    </div>
+
+    <!-- Right Controls Drawer: 4D Rotation Rotators -->
+    <div class="absolute top-24 right-4 z-10 w-80 max-h-[calc(100vh-7.5rem)] flex flex-col gap-3 pointer-events-auto overflow-y-auto pl-1">
+        
+        <!-- 4D Rotation Planes -->
+        <div class="glass-panel p-4 rounded-2xl shadow-xl flex flex-col gap-3">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-arrows-spin"></i> 4D 回転コントロール (6平面)
+                </h2>
+                <button id="btn-reset-rotation" class="text-[11px] text-gray-400 hover:text-indigo-300 underline">リセット</button>
+            </div>
+
+            <div class="flex items-center justify-between bg-gray-900/60 p-2 rounded-xl border border-gray-800">
+                <span class="text-xs text-gray-300">オートスピン (全軸同時回転)</span>
+                <button id="btn-auto-spin" class="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow transition">ON</button>
+            </div>
+
+            <!-- 4D Specific Rotations (W-Planes) -->
+            <div class="text-[11px] font-bold text-purple-300 border-b border-gray-800 pb-1 mt-1">4次元固有の回転 (W軸を含む面)</div>
+            
+            <div class="space-y-2">
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-300 font-mono">XW 平面回転:</span>
+                        <span id="val-rot-xw" class="font-mono text-purple-300">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-rot-xw" min="-3.14" max="3.14" step="0.02" value="0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-300 font-mono">YW 平面回転:</span>
+                        <span id="val-rot-yw" class="font-mono text-purple-300">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-rot-yw" min="-3.14" max="3.14" step="0.02" value="0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-300 font-mono">ZW 平面回転:</span>
+                        <span id="val-rot-zw" class="font-mono text-purple-300">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-rot-zw" min="-3.14" max="3.14" step="0.02" value="0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                </div>
+            </div>
+
+            <!-- Standard 3D Rotations -->
+            <div class="text-[11px] font-bold text-cyan-300 border-b border-gray-800 pb-1 mt-2">通常の3D回転 (空間内)</div>
+            
+            <div class="space-y-2">
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-300 font-mono">XY 平面回転 (Z軸周り):</span>
+                        <span id="val-rot-xy" class="font-mono text-cyan-300">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-rot-xy" min="-3.14" max="3.14" step="0.02" value="0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-300 font-mono">XZ 平面回転 (Y軸周り):</span>
+                        <span id="val-rot-xz" class="font-mono text-cyan-300">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-rot-xz" min="-3.14" max="3.14" step="0.02" value="0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="text-gray-300 font-mono">YZ 平面回転 (X軸周り):</span>
+                        <span id="val-rot-yz" class="font-mono text-cyan-300">0.00 rad</span>
+                    </div>
+                    <input type="range" id="slider-rot-yz" min="-3.14" max="3.14" step="0.02" value="0" class="w-full h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom HUD Info Panel -->
+    <div class="absolute bottom-4 left-4 right-4 z-10 pointer-events-none flex flex-col md:flex-row gap-3 justify-between items-end">
+        <!-- Telemetry / Coordinates Panel -->
+        <div class="glass-panel p-3.5 rounded-2xl pointer-events-auto max-w-sm w-full font-mono text-xs text-gray-300 border border-indigo-500/20 shadow-2xl">
+            <div class="flex justify-between items-center text-[10px] text-gray-400 uppercase tracking-widest border-b border-gray-800 pb-1.5 mb-2">
+                <span><i class="fa-solid fa-microchip text-indigo-400 mr-1"></i> 幾何構造・リアルタイムデータ</span>
+                <span id="poly-name-tag" class="text-indigo-300 font-bold">TESSERACT</span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                <div>頂点数 (Vertices): <span id="stat-vertices" class="text-white font-semibold">16</span></div>
+                <div>辺の数 (Edges): <span id="stat-edges" class="text-white font-semibold">32</span></div>
+                <div>胞/セル (Cells): <span id="stat-cells" class="text-white font-semibold">8</span></div>
+                <div>4D変換: <span id="stat-rot-state" class="text-indigo-400 font-semibold">Active (Spin)</span></div>
+            </div>
+            <div class="mt-2 text-[10px] text-gray-400 leading-tight">
+                ※ 4D回転(XW/YW/ZW)により、3D投影上の内側の立体と外側の立体が反転するように入れ替わって見えます。
+            </div>
+        </div>
+
+        <!-- Math Tip Toast / Explanation -->
+        <div class="glass-panel p-3.5 rounded-2xl pointer-events-auto max-w-md text-xs text-gray-300 shadow-2xl flex items-start gap-3 border border-purple-500/20">
+            <i class="fa-solid fa-lightbulb text-purple-400 text-lg mt-0.5"></i>
+            <div>
+                <span class="font-bold text-white block mb-0.5">4次元空間（超立方体）をどう見ているか？</span>
+                3次元の物体が2次元の紙に「影」を落とすように、4次元の立体を3次元空間に透視投影（Perspective Projection）しています。W座標が変化すると、3D空間では物体の拡大縮小・内外面の入れ替わりとして観察されます。
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN 4D LOGIC SCRIPT -->
+    <script>
+        /**
+         * 4D Geometry Data Definitions & Rotation Engine
+         */
+
+        // 4D Point Class
+        class Point4D {
+            constructor(x = 0, y = 0, z = 0, w = 0) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                this.w = w;
+            }
+
+            clone() {
+                return new Point4D(this.x, this.y, this.z, this.w);
+            }
+        }
+
+        const PolytopeFactory = (() => {
+            const P = (x, y, z, w) => new Point4D(x, y, z, w);
+            const d2 = (a, b) => (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2 + (a.w-b.w)**2;
+            const edgesByDist = (V, L2) => {
+                const e = [];
+                for (let i = 0; i < V.length; i++) for (let j = i + 1; j < V.length; j++)
+                    if (Math.abs(d2(V[i], V[j]) - L2) < 1e-6) e.push([i, j]);
+                return e;
+            };
+            // 互いに隣接する3頂点 = 三角形面 (a<b<c で重複なし)
+            const triangles = (n, edges) => {
+                const adj = Array.from({ length: n }, () => new Set());
+                edges.forEach(([a, b]) => { adj[a].add(b); adj[b].add(a); });
+                const f = [];
+                for (const [a, b] of edges) for (const c of adj[a]) if (c > b && adj[b].has(c)) f.push([a, b, c]);
+                return f;
+            };
+            return {
+                tesseract() {
+                    const V = [];
+                    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) for (const w of [-1, 1]) V.push(P(x, y, z, w));
+                    const ax = ['x', 'y', 'z', 'w'], faces = [];
+                    for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) {
+                        const o = ax.filter((_, k) => k !== a && k !== b);
+                        for (const s of [-1, 1]) for (const t of [-1, 1]) {
+                            faces.push([[-1,-1],[1,-1],[1,1],[-1,1]].map(([u, v]) => {
+                                const p = P(0, 0, 0, 0);
+                                p[ax[a]] = u; p[ax[b]] = v; p[o[0]] = s; p[o[1]] = t;
+                                return V.findIndex(q => q.x === p.x && q.y === p.y && q.z === p.z && q.w === p.w);
+                            }));
+                        }
+                    }
+                    return { name: "TESSERACT", vertices: V, edges: edgesByDist(V, 4), faces, cells: 8 };
+                },
+                // 正5胞体: 重心が原点・全辺長が等しくなる正しい座標 (w = -1/√5, 4/√5)
+                simplex() {
+                    const k = 1 / Math.sqrt(5);
+                    const V = [P(1,1,1,-k), P(1,-1,-1,-k), P(-1,1,-1,-k), P(-1,-1,1,-k), P(0,0,0,4*k)];
+                    const edges = edgesByDist(V, 8);
+                    return { name: "5-CELL", vertices: V, edges, faces: triangles(5, edges), cells: 5 };
+                },
+                '24cell'() {
+                    const V = [], ax = ['x', 'y', 'z', 'w'];
+                    for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++)
+                        for (const c1 of [-1, 1]) for (const c2 of [-1, 1]) {
+                            const p = P(0, 0, 0, 0); p[ax[i]] = c1; p[ax[j]] = c2; V.push(p);
+                        }
+                    const edges = edgesByDist(V, 2);
+                    return { name: "24-CELL", vertices: V, edges, faces: triangles(V.length, edges), cells: 24 };
+                },
+                // 3次元超球面 S³ を Clifford トーラスの入れ子格子で表現 (決定的・再現可能)
+                hypersphere() {
+                    const K = 4, N = 12, R = 1.3, V = [], E = [], F = [];
+                    const id = (k, i, j) => (k * N + i) * N + j;
+                    for (let k = 0; k < K; k++) {
+                        const eta = (k + 0.5) * Math.PI / (2 * K), r1 = Math.cos(eta) * R, r2 = Math.sin(eta) * R;
+                        for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+                            const a = 2 * Math.PI * i / N, b = 2 * Math.PI * j / N;
+                            V.push(P(r1 * Math.cos(a), r1 * Math.sin(a), r2 * Math.cos(b), r2 * Math.sin(b)));
+                        }
+                    }
+                    for (let k = 0; k < K; k++) for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) {
+                        const i1 = (i + 1) % N, j1 = (j + 1) % N;
+                        E.push([id(k,i,j), id(k,i1,j)], [id(k,i,j), id(k,i,j1)]);
+                        if (k < K - 1) E.push([id(k,i,j), id(k+1,i,j)]);
+                        F.push([id(k,i,j), id(k,i1,j), id(k,i1,j1), id(k,i,j1)]);
+                    }
+                    return { name: "HYPERSPHERE", vertices: V, edges: E, faces: F, cells: "∞" };
+                }
+            };
+        })();
+
+        /**
+         * 4D Rotation Engine
+         */
+        class Engine4D {
+            static rotate(point, angles) {
+                let { x, y, z, w } = point;
+
+                // XW Plane Rotation
+                if (angles.xw !== 0) {
+                    const cos = Math.cos(angles.xw);
+                    const sin = Math.sin(angles.xw);
+                    const nx = x * cos - w * sin;
+                    const nw = x * sin + w * cos;
+                    x = nx; w = nw;
+                }
+
+                // YW Plane Rotation
+                if (angles.yw !== 0) {
+                    const cos = Math.cos(angles.yw);
+                    const sin = Math.sin(angles.yw);
+                    const ny = y * cos - w * sin;
+                    const nw = y * sin + w * cos;
+                    y = ny; w = nw;
+                }
+
+                // ZW Plane Rotation
+                if (angles.zw !== 0) {
+                    const cos = Math.cos(angles.zw);
+                    const sin = Math.sin(angles.zw);
+                    const nz = z * cos - w * sin;
+                    const nw = z * sin + w * cos;
+                    z = nz; w = nw;
+                }
+
+                // XY Plane Rotation (Z-axis spin)
+                if (angles.xy !== 0) {
+                    const cos = Math.cos(angles.xy);
+                    const sin = Math.sin(angles.xy);
+                    const nx = x * cos - y * sin;
+                    const ny = x * sin + y * cos;
+                    x = nx; y = ny;
+                }
+
+                // XZ Plane Rotation (Y-axis spin)
+                if (angles.xz !== 0) {
+                    const cos = Math.cos(angles.xz);
+                    const sin = Math.sin(angles.xz);
+                    const nx = x * cos - z * sin;
+                    const nz = x * sin + z * cos;
+                    x = nx; z = nz;
+                }
+
+                // YZ Plane Rotation (X-axis spin)
+                if (angles.yz !== 0) {
+                    const cos = Math.cos(angles.yz);
+                    const sin = Math.sin(angles.yz);
+                    const ny = y * cos - z * sin;
+                    const nz = y * sin + z * cos;
+                    y = ny; z = nz;
+                }
+
+                return new Point4D(x, y, z, w);
+            }
+
+            // Project 4D Point (X, Y, Z, W) to 3D Space (X', Y', Z')
+            static projectTo3D(p4, cameraW = 2.5, isPerspective = true) {
+                if (!isPerspective) {
+                    // Orthographic Projection (Direct drop of W)
+                    return { point3D: new THREE.Vector3(p4.x, p4.y, p4.z), w: p4.w, scale: 1.0 };
+                }
+
+                // Perspective Projection (w=0 の面でスケール1)
+                const f = cameraW / Math.max(cameraW - p4.w, 0.1);
+                return { point3D: new THREE.Vector3(p4.x * f, p4.y * f, p4.z * f), w: p4.w, scale: f };
+            }
+        }
+
+        /**
+         * WebGL Three.js Renderer Controller
+         */
+        class App3D {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                
+                // Scene setup
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x030712);
+
+                // Camera
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(3.5, 2.5, 5.0);
+
+                // Renderer
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.container.appendChild(this.renderer.domElement);
+
+                // Controls
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                // Groups
+                this.polyGroup = new THREE.Group();
+                this.axesGroup = new THREE.Group();
+                this.scene.add(this.polyGroup);
+                this.scene.add(this.axesGroup);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+                this.scene.add(ambientLight);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+                dirLight.position.set(10, 20, 15);
+                this.scene.add(dirLight);
+
+                // State
+                this.currentPoly = PolytopeFactory.tesseract();
+                this.rotations = { xw: 0, yw: 0, zw: 0, xy: 0, xz: 0, yz: 0 };
+                this.autoSpin = true;
+                this.isPerspective = true;
+                this.cameraW = 3.0;
+                this.sliceW = 0.0;
+                this.mode = '4d'; // '4d' or 'slice'
+
+                this.renderSettings = {
+                    wColor: true,
+                    showNodes: true,
+                    showFaces: true,
+                    showAxes: true
+                };
+
+                // Mesh holders
+                this.nodeMeshes = [];
+                this.edgeLines = null;
+                this.faceMeshes = [];
+
+                this.setupAxes();
+                this.bindUIEvents();
+                this.loadPolytope('tesseract');
+
+                window.addEventListener('resize', () => this.onWindowResize());
+                this.animate();
+            }
+
+            setupAxes() {
+                // 3D Reference Axis lines
+                const axisRadius = 0.01;
+                const axisLength = 2.0;
+
+                const createAxis = (color, endPos) => {
+                    const material = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.4 });
+                    const points = [new THREE.Vector3(0,0,0), endPos];
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    return new THREE.Line(geometry, material);
+                };
+
+                this.axesGroup.add(createAxis(0xef4444, new THREE.Vector3(axisLength, 0, 0))); // X Red
+                this.axesGroup.add(createAxis(0x10b981, new THREE.Vector3(0, axisLength, 0))); // Y Green
+                this.axesGroup.add(createAxis(0x3b82f6, new THREE.Vector3(0, 0, axisLength))); // Z Blue
+            }
+
+            loadPolytope(type) {
+                const p = this.currentPoly = PolytopeFactory[type]();
+                this.radius = Math.max(...p.vertices.map(v => Math.hypot(v.x, v.y, v.z, v.w)));
+                document.getElementById('poly-name-tag').textContent = p.name;
+                document.getElementById('stat-vertices').textContent = p.vertices.length;
+                document.getElementById('stat-edges').textContent = p.edges.length;
+                document.getElementById('stat-cells').textContent = p.cells;
+                this.rebuildMeshes();
+            }
+
+            rebuildMeshes() {
+                while (this.polyGroup.children.length) {
+                    const o = this.polyGroup.children[0];
+                    this.polyGroup.remove(o);
+                    if (o.geometry) o.geometry.dispose();
+                    if (o.material) o.material.dispose();
+                }
+                const poly = this.currentPoly;
+                // 4D表示: 頂点数 / スライス: 辺との交点数(最大=辺数)
+                const maxP = Math.max(poly.vertices.length, poly.edges.length);
+                const maxS = Math.max(poly.edges.length, poly.faces.length);
+
+                this.nodes = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 12, 12),
+                    new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.5 }), maxP);
+                this.nodes.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                this.nodes.setColorAt(0, new THREE.Color());
+                this.nodes.frustumCulled = false;
+
+                const lg = new THREE.BufferGeometry();
+                lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(maxS * 6), 3));
+                lg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(maxS * 6), 3));
+                this.edgeLines = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.85 }));
+                this.edgeLines.frustumCulled = false;
+
+                // 面: 多角形をファン三角形分割
+                this.tris = [];
+                poly.faces.forEach(f => { for (let k = 1; k < f.length - 1; k++) this.tris.push(f[0], f[k], f[k + 1]); });
+                const fg = new THREE.BufferGeometry();
+                fg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(this.tris.length * 3), 3));
+                fg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(this.tris.length * 3), 3));
+                this.faceMesh = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({
+                    vertexColors: true, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false }));
+                this.faceMesh.frustumCulled = false;
+
+                this.polyGroup.add(this.faceMesh, this.edgeLines, this.nodes);
+            }
+
+            // W座標 → 色 (多面体の外接半径で正規化)
+            getWColor(w) {
+                const norm = Math.max(0, Math.min(1, (w / (this.radius || 1) + 1) / 2));
+                const color = new THREE.Color();
+                if (this.renderSettings.wColor) color.setHSL(0.7 - norm * 0.7, 0.9, 0.55);
+                else color.setHex(0x818cf8);
+                return color;
+            }
+
+            updateRender() {
+                const poly = this.currentPoly, slice = this.mode === 'slice';
+                const V = poly.vertices.map(v => Engine4D.rotate(v, this.rotations));
+                const pts = [], cols = [], scales = [];
+                let segs = [];
+
+                if (!slice) {
+                    V.forEach(p => {
+                        const r = Engine4D.projectTo3D(p, this.cameraW, this.isPerspective);
+                        pts.push(r.point3D); scales.push(r.scale); cols.push(this.getWColor(p.w));
+                    });
+                    segs = poly.edges;
+                } else {
+                    // 本物の3D断面: 超平面 w = sliceW と各辺の交点を求め、交わる各面から線分を作る
+                    const s = this.sliceW, cache = new Map(), c = this.getWColor(s);
+                    const d = V.map(p => { const v = p.w - s; return Math.abs(v) < 1e-9 ? 1e-9 : v; });
+                    const cross = (a, b) => {
+                        if (d[a] * d[b] >= 0) return -1;
+                        const key = a < b ? a * 65536 + b : b * 65536 + a;
+                        if (!cache.has(key)) {
+                            const t = d[a] / (d[a] - d[b]), A = V[a], B = V[b];
+                            pts.push(new THREE.Vector3(A.x + (B.x - A.x) * t, A.y + (B.y - A.y) * t, A.z + (B.z - A.z) * t));
+                            cols.push(c); scales.push(1);
+                            cache.set(key, pts.length - 1);
+                        }
+                        return cache.get(key);
+                    };
+                    for (const f of poly.faces) {
+                        const hit = [];
+                        for (let k = 0; k < f.length; k++) { const i = cross(f[k], f[(k + 1) % f.length]); if (i >= 0) hit.push(i); }
+                        if (hit.length === 2) segs.push(hit);
+                    }
+                }
+
+                // ノード
+                const m = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new THREE.Vector3();
+                pts.forEach((p, i) => {
+                    sv.setScalar(scales[i]);
+                    this.nodes.setMatrixAt(i, m.compose(p, q, sv));
+                    this.nodes.setColorAt(i, cols[i]);
+                });
+                this.nodes.count = pts.length;
+                this.nodes.instanceMatrix.needsUpdate = true;
+                this.nodes.instanceColor.needsUpdate = true;
+                this.nodes.visible = this.renderSettings.showNodes;
+
+                // 辺
+                const lp = this.edgeLines.geometry.attributes.position, lc = this.edgeLines.geometry.attributes.color;
+                segs.forEach(([a, b], e) => {
+                    lp.setXYZ(2 * e, pts[a].x, pts[a].y, pts[a].z);
+                    lp.setXYZ(2 * e + 1, pts[b].x, pts[b].y, pts[b].z);
+                    lc.setXYZ(2 * e, cols[a].r, cols[a].g, cols[a].b);
+                    lc.setXYZ(2 * e + 1, cols[b].r, cols[b].g, cols[b].b);
+                });
+                this.edgeLines.geometry.setDrawRange(0, segs.length * 2);
+                lp.needsUpdate = true; lc.needsUpdate = true;
+
+                // 面 (4D投影表示のみ)
+                this.faceMesh.visible = !slice && this.renderSettings.showFaces;
+                if (this.faceMesh.visible) {
+                    const fp = this.faceMesh.geometry.attributes.position, fc = this.faceMesh.geometry.attributes.color;
+                    this.tris.forEach((v, i) => {
+                        fp.setXYZ(i, pts[v].x, pts[v].y, pts[v].z);
+                        fc.setXYZ(i, cols[v].r, cols[v].g, cols[v].b);
+                    });
+                    fp.needsUpdate = true; fc.needsUpdate = true;
+                }
+            }
+
+            bindUIEvents() {
+                // Object Selection Buttons
+                document.querySelectorAll('.poly-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.poly-btn').forEach(b => {
+                            b.classList.remove('active', 'bg-indigo-600/30', 'border-indigo-500', 'text-indigo-200');
+                            b.classList.add('bg-gray-800/50', 'border-gray-700/60', 'text-gray-300');
+                        });
+                        const target = e.currentTarget;
+                        target.classList.add('active', 'bg-indigo-600/30', 'border-indigo-500', 'text-indigo-200');
+                        
+                        this.loadPolytope(target.dataset.poly);
+                    });
+                });
+
+                // Mode Toggles
+                const btnMode4D = document.getElementById('btn-mode-4d');
+                const btnModeSlice = document.getElementById('btn-mode-slice');
+
+                btnMode4D.addEventListener('click', () => {
+                    this.mode = '4d';
+                    btnMode4D.className = "px-3 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white shadow transition";
+                    btnModeSlice.className = "px-3 py-1.5 rounded-lg font-semibold text-gray-400 hover:text-white transition";
+                });
+
+                btnModeSlice.addEventListener('click', () => {
+                    this.mode = 'slice';
+                    btnModeSlice.className = "px-3 py-1.5 rounded-lg font-semibold bg-pink-600 text-white shadow transition";
+                    btnMode4D.className = "px-3 py-1.5 rounded-lg font-semibold text-gray-400 hover:text-white transition";
+                });
+
+                // Projection mode
+                const btnProjPersp = document.getElementById('proj-persp');
+                const btnProjOrtho = document.getElementById('proj-ortho');
+                const perspWContainer = document.getElementById('persp-w-container');
+
+                btnProjPersp.addEventListener('click', () => {
+                    this.isPerspective = true;
+                    btnProjPersp.className = "px-2 py-1 rounded-md text-[11px] font-medium bg-indigo-600 text-white";
+                    btnProjOrtho.className = "px-2 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white";
+                    perspWContainer.style.display = 'flex';
+                });
+
+                btnProjOrtho.addEventListener('click', () => {
+                    this.isPerspective = false;
+                    btnProjOrtho.className = "px-2 py-1 rounded-md text-[11px] font-medium bg-indigo-600 text-white";
+                    btnProjPersp.className = "px-2 py-1 rounded-md text-[11px] font-medium text-gray-400 hover:text-white";
+                    perspWContainer.style.display = 'none';
+                });
+
+                // Sliders
+                const bindSlider = (id, valId, key, suffix = '') => {
+                    const slider = document.getElementById(id);
+                    const label = document.getElementById(valId);
+                    slider.addEventListener('input', (e) => {
+                        const val = parseFloat(e.target.value);
+                        this[key] = val;
+                        if (label) label.textContent = val.toFixed(2) + suffix;
+                    });
+                };
+
+                bindSlider('slider-camera-w', 'val-camera-w', 'cameraW');
+                bindSlider('slider-slice-w', 'val-slice-w', 'sliceW');
+
+                // 4D Rotation Sliders
+                const rotPlanes = ['xw', 'yw', 'zw', 'xy', 'xz', 'yz'];
+                rotPlanes.forEach(plane => {
+                    const slider = document.getElementById(`slider-rot-${plane}`);
+                    const label = document.getElementById(`val-rot-${plane}`);
+                    slider.addEventListener('input', (e) => {
+                        const val = parseFloat(e.target.value);
+                        this.rotations[plane] = val;
+                        label.textContent = val.toFixed(2) + ' rad';
+                    });
+                });
+
+                // Auto Spin Toggle
+                const btnAutoSpin = document.getElementById('btn-auto-spin');
+                btnAutoSpin.addEventListener('click', () => {
+                    this.autoSpin = !this.autoSpin;
+                    btnAutoSpin.textContent = this.autoSpin ? "ON" : "OFF";
+                    btnAutoSpin.className = this.autoSpin ? 
+                        "px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow transition" : 
+                        "px-3 py-1 rounded-lg text-xs font-semibold bg-gray-800 text-gray-400 border border-gray-700 transition";
+                    
+                    document.getElementById('stat-rot-state').textContent = this.autoSpin ? "Active (Spin)" : "Paused";
+                });
+
+                // Reset Rotation
+                document.getElementById('btn-reset-rotation').addEventListener('click', () => {
+                    rotPlanes.forEach(plane => {
+                        this.rotations[plane] = 0;
+                        document.getElementById(`slider-rot-${plane}`).value = 0;
+                        document.getElementById(`val-rot-${plane}`).textContent = '0.00 rad';
+                    });
+                });
+
+                // Render style checkboxes
+                document.getElementById('chk-w-color').addEventListener('change', (e) => {
+                    this.renderSettings.wColor = e.target.checked;
+                });
+                document.getElementById('chk-show-nodes').addEventListener('change', (e) => {
+                    this.renderSettings.showNodes = e.target.checked;
+                });
+                document.getElementById('chk-show-faces').addEventListener('change', (e) => {
+                    this.renderSettings.showFaces = e.target.checked;
+                });
+                document.getElementById('chk-show-axes').addEventListener('change', (e) => {
+                    this.axesGroup.visible = e.target.checked;
+                });
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                // Auto-rotation in 4D space
+                if (this.autoSpin) {
+                    const speed = 0.008;
+                    this.rotations.xw += speed * 0.9;
+                    this.rotations.yw += speed * 0.6;
+                    this.rotations.zw += speed * 0.4;
+                    this.rotations.xz += speed * 0.3;
+
+                    // Sync sliders UI
+                    ['xw', 'yw', 'zw', 'xz'].forEach(plane => {
+                        // Normalize angle -PI to PI
+                        if (this.rotations[plane] > Math.PI) this.rotations[plane] -= Math.PI * 2;
+                        document.getElementById(`slider-rot-${plane}`).value = this.rotations[plane];
+                        document.getElementById(`val-rot-${plane}`).textContent = this.rotations[plane].toFixed(2) + ' rad';
+                    });
+                }
+
+                this.controls.update();
+                this.updateRender();
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize App on Window Load
+        window.addEventListener('DOMContentLoaded', () => {
+            window.app = new App3D();
+        });
+    </script>
+</body>
+</html>
