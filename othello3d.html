@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3Dオセロ</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        background-color: #c1c19d;
+        color: #ecf0f1;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    #game-wrapper {
+        display: flex;
+        width: min(1200px, 98vw);
+        height: min(780px, 96vh);
+        border: 2px solid #34495e;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        background-color: #34495e;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    #view {
+        flex: 1;
+        position: relative;
+        background: radial-gradient(circle at 50% 40%, #1f4d45 0%, #0d2622 100%);
+        touch-action: none;
+        min-width: 0;
+    }
+    #view canvas { display: block; width: 100%; height: 100%; }
+    #hint-text {
+        position: absolute; left: 12px; bottom: 10px; font-size: 12px;
+        color: rgba(255,255,255,0.55); pointer-events: none; line-height: 1.5;
+    }
+    #info-panel {
+        width: 300px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow-y: auto;
+    }
+    h1 { text-align: center; margin: 0 0 4px 0; font-size: 1.6em; }
+    .info-box { background: #2c3e50; padding: 10px 12px; border-radius: 8px; text-align: center; }
+    h2 { margin: 0 0 6px 0; font-size: 0.95em; color: #95a5a6; }
+    #score-container { display: flex; justify-content: space-around; font-size: 1.8em; font-weight: bold; }
+    #turn-display { font-size: 2em; font-weight: bold; }
+    #message { min-height: 22px; margin: 0; font-size: 1em; color: #e74c3c; }
+    .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 5px 0; font-size: 0.9em; }
+    select {
+        background: #34495e; color: #ecf0f1; border: 1px solid #567; border-radius: 5px;
+        padding: 4px 6px; font-size: 1em; min-width: 90px;
+    }
+    button {
+        padding: 12px; font-size: 1.15em; background-color: #27ae60; color: white; border: none;
+        border-radius: 8px; cursor: pointer; transition: all 0.3s ease;
+    }
+    button:hover { background-color: #2ecc71; }
+    .presets { display: flex; gap: 6px; justify-content: center; margin-top: 6px; }
+    .presets button { padding: 4px 10px; font-size: 0.85em; background: #3d566e; }
+    .presets button:hover { background: #4d6a85; }
+    #menu-link {
+        position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none;
+        background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;
+    }
+    @media (max-width: 860px) {
+        body { height: auto; display: block; padding: 8px 0; }
+        #game-wrapper { flex-direction: column; width: 98vw; height: auto; margin: 0 auto; }
+        #view { height: 62vh; min-height: 320px; flex: none; }
+        #info-panel { width: 100%; }
+        #menu-link { position: static; display: block; text-align: center; margin: 0 auto 8px auto; width: 90%; }
+    }
+</style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<a id="menu-link" href="menu.html">メニューに戻る</a>
+
+<div id="game-wrapper">
+    <div id="view">
+        <div id="hint-text">ドラッグ：回転 ／ ホイール・ピンチ：ズーム<br>緑の点をタップして着手</div>
+    </div>
+    <div id="info-panel">
+        <h1>3Dオセロ</h1>
+        <div class="info-box">
+            <h2>スコア</h2>
+            <div id="score-container">
+                <div>● <span id="black-score">0</span></div>
+                <div>○ <span id="white-score">0</span></div>
+            </div>
+        </div>
+        <div class="info-box">
+            <h2>現在のターン</h2>
+            <div id="turn-display">●</div>
+        </div>
+        <div class="info-box">
+            <h2>メッセージ</h2>
+            <p id="message"></p>
+        </div>
+        <div class="info-box" style="text-align:left;">
+            <h2 style="text-align:center;">設定（自動保存）</h2>
+            <div class="row"><label for="selW">横</label><select id="selW"></select></div>
+            <div class="row"><label for="selD">縦（奥行）</label><select id="selD"></select></div>
+            <div class="row"><label for="selH">高さ</label><select id="selH"></select></div>
+            <div class="presets">
+                <button data-p="3">3³</button>
+                <button data-p="4">4³</button>
+                <button data-p="6">6³</button>
+                <button data-p="8">8³</button>
+            </div>
+            <div class="row" style="margin-top:10px;"><label for="selMode">対戦</label>
+                <select id="selMode">
+                    <option value="pvp">2人対戦</option>
+                    <option value="cpu">CPU対戦（あなたは●）</option>
+                </select>
+            </div>
+            <div class="row"><label for="selLayer">表示する層</label>
+                <select id="selLayer"></select>
+            </div>
+        </div>
+        <button id="resetButton">リセット</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+    const EMPTY = 0, BLACK = 1, WHITE = 2;
+    const SAVE_KEY = 'othello3d_v1';
+    const sleep = ms => new Promise(res => setTimeout(res, ms));
+
+    // 26方向
+    const DIRS = [];
+    for (let dx = -1; dx <= 1; dx++)
+        for (let dy = -1; dy <= 1; dy++)
+            for (let dz = -1; dz <= 1; dz++)
+                if (dx || dy || dz) DIRS.push([dx, dy, dz]);
+
+    // --- DOM ---
+    const view = document.getElementById('view');
+    const blackScoreEl = document.getElementById('black-score');
+    const whiteScoreEl = document.getElementById('white-score');
+    const turnEl = document.getElementById('turn-display');
+    const msgEl = document.getElementById('message');
+    const selW = document.getElementById('selW');
+    const selD = document.getElementById('selD');
+    const selH = document.getElementById('selH');
+    const selMode = document.getElementById('selMode');
+    const selLayer = document.getElementById('selLayer');
+    for (const s of [selW, selD, selH]) {
+        for (let n = 3; n <= 8; n++) s.add(new Option(n, n));
+    }
+
+    // --- 状態 ---
+    let W = 8, D = 8, H = 8;       // 横(x) 縦(y) 高さ(z)
+    let board = [];
+    let turn = BLACK;
+    let mode = 'pvp';
+    let layer = -1;                // -1: 全層
+    let busy = false, over = false;
+    let stoneMeshes = [];
+    let hintMeshes = [];
+    let cpuTimer = null;
+
+    const idx = (x, y, z) => (z * D + y) * W + x;
+    const inb = (x, y, z) => x >= 0 && x < W && y >= 0 && y < D && z >= 0 && z < H;
+
+    // --- three.js ---
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    view.appendChild(renderer.domElement);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 200);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+    dl.position.set(8, 14, 10);
+    scene.add(dl);
+    const dl2 = new THREE.DirectionalLight(0xffffff, 0.3);
+    dl2.position.set(-8, -6, -10);
+    scene.add(dl2);
+
+    const frameGroup = new THREE.Group();
+    const stoneGroup = new THREE.Group();
+    const hintGroup = new THREE.Group();
+    scene.add(frameGroup, stoneGroup, hintGroup);
+
+    const stoneGeo = new THREE.SphereGeometry(0.4, 24, 16);
+    const hintGeo = new THREE.SphereGeometry(0.2, 12, 8);
+    const mats = {
+        [BLACK]: new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.35, metalness: 0.1 }),
+        [WHITE]: new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.35, metalness: 0.0 }),
+        dim: {
+            [BLACK]: new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.35, transparent: true, opacity: 0.15, depthWrite: false }),
+            [WHITE]: new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.35, transparent: true, opacity: 0.15, depthWrite: false })
+        }
+    };
+    const hintMat = new THREE.MeshBasicMaterial({ color: 0x66ff99, transparent: true, opacity: 0.65, depthTest: false });
+    const hintHoverMat = new THREE.MeshBasicMaterial({ color: 0xffee55, transparent: true, opacity: 0.95, depthTest: false });
+
+    const matFor = (p, z) => (layer >= 0 && z !== layer) ? mats.dim[p] : mats[p];
+
+    function worldPos(x, y, z) {
+        return new THREE.Vector3(x - (W - 1) / 2, z - (H - 1) / 2, y - (D - 1) / 2);
+    }
+
+    function disposeGroup(g) {
+        while (g.children.length) {
+            const c = g.children.pop();
+            if (c.geometry && c.geometry !== stoneGeo && c.geometry !== hintGeo) c.geometry.dispose();
+            if (c.material && !Object.values(mats).includes(c.material) && c.material !== hintMat && c.material !== hintHoverMat && !Object.values(mats.dim).includes(c.material)) c.material.dispose();
+        }
+    }
+
+    function buildFrame() {
+        disposeGroup(frameGroup);
+        const x0 = -W / 2, x1 = W / 2, y0 = -H / 2, y1 = H / 2, z0 = -D / 2, z1 = D / 2;
+        const pts = [];
+        // 格子線（セル境界）
+        for (let j = 0; j <= H; j++) for (let k = 0; k <= D; k++) pts.push(x0, y0 + j, z0 + k, x1, y0 + j, z0 + k);
+        for (let i = 0; i <= W; i++) for (let k = 0; k <= D; k++) pts.push(x0 + i, y0, z0 + k, x0 + i, y1, z0 + k);
+        for (let i = 0; i <= W; i++) for (let j = 0; j <= H; j++) pts.push(x0 + i, y0 + j, z0, x0 + i, y0 + j, z1);
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+        frameGroup.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x9fe8d6, transparent: true, opacity: 0.13 })));
+        // 外枠
+        const box = new THREE.BoxGeometry(W, H, D);
+        frameGroup.add(new THREE.LineSegments(new THREE.EdgesGeometry(box),
+            new THREE.LineBasicMaterial({ color: 0xcffff0, transparent: true, opacity: 0.6 })));
+        box.dispose();
+        // 選択層のプレート
+        if (layer >= 0) {
+            const plane = new THREE.Mesh(new THREE.PlaneGeometry(W, D),
+                new THREE.MeshBasicMaterial({ color: 0x66ffcc, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false }));
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = layer - (H - 1) / 2 - 0.4;
+            frameGroup.add(plane);
+        }
+    }
+
+    // --- カメラ操作 ---
+    let theta = Math.PI / 5, phi = Math.PI / 3, radius = 16;
+    function resetCamera() {
+        radius = Math.max(W, D, H) * 1.9 + 3;
+        theta = Math.PI / 5; phi = Math.PI / 3;
+    }
+    function updateCamera() {
+        phi = Math.min(Math.PI - 0.08, Math.max(0.08, phi));
+        radius = Math.min(60, Math.max(4, radius));
+        camera.position.set(
+            radius * Math.sin(phi) * Math.sin(theta),
+            radius * Math.cos(phi),
+            radius * Math.sin(phi) * Math.cos(theta));
+        camera.lookAt(0, 0, 0);
+    }
+    function resize() {
+        const w = view.clientWidth, h = view.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+
+    const raycaster = new THREE.Raycaster();
+    const pointers = new Map();
+    let downPos = null, moved = false, pinchDist = 0, hovered = null;
+    const cv = renderer.domElement;
+
+    function pick(clientX, clientY) {
+        const r = cv.getBoundingClientRect();
+        const m = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+        raycaster.setFromCamera(m, camera);
+        const hits = raycaster.intersectObjects(hintMeshes, false);
+        return hits.length ? hits[0].object : null;
+    }
+    cv.addEventListener('pointerdown', e => {
+        cv.setPointerCapture(e.pointerId);
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pointers.size === 1) { downPos = { x: e.clientX, y: e.clientY }; moved = false; }
+        if (pointers.size === 2) {
+            const [a, b] = [...pointers.values()];
+            pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
+            moved = true;
+        }
+    });
+    cv.addEventListener('pointermove', e => {
+        const p = pointers.get(e.pointerId);
+        if (!p) {
+            // ホバー
+            const h = pick(e.clientX, e.clientY);
+            if (h !== hovered) {
+                if (hovered) hovered.material = hintMat;
+                hovered = h;
+                if (hovered) hovered.material = hintHoverMat;
+                cv.style.cursor = hovered ? 'pointer' : 'default';
+            }
+            return;
+        }
+        const dx = e.clientX - p.x, dy = e.clientY - p.y;
+        p.x = e.clientX; p.y = e.clientY;
+        if (pointers.size === 1) {
+            if (downPos && Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y) > 6) moved = true;
+            if (moved) { theta -= dx * 0.008; phi -= dy * 0.008; }
+        } else if (pointers.size === 2) {
+            const [a, b] = [...pointers.values()];
+            const d = Math.hypot(a.x - b.x, a.y - b.y);
+            if (pinchDist) radius *= pinchDist / d;
+            pinchDist = d;
+        }
+    });
+    function endPointer(e) {
+        const wasSingle = pointers.size === 1;
+        pointers.delete(e.pointerId);
+        if (wasSingle && !moved) {
+            const h = pick(e.clientX, e.clientY);
+            if (h) onCellChosen(h.userData.x, h.userData.y, h.userData.z);
+        }
+        if (pointers.size < 2) pinchDist = 0;
+    }
+    cv.addEventListener('pointerup', endPointer);
+    cv.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); pinchDist = 0; });
+    cv.addEventListener('wheel', e => { e.preventDefault(); radius *= Math.exp(e.deltaY * 0.001); }, { passive: false });
+
+    // --- アニメーション ---
+    const anims = [];
+    function addAnim(a) { a.start = performance.now() + (a.delay || 0); anims.push(a); }
+    function tick(now) {
+        for (let i = anims.length - 1; i >= 0; i--) {
+            const a = anims[i];
+            let t = (now - a.start) / a.dur;
+            if (t < 0) continue;
+            if (t >= 1) { t = 1; }
+            if (a.type === 'pop') {
+                const s = 1 - Math.pow(1 - t, 3);
+                a.mesh.scale.setScalar(Math.max(0.001, s));
+            } else if (a.type === 'flip') {
+                if (t >= 0.5 && !a.switched) { a.mesh.material = a.mat; a.switched = true; }
+                const s = Math.abs(1 - 2 * t);
+                a.mesh.scale.set(Math.max(0.05, s), 1 + 0.25 * Math.sin(Math.PI * t), Math.max(0.05, s));
+                a.mesh.position.y = a.baseY + 0.35 * Math.sin(Math.PI * t);
+            }
+            if (t >= 1) {
+                a.mesh.scale.set(1, 1, 1);
+                if (a.baseY !== undefined) a.mesh.position.y = a.baseY;
+                anims.splice(i, 1);
+            }
+        }
+        updateCamera();
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+    }
+
+    // --- ゲームロジック ---
+    function getFlips(x, y, z, p) {
+        const opp = p === BLACK ? WHITE : BLACK;
+        const all = [];
+        for (const [dx, dy, dz] of DIRS) {
+            const line = [];
+            let cx = x + dx, cy = y + dy, cz = z + dz;
+            while (inb(cx, cy, cz) && board[idx(cx, cy, cz)] === opp) {
+                line.push([cx, cy, cz]);
+                cx += dx; cy += dy; cz += dz;
+            }
+            if (line.length && inb(cx, cy, cz) && board[idx(cx, cy, cz)] === p) all.push(...line);
+        }
+        return all;
+    }
+    function getValidMoves(p) {
+        const mv = [];
+        for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+            if (board[idx(x, y, z)] === EMPTY) {
+                const f = getFlips(x, y, z, p);
+                if (f.length) mv.push({ x, y, z, flips: f.length });
+            }
+        }
+        return mv;
+    }
+    function counts() {
+        let b = 0, w = 0;
+        for (const v of board) { if (v === BLACK) b++; else if (v === WHITE) w++; }
+        return [b, w];
+    }
+
+    function initialBoard() {
+        board = new Array(W * D * H).fill(EMPTY);
+        const a = n => Math.floor((n - 1) / 2);
+        const ax = a(W), ay = a(D), az = a(H);
+        for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) for (let k = 0; k < 2; k++) {
+            board[idx(ax + i, ay + j, az + k)] = ((i + j + k) % 2 === 0) ? WHITE : BLACK;
+        }
+        turn = BLACK;
+    }
+
+    // --- 描画同期 ---
+    function addStoneMesh(x, y, z, p) {
+        const m = new THREE.Mesh(stoneGeo, matFor(p, z));
+        m.position.copy(worldPos(x, y, z));
+        m.userData = { x, y, z };
+        stoneGroup.add(m);
+        stoneMeshes[idx(x, y, z)] = m;
+        return m;
+    }
+    function rebuildStones() {
+        disposeGroup(stoneGroup);
+        stoneMeshes = new Array(W * D * H).fill(null);
+        for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+            const p = board[idx(x, y, z)];
+            if (p !== EMPTY) addStoneMesh(x, y, z, p);
+        }
+    }
+    function refreshStoneMaterials() {
+        for (let z = 0; z < H; z++) for (let y = 0; y < D; y++) for (let x = 0; x < W; x++) {
+            const m = stoneMeshes[idx(x, y, z)];
+            if (m) m.material = matFor(board[idx(x, y, z)], z);
+        }
+    }
+    function humanTurn() { return mode === 'pvp' || turn === BLACK; }
+    function showHints() {
+        hintMeshes.forEach(m => hintGroup.remove(m));
+        hintMeshes = [];
+        hovered = null;
+        if (over || busy || !humanTurn()) return;
+        for (const mv of getValidMoves(turn)) {
+            if (layer >= 0 && mv.z !== layer) continue;
+            const m = new THREE.Mesh(hintGeo, hintMat);
+            m.position.copy(worldPos(mv.x, mv.y, mv.z));
+            m.renderOrder = 10;
+            m.userData = { x: mv.x, y: mv.y, z: mv.z };
+            hintGroup.add(m);
+            hintMeshes.push(m);
+        }
+    }
+    function updateUI() {
+        const [b, w] = counts();
+        blackScoreEl.textContent = b;
+        whiteScoreEl.textContent = w;
+        turnEl.textContent = turn === BLACK ? '●' : '○';
+        turnEl.style.color = turn === BLACK ? '#111' : '#f0f0f0';
+        turnEl.style.textShadow = turn === BLACK ? '0 0 4px #fff' : 'none';
+    }
+
+    // --- 着手 ---
+    function onCellChosen(x, y, z) {
+        if (busy || over || !humanTurn()) return;
+        play(x, y, z);
+    }
+
+    async function play(x, y, z) {
+        const p = turn;
+        const flips = getFlips(x, y, z, p);
+        if (!flips.length) return;
+        busy = true;
+        msgEl.textContent = '';
+        showHints();
+
+        board[idx(x, y, z)] = p;
+        const placed = addStoneMesh(x, y, z, p);
+        placed.scale.setScalar(0.001);
+        addAnim({ type: 'pop', mesh: placed, dur: 250 });
+        await sleep(280);
+
+        flips.forEach(([fx, fy, fz], i) => {
+            board[idx(fx, fy, fz)] = p;
+            const m = stoneMeshes[idx(fx, fy, fz)];
+            addAnim({ type: 'flip', mesh: m, mat: matFor(p, fz), baseY: m.position.y, dur: 420, delay: i * 45 });
+        });
+        await sleep(Math.min(flips.length * 45, 900) + 480);
+
+        let next = p === BLACK ? WHITE : BLACK;
+        let valid = getValidMoves(next);
+        if (!valid.length) {
+            msgEl.textContent = `${next === BLACK ? '黒' : '白'}のパスです。`;
+            updateUI();
+            await sleep(1200);
+            next = p;
+            valid = getValidMoves(next);
+            if (!valid.length) { turn = p; busy = false; endGame(); return; }
+        }
+        turn = next;
+        busy = false;
+        updateUI();
+        showHints();
+        save();
+        maybeCPU();
+    }
+
+    function endGame() {
+        over = true;
+        const [b, w] = counts();
+        let r = '引き分け';
+        if (b > w) r = '黒の勝ち！';
+        if (w > b) r = '白の勝ち！';
+        msgEl.textContent = `ゲーム終了！ ${r}`;
+        updateUI();
+        showHints();
+        save();
+    }
+
+    // --- CPU ---
+    function maybeCPU() {
+        clearTimeout(cpuTimer);
+        if (mode !== 'cpu' || turn !== WHITE || over || busy) return;
+        cpuTimer = setTimeout(() => {
+            const mvs = getValidMoves(WHITE);
+            if (!mvs.length) return;
+            let best = null, bestScore = -Infinity;
+            for (const m of mvs) {
+                let edge = 0;
+                if (m.x === 0 || m.x === W - 1) edge++;
+                if (m.y === 0 || m.y === D - 1) edge++;
+                if (m.z === 0 || m.z === H - 1) edge++;
+                const s = m.flips + edge * edge * 2.5 + Math.random() * 1.5;
+                if (s > bestScore) { bestScore = s; best = m; }
+            }
+            play(best.x, best.y, best.z);
+        }, 600);
+    }
+
+    // --- 保存・復元 ---
+    function save() {
+        try {
+            localStorage.setItem(SAVE_KEY, JSON.stringify({
+                W, D, H, mode, layer, turn, over,
+                board: board.join('')
+            }));
+        } catch (e) {}
+    }
+    function load() {
+        try {
+            const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+            if (!s) return false;
+            const ok = n => Number.isInteger(n) && n >= 3 && n <= 8;
+            if (!ok(s.W) || !ok(s.D) || !ok(s.H)) return false;
+            W = s.W; D = s.D; H = s.H;
+            mode = s.mode === 'cpu' ? 'cpu' : 'pvp';
+            layer = (Number.isInteger(s.layer) && s.layer >= -1 && s.layer < H) ? s.layer : -1;
+            if (typeof s.board === 'string' && s.board.length === W * D * H && /^[012]+$/.test(s.board)) {
+                board = s.board.split('').map(Number);
+                turn = s.turn === WHITE ? WHITE : BLACK;
+                over = !!s.over;
+            } else {
+                initialBoard();
+            }
+            return true;
+        } catch (e) { return false; }
+    }
+
+    // --- 設定UI ---
+    function syncSelectors() {
+        selW.value = W; selD.value = D; selH.value = H; selMode.value = mode;
+        selLayer.innerHTML = '';
+        selLayer.add(new Option('すべて', -1));
+        for (let z = 0; z < H; z++) selLayer.add(new Option(`第${z + 1}層`, z));
+        selLayer.value = layer;
+    }
+
+    function newGame(keepCamera) {
+        clearTimeout(cpuTimer);
+        anims.length = 0;
+        busy = false; over = false;
+        initialBoard();
+        msgEl.textContent = '';
+        if (layer >= H) layer = -1;
+        syncSelectors();
+        buildFrame();
+        rebuildStones();
+        if (!keepCamera) resetCamera();
+        updateUI();
+        showHints();
+        save();
+        maybeCPU();
+    }
+
+    function applyDims() {
+        W = +selW.value; D = +selD.value; H = +selH.value;
+        layer = -1;
+        newGame(false);
+    }
+    selW.onchange = selD.onchange = selH.onchange = applyDims;
+    document.querySelectorAll('.presets button').forEach(b => {
+        b.onclick = () => {
+            const n = +b.dataset.p;
+            W = D = H = n; layer = -1;
+            newGame(false);
+        };
+    });
+    selMode.onchange = () => {
+        mode = selMode.value;
+        save();
+        showHints();
+        maybeCPU();
+    };
+    selLayer.onchange = () => {
+        layer = +selLayer.value;
+        buildFrame();
+        refreshStoneMaterials();
+        showHints();
+        save();
+    };
+    document.getElementById('resetButton').onclick = () => newGame(true);
+
+    // --- 起動 ---
+    const restored = load();
+    if (!restored) initialBoard();
+    syncSelectors();
+    buildFrame();
+    rebuildStones();
+    resetCamera();
+    resize();
+    updateUI();
+    if (over) {
+        const [b, w] = counts();
+        msgEl.textContent = `ゲーム終了！ ${b > w ? '黒の勝ち！' : w > b ? '白の勝ち！' : '引き分け'}`;
+    }
+    showHints();
+    maybeCPU();
+    requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
