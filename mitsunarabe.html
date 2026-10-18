@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>三並べ</title>
 <style>
-:root{--bg:#f6f5f1;--fg:#222;--card:#fff;--line:#d8d5cc;--a:#e4572e;--b:#2e86e4;--hl:#ffd166;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#f6f5f1;--fg:#222;--card:#fff;--line:#d8d5cc;--a:#f28c28;--b:#2e86e4;--hl:#ffd166;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1c1e;--fg:#eee;--card:#2a2a2d;--line:#444;--hl:#b8860b}}
 :root[data-theme="dark"]{--bg:#1c1c1e;--fg:#eee;--card:#2a2a2d;--line:#444;--hl:#b8860b}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -20,7 +20,10 @@ select,button.rs{font:inherit;padding:8px 10px;border-radius:8px;border:1px soli
 .cell{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .cell.sel{outline:4px solid var(--hl)}
 .cell.win{background:var(--hl)}
-.pc{width:62%;height:62%;border-radius:50%}
+.pc{width:64%;height:64%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:min(10vw,42px);line-height:1;box-shadow:inset 0 0 0 3px rgba(255,255,255,.55)}
+.share-row{display:none;gap:8px;width:min(92vw,360px);margin-top:14px}
+.share-row.show{display:flex}
+.btn-share{flex:1;font:inherit;font-weight:600;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
 .pc.X{background:var(--a)}.pc.O{background:var(--b)}
 details{max-width:360px;margin-top:18px;font-size:.85rem;line-height:1.6}
 </style>
@@ -45,13 +48,34 @@ details{max-width:360px;margin-top:18px;font-size:.85rem;line-height:1.6}
 <div id="status"></div>
 <div id="info"></div>
 <div id="board"></div>
+<div class="share-row" id="share">
+  <button class="btn-share" id="share-x" type="button">Xでシェア</button>
+  <button class="btn-share" id="share-line" type="button">LINEでシェア</button>
+</div>
 <details><summary>ルール</summary>
 3つずつ交互に置き、揃わなければコマを好きな空きマスへ自由に移動。縦・横・斜めに3つ並べたら勝ち。先攻 <span style="color:var(--a)">●</span>、後攻 <span style="color:var(--b)">●</span>。
 </details>
 <script>
 const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 const NAME={X:"先攻",O:"後攻"};
+const ICONS=['🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦉','🐺','🐴','🐝','🐢','🐍','🦎','🐙','🦑','🦀','🐠','🐬','🦈','🐊','🐅','🦓','🐘','🦒','🐕','🐈','🦃','🦢','🐇','🦔'];
+const KEY="mitsunarabe-settings";
 let S;
+function pickChars(){
+  const a=Math.floor(Math.random()*ICONS.length);
+  let b=Math.floor(Math.random()*(ICONS.length-1));if(b>=a)b++;
+  return{X:ICONS[a],O:ICONS[b]};
+}
+function loadSettings(){
+  let v=null;
+  try{v=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  const ok=(id,val)=>[...$(id).options].some(o=>o.value===val);
+  $("mode").value=v&&ok("mode",v.mode)?v.mode:"cpuO";
+  $("lv").value=v&&ok("lv",v.lv)?v.lv:"3";
+}
+function saveSettings(){
+  try{localStorage.setItem(KEY,JSON.stringify({mode:$("mode").value,lv:$("lv").value}))}catch(e){}
+}
 const $=id=>document.getElementById(id);
 const opp=t=>t==="X"?"O":"X";
 function winLine(b){for(const l of L){const[a,c,d]=l;if(b[a]&&b[a]===b[c]&&b[a]===b[d])return l}return null}
@@ -86,7 +110,7 @@ function cpuMove(){
   return pool[Math.floor(Math.random()*pool.length)];
 }
 function init(){
-  S={b:Array(9).fill(null),pl:{X:0,O:0},t:"X",sel:null,over:false,line:null};
+  S={b:Array(9).fill(null),pl:{X:0,O:0},t:"X",sel:null,over:false,line:null,ch:pickChars()};
   render();maybeCpu();
 }
 const isCpu=t=>{const m=$("mode").value;return m==="cpuO"&&t==="O"||m==="cpuX"&&t==="X"};
@@ -112,7 +136,7 @@ function render(){
     const c=document.createElement("button");
     c.className="cell"+(S.sel===i?" sel":"")+(S.line&&S.line.includes(i)?" win":"");
     c.setAttribute("aria-label",`マス${i+1}`);
-    if(v){const p=document.createElement("div");p.className="pc "+v;c.appendChild(p)}
+    if(v){const p=document.createElement("div");p.className="pc "+v;p.textContent=S.ch[v];c.appendChild(p)}
     c.onclick=()=>click(i);bd.appendChild(c);
   });
   const who=t=>NAME[t]+(isCpu(t)?"（CPU）":"");
@@ -121,10 +145,25 @@ function render(){
   else if(isCpu(S.t))st=`${who(S.t)}が考え中…`;
   else st=`${who(S.t)}の番：`+(S.pl[S.t]<3?"空きマスにコマを置く":(S.sel===null?"動かすコマを選ぶ":"移動先の空きマスを選ぶ"));
   $("status").textContent=st;
-  $("info").textContent=`持ちコマ　先攻 ${3-S.pl.X}／後攻 ${3-S.pl.O}`;
+  $("info").textContent=`持ちコマ　先攻 ${S.ch.X} ${3-S.pl.X}／後攻 ${S.ch.O} ${3-S.pl.O}`;
+  $("share").classList.toggle("show",S.over);
 }
+function shareText(){
+  const m=$("mode").value,w=S.t,lv={1:"弱い",3:"普通",6:"強い"}[$("lv").value];
+  const head=m==="pvp"?`2人対戦で${NAME[w]}${S.ch[w]}が勝ちました！`
+    :isCpu(w)?`CPU（${lv}）に負けました…`:`CPU（${lv}）に勝ちました！`;
+  return `三並べ ${S.ch.X} vs ${S.ch.O}\n${head}\n#三並べ\n`;
+}
+$("share-x").onclick=()=>{
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}&url=${encodeURIComponent(location.href)}`,"_blank","noopener");
+};
+$("share-line").onclick=()=>{
+  window.open(`https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(shareText()+location.href)}`,"_blank","noopener");
+};
 $("reset").onclick=init;
-$("mode").onchange=init;
+$("mode").onchange=()=>{saveSettings();init()};
+$("lv").onchange=saveSettings;
+loadSettings();
 init();
 </script>
 </body>
