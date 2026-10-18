@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>三並べ</title>
+<style>
+:root{--bg:#f6f5f1;--fg:#222;--card:#fff;--line:#d8d5cc;--a:#e4572e;--b:#2e86e4;--hl:#ffd166;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1c1e;--fg:#eee;--card:#2a2a2d;--line:#444;--hl:#b8860b}}
+:root[data-theme="dark"]{--bg:#1c1c1e;--fg:#eee;--card:#2a2a2d;--line:#444;--hl:#b8860b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px 12px}
+h1{font-size:1.3rem;margin:0 0 12px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+select,button.rs{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
+#status{font-size:1.05rem;min-height:2.6em;text-align:center;margin:6px 0;font-weight:600}
+#info{font-size:.85rem;opacity:.75;margin-bottom:10px}
+#board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(92vw,360px)}
+.cell{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.cell.sel{outline:4px solid var(--hl)}
+.cell.win{background:var(--hl)}
+.pc{width:62%;height:62%;border-radius:50%}
+.pc.X{background:var(--a)}.pc.O{background:var(--b)}
+details{max-width:360px;margin-top:18px;font-size:.85rem;line-height:1.6}
+</style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+<h1>三並べ</h1>
+<div class="ctl">
+  <select id="mode">
+    <option value="pvp">2人対戦</option>
+    <option value="cpuO">CPU対戦（あなたが先攻）</option>
+    <option value="cpuX">CPU対戦（あなたが後攻）</option>
+  </select>
+  <select id="lv">
+    <option value="1">CPU：弱い</option>
+    <option value="3" selected>CPU：普通</option>
+    <option value="6">CPU：強い</option>
+  </select>
+  <button class="rs" id="reset">リセット</button>
+</div>
+<div id="status"></div>
+<div id="info"></div>
+<div id="board"></div>
+<details><summary>ルール</summary>
+3つずつ交互に置き、揃わなければコマを好きな空きマスへ自由に移動。縦・横・斜めに3つ並べたら勝ち。先攻 <span style="color:var(--a)">●</span>、後攻 <span style="color:var(--b)">●</span>。
+</details>
+<script>
+const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const NAME={X:"先攻",O:"後攻"};
+let S;
+const $=id=>document.getElementById(id);
+const opp=t=>t==="X"?"O":"X";
+function winLine(b){for(const l of L){const[a,c,d]=l;if(b[a]&&b[a]===b[c]&&b[a]===b[d])return l}return null}
+function moves(b,pl,t){
+  const e=[];b.forEach((v,i)=>{if(!v)e.push(i)});
+  if(pl[t]<3)return e.map(to=>({from:null,to}));
+  const r=[];b.forEach((v,i)=>{if(v===t)for(const to of e)r.push({from:i,to})});
+  return r;
+}
+function apply(b,pl,t,m){
+  const nb=b.slice(),np={...pl};
+  if(m.from===null)np[t]++;else nb[m.from]=null;
+  nb[m.to]=t;return[nb,np];
+}
+function search(b,pl,t,d,a,be){
+  if(d===0)return 0;
+  let best=-Infinity;
+  for(const m of moves(b,pl,t)){
+    const[nb,np]=apply(b,pl,t,m);
+    const s=winLine(nb)?50+d:-search(nb,np,opp(t),d-1,-be,-a);
+    if(s>best)best=s;if(best>a)a=best;if(a>=be)break;
+  }
+  return best;
+}
+function cpuMove(){
+  const depth=+$("lv").value,ms=moves(S.b,S.pl,S.t);let best=-Infinity,pool=[];
+  for(const m of ms){
+    const[nb,np]=apply(S.b,S.pl,S.t,m);
+    const s=winLine(nb)?50+depth:-search(nb,np,opp(S.t),depth-1,-Infinity,Infinity);
+    if(s>best){best=s;pool=[m]}else if(s===best)pool.push(m);
+  }
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function init(){
+  S={b:Array(9).fill(null),pl:{X:0,O:0},t:"X",sel:null,over:false,line:null};
+  render();maybeCpu();
+}
+const isCpu=t=>{const m=$("mode").value;return m==="cpuO"&&t==="O"||m==="cpuX"&&t==="X"};
+function play(m){
+  [S.b,S.pl]=apply(S.b,S.pl,S.t,m);S.sel=null;
+  const l=winLine(S.b);
+  if(l){S.over=true;S.line=l}else S.t=opp(S.t);
+  render();maybeCpu();
+}
+function maybeCpu(){
+  if(!S.over&&isCpu(S.t))setTimeout(()=>{if(!S.over&&isCpu(S.t))play(cpuMove())},550);
+}
+function click(i){
+  if(S.over||isCpu(S.t))return;
+  const placing=S.pl[S.t]<3;
+  if(placing){if(!S.b[i])play({from:null,to:i});return}
+  if(S.b[i]===S.t){S.sel=S.sel===i?null:i;render();return}
+  if(!S.b[i]&&S.sel!==null)play({from:S.sel,to:i});
+}
+function render(){
+  const bd=$("board");bd.innerHTML="";
+  S.b.forEach((v,i)=>{
+    const c=document.createElement("button");
+    c.className="cell"+(S.sel===i?" sel":"")+(S.line&&S.line.includes(i)?" win":"");
+    c.setAttribute("aria-label",`マス${i+1}`);
+    if(v){const p=document.createElement("div");p.className="pc "+v;c.appendChild(p)}
+    c.onclick=()=>click(i);bd.appendChild(c);
+  });
+  const who=t=>NAME[t]+(isCpu(t)?"（CPU）":"");
+  let st;
+  if(S.over)st=`${who(S.t)}の勝ち！`;
+  else if(isCpu(S.t))st=`${who(S.t)}が考え中…`;
+  else st=`${who(S.t)}の番：`+(S.pl[S.t]<3?"空きマスにコマを置く":(S.sel===null?"動かすコマを選ぶ":"移動先の空きマスを選ぶ"));
+  $("status").textContent=st;
+  $("info").textContent=`持ちコマ　先攻 ${3-S.pl.X}／後攻 ${3-S.pl.O}`;
+}
+$("reset").onclick=init;
+$("mode").onchange=init;
+init();
+</script>
+</body>
+</html>
