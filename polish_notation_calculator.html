@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記法変換電卓 (Infix / Prefix / Postfix)</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #059669;
+      --accent-light: #ecfdf5;
+      --danger: #dc2626;
+      --danger-light: #fef2f2;
+      --display-bg: #0f172a;
+      --display-text: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 800px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    /* ディスプレイエリア */
+    .display-card {
+      background: var(--display-bg);
+      color: var(--display-text);
+      border: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 120px;
+      margin-bottom: 1rem;
+    }
+
+    .display-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .expression-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      font-family: 'Courier New', Courier, monospace;
+      width: 100%;
+      outline: none;
+      text-align: right;
+      margin: 0.5rem 0;
+    }
+
+    .result-val {
+      text-align: right;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #38bdf8;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    .result-val.error {
+      color: #f87171;
+    }
+
+    /* 電卓ボタン */
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+
+    .btn {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.1s ease;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: #e2e8f0;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-op {
+      background: #eff6ff;
+      color: var(--primary);
+      border-color: #bfdbfe;
+    }
+    .btn-op:hover { background: #dbeafe; }
+
+    .btn-action {
+      background: #fef2f2;
+      color: var(--danger);
+      border-color: #fecaca;
+    }
+    .btn-action:hover { background: #fee2e2; }
+
+    /* 結果パネル */
+    .results-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .result-card {
+      border-left: 4px solid var(--border);
+      position: relative;
+    }
+
+    .result-card.infix { border-left-color: #64748b; }
+    .result-card.prefix { border-left-color: var(--primary); }
+    .result-card.postfix { border-left-color: var(--accent); }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .infix .card-title { color: #64748b; }
+    .prefix .card-title { color: var(--primary); }
+    .postfix .card-title { color: var(--accent); }
+
+    .output-expr {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      word-break: break-all;
+      min-height: 1.8rem;
+    }
+
+    .output-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+    .copy-btn:hover {
+      background: #f1f5f9;
+      color: var(--text);
+    }
+
+    /* ステップログテーブル */
+    .steps-card {
+      margin-top: 0.5rem;
+    }
+
+    .steps-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .tab-group {
+      display: flex;
+      gap: 0.25rem;
+      background: #f1f5f9;
+      padding: 0.2rem;
+      border-radius: 6px;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 0.25rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .tab-btn.active {
+      background: #fff;
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .table-wrapper {
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+  </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+
+  <div class="container">
+    <header>
+      <h1>記法変換電卓 (Infix / Prefix / Postfix)</h1>
+      <p>標準の式（中置記法）をポーランド記法（前置）および逆ポーランド記法（後置）に変換します（全角入力対応）</p>
+    </header>
+
+    <div class="grid">
+      <!-- 左側：電卓入力パネル -->
+      <div class="calc-panel">
+        <div class="card display-card">
+          <div class="display-header">
+            <span>INFIX EXPRESSION</span>
+            <span style="cursor: pointer;" id="btnClearText">クリア</span>
+          </div>
+          <!-- キーボード入力兼用のテキストインプット -->
+          <input type="text" id="exprInput" class="expression-input" placeholder="例: (1 * 2) + 3" value="(1 * 2) + 3">
+          <div class="result-val" id="calcResult">= 5</div>
+        </div>
+
+        <div class="card">
+          <div class="calc-grid">
+            <button class="btn btn-op calc-btn" data-val="(">(</button>
+            <button class="btn btn-op calc-btn" data-val=")">)</button>
+            <button class="btn btn-op calc-btn" data-val="^">^</button>
+            <button class="btn btn-action" id="btnBack">⌫</button>
+
+            <button class="btn calc-btn" data-val="7">7</button>
+            <button class="btn calc-btn" data-val="8">8</button>
+            <button class="btn calc-btn" data-val="9">9</button>
+            <button class="btn btn-op calc-btn" data-val="/">÷</button>
+
+            <button class="btn calc-btn" data-val="4">4</button>
+            <button class="btn calc-btn" data-val="5">5</button>
+            <button class="btn calc-btn" data-val="6">6</button>
+            <button class="btn btn-op calc-btn" data-val="*">×</button>
+
+            <button class="btn calc-btn" data-val="1">1</button>
+            <button class="btn calc-btn" data-val="2">2</button>
+            <button class="btn calc-btn" data-val="3">3</button>
+            <button class="btn btn-op calc-btn" data-val="-">-</button>
+
+            <button class="btn calc-btn" data-val="0">0</button>
+            <button class="btn calc-btn" data-val=".">.</button>
+            <button class="btn btn-action" id="btnAC">AC</button>
+            <button class="btn btn-op calc-btn" data-val="+">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右側：結果 & アルゴリズム表示パネル -->
+      <div class="results-container">
+        <!-- 中置記法 -->
+        <div class="card result-card infix">
+          <div class="card-title">
+            <span>中置記法 (INFIX NOTATION)</span>
+            <button class="copy-btn" onclick="copyText('outInfix')">コピー</button>
+          </div>
+          <div class="output-expr" id="outInfix">(1 * 2) + 3</div>
+          <div class="output-desc">標準的な記法：演算子を被演算子の間に配置します</div>
+        </div>
+
+        <!-- ポーランド記法 (Prefix) -->
+        <div class="card result-card prefix">
+          <div class="card-title">
+            <span>ポーランド記法 (PREFIX / POLISH)</span>
+            <button class="copy-btn" onclick="copyText('outPrefix')">コピー</button>
+          </div>
+          <div class="output-expr" id="outPrefix">+ * 1 2 3</div>
+          <div class="output-desc">前置記法：演算子を被演算子の前に配置します (例: + A B)</div>
+        </div>
+
+        <!-- 逆ポーランド記法 (Postfix) -->
+        <div class="card result-card postfix">
+          <div class="card-title">
+            <span>逆ポーランド記法 (POSTFIX / RPN)</span>
+            <button class="copy-btn" onclick="copyText('outPostfix')">コピー</button>
+          </div>
+          <div class="output-expr" id="outPostfix">1 2 * 3 +</div>
+          <div class="output-desc">後置記法：演算子を被演算子の後に配置します (例: A B +)</div>
+        </div>
+
+        <!-- ステップログ -->
+        <div class="card steps-card">
+          <div class="steps-header">
+            <span style="font-weight: 700; font-size: 0.9rem;">変換ステップ (操車場アルゴリズム)</span>
+            <div class="tab-group">
+              <button class="tab-btn active" id="tabRPN" onclick="switchTab('RPN')">逆ポーランド</button>
+              <button class="tab-btn" id="tabPrefix" onclick="switchTab('Prefix')">ポーランド</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 15%;">Step</th>
+                  <th style="width: 20%;">トークン</th>
+                  <th style="width: 30%;">スタック</th>
+                  <th style="width: 35%;">出力 / 結果</th>
+                </tr>
+              </thead>
+              <tbody id="stepsTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 優先度定義 ---
+    const precedence = {
+      '+': 1,
+      '-': 1,
+      '*': 2,
+      '/': 2,
+      '^': 3
+    };
+
+    const isRightAssociative = (op) => op === '^';
+
+    // --- 全角/特殊記号の正規化 ---
+    function normalizeInput(str) {
+      if (!str) return '';
+      let normalized = str.normalize('NFKC');
+      normalized = normalized
+        .replace(/[×✕✖＊]/g, '*')
+        .replace(/[÷／]/g, '/')
+        .replace(/[＋]/g, '+')
+        .replace(/[−ー―‐]/g, '-')
+        .replace(/[＾]/g, '^')
+        .replace(/[（]/g, '(')
+        .replace(/[）]/g, ')');
+      return normalized;
+    }
+
+    // --- トークナイザー（字句解析） ---
+    function tokenize(expr) {
+      const cleanExpr = normalizeInput(expr);
+      const tokens = [];
+      let i = 0;
+
+      while (i < cleanExpr.length) {
+        const ch = cleanExpr[i];
+
+        if (/\s/.test(ch)) {
+          i++;
+          continue;
+        }
+
+        if (/[0-9.]/.test(ch)) {
+          let numStr = '';
+          while (i < cleanExpr.length && /[0-9.]/.test(cleanExpr[i])) {
+            numStr += cleanExpr[i];
+            i++;
+          }
+          tokens.push(numStr);
+          continue;
+        }
+
+        if (['+', '-', '*', '/', '^', '(', ')'].includes(ch)) {
+          tokens.push(ch);
+          i++;
+          continue;
+        }
+
+        if (/[a-zA-Z]/.test(ch)) {
+          let varStr = '';
+          while (i < cleanExpr.length && /[a-zA-Z0-9_]/.test(cleanExpr[i])) {
+            varStr += cleanExpr[i];
+            i++;
+          }
+          tokens.push(varStr);
+          continue;
+        }
+
+        throw new Error(`不正な文字が含まれています: '${ch}'`);
+      }
+      return tokens;
+    }
+
+    // --- 中置記法 -> 逆ポーランド記法 (Shunting-yard Algorithm) ---
+    function infixToPostfixWithSteps(tokens) {
+      const output = [];
+      const stack = [];
+      const steps = [];
+
+      tokens.forEach((token, index) => {
+        if (!isNaN(parseFloat(token)) || /^[a-zA-Z_]\w*$/.test(token)) {
+          output.push(token);
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        } else if (['+', '-', '*', '/', '^'].includes(token)) {
+          while (
+            stack.length > 0 &&
+            stack[stack.length - 1] !== '(' &&
+            (
+              precedence[stack[stack.length - 1]] > precedence[token] ||
+              (precedence[stack[stack.length - 1]] === precedence[token] && !isRightAssociative(token))
+            )
+          ) {
+            output.push(stack.pop());
+          }
+          stack.push(token);
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        } else if (token === '(') {
+          stack.push(token);
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        } else if (token === ')') {
+          let matched = false;
+          while (stack.length > 0) {
+            const top = stack.pop();
+            if (top === '(') {
+              matched = true;
+              break;
+            } else {
+              output.push(top);
+            }
+          }
+          if (!matched) throw new Error("カッコの対応が不正です");
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        }
+      });
+
+      while (stack.length > 0) {
+        const top = stack.pop();
+        if (top === '(' || top === ')') throw new Error("カッコの対応が不正です");
+        output.push(top);
+        steps.push({ step: steps.length + 1, token: '終了処理', stack: [...stack], output: [...output].join(' ') });
+      }
+
+      return { postfix: output, steps };
+    }
+
+    // --- 中置記法 -> ポーランド記法 ---
+    function infixToPrefixWithSteps(tokens) {
+      const reversedTokens = [...tokens].reverse().map(t => {
+        if (t === '(') return ')';
+        if (t === ')') return '(';
+        return t;
+      });
+
+      const output = [];
+      const stack = [];
+      const steps = [];
+
+      reversedTokens.forEach((token, index) => {
+        if (!isNaN(parseFloat(token)) || /^[a-zA-Z_]\w*$/.test(token)) {
+          output.push(token);
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        } else if (['+', '-', '*', '/', '^'].includes(token)) {
+          while (
+            stack.length > 0 &&
+            stack[stack.length - 1] !== '(' &&
+            (
+              precedence[stack[stack.length - 1]] > precedence[token] ||
+              (precedence[stack[stack.length - 1]] === precedence[token] && isRightAssociative(token))
+            )
+          ) {
+            output.push(stack.pop());
+          }
+          stack.push(token);
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        } else if (token === '(') {
+          stack.push(token);
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        } else if (token === ')') {
+          let matched = false;
+          while (stack.length > 0) {
+            const top = stack.pop();
+            if (top === '(') {
+              matched = true;
+              break;
+            } else {
+              output.push(top);
+            }
+          }
+          if (!matched) throw new Error("カッコの対応が不正です");
+          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+        }
+      });
+
+      while (stack.length > 0) {
+        const top = stack.pop();
+        if (top === '(' || top === ')') throw new Error("カッコの対応が不正です");
+        output.push(top);
+        steps.push({ step: steps.length + 1, token: '終了処理', stack: [...stack], output: [...output].join(' ') });
+      }
+
+      const prefix = output.reverse();
+      return { prefix, steps };
+    }
+
+    // --- 逆ポーランド記法の計算 ---
+    function evaluatePostfix(postfixTokens) {
+      const stack = [];
+      for (let token of postfixTokens) {
+        if (!isNaN(parseFloat(token))) {
+          stack.push(parseFloat(token));
+        } else if (['+', '-', '*', '/', '^'].includes(token)) {
+          if (stack.length < 2) throw new Error("数式が不完全です");
+          const b = stack.pop();
+          const a = stack.pop();
+          let res = 0;
+          switch (token) {
+            case '+': res = a + b; break;
+            case '-': res = a - b; break;
+            case '*': res = a * b; break;
+            case '/': 
+              if (b === 0) throw new Error("ゼロ除算エラー");
+              res = a / b; 
+              break;
+            case '^': res = Math.pow(a, b); break;
+          }
+          stack.push(res);
+        }
+      }
+      if (stack.length !== 1) throw new Error("数式が不完全です");
+      return stack[0];
+    }
+
+    // --- アプリ状態 ---
+    let currentTab = 'RPN';
+    let currentPostfixSteps = [];
+    let currentPrefixSteps = [];
+
+    // --- メイン計算・描画処理 ---
+    function processInput() {
+      const inputVal = document.getElementById('exprInput').value;
+      const normalizedStr = normalizeInput(inputVal);
+
+      document.getElementById('outInfix').innerText = normalizedStr || '-';
+
+      if (!normalizedStr.trim()) {
+        document.getElementById('outPrefix').innerText = '-';
+        document.getElementById('outPostfix').innerText = '-';
+        document.getElementById('calcResult').innerText = '= 0';
+        document.getElementById('calcResult').classList.remove('error');
+        document.getElementById('stepsTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">式を入力してください</td></tr>';
+        return;
+      }
+
+      try {
+        const tokens = tokenize(normalizedStr);
+        
+        // 逆ポーランド
+        const postfixRes = infixToPostfixWithSteps(tokens);
+        currentPostfixSteps = postfixRes.steps;
+        document.getElementById('outPostfix').innerText = postfixRes.postfix.join(' ');
+
+        // ポーランド
+        const prefixRes = infixToPrefixWithSteps(tokens);
+        currentPrefixSteps = prefixRes.steps;
+        document.getElementById('outPrefix').innerText = prefixRes.prefix.join(' ');
+
+        // 計算値
+        const val = evaluatePostfix(postfixRes.postfix);
+        document.getElementById('calcResult').innerText = `= ${val}`;
+        document.getElementById('calcResult').classList.remove('error');
+
+        // テーブル更新
+        renderSteps();
+
+      } catch (err) {
+        document.getElementById('outPrefix').innerText = '構文エラー';
+        document.getElementById('outPostfix').innerText = '構文エラー';
+        document.getElementById('calcResult').innerText = 'Error';
+        document.getElementById('calcResult').classList.add('error');
+        document.getElementById('stepsTableBody').innerHTML = `<tr><td colspan="4" class="error-msg" style="text-align:center;">${err.message}</td></tr>`;
+      }
+    }
+
+    function renderSteps() {
+      const steps = currentTab === 'RPN' ? currentPostfixSteps : currentPrefixSteps;
+      const tbody = document.getElementById('stepsTableBody');
+      
+      if (!steps || steps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ステップ情報がありません</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = steps.map(s => `
+        <tr>
+          <td>${s.step}</td>
+          <td><strong>${s.token}</strong></td>
+          <td>[ ${s.stack.join(', ')} ]</td>
+          <td>${s.output}</td>
+        </tr>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabRPN').classList.toggle('active', tab === 'RPN');
+      document.getElementById('tabPrefix').classList.toggle('active', tab === 'Prefix');
+      renderSteps();
+    }
+
+    function copyText(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      if (text && text !== '-' && text !== '構文エラー') {
+        navigator.clipboard.writeText(text);
+        alert('コピーしました: ' + text);
+      }
+    }
+
+    // --- イベントリスナーの確実なバインド ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const exprInput = document.getElementById('exprInput');
+
+      // テキスト入力の監視
+      exprInput.addEventListener('input', processInput);
+
+      // 電卓ボタンのクリック処理
+      document.querySelectorAll('.calc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.getAttribute('data-val');
+          if (val) {
+            exprInput.value += val;
+            processInput();
+          }
+        });
+      });
+
+      // AC（クリア）ボタン
+      document.getElementById('btnAC').addEventListener('click', () => {
+        exprInput.value = '';
+        processInput();
+      });
+
+      // ディスプレイ右上の「クリア」
+      document.getElementById('btnClearText').addEventListener('click', () => {
+        exprInput.value = '';
+        processInput();
+      });
+
+      // 1文字削除（⌫）ボタン
+      document.getElementById('btnBack').addEventListener('click', () => {
+        exprInput.value = exprInput.value.slice(0, -1);
+        processInput();
+      });
+
+      // 初期計算実行
+      processInput();
+    });
+  </script>
+</body>
+</html>
