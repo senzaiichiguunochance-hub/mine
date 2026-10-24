@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>十二支めぐり</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+:root{--rose:#f43f5e;--rose2:#fb7185;--soft:#fff1f2;--line:#fecdd3;--ink:#334155;--mute:#64748b}
+body{margin:0;min-height:100vh;font-family:'Kiwi Maru','Hiragino Maru Gothic ProN','Yu Gothic',sans-serif,serif;color:var(--ink);background:radial-gradient(circle at 50% 0,#fffbeb,#fff1f2 55%,#fff7ed);background-color:#fdf8f5}
+header{text-align:center;padding:44px 14px 0;max-width:680px;margin:0 auto}
+.back{position:absolute;top:10px;right:10px;z-index:10;font-size:12px;color:#333;text-decoration:none;background:rgba(255,255,255,.85);padding:5px 10px;border-radius:8px;border:1px solid #ddd}
+h1{margin:6px 0 0;font-size:clamp(24px,6vw,36px);color:var(--rose);clear:both;letter-spacing:.08em}
+.sub{margin:2px 0 0;font-size:13px;color:var(--rose2)}
+.wrap{max-width:680px;margin:0 auto;padding:10px 14px 20px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
+.tabs button{flex:1 0 auto;font:inherit;font-size:14px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--rose);cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--rose);color:#fff;border-color:var(--rose)}
+button{font-family:inherit}
+:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+.card{background:rgba(255,255,255,.88);border:1px solid #ffe4e6;border-radius:24px;padding:14px 16px;margin:0 0 12px;box-shadow:0 6px 18px -8px rgba(244,63,94,.25)}
+.card h2{margin:0 0 4px;font-size:20px;color:#be123c}
+.muted{color:var(--mute);font-size:13px;margin:2px 0}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:8px 0}
+.ctrl{text-align:center}
+.ctrl label{display:block;font-size:12px;font-weight:700;color:#e11d48;letter-spacing:.1em}
+.ctrl .row button:not(.chip){width:44px;height:44px;border-radius:16px;border:0;background:#ffe4e6;color:#be123c;font-size:20px;cursor:pointer}
+.yw{position:relative}
+#yearInput,#fy{width:150px;font:700 28px inherit;font-family:inherit;text-align:center;padding:6px 26px 6px 8px;border:2px solid var(--line);border-radius:16px;background:#fff7f8;color:var(--ink)}
+.yw span{position:absolute;right:10px;top:50%;translate:0 -50%;font-size:14px;color:var(--rose2);pointer-events:none}
+.msg{min-height:1.3em;margin:0;font-size:12px;color:#b45309}
+.chip,.btn{font-size:13px;line-height:1.4;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:#be123c;cursor:pointer}
+.btn{background:var(--rose);color:#fff;border-color:var(--rose);font-size:14px}
+.btn.ghost{background:#fff;color:#be123c;border-color:var(--line)}
+.btn:disabled{opacity:.4}
+.wheel{position:relative;width:min(100%,560px);aspect-ratio:1;margin:4px auto;container-type:size}
+.wheel>svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.ring{position:absolute;left:11%;top:11%;width:78%;height:78%;border:2px dashed var(--line);border-radius:50%;pointer-events:none}
+.center{position:absolute;left:50%;top:50%;translate:-50% -50%;width:38%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.8);border:1px solid #ffe4e6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+#cK{font-size:11cqw;font-weight:700;color:var(--rose);line-height:1}
+#cR{font-size:3.4cqw;color:var(--mute)}
+#cY{margin-top:1.5cqw;font-size:3.6cqw;font-weight:700;color:#be123c;background:#ffe4e6;border-radius:999px;padding:.3cqw 3cqw}
+.zi{position:absolute;translate:-50% -50%;width:18cqw;height:18cqw;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:24%;border:2px solid var(--line);background:rgba(255,255,255,.75);cursor:pointer;padding:0;filter:grayscale(1);opacity:.62;transition:opacity .3s,filter .3s,scale .3s;z-index:2}
+.zi:hover{opacity:.9;filter:grayscale(.4);scale:1.08}
+.zi .ic{width:12cqw;height:12cqw;display:block;pointer-events:none}
+.zi .kj{font-size:3.4cqw;font-weight:700;color:var(--ink);pointer-events:none}
+.ic svg,.mini svg{width:100%;height:100%;display:block}
+.zi.on{filter:none;opacity:1;background:#fff;border-color:var(--rose2);z-index:4;box-shadow:0 10px 24px -4px rgba(244,114,182,.5),0 0 0 4px #fcd34d;animation:pulse 2.2s infinite ease-in-out}
+@keyframes pulse{0%,100%{scale:1.05}50%{scale:1.12}}
+.hint{text-align:center;font-size:12px;color:var(--rose2);margin:4px 0}
+.lg i{display:inline-block;width:14px;border-top:2px dashed #f59e0b;vertical-align:middle;margin:0 3px}
+.lg i.g{border-color:#94a3b8}
+dl{margin:8px 0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:14px}
+dt{color:var(--rose);font-weight:700;white-space:nowrap}
+dd{margin:0}
+dd span{display:inline-block;margin:0 8px 2px 0;padding:0 8px;border-radius:999px;background:#fff1f2;font-size:13px}
+dd span.now{background:#fcd34d;font-weight:700}
+.fam{display:flex;gap:6px;margin:6px 0}
+.fsel{flex:1;display:flex;gap:10px;align-items:center;text-align:left;padding:8px 10px;border-radius:16px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--ink);font-size:15px}
+.fdel{width:40px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--mute);cursor:pointer}
+.mini{display:inline-block;width:44px;height:44px;flex:none}
+.bd{margin-left:6px;font-size:11px;background:#fcd34d;border-radius:999px;padding:0 7px}
+#famForm{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#fn{flex:1 1 120px;font:inherit;font-size:16px;padding:9px 12px;border:2px solid var(--line);border-radius:14px}
+#fy{width:130px;font-size:20px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.opt{font-size:16px;padding:14px 6px;border-radius:16px;border:2px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+.opt.ok{background:#dcfce7;border-color:#22c55e}
+.opt.ng{background:#fee2e2;border-color:#ef4444}
+.fb{min-height:2.4em;text-align:center}
+.gGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.gchip{position:relative;aspect-ratio:1;border-radius:20px;border:2px solid var(--line);background:#fff;cursor:pointer;padding:8%}
+.gchip.done{background:#fef3c7;border-color:#f59e0b}
+.gchip .num{position:absolute;right:6px;top:2px;font-size:13px;font-weight:700;color:#b45309}
+.gchip.shake{animation:sh .3s}
+@keyframes sh{25%{translate:-5px}75%{translate:5px}}
+.story{text-align:center}
+.story .big{font-size:56px}
+.story p{line-height:1.9;font-size:16px}
+.ico{gap:2px}.ico .mini{width:30px;height:30px}
+.ctr{text-align:center}
+dialog{border:0;border-radius:24px;padding:0;width:min(92vw,440px);box-shadow:0 20px 50px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(15,23,42,.45)}
+.dbox{padding:20px;position:relative}
+.dx{position:absolute;right:12px;top:12px;width:40px;height:40px;border-radius:50%;border:0;background:#f1f5f9;font-size:18px;cursor:pointer}
+.dh{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:10px;padding-right:44px}
+#dIcon{width:60px;height:60px;flex:none}
+.yg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-height:250px;overflow-y:auto}
+.yg button{padding:6px 2px;border-radius:12px;border:1px solid var(--line);background:#fff7f8;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer}
+.yg button small{display:block;font-weight:400;color:var(--mute);font-size:11px}
+.yg button.sel{background:var(--rose);color:#fff;border-color:var(--rose)}
+.yg button.sel small{color:#ffe4e6}
+#cv{width:100%;height:auto;border-radius:16px;display:block}
+footer{text-align:center;font-size:11px;color:#fda4af;padding:4px 14px 16px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+<header>
+  <a class="back" href="menu.html">← メニューに戻る</a>
+  <h1>🌸 十二支めぐり 🌸</h1>
+  <p class="sub">生まれ年や気になる年の干支を調べよう</p>
+</header>
+
+<main class="wrap">
+  <nav class="tabs" role="tablist" aria-label="モード切り替え">
+    <button role="tab" data-t="wheel" aria-selected="true">めぐり</button>
+    <button role="tab" data-t="fam" aria-selected="false">家族</button>
+    <button role="tab" data-t="quiz" aria-selected="false">クイズ</button>
+    <button role="tab" data-t="game" aria-selected="false">ならべっこ</button>
+    <button role="tab" data-t="story" aria-selected="false">お話</button>
+  </nav>
+
+  <section id="p-wheel" role="tabpanel">
+    <div class="card ctrl">
+      <label for="yearInput">西暦年を入力 (1900 〜 2100)</label>
+      <div class="row">
+        <button id="prev" aria-label="前の年">＜</button>
+        <div class="yw"><input id="yearInput" type="number" inputmode="numeric" min="1900" max="2100" placeholder="2026"><span>年</span></div>
+        <button id="next" aria-label="次の年">＞</button>
+      </div>
+      <p id="msg" class="msg" role="status"></p>
+      <div class="row">
+        <button class="chip" id="reset">今年（<span id="curTxt"></span>年）に戻す</button>
+        <button class="chip" id="nextYr"></button>
+      </div>
+      <p class="muted">※元日（1月1日）を基準に表示しています。立春前の生まれは前の年の干支とする考え方もあります。</p>
+    </div>
+
+    <div class="wheel" id="wheel">
+      <svg id="rel" viewBox="0 0 100 100" aria-hidden="true"></svg>
+      <div class="ring"></div>
+      <div class="center" aria-live="polite"><div id="cK">子</div><div id="cR"></div><div id="cY"></div></div>
+    </div>
+    <p class="hint">アイコンをタップすると、その干支の年一覧が出ます</p>
+    <p class="hint lg"><i></i>三角＝三合（相性◎）　<i class="g"></i>線＝対冲（正反対）</p>
+
+    <div class="card">
+      <h2 id="iTitle"></h2>
+      <p id="iWa" class="muted"></p>
+      <dl id="iList"></dl>
+      <div class="row">
+        <button class="btn" id="listBtn">この干支の年一覧</button>
+        <button class="btn" id="cardBtn">🎴 カードを作る</button>
+        <button class="btn ghost" id="addFam">👪 家族に追加</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-fam" role="tabpanel" hidden>
+    <div class="card">
+      <h2>家族・友だちの干支</h2>
+      <form id="famForm">
+        <input id="fn" maxlength="12" placeholder="名前" aria-label="名前" required>
+        <input id="fy" type="number" min="1900" max="2100" placeholder="生まれ年" aria-label="生まれ年" required>
+        <button class="btn" type="submit">追加</button>
+      </form>
+      <p id="fMsg" class="msg" role="status"></p>
+      <div id="famList"></div>
+      <p class="muted">この端末のブラウザにだけ保存されます。</p>
+    </div>
+  </section>
+
+  <section id="p-quiz" role="tabpanel" hidden><div id="qBox"></div></section>
+  <section id="p-game" role="tabpanel" hidden><div id="gBox"></div></section>
+  <section id="p-story" role="tabpanel" hidden><div id="sBox"></div></section>
+</main>
+
+<dialog id="yearDlg" aria-labelledby="dName"><div class="dbox">
+  <button class="dx" aria-label="閉じる">✕</button>
+  <div class="dh"><div id="dIcon"></div><div><h2 id="dName" style="margin:0"></h2><span id="dRead" class="muted"></span><p class="muted" id="dCount"></p></div></div>
+  <div class="yg" id="dGrid"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn dc">閉じる</button></div>
+</div></dialog>
+
+<dialog id="cardDlg" aria-label="シェア用カード"><div class="dbox">
+  <button class="dx" aria-label="閉じる">✕</button>
+  <canvas id="cv" role="img" aria-label="干支カード"></canvas>
+  <div class="row"><button class="btn" id="cSave">画像を保存</button><button class="btn ghost" id="cShare">共有</button></div>
+</div></dialog>
+
+<footer>© 十二支めぐり ／ アクセス数のみ匿名で集計しています</footer>
+
+<script>
+    const ZODIAC_DATA = [
+      {
+        id: 'rat',
+        kanji: '子',
+        reading: 'ね・ねずみ',
+        animal: '子（ねずみ）',
+        index: 0, // 1900 % 12 = 4 (Rat in Chinese Zodiac calendar calculation formula)
+        // SVG Icon (Cute Rat)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="55" r="32" fill="#E2E8F0"/><circle cx="28" cy="28" r="16" fill="#CBD5E1"/><circle cx="28" cy="28" r="10" fill="#F472B6"/><circle cx="72" cy="28" r="16" fill="#CBD5E1"/><circle cx="72" cy="28" r="10" fill="#F472B6"/><circle cx="40" cy="50" r="4" fill="#334155"/><circle cx="60" cy="50" r="4" fill="#334155"/><ellipse cx="50" cy="58" rx="5" ry="3" fill="#F472B6"/><path d="M46 64 Q50 67 54 64" stroke="#475569" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="56" r="4" fill="#F472B6" opacity="0.4"/><circle cx="66" cy="56" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'ox',
+        kanji: '丑',
+        reading: 'うし',
+        animal: '丑（うし）',
+        index: 1,
+        // SVG Icon (Cute Ox)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M22 30 Q12 15 25 22 Q32 30 35 35" fill="#E2E8F0" stroke="#94A3B8" stroke-width="2"/><path d="M78 30 Q88 15 75 22 Q68 30 65 35" fill="#E2E8F0" stroke="#94A3B8" stroke-width="2"/><circle cx="50" cy="55" r="33" fill="#FEF3C7"/><circle cx="40" cy="48" r="4" fill="#334155"/><circle cx="60" cy="48" r="4" fill="#334155"/><ellipse cx="50" cy="62" rx="16" ry="10" fill="#FDE68A"/><circle cx="44" cy="62" r="2.5" fill="#B45309"/><circle cx="56" cy="62" r="2.5" fill="#B45309"/><path d="M22 40 C15 35 15 50 25 48 Z" fill="#F472B6"/><path d="M78 40 C85 35 85 50 75 48 Z" fill="#F472B6"/></svg>`
+      },
+      {
+        id: 'tiger',
+        kanji: '寅',
+        reading: 'とら',
+        animal: '寅（とら）',
+        index: 2,
+        // SVG Icon (Cute Tiger)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="28" cy="28" r="12" fill="#FDBA74"/><circle cx="72" cy="28" r="12" fill="#FDBA74"/><circle cx="50" cy="55" r="33" fill="#FB923C"/><path d="M50 26 L50 34 M42 30 L58 30" stroke="#475569" stroke-width="3" stroke-linecap="round"/><path d="M22 50 L30 52 M24 58 L32 58" stroke="#475569" stroke-width="3" stroke-linecap="round"/><path d="M78 50 L70 52 M76 58 L68 58" stroke="#475569" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="50" r="4" fill="#1E293B"/><circle cx="62" cy="50" r="4" fill="#1E293B"/><ellipse cx="50" cy="62" rx="12" ry="8" fill="#FFEDD5"/><polygon points="50,58 46,55 54,55" fill="#475569"/><circle cx="32" cy="58" r="4" fill="#F472B6" opacity="0.5"/><circle cx="68" cy="58" r="4" fill="#F472B6" opacity="0.5"/></svg>`
+      },
+      {
+        id: 'rabbit',
+        kanji: '卯',
+        reading: 'う・うさぎ',
+        animal: '卯（うさぎ）',
+        index: 3,
+        // SVG Icon (Cute Rabbit)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="36" cy="28" rx="9" ry="24" fill="#F1F5F9"/><ellipse cx="36" cy="28" rx="5" ry="18" fill="#F472B6"/><ellipse cx="64" cy="28" rx="9" ry="24" fill="#F1F5F9"/><ellipse cx="64" cy="28" rx="5" ry="18" fill="#F472B6"/><circle cx="50" cy="60" r="30" fill="#FFFFFF"/><circle cx="38" cy="54" r="4" fill="#334155"/><circle cx="62" cy="54" r="4" fill="#334155"/><polygon points="50,60 46,57 54,57" fill="#F472B6"/><path d="M46 64 Q50 67 54 64" stroke="#94A3B8" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="30" cy="60" r="5" fill="#F472B6" opacity="0.4"/><circle cx="70" cy="60" r="5" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'dragon',
+        kanji: '辰',
+        reading: 'たつ',
+        animal: '辰（たつ）',
+        index: 4,
+        // SVG Icon (Cute Dragon)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M30 25 L25 10 L38 20" fill="#F59E0B"/><path d="M70 25 L75 10 L62 20" fill="#F59E0B"/><circle cx="50" cy="55" r="33" fill="#34D399"/><ellipse cx="50" cy="64" rx="20" ry="14" fill="#A7F3D0"/><circle cx="38" cy="48" r="4" fill="#064E3B"/><circle cx="62" cy="48" r="4" fill="#064E3B"/><circle cx="43" cy="60" r="2.5" fill="#047857"/><circle cx="57" cy="60" r="2.5" fill="#047857"/><path d="M22 55 Q16 55 18 45 Q26 48 24 55" fill="#F59E0B"/><path d="M78 55 Q84 55 82 45 Q74 48 76 55" fill="#F59E0B"/><circle cx="30" cy="58" r="4" fill="#F472B6" opacity="0.5"/><circle cx="70" cy="58" r="4" fill="#F472B6" opacity="0.5"/></svg>`
+      },
+      {
+        id: 'snake',
+        kanji: '巳',
+        reading: 'み・へび',
+        animal: '巳（へび）',
+        index: 5,
+        // SVG Icon (Cute Snake)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M30 75 C 10 50, 40 30, 50 30 C 75 30, 85 55, 65 72 C 50 82, 35 68, 45 55" fill="none" stroke="#A7F3D0" stroke-width="18" stroke-linecap="round"/><circle cx="50" cy="32" r="24" fill="#6EE7B7"/><circle cx="42" cy="28" r="3.5" fill="#064E3B"/><circle cx="58" cy="28" r="3.5" fill="#064E3B"/><path d="M50 36 Q50 44 46 46 M50 42 Q54 46 54 46" stroke="#EF4444" stroke-width="2" fill="none"/><circle cx="36" cy="34" r="3.5" fill="#F472B6" opacity="0.4"/><circle cx="64" cy="34" r="3.5" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'horse',
+        kanji: '午',
+        reading: 'うま',
+        animal: '午（うま）',
+        index: 6,
+        // SVG Icon (Cute Horse)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M40 18 Q50 8 60 18 L58 35 L42 35 Z" fill="#78350F"/><circle cx="50" cy="55" r="32" fill="#D97706"/><polygon points="25,25 35,38 20,40" fill="#D97706"/><polygon points="75,25 65,38 80,40" fill="#D97706"/><ellipse cx="50" cy="62" rx="18" ry="12" fill="#FDE68A"/><circle cx="38" cy="48" r="4" fill="#451A03"/><circle cx="62" cy="48" r="4" fill="#451A03"/><circle cx="43" cy="60" r="2.5" fill="#78350F"/><circle cx="57" cy="60" r="2.5" fill="#78350F"/><path d="M30 20 L50 20 L40 10 Z" fill="#F59E0B"/></svg>`
+      },
+      {
+        id: 'goat',
+        kanji: '未',
+        reading: 'ひつじ',
+        animal: '未（ひつじ）',
+        index: 7,
+        // SVG Icon (Cute Sheep/Goat)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M20 38 Q12 20 28 28" fill="none" stroke="#D97706" stroke-width="6" stroke-linecap="round"/><path d="M80 38 Q88 20 72 28" fill="none" stroke="#D97706" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="56" r="32" fill="#F8FAFC"/><circle cx="35" cy="30" r="12" fill="#F1F5F9"/><circle cx="65" cy="30" r="12" fill="#F1F5F9"/><circle cx="50" cy="26" r="14" fill="#F1F5F9"/><circle cx="38" cy="52" r="4" fill="#334155"/><circle cx="62" cy="52" r="4" fill="#334155"/><ellipse cx="50" cy="60" rx="6" ry="4" fill="#CBD5E1"/><path d="M47 64 Q50 67 53 64" stroke="#64748B" stroke-width="2" fill="none"/><circle cx="32" cy="58" r="4" fill="#F472B6" opacity="0.4"/><circle cx="68" cy="58" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'monkey',
+        kanji: '申',
+        reading: 'さる',
+        animal: '申（さる）',
+        index: 8,
+        // SVG Icon (Cute Monkey)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="20" cy="50" r="14" fill="#B45309"/><circle cx="20" cy="50" r="8" fill="#FDE68A"/><circle cx="80" cy="50" r="14" fill="#B45309"/><circle cx="80" cy="50" r="8" fill="#FDE68A"/><circle cx="50" cy="52" r="33" fill="#B45309"/><path d="M28 45 C28 30 72 30 72 45 C72 68 60 75 50 75 C40 75 28 68 28 45 Z" fill="#FDE68A"/><circle cx="40" cy="48" r="4" fill="#451A03"/><circle cx="60" cy="48" r="4" fill="#451A03"/><ellipse cx="50" cy="56" rx="5" ry="3" fill="#78350F"/><path d="M44 64 Q50 69 56 64" stroke="#78350F" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="33" cy="56" r="4" fill="#F472B6" opacity="0.4"/><circle cx="67" cy="56" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'rooster',
+        kanji: '酉',
+        reading: 'とり',
+        animal: '酉（とり）',
+        index: 9,
+        // SVG Icon (Cute Rooster)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M50 12 C44 22 56 22 50 32" stroke="#EF4444" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="50" cy="56" r="32" fill="#FFFBEB"/><polygon points="50,52 68,56 50,62" fill="#F59E0B"/><path d="M50 62 Q50 72 46 68" stroke="#EF4444" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="38" cy="48" r="4" fill="#1E293B"/><circle cx="62" cy="48" r="4" fill="#1E293B"/><circle cx="30" cy="58" r="4" fill="#F472B6" opacity="0.4"/><circle cx="70" cy="58" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'dog',
+        kanji: '戌',
+        reading: 'いぬ',
+        animal: '戌（いぬ）',
+        index: 10,
+        // SVG Icon (Cute Dog)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="22" cy="45" rx="10" ry="20" fill="#78350F" transform="rotate(15 22 45)"/><ellipse cx="78" cy="45" rx="10" ry="20" fill="#78350F" transform="rotate(-15 78 45)"/><circle cx="50" cy="55" r="32" fill="#F59E0B"/><circle cx="38" cy="48" r="4" fill="#451A03"/><circle cx="62" cy="48" r="4" fill="#451A03"/><ellipse cx="50" cy="62" rx="14" ry="10" fill="#FFFBEB"/><ellipse cx="50" cy="57" rx="5" ry="3.5" fill="#451A03"/><path d="M46 64 Q50 68 54 64" stroke="#451A03" stroke-width="2" fill="none"/><circle cx="32" cy="56" r="4" fill="#F472B6" opacity="0.4"/><circle cx="68" cy="56" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'boar',
+        kanji: '亥',
+        reading: 'いのしし',
+        animal: '亥（いのしし）',
+        index: 11,
+        // SVG Icon (Cute Boar)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="28,26 38,36 22,40" fill="#78350F"/><polygon points="72,26 62,36 78,40" fill="#78350F"/><circle cx="50" cy="55" r="32" fill="#881337"/><path d="M30 38 L70 38 M35 32 L65 32" stroke="#FDE68A" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="48" r="4" fill="#FFFBEB"/><circle cx="62" cy="48" r="4" fill="#FFFBEB"/><ellipse cx="50" cy="60" rx="14" ry="9" fill="#FDA4AF"/><circle cx="44" cy="60" r="2.5" fill="#881337"/><circle cx="56" cy="60" r="2.5" fill="#881337"/><path d="M34 66 Q30 68 36 60" stroke="#FFFBEB" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M66 66 Q70 68 64 60" stroke="#FFFBEB" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`
+      }
+    ];
+
+const MIN=1900,MAX=2100,KEY='zodiac_selected_year',FKEY='zodiac_family',BKEY='zodiac_best';
+const NOW=new Date(),CUR=NOW.getFullYear(),DEF=(CUR>=MIN&&CUR<=MAX)?CUR:2026;
+const $=id=>document.getElementById(id);
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+const KAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const KANR=['きのえ','きのと','ひのえ','ひのと','つちのえ','つちのと','かのえ','かのと','みずのえ','みずのと'];
+const SHI=['ね','うし','とら','う','たつ','み','うま','ひつじ','さる','とり','いぬ','い'];
+const META=[['北','23〜1時','賢く機転がきく'],['北北東','1〜3時','粘り強く誠実'],['東北東','3〜5時','勇敢で行動的'],['東','5〜7時','穏やかで気配り上手'],['東南東','7〜9時','器が大きく情熱的'],['南南東','9〜11時','洞察力があり慎重'],['南','11〜13時','明るく自由を愛する'],['南南西','13〜15時','優しく協調的'],['西南西','15〜17時','器用で好奇心旺盛'],['西','17〜19時','几帳面で働き者'],['西北西','19〜21時','忠実で正義感が強い'],['北北西','21〜23時','一途でまっすぐ']];
+const ERAS=[['明治',1868,1912],['大正',1912,1926],['昭和',1926,1989],['平成',1989,2019],['令和',2019,9999]];
+const MS=[['還暦',60],['古希',70],['喜寿',77],['傘寿',80],['米寿',88],['卒寿',90],['白寿',99]];
+
+const zi=y=>((y-1900)%12+12)%12;
+const ki=y=>((y-4)%10+10)%10;
+const eto=y=>KAN[ki(y)]+ZODIAC_DATA[zi(y)].kanji;
+const etoRead=y=>{const k=KANR[ki(y)];return k+(k.endsWith('と')?'の':'')+SHI[zi(y)]};
+const wareki=y=>ERAS.filter(e=>y>=e[1]&&y<=e[2]).map(e=>e[0]+(y===e[1]?'元':y-e[1]+1)+'年').join('／');
+const aName=i=>ZODIAC_DATA[i].reading.split('・')[1];
+const lab=i=>`${ZODIAC_DATA[i].kanji}（${aName(i)}）`;
+
+let year=DEF;
+
+/* ---------- めぐり ---------- */
+function buildWheel(){
+  ZODIAC_DATA.forEach((z,i)=>{
+    const a=(i*30-90)*Math.PI/180,b=document.createElement('button');
+    b.type='button';b.className='zi';b.dataset.i=i;
+    b.style.left=(50+40*Math.cos(a))+'%';b.style.top=(50+40*Math.sin(a))+'%';
+    b.setAttribute('aria-label',`${z.kanji}（${aName(i)}）の年一覧を開く`);
+    b.innerHTML=`<span class="ic">${z.svg}</span><span class="kj">${z.kanji}</span>`;
+    b.addEventListener('click',()=>zodiacClick(i));
+    $('wheel').appendChild(b);
+  });
+}
+function nearestYear(i){
+  let d=((i-zi(year))%12+12)%12;if(d>6)d-=12;
+  let t=year+d;if(t<MIN)t+=12;if(t>MAX)t-=12;return t;
+}
+function zodiacClick(i){setYear(nearestYear(i));openList(i)}
+function setYear(y,save=true){
+  year=y;$('yearInput').value=y;$('msg').textContent='';
+  if(save)store.set(KEY,String(y));
+  render();
+}
+function commitInput(){
+  const n=parseInt($('yearInput').value.trim(),10);
+  if(isNaN(n)){setYear(DEF);$('msg').textContent=`数字で入力してね。${DEF}年にしました`;return}
+  if(n<MIN||n>MAX){const c=Math.min(MAX,Math.max(MIN,n));setYear(c);$('msg').textContent=`${MIN}〜${MAX}年で入力してね。${c}年にしました`;return}
+  setYear(n);
+}
+function drawRel(i){
+  const P=k=>{const a=(k*30-90)*Math.PI/180;return[50+40*Math.cos(a),50+40*Math.sin(a)]};
+  const g=[i%4,i%4+4,i%4+8].map(P),a=P(i),b=P((i+6)%12);
+  $('rel').innerHTML=`<polygon points="${g.map(p=>p.join(',')).join(' ')}" fill="rgba(251,191,36,.18)" stroke="#f59e0b" stroke-width=".7" stroke-dasharray="2 1.5"/><line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="#94a3b8" stroke-width=".6" stroke-dasharray="1 1.5"/>`;
+}
+function render(){
+  const i=zi(year),z=ZODIAC_DATA[i],m=META[i],d=CUR-year;
+  $('cK').textContent=z.kanji;$('cR').textContent=`（${z.reading}）`;$('cY').textContent=year+'年';
+  document.querySelectorAll('.zi').forEach(b=>{const on=+b.dataset.i===i;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});
+  drawRel(i);
+  $('iTitle').textContent=`${eto(year)}（${etoRead(year)}）`;
+  $('iWa').textContent=`${year}年・${wareki(year)}`;
+  const rows=[
+    ['イメージ',`${m[2]}（言い伝え）`],
+    ['方角・時刻',`${m[0]}の方角／${m[1]}ごろ`],
+    ['年齢',d<0?`${-d}年後の年`:d===0?'今年生まれ':`今年 ${d}歳になる年（誕生日前は${d-1}歳）`]
+  ];
+  if(d>0)rows.push(['年男・年女',d%12===0?'🎉 今年は年男・年女の年！':`次の年男・年女の年は${CUR+12-d%12}年`]);
+  rows.push(['節目の年',MS.map(([n,a])=>`<span class="${year+a===CUR?'now':''}">${n} ${year+a}年</span>`).join('')]);
+  const g=[i%4,i%4+4,i%4+8].map(k=>ZODIAC_DATA[k].kanji).join('・');
+  rows.push(['相性',`三合（◎）：${g}<br>対冲（正反対）：${ZODIAC_DATA[(i+6)%12].kanji}`]);
+  $('iList').innerHTML=rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join('');
+}
+function setupNext(){
+  const ny=CUR+1;if(ny>MAX){$('nextYr').hidden=true;return}
+  const days=Math.ceil((new Date(ny,0,1)-NOW)/864e5);
+  $('nextYr').textContent=`来年は${eto(ny)}（${ZODIAC_DATA[zi(ny)].kanji}年）・元日まであと${days}日`;
+  $('nextYr').onclick=()=>setYear(ny);
+}
+
+/* ---------- 年一覧ダイアログ ---------- */
+function openList(i){
+  const z=ZODIAC_DATA[i],ys=[];
+  for(let y=MIN;y<=MAX;y++)if(zi(y)===i)ys.push(y);
+  $('dIcon').innerHTML=z.svg;$('dName').textContent=`${z.kanji}年`;
+  $('dRead').textContent=`（${z.reading}）`;$('dCount').textContent=`${MIN}〜${MAX}年の該当年（全${ys.length}回）`;
+  const g=$('dGrid');g.innerHTML='';
+  ys.forEach(y=>{
+    const b=document.createElement('button');b.type='button';
+    if(y===year)b.className='sel';
+    b.innerHTML=`${y}年<small>${eto(y)}</small>`;
+    b.onclick=()=>{setYear(y);$('yearDlg').close()};
+    g.appendChild(b);
+  });
+  $('yearDlg').showModal();
+  const s=g.querySelector('.sel');if(s)s.scrollIntoView({block:'center'});
+}
+
+/* ---------- シェア用カード ---------- */
+const loadSvg=(s,px)=>new Promise((res,rej)=>{
+  const im=new Image();im.onload=()=>res(im);im.onerror=rej;
+  if(!s.includes('xmlns'))s=s.replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" ');
+  im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s.replace('<svg ',`<svg width="${px}" height="${px}" `));
+});
+async function drawCard(){
+  try{await document.fonts.load('700 100px "Kiwi Maru"')}catch(e){}
+  const c=$('cv'),x=c.getContext('2d'),i=zi(year),z=ZODIAC_DATA[i];
+  c.width=1080;c.height=1350;
+  const g=x.createLinearGradient(0,0,1080,1350);
+  g.addColorStop(0,'#fff7ed');g.addColorStop(.5,'#ffe4e6');g.addColorStop(1,'#fef3c7');
+  x.fillStyle=g;x.fillRect(0,0,1080,1350);
+  x.strokeStyle='#fda4af';x.lineWidth=8;x.setLineDash([20,16]);x.strokeRect(50,50,980,1250);x.setLineDash([]);
+  x.textAlign='center';const F='"Kiwi Maru","Hiragino Maru Gothic ProN",sans-serif';
+  x.fillStyle='#f43f5e';x.font=`700 72px ${F}`;
+  x.fillText(year===CUR+1?'謹賀新年':'🌸 十二支めぐり 🌸',540,170,900);
+  try{x.drawImage(await loadSvg(z.svg,520),280,230,520,520)}catch(e){}
+  x.fillStyle='#be123c';x.font=`700 190px ${F}`;x.fillText(z.kanji+'年',540,980,900);
+  x.fillStyle='#334155';x.font=`700 62px ${F}`;x.fillText(`${eto(year)}（${etoRead(year)}）`,540,1075,900);
+  x.font=`500 52px ${F}`;x.fillText(`${year}年（${wareki(year)}）`,540,1160,900);
+  x.fillStyle='#64748b';x.font=`400 42px ${F}`;x.fillText(META[i][2],540,1235,900);
+}
+async function openCard(){await drawCard();$('cardDlg').showModal()}
+
+/* ---------- 家族 ---------- */
+let fam=[];try{fam=JSON.parse(store.get(FKEY)||'[]')||[]}catch(e){}
+const saveFam=()=>store.set(FKEY,JSON.stringify(fam));
+function renderFam(){
+  const box=$('famList');
+  if(!fam.length){box.innerHTML='<p class="muted">まだ登録がありません。名前と生まれ年を入れてね。</p>';return}
+  box.innerHTML=fam.map((f,k)=>{
+    const d=CUR-f.y,bd=d>0&&d%12===0?'<b class="bd">年男・年女</b>':'';
+    return `<div class="fam"><button class="fsel" data-y="${f.y}"><span class="mini">${ZODIAC_DATA[zi(f.y)].svg}</span><span><strong>${esc(f.n)}</strong>${bd}<br><small>${f.y}年 ${eto(f.y)}・${d>=0?d+'歳':'これから'}</small></span></button><button class="fdel" data-k="${k}" aria-label="${esc(f.n)}を削除">✕</button></div>`;
+  }).join('');
+}
+
+/* ---------- クイズ ---------- */
+let qs=[],qi=0,score=0;
+function makeQ(){
+  const r=n=>Math.floor(Math.random()*n),t=r(3);let q,a;
+  if(t===0){const y=1950+r(80);q=`${y}年の十二支は？`;a=zi(y)}
+  else if(t===1){const i=r(12);q=`${lab(i)}の「次」の十二支は？`;a=(i+1)%12}
+  else{const i=r(12);q=`時刻「${META[i][1]}」にあたる十二支は？`;a=i}
+  return{q,a,opts:shuf([a,...shuf([...Array(12).keys()].filter(k=>k!==a)).slice(0,3)])};
+}
+function startQuiz(){qs=Array.from({length:10},makeQ);qi=0;score=0;showQ()}
+function showQ(){
+  const b=$('qBox');
+  if(qi>=qs.length){
+    b.innerHTML=`<div class="card ctr"><h2>けっか：${score} / ${qs.length}</h2><p>${score>=9?'えとマスター！🎉':score>=6?'よくできました！':'もう一度挑戦しよう！'}</p><button class="btn" id="qAgain">もう一度</button></div>`;
+    $('qAgain').onclick=startQuiz;return;
+  }
+  const q=qs[qi];
+  b.innerHTML=`<div class="card"><p class="muted">${qi+1} / ${qs.length}　せいかい ${score}</p><h2>${q.q}</h2><div class="opts">${q.opts.map(o=>`<button class="opt" data-o="${o}">${lab(o)}</button>`).join('')}</div><p id="qFb" class="fb" role="status"></p></div>`;
+  b.querySelectorAll('.opt').forEach(btn=>btn.onclick=()=>{
+    const ok=+btn.dataset.o===q.a;if(ok)score++;
+    b.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(+x.dataset.o===q.a)x.classList.add('ok')});
+    if(!ok)btn.classList.add('ng');
+    $('qFb').innerHTML=(ok?'⭕ せいかい！':`❌ こたえは ${lab(q.a)}`)+` <button class="btn" id="qNext">${qi+1>=qs.length?'けっかを見る':'つぎへ'}</button>`;
+    $('qNext').onclick=()=>{qi++;showQ()};$('qNext').focus();
+  });
+}
+
+/* ---------- ならべっこ ---------- */
+let gi=0,gm=0,gt=0;
+function gTop(){$('gTop').textContent=`つぎは「${lab(gi)}」を探してタップ！　ミス ${gm}回`}
+function startGame(){
+  gi=0;gm=0;gt=0;
+  const best=parseFloat(store.get(BKEY));
+  $('gBox').innerHTML=`<div class="card"><h2>子から亥まで順番にタップ</h2><p class="muted" id="gTop" role="status"></p><div class="gGrid">${shuf([...Array(12).keys()]).map(i=>`<button class="gchip" data-i="${i}" aria-label="${aName(i)}"><span class="ic">${ZODIAC_DATA[i].svg}</span></button>`).join('')}</div><p class="fb" id="gFb" role="status">${isNaN(best)?'':'ベスト記録：'+best.toFixed(1)+'秒'}</p></div>`;
+  gTop();
+  $('gBox').querySelectorAll('.gchip').forEach(c=>c.onclick=()=>{
+    if(!gt)gt=Date.now();
+    const i=+c.dataset.i;
+    if(i===gi){
+      c.disabled=true;c.classList.add('done');c.insertAdjacentHTML('beforeend',`<span class="num">${i+1}</span>`);
+      gi++;if(gi===12)endGame();else gTop();
+    }else{gm++;c.classList.add('shake');setTimeout(()=>c.classList.remove('shake'),300);gTop()}
+  });
+}
+function endGame(){
+  const t=(Date.now()-gt)/1000,best=parseFloat(store.get(BKEY));
+  const nb=isNaN(best)||t<best;if(nb)store.set(BKEY,t.toFixed(1));
+  $('gTop').textContent='クリア！';
+  $('gFb').innerHTML=`🎉 ${t.toFixed(1)}秒（ミス ${gm}回）${nb?' ベスト更新！':''} <button class="btn" id="gAgain">もう一度</button>`;
+  $('gAgain').onclick=startGame;
+}
+
+/* ---------- お話 ---------- */
+const SL=[
+  ['📜','神様のおふれ','むかしむかし、神様が動物たちに言いました。「元日の朝、わしのところへ挨拶に来なさい。早く着いた12ひきには、1年ずつ大将にしてあげよう。」'],
+  ['🐱','ねことねずみ','ねこは日にちをわすれて、ねずみに聞きました。ずるいねずみは、わざと1日あとの日を教えてしまいました。'],
+  ['🌊','大きな川のレース','みんなは夜明けとともに走り出し、最後は大きな川をわたります。ちいさなねずみは、牛の背中にこっそり乗りました。'],
+  ['🏁','ゴール！','ゴール直前、ねずみがぴょんと飛びおりて一番！牛は二番。そのあと、とら・うさぎ・たつ・へび・うま・ひつじ・さる・とり・いぬ・いのししの順にゴールしました。',1],
+  ['😾','ねこのいかり','日にちをまちがえたねこは、12ひきに入れませんでした。おこったねこは、今でもねずみを追いかけるのだそうです。（※昔話には地域によっていろいろな言い伝えがあります）']
+];
+let si=0;
+function renderStory(){
+  const s=SL[si];
+  $('sBox').innerHTML=`<div class="card story"><div class="big" aria-hidden="true">${s[0]}</div><h2>${s[1]}</h2><p>${s[2]}</p>${s[3]?`<div class="row ico">${ZODIAC_DATA.map(z=>`<span class="mini">${z.svg}</span>`).join('')}</div>`:''}<div class="row"><button class="btn ghost" id="sP" ${si?'':'disabled'}>＜ まえ</button><span class="muted">${si+1} / ${SL.length}</span><button class="btn" id="sN">${si===SL.length-1?'はじめから':'つぎ ＞'}</button></div></div>`;
+  $('sP').onclick=()=>{si--;renderStory()};
+  $('sN').onclick=()=>{si=si===SL.length-1?0:si+1;renderStory()};
+}
+
+/* ---------- タブ ---------- */
+const tabs=[...document.querySelectorAll('[role=tab]')];
+let gReady=false;
+function showTab(n){
+  tabs.forEach(t=>{const on=t.dataset.t===n;t.setAttribute('aria-selected',on);$('p-'+t.dataset.t).hidden=!on});
+  if(n==='quiz'&&!qs.length)startQuiz();
+  if(n==='game'&&!gReady){gReady=true;startGame()}
+  if(n==='story')renderStory();
+  if(n==='fam')renderFam();
+}
+
+/* ---------- 初期化 ---------- */
+function init(){
+  $('curTxt').textContent=DEF;
+  const s=parseInt(store.get(KEY),10);if(s>=MIN&&s<=MAX)year=s;
+  buildWheel();setupNext();
+  tabs.forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.t)));
+  $('yearInput').addEventListener('change',commitInput);
+  $('yearInput').addEventListener('keydown',e=>{if(e.key==='Enter'){commitInput();e.target.blur()}});
+  $('prev').onclick=()=>setYear(year-1<MIN?MAX:year-1);
+  $('next').onclick=()=>setYear(year+1>MAX?MIN:year+1);
+  $('reset').onclick=()=>setYear(DEF);
+  $('listBtn').onclick=()=>openList(zi(year));
+  $('cardBtn').onclick=openCard;
+  $('addFam').onclick=()=>{showTab('fam');$('fy').value=year;$('fn').focus()};
+  document.querySelectorAll('dialog').forEach(d=>{
+    d.addEventListener('click',e=>{if(e.target===d)d.close()});
+    d.querySelectorAll('.dx,.dc').forEach(b=>b.onclick=()=>d.close());
+  });
+  $('cSave').onclick=()=>{const a=document.createElement('a');a.href=$('cv').toDataURL('image/png');a.download=`eto-${year}.png`;a.click()};
+  $('cShare').onclick=async()=>{
+    const blob=await new Promise(r=>$('cv').toBlob(r)),f=new File([blob],`eto-${year}.png`,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'十二支めぐり'})}catch(e){}}
+    else $('cSave').click();
+  };
+  $('famForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const n=$('fn').value.trim(),y=parseInt($('fy').value,10);
+    if(!n||isNaN(y)||y<MIN||y>MAX){$('fMsg').textContent=`${MIN}〜${MAX}年の生まれ年を入れてね`;return}
+    if(fam.length>=30){$('fMsg').textContent='登録は30人までです';return}
+    fam.push({n,y});saveFam();renderFam();$('fMsg').textContent='';$('fn').value='';$('fy').value='';
+  });
+  $('famList').addEventListener('click',e=>{
+    const s=e.target.closest('.fsel'),d=e.target.closest('.fdel');
+    if(s){setYear(+s.dataset.y);showTab('wheel');window.scrollTo({top:0,behavior:'smooth'})}
+    if(d){fam.splice(+d.dataset.k,1);saveFam();renderFam()}
+  });
+  setYear(year,false);renderFam();
+}
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
