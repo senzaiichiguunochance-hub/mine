@@ -17,741 +17,1497 @@
       --accent-light: #ecfdf5;
       --danger: #dc2626;
       --danger-light: #fef2f2;
+      --warn: #d97706;
       --display-bg: #0f172a;
       --display-text: #f8fafc;
+      --btn-bg: #f1f5f9;
+      --btn-hover: #e2e8f0;
+      --op-bg: #eff6ff;
+      --op-border: #bfdbfe;
+      --op-hover: #dbeafe;
+      --act-bg: #fef2f2;
+      --act-border: #fecaca;
+      --act-hover: #fee2e2;
+      --th-bg: #f8fafc;
+      --cur-bg: #fef9c3;
+      --edge: #94a3b8;
+    }
+    [data-theme="dark"] {
+      --bg: #0b1120;
+      --card-bg: #111a2e;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #25324d;
+      --primary: #60a5fa;
+      --primary-light: #172554;
+      --accent: #34d399;
+      --accent-light: #052e22;
+      --danger: #f87171;
+      --danger-light: #3b1114;
+      --warn: #fbbf24;
+      --display-bg: #020617;
+      --display-text: #f8fafc;
+      --btn-bg: #1b2740;
+      --btn-hover: #263553;
+      --op-bg: #172554;
+      --op-border: #1e3a8a;
+      --op-hover: #1e3a8a;
+      --act-bg: #3b1114;
+      --act-border: #7f1d1d;
+      --act-hover: #4c1519;
+      --th-bg: #16213a;
+      --cur-bg: #3f3a0b;
+      --edge: #475569;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Hiragino Sans", "Noto Sans JP", sans-serif; }
 
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      padding: 2rem 1rem;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-    }
+    body { background: var(--bg); color: var(--text); padding: 2rem 1rem; min-height: 100vh; display: flex; justify-content: center; }
+    .container { max-width: 1100px; width: 100%; display: flex; flex-direction: column; gap: 1.25rem; }
 
-    .container {
-      max-width: 1000px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
+    header { text-align: center; margin-bottom: 0.25rem; }
+    header h1 { font-size: 1.8rem; font-weight: 700; }
+    header p { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem; }
 
-    header {
-      text-align: center;
-      margin-bottom: 0.5rem;
-    }
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 1.25rem; align-items: start; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+    .col { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 
-    header h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--text);
-    }
+    .card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); padding: 1.1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card h2 { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.6rem; }
 
-    header p {
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-top: 0.25rem;
-    }
+    /* 記法セレクタ */
+    .seg { display: flex; gap: 0.25rem; background: var(--btn-bg); padding: 0.2rem; border-radius: 8px; margin-bottom: 0.75rem; }
+    .seg button { flex: 1; border: none; background: transparent; padding: 0.4rem 0.3rem; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; color: var(--text-muted); }
+    .seg button.active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 1.5rem;
-    }
+    /* ディスプレイ */
+    .display-card { background: var(--display-bg); color: var(--display-text); border: none; min-height: 130px; }
+    .display-header { display: flex; justify-content: space-between; font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .display-header span.link { cursor: pointer; }
+    .expression-input { background: transparent; border: none; color: #fff; font-size: 1.4rem; font-family: 'Courier New', Courier, monospace; width: 100%; outline: none; text-align: right; margin: 0.5rem 0; }
+    .result-val { text-align: right; font-size: 1.2rem; font-weight: 600; color: #38bdf8; font-family: 'Courier New', Courier, monospace; word-break: break-all; min-height: 1.6rem; }
+    .result-val.error { color: #f87171; font-size: 0.85rem; font-family: inherit; font-weight: 600; }
+    .result-val.soft { color: #fbbf24; font-size: 0.85rem; font-family: inherit; font-weight: 600; }
 
-    @media (max-width: 800px) {
-      .grid {
-        grid-template-columns: 1fr;
-      }
-    }
+    /* キーパッド */
+    .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.45rem; }
+    .fn-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem; margin-top: 0.6rem; }
+    .btn { background: var(--btn-bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 0; font-size: 1.05rem; font-weight: 600; color: var(--text); cursor: pointer; transition: all 0.1s ease; user-select: none; }
+    .btn:hover { background: var(--btn-hover); }
+    .btn:active { transform: scale(0.97); }
+    .btn-op { background: var(--op-bg); color: var(--primary); border-color: var(--op-border); }
+    .btn-op:hover { background: var(--op-hover); }
+    .btn-action { background: var(--act-bg); color: var(--danger); border-color: var(--act-border); }
+    .btn-action:hover { background: var(--act-hover); }
+    .fn-grid .btn { padding: 0.5rem 0; font-size: 0.82rem; }
+    body:not([data-mode="infix"]) .only-infix { display: none; }
+    body[data-mode="infix"] .only-rpn { display: none; }
 
-    .card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      padding: 1.25rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
+    /* 設定 */
+    .settings { display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.82rem; }
+    .settings label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+    .settings select, .quiz-controls select { background: var(--btn-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem 0.4rem; font-size: 0.8rem; }
 
-    /* ディスプレイエリア */
-    .display-card {
-      background: var(--display-bg);
-      color: var(--display-text);
-      border: none;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 120px;
-      margin-bottom: 1rem;
-    }
+    /* 変数・履歴 */
+    .var-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; font-family: 'Courier New', monospace; font-size: 0.9rem; }
+    .var-row input { flex: 1; min-width: 0; background: var(--btn-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.5rem; font-size: 0.9rem; }
+    .muted { color: var(--text-muted); font-size: 0.8rem; }
+    .hist-list { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; max-height: 200px; overflow-y: auto; }
+    .hist-list li button { width: 100%; text-align: left; background: var(--btn-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.5rem; cursor: pointer; color: var(--text); font-family: 'Courier New', monospace; font-size: 0.8rem; display: flex; justify-content: space-between; gap: 0.5rem; }
+    .hist-list li button:hover { background: var(--btn-hover); }
+    .hist-list .h-res { color: var(--primary); font-weight: 700; white-space: nowrap; }
+    .hist-list .h-expr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mini-btn { background: transparent; border: 1px solid var(--border); padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; color: var(--text-muted); }
+    .mini-btn:hover { background: var(--btn-hover); color: var(--text); }
+    .mini-btn.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .mini-btn.primary:hover { opacity: 0.9; background: var(--primary); color: #fff; }
 
-    .display-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .expression-input {
-      background: transparent;
-      border: none;
-      color: #fff;
-      font-size: 1.5rem;
-      font-family: 'Courier New', Courier, monospace;
-      width: 100%;
-      outline: none;
-      text-align: right;
-      margin: 0.5rem 0;
-    }
-
-    .result-val {
-      text-align: right;
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #38bdf8;
-      font-family: 'Courier New', Courier, monospace;
-    }
-
-    .result-val.error {
-      color: #f87171;
-    }
-
-    /* 電卓ボタン */
-    .calc-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.5rem;
-    }
-
-    .btn {
-      background: #f1f5f9;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.85rem 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text);
-      cursor: pointer;
-      transition: all 0.1s ease;
-      user-select: none;
-    }
-
-    .btn:hover {
-      background: #e2e8f0;
-    }
-
-    .btn:active {
-      transform: scale(0.97);
-    }
-
-    .btn-op {
-      background: #eff6ff;
-      color: var(--primary);
-      border-color: #bfdbfe;
-    }
-    .btn-op:hover { background: #dbeafe; }
-
-    .btn-action {
-      background: #fef2f2;
-      color: var(--danger);
-      border-color: #fecaca;
-    }
-    .btn-action:hover { background: #fee2e2; }
-
-    /* 結果パネル */
-    .results-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .result-card {
-      border-left: 4px solid var(--border);
-      position: relative;
-    }
-
+    /* 結果カード */
+    .result-card { border-left: 4px solid var(--border); }
     .result-card.infix { border-left-color: #64748b; }
+    .result-card.full { border-left-color: #a855f7; }
     .result-card.prefix { border-left-color: var(--primary); }
     .result-card.postfix { border-left-color: var(--accent); }
-
-    .card-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
+    .card-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center; }
     .infix .card-title { color: #64748b; }
+    .full .card-title { color: #a855f7; }
     .prefix .card-title { color: var(--primary); }
     .postfix .card-title { color: var(--accent); }
+    .output-expr { font-family: 'Courier New', Courier, monospace; font-size: 1.15rem; font-weight: 700; word-break: break-all; min-height: 1.6rem; }
+    .output-expr.dim { color: var(--text-muted); font-weight: 400; }
+    .output-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+    @media (max-width: 640px) { .results-grid { grid-template-columns: 1fr; } }
+    .copy-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
-    .output-expr {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 1.25rem;
-      font-weight: 700;
-      word-break: break-all;
-      min-height: 1.8rem;
-    }
+    /* 構文木 */
+    .tree-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; font-size: 0.8rem; }
+    .tree-controls select, .tree-controls input[type=range] { background: var(--btn-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.15rem 0.4rem; }
+    .tree-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); padding: 0.25rem; text-align: center; }
+    .tree-wrap svg { display: inline-block; }
+    .tedge { stroke: var(--edge); stroke-width: 1.5; }
+    .tnode circle { fill: var(--card-bg); stroke: var(--edge); stroke-width: 2; transition: all 0.15s; }
+    .tnode.leaf circle { stroke: var(--accent); }
+    .tnode.op circle { stroke: var(--primary); }
+    .tnode text { fill: var(--text); font-size: 13px; font-weight: 700; text-anchor: middle; dominant-baseline: central; font-family: 'Courier New', monospace; pointer-events: none; }
+    .tnode.visited circle { fill: var(--primary-light); }
+    .tnode.current circle { fill: var(--warn); stroke: var(--warn); }
+    .tnode.current text { fill: #000; }
+    .visit-out { font-family: 'Courier New', monospace; font-size: 0.95rem; margin-top: 0.5rem; min-height: 1.4rem; word-break: break-all; }
 
-    .output-desc {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.25rem;
-    }
+    /* ステップ */
+    .steps-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; gap: 0.5rem; flex-wrap: wrap; }
+    .tab-group { display: flex; gap: 0.25rem; background: var(--btn-bg); padding: 0.2rem; border-radius: 6px; flex-wrap: wrap; }
+    .tab-btn { border: none; background: transparent; padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 600; border-radius: 4px; cursor: pointer; color: var(--text-muted); }
+    .tab-btn.active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .step-ctrl { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
+    .step-body { display: flex; gap: 0.8rem; align-items: stretch; }
+    @media (max-width: 640px) { .step-body { flex-direction: column; } }
+    .table-wrapper { flex: 1; min-width: 0; max-height: 280px; overflow: auto; border: 1px solid var(--border); border-radius: 6px; position: relative; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left; }
+    th, td { padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--border); font-family: 'Courier New', Courier, monospace; vertical-align: top; }
+    th { background: var(--th-bg); color: var(--text-muted); font-weight: 600; position: sticky; top: 0; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    tr.cur td { background: var(--cur-bg); }
+    .table-msg { text-align: center; color: var(--text-muted); padding: 1rem; font-family: inherit; }
+    .stack-box { width: 150px; flex-shrink: 0; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; display: flex; flex-direction: column; }
+    @media (max-width: 640px) { .stack-box { width: 100%; } }
+    .stack-title { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .stack-items { display: flex; flex-direction: column; gap: 3px; flex: 1; justify-content: flex-end; min-height: 80px; max-height: 240px; overflow-y: auto; border-bottom: 3px solid var(--text-muted); padding-bottom: 3px; }
+    .stack-item { background: var(--primary-light); border: 1px solid var(--op-border); border-radius: 4px; padding: 0.2rem 0.4rem; text-align: center; font-family: 'Courier New', monospace; font-size: 0.85rem; word-break: break-all; }
+    .stack-item.top { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .stack-empty { color: var(--text-muted); font-size: 0.78rem; text-align: center; margin: auto; }
 
-    .copy-btn {
-      background: transparent;
-      border: 1px solid var(--border);
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      color: var(--text-muted);
-    }
-    .copy-btn:hover {
-      background: #f1f5f9;
-      color: var(--text);
-    }
-
-    /* ステップログテーブル */
-    .steps-card {
-      margin-top: 0.5rem;
-    }
-
-    .steps-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-
-    .tab-group {
-      display: flex;
-      gap: 0.25rem;
-      background: #f1f5f9;
-      padding: 0.2rem;
-      border-radius: 6px;
-    }
-
-    .tab-btn {
-      border: none;
-      background: transparent;
-      padding: 0.25rem 0.6rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      border-radius: 4px;
-      cursor: pointer;
-      color: var(--text-muted);
-    }
-
-    .tab-btn.active {
-      background: #fff;
-      color: var(--text);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-
-    .table-wrapper {
-      max-height: 250px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-      text-align: left;
-    }
-
-    th, td {
-      padding: 0.5rem 0.75rem;
-      border-bottom: 1px solid var(--border);
-      font-family: 'Courier New', Courier, monospace;
-    }
-
-    th {
-      background: #f8fafc;
-      color: var(--text-muted);
-      font-weight: 600;
-      position: sticky;
-      top: 0;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
-    }
-
-    .error-msg {
-      color: var(--danger);
-      font-size: 0.9rem;
-      font-weight: bold;
-    }
+    /* 学習 */
+    .quiz-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; font-size: 0.82rem; margin-bottom: 0.7rem; }
+    .quiz-q { background: var(--btn-bg); border-radius: 8px; padding: 0.8rem; margin-bottom: 0.6rem; }
+    .quiz-q .q-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+    .quiz-q .q-expr { font-family: 'Courier New', monospace; font-size: 1.3rem; font-weight: 700; word-break: break-all; }
+    .quiz-answer { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+    .quiz-answer input { flex: 1; min-width: 200px; background: var(--btn-bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.7rem; font-family: 'Courier New', monospace; font-size: 1rem; }
+    .quiz-fb { font-size: 0.9rem; min-height: 1.4rem; line-height: 1.6; }
+    .quiz-fb.ok { color: var(--accent); }
+    .quiz-fb.ng { color: var(--danger); }
+    .quiz-score { font-size: 0.8rem; color: var(--text-muted); margin-left: auto; }
+    .explain h3 { font-size: 0.9rem; margin: 0.9rem 0 0.4rem; }
+    .explain p, .explain li { font-size: 0.86rem; line-height: 1.7; color: var(--text); }
+    .explain ul { padding-left: 1.2rem; }
+    .explain table th, .explain table td { font-family: inherit; }
+    .explain code { font-family: 'Courier New', monospace; background: var(--btn-bg); padding: 0 0.3rem; border-radius: 3px; }
+    .hidden { display: none !important; }
   </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
-<body>
+<body data-mode="infix">
 <a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
 
   <div class="container">
     <header>
       <h1>記法変換電卓 (Infix / Prefix / Postfix)</h1>
-      <p>標準の式（中置記法）をポーランド記法（前置）および逆ポーランド記法（後置）に変換します（全角入力対応）</p>
+      <p>中置・前置(ポーランド)・後置(逆ポーランド)を相互変換。構文木・ステップ実行・クイズ付き（全角入力対応）</p>
     </header>
 
     <div class="grid">
-      <!-- 左側：電卓入力パネル -->
-      <div class="calc-panel">
-        <div class="card display-card">
-          <div class="display-header">
-            <span>INFIX EXPRESSION</span>
-            <span style="cursor: pointer;" id="btnClearText">クリア</span>
+      <!-- 左カラム -->
+      <div class="col">
+        <div>
+          <div class="seg" id="notationSeg">
+            <button data-n="infix" class="active">中置で入力</button>
+            <button data-n="prefix">前置で入力</button>
+            <button data-n="postfix">後置で入力</button>
           </div>
-          <!-- キーボード入力兼用のテキストインプット -->
-          <input type="text" id="exprInput" class="expression-input" placeholder="例: (1 * 2) + 3" value="(1 * 2) + 3">
-          <div class="result-val" id="calcResult">= 5</div>
+          <div class="card display-card">
+            <div class="display-header">
+              <span id="dispLabel">INFIX EXPRESSION</span>
+              <span class="link" id="btnClearText">クリア</span>
+            </div>
+            <input type="text" id="exprInput" class="expression-input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例: (1 * 2) + 3" value="(1 * 2) + 3">
+            <div class="result-val" id="calcResult">= 5</div>
+          </div>
         </div>
 
         <div class="card">
-          <div class="calc-grid">
-            <button class="btn btn-op calc-btn" data-val="(">(</button>
-            <button class="btn btn-op calc-btn" data-val=")">)</button>
-            <button class="btn btn-op calc-btn" data-val="^">^</button>
+          <div class="calc-grid" id="keypad">
+            <button class="btn btn-op only-infix" data-kind="paren" data-val="(">(</button>
+            <button class="btn btn-op only-infix" data-kind="paren" data-val=")">)</button>
+            <button class="btn btn-op" data-kind="op" data-val="^">^</button>
             <button class="btn btn-action" id="btnBack">⌫</button>
 
-            <button class="btn calc-btn" data-val="7">7</button>
-            <button class="btn calc-btn" data-val="8">8</button>
-            <button class="btn calc-btn" data-val="9">9</button>
-            <button class="btn btn-op calc-btn" data-val="/">÷</button>
+            <button class="btn" data-kind="digit" data-val="7">7</button>
+            <button class="btn" data-kind="digit" data-val="8">8</button>
+            <button class="btn" data-kind="digit" data-val="9">9</button>
+            <button class="btn btn-op" data-kind="op" data-val="/">÷</button>
 
-            <button class="btn calc-btn" data-val="4">4</button>
-            <button class="btn calc-btn" data-val="5">5</button>
-            <button class="btn calc-btn" data-val="6">6</button>
-            <button class="btn btn-op calc-btn" data-val="*">×</button>
+            <button class="btn" data-kind="digit" data-val="4">4</button>
+            <button class="btn" data-kind="digit" data-val="5">5</button>
+            <button class="btn" data-kind="digit" data-val="6">6</button>
+            <button class="btn btn-op" data-kind="op" data-val="*">×</button>
 
-            <button class="btn calc-btn" data-val="1">1</button>
-            <button class="btn calc-btn" data-val="2">2</button>
-            <button class="btn calc-btn" data-val="3">3</button>
-            <button class="btn btn-op calc-btn" data-val="-">-</button>
+            <button class="btn" data-kind="digit" data-val="1">1</button>
+            <button class="btn" data-kind="digit" data-val="2">2</button>
+            <button class="btn" data-kind="digit" data-val="3">3</button>
+            <button class="btn btn-op" data-kind="op" data-val="-">−</button>
 
-            <button class="btn calc-btn" data-val="0">0</button>
-            <button class="btn calc-btn" data-val=".">.</button>
+            <button class="btn" data-kind="digit" data-val="0">0</button>
+            <button class="btn" data-kind="digit" data-val=".">.</button>
             <button class="btn btn-action" id="btnAC">AC</button>
-            <button class="btn btn-op calc-btn" data-val="+">+</button>
+            <button class="btn btn-op" data-kind="op" data-val="+">+</button>
           </div>
+          <div class="fn-grid" id="fnpad">
+            <button class="btn btn-op" data-kind="op" data-val="%">%</button>
+            <button class="btn btn-op only-rpn" data-kind="tok" data-val="neg">neg</button>
+            <button class="btn" data-kind="tok" data-val="pi">π</button>
+            <button class="btn" data-kind="tok" data-val="e">e</button>
+            <button class="btn" data-kind="tok" data-val="x">x</button>
+            <button class="btn" data-kind="tok" data-val="y">y</button>
+            <button class="btn" data-kind="fn" data-val="sqrt">√</button>
+            <button class="btn" data-kind="fn" data-val="abs">abs</button>
+            <button class="btn" data-kind="fn" data-val="sin">sin</button>
+            <button class="btn" data-kind="fn" data-val="cos">cos</button>
+            <button class="btn" data-kind="fn" data-val="tan">tan</button>
+            <button class="btn" data-kind="fn" data-val="log">log</button>
+            <button class="btn" data-kind="fn" data-val="ln">ln</button>
+            <button class="btn" data-kind="fn" data-val="exp">exp</button>
+            <button class="btn" data-kind="fn" data-val="floor">floor</button>
+            <button class="btn" data-kind="fn" data-val="ceil">ceil</button>
+            <button class="btn" data-kind="fn" data-val="round">round</button>
+          </div>
+        </div>
+
+        <div class="card hidden" id="varCard">
+          <h2>変数の値</h2>
+          <div id="varPanel"></div>
+        </div>
+
+        <div class="card">
+          <h2>設定</h2>
+          <div class="settings">
+            <label><input type="checkbox" id="optImplicit"> 暗黙の乗算を許可（<code>2(3+4)</code>, <code>2x</code>）</label>
+            <label>三角関数の角度：
+              <select id="optAngle"><option value="rad">ラジアン</option><option value="deg">度</option></select>
+            </label>
+            <label><input type="checkbox" id="optNoKb"> 画面キーボードを出さない（スマホ向け）</label>
+            <label><input type="checkbox" id="optDark"> ダークモード</label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="color: var(--text);"><span>履歴</span>
+            <span><button class="mini-btn primary" id="btnAddHist">追加 (Enter)</button> <button class="mini-btn" id="btnClearHist">全削除</button></span></div>
+          <ul class="hist-list" id="histList"></ul>
+          <div class="muted" id="histEmpty">入力欄で Enter か「追加」で保存されます。Esc で入力クリア。</div>
         </div>
       </div>
 
-      <!-- 右側：結果 & アルゴリズム表示パネル -->
-      <div class="results-container">
-        <!-- 中置記法 -->
-        <div class="card result-card infix">
-          <div class="card-title">
-            <span>中置記法 (INFIX NOTATION)</span>
-            <button class="copy-btn" onclick="copyText('outInfix')">コピー</button>
+      <!-- 右カラム -->
+      <div class="col">
+        <div class="results-grid">
+          <div class="card result-card infix">
+            <div class="card-title"><span>中置 (INFIX)</span><button class="mini-btn" data-copy="outInfix">コピー</button></div>
+            <div class="output-expr" id="outInfix">-</div>
+            <div class="output-desc">必要最小限のカッコで表示</div>
           </div>
-          <div class="output-expr" id="outInfix">(1 * 2) + 3</div>
-          <div class="output-desc">標準的な記法：演算子を被演算子の間に配置します</div>
+          <div class="card result-card full">
+            <div class="card-title"><span>完全括弧付き中置</span><button class="mini-btn" data-copy="outFull">コピー</button></div>
+            <div class="output-expr" id="outFull">-</div>
+            <div class="output-desc">優先順位・結合性の解釈を可視化</div>
+          </div>
+          <div class="card result-card prefix">
+            <div class="card-title"><span>前置 (PREFIX / POLISH)</span><button class="mini-btn" data-copy="outPrefix">コピー</button></div>
+            <div class="output-expr" id="outPrefix">-</div>
+            <div class="output-desc">演算子が先頭 (例: + A B)。単項マイナスは neg</div>
+          </div>
+          <div class="card result-card postfix">
+            <div class="card-title"><span>後置 (POSTFIX / RPN)</span><button class="mini-btn" data-copy="outPostfix">コピー</button></div>
+            <div class="output-expr" id="outPostfix">-</div>
+            <div class="output-desc">演算子が末尾 (例: A B +)。単項マイナスは neg</div>
+          </div>
+        </div>
+        <div class="copy-row">
+          <button class="mini-btn" id="btnCopyAll">全記法をまとめてコピー</button>
+          <button class="mini-btn" id="btnShare">共有リンクをコピー</button>
         </div>
 
-        <!-- ポーランド記法 (Prefix) -->
-        <div class="card result-card prefix">
-          <div class="card-title">
-            <span>ポーランド記法 (PREFIX / POLISH)</span>
-            <button class="copy-btn" onclick="copyText('outPrefix')">コピー</button>
+        <div class="card">
+          <h2>構文木 (AST) と走査アニメーション</h2>
+          <div class="tree-controls">
+            <select id="animOrder">
+              <option value="pre">前順 (前置記法の順)</option>
+              <option value="in">中順 (中置記法の順)</option>
+              <option value="post" selected>後順 (後置記法の順)</option>
+            </select>
+            <button class="mini-btn primary" id="animPlay">▶ 再生</button>
+            <button class="mini-btn" id="animStep">1手進む</button>
+            <button class="mini-btn" id="animReset">リセット</button>
+            <label class="muted">速度 <input type="range" id="animSpeed" min="150" max="1500" step="50" value="700" style="width:90px;"></label>
           </div>
-          <div class="output-expr" id="outPrefix">+ * 1 2 3</div>
-          <div class="output-desc">前置記法：演算子を被演算子の前に配置します (例: + A B)</div>
+          <div class="tree-wrap" id="treeWrap"></div>
+          <div class="visit-out" id="visitOut"></div>
+          <div class="muted">三つの記法は「同じ木を違う順序でたどったもの」です。</div>
         </div>
 
-        <!-- 逆ポーランド記法 (Postfix) -->
-        <div class="card result-card postfix">
-          <div class="card-title">
-            <span>逆ポーランド記法 (POSTFIX / RPN)</span>
-            <button class="copy-btn" onclick="copyText('outPostfix')">コピー</button>
-          </div>
-          <div class="output-expr" id="outPostfix">1 2 * 3 +</div>
-          <div class="output-desc">後置記法：演算子を被演算子の後に配置します (例: A B +)</div>
-        </div>
-
-        <!-- ステップログ -->
-        <div class="card steps-card">
+        <div class="card">
           <div class="steps-header">
-            <span style="font-weight: 700; font-size: 0.9rem;">変換ステップ (操車場アルゴリズム)</span>
-            <div class="tab-group">
-              <button class="tab-btn active" id="tabRPN" onclick="switchTab('RPN')">逆ポーランド</button>
-              <button class="tab-btn" id="tabPrefix" onclick="switchTab('Prefix')">ポーランド</button>
+            <span style="font-weight: 700; font-size: 0.9rem;">変換・計算ステップ</span>
+            <div class="tab-group" id="tabGroup"></div>
+          </div>
+          <div class="step-ctrl" id="stepCtrl">
+            <button class="mini-btn primary" id="stModeBtn">ステップ実行</button>
+            <button class="mini-btn hidden" id="stFirst">⏮ 最初</button>
+            <button class="mini-btn hidden" id="stPrev">◀ 戻る</button>
+            <button class="mini-btn hidden" id="stNext">次へ ▶</button>
+            <button class="mini-btn hidden" id="stLast">最後 ⏭</button>
+            <span class="muted" id="stInfo"></span>
+          </div>
+          <div class="step-body">
+            <div class="table-wrapper" id="tableWrap">
+              <table>
+                <thead id="stepsHead"></thead>
+                <tbody id="stepsTableBody"></tbody>
+              </table>
+            </div>
+            <div class="stack-box" id="stackBox">
+              <div class="stack-title" id="stackTitle">スタック</div>
+              <div class="stack-items" id="stackItems"></div>
             </div>
           </div>
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 15%;">Step</th>
-                  <th style="width: 20%;">トークン</th>
-                  <th style="width: 30%;">スタック</th>
-                  <th style="width: 35%;">出力 / 結果</th>
-                </tr>
-              </thead>
-              <tbody id="stepsTableBody">
-              </tbody>
-            </table>
-          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- 学習 -->
+    <div class="card">
+      <div class="steps-header">
+        <span style="font-weight: 700; font-size: 0.9rem;">学習</span>
+        <div class="tab-group">
+          <button class="tab-btn active" id="lrnQuiz">クイズ</button>
+          <button class="tab-btn" id="lrnExplain">解説</button>
+        </div>
+      </div>
+
+      <div id="quizPane">
+        <div class="quiz-controls">
+          <label>出題形式
+            <select id="quizType">
+              <option value="random">ランダム</option>
+              <option value="in2pre">中置 → 前置</option>
+              <option value="in2post">中置 → 後置</option>
+              <option value="pre2in">前置 → 中置</option>
+              <option value="post2in">後置 → 中置</option>
+              <option value="post2val">後置 → 計算結果</option>
+            </select>
+          </label>
+          <label>難易度
+            <select id="quizDiff">
+              <option value="1">やさしい</option>
+              <option value="2" selected>ふつう</option>
+              <option value="3">むずかしい</option>
+            </select>
+          </label>
+          <button class="mini-btn primary" id="quizNew">出題</button>
+          <span class="quiz-score" id="quizScore"></span>
+        </div>
+        <div class="quiz-q" id="quizQ"><div class="q-label">「出題」を押すと問題が出ます</div></div>
+        <div class="quiz-answer">
+          <input type="text" id="quizAns" placeholder="答えを入力 (例: + * 1 2 3 / 1 2 * 3 +)" autocomplete="off" spellcheck="false" disabled>
+          <button class="mini-btn primary" id="quizCheck" disabled>判定 (Enter)</button>
+          <button class="mini-btn" id="quizShow" disabled>答えを見る</button>
+        </div>
+        <div class="quiz-fb" id="quizFb"></div>
+      </div>
+
+      <div id="explainPane" class="explain hidden">
+        <h3>演算子の優先順位と結合性</h3>
+        <table>
+          <thead><tr><th>優先度</th><th>演算子</th><th>結合性</th><th>備考</th></tr></thead>
+          <tbody>
+            <tr><td>4（高）</td><td><code>^</code></td><td>右結合</td><td><code>2^3^2 = 2^(3^2) = 512</code></td></tr>
+            <tr><td>3</td><td>単項 <code>-</code> (neg)</td><td>右結合</td><td><code>-2^2 = -(2^2) = -4</code>。関数は常に <code>f(...)</code></td></tr>
+            <tr><td>2</td><td><code>* / %</code></td><td>左結合</td><td><code>8/2/2 = (8/2)/2 = 2</code></td></tr>
+            <tr><td>1（低）</td><td><code>+ -</code></td><td>左結合</td><td><code>8-3-2 = (8-3)-2 = 3</code></td></tr>
+          </tbody>
+        </table>
+        <h3>3つの記法の特徴</h3>
+        <ul>
+          <li><b>中置</b>：人間に馴染み深いが、優先順位とカッコのルールが必要。</li>
+          <li><b>前置（ポーランド記法）</b>：演算子が先頭。カッコ不要で、右から左へスタックを使って評価できる。</li>
+          <li><b>後置（逆ポーランド記法, RPN）</b>：演算子が末尾。カッコ不要で、左から右へスタックだけで評価でき、電卓やスタックマシン（Forth、PostScript など）と相性が良い。</li>
+        </ul>
+        <h3>後置記法の評価</h3>
+        <p>左から読み、値ならスタックへ積む。演算子なら必要な数（二項は2つ）を取り出して計算し、結果を積む。最後にスタックに残った1つが答えです。</p>
+        <h3>操車場アルゴリズム（中置→後置）</h3>
+        <ul>
+          <li>値は出力へ。関数・単項マイナス・<code>(</code> はスタックへ。</li>
+          <li>二項演算子は、スタック先頭が「優先度が高い」または「同じで左結合」の間 pop して出力し、その後 push。</li>
+          <li><code>)</code> は <code>(</code> まで pop。最後に残りを全部 pop。</li>
+        </ul>
+        <h3>この電卓での書き方</h3>
+        <ul>
+          <li>前置・後置ではトークンを<b>スペースで区切り</b>ます（<code>3 4 + 2 *</code>）。</li>
+          <li>単項マイナスは <code>neg</code>、関数は <code>sqrt x</code> のように名前を書きます。</li>
+          <li>定数は <code>pi</code>（または π）と <code>e</code>。それ以外の英字は変数になり、値の入力欄が現れます。</li>
+        </ul>
       </div>
     </div>
   </div>
 
   <script>
-    // --- 優先度定義 ---
-    const precedence = {
-      '+': 1,
-      '-': 1,
-      '*': 2,
-      '/': 2,
-      '^': 3
+    'use strict';
+
+    /* ============ 定義 ============ */
+    const FUNCS = ['sqrt','abs','sin','cos','tan','log','ln','exp','floor','ceil','round'];
+    const CONSTS = { pi: Math.PI, e: Math.E };
+    const BIN = ['+','-','*','/','^','%'];
+    const PREC = { '+':1, '-':1, '*':2, '/':2, '%':2, '^':4 };
+    const NEG_PREC = 3;
+    const SYM = { '*':'×', '/':'÷', '-':'−', '+':'+', '^':'^', '%':'%' };
+    const NUM_RE = /^(\d+\.?\d*|\.\d+)$/;
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function normalizeInput(str) {
+      let s = (str || '').normalize('NFKC');
+      return s.replace(/[×✕✖]/g, '*').replace(/÷/g, '/').replace(/[−ー―‐–—]/g, '-').replace(/π/g, ' pi ');
+    }
+
+    function classifyId(name) {
+      const lower = name.toLowerCase();
+      if (FUNCS.includes(lower)) return { kind: 'fn', name: lower };
+      if (lower === 'pi') return { kind: 'const', name: 'pi' };
+      if (name === 'e') return { kind: 'const', name: 'e' };
+      return { kind: 'var', name };
+    }
+
+    /* ============ AST ============ */
+    const num = v => ({ t: 'num', v: String(v) });
+    const bin = (op, l, r) => ({ t: 'bin', op, l, r });
+    const un = (op, a) => ({ t: 'un', op, a });
+    const isLeaf = n => n.t === 'num' || n.t === 'var' || n.t === 'const';
+    const children = n => n.t === 'bin' ? [n.l, n.r] : n.t === 'un' ? [n.a] : [];
+    const tokText = n => n.t === 'bin' || n.t === 'un' ? n.op : n.v;
+
+    /* ============ 字句解析 ============ */
+    function lexInfix(str) {
+      const s = normalizeInput(str);
+      const toks = [];
+      let i = 0;
+      while (i < s.length) {
+        const ch = s[i];
+        if (/\s/.test(ch)) { i++; continue; }
+        if (/[0-9.]/.test(ch)) {
+          let j = i;
+          while (j < s.length && /[0-9.]/.test(s[j])) j++;
+          const t = s.slice(i, j);
+          if (!NUM_RE.test(t)) throw new Error(`数値の形式が不正です: ${t}`);
+          toks.push({ type: 'num', text: t });
+          i = j; continue;
+        }
+        if (/[A-Za-z_]/.test(ch)) {
+          let j = i;
+          while (j < s.length && /[A-Za-z0-9_]/.test(s[j])) j++;
+          const c = classifyId(s.slice(i, j));
+          toks.push({ type: c.kind, text: c.name });
+          i = j; continue;
+        }
+        if (BIN.includes(ch)) { toks.push({ type: 'op', text: ch }); i++; continue; }
+        if (ch === '(') { toks.push({ type: 'lp', text: '(' }); i++; continue; }
+        if (ch === ')') { toks.push({ type: 'rp', text: ')' }); i++; continue; }
+        throw new Error(`使用できない文字です: '${ch}'`);
+      }
+      return toks;
+    }
+
+    /* ============ 中置パーサ（再帰下降） ============ */
+    function parseInfix(str, opts) {
+      const implicit = !opts || opts.implicit !== false;
+      const toks = lexInfix(str);
+      if (!toks.length) throw new Error('式が空です');
+      let p = 0;
+      const peek = () => toks[p];
+
+      function parseExpr() {
+        let l = parseTerm();
+        while (peek() && peek().type === 'op' && (peek().text === '+' || peek().text === '-')) {
+          const op = toks[p++].text;
+          l = bin(op, l, parseTerm());
+        }
+        return l;
+      }
+      function parseTerm() {
+        let l = parseUnary();
+        for (;;) {
+          const t = peek();
+          if (!t) break;
+          if (t.type === 'op' && (t.text === '*' || t.text === '/' || t.text === '%')) {
+            p++; l = bin(t.text, l, parseUnary());
+          } else if (t.type === 'num') {
+            throw new Error('数字が連続しています（演算子が抜けていませんか？）');
+          } else if (t.type === 'lp' || t.type === 'var' || t.type === 'const' || t.type === 'fn') {
+            if (!implicit) throw new Error(`演算子が抜けています（'${t.text}' の前に * が必要。設定で暗黙の乗算をオンにもできます）`);
+            l = bin('*', l, parseUnary());
+          } else break;
+        }
+        return l;
+      }
+      function parseUnary() {
+        const t = peek();
+        if (t && t.type === 'op' && (t.text === '-' || t.text === '+')) {
+          p++;
+          const a = parseUnary();
+          return t.text === '-' ? un('neg', a) : a;
+        }
+        return parsePower();
+      }
+      function parsePower() {
+        const base = parseAtom();
+        const t = peek();
+        if (t && t.type === 'op' && t.text === '^') {
+          p++;
+          return bin('^', base, parseUnary());
+        }
+        return base;
+      }
+      function parseParenBody() {
+        if (toks[p] && toks[p].type === 'rp') throw new Error('カッコの中が空です');
+        const e = parseExpr();
+        if (!toks[p] || toks[p].type !== 'rp') throw new Error('閉じカッコ ) が足りません');
+        p++;
+        return e;
+      }
+      function parseAtom() {
+        const t = toks[p];
+        if (!t) throw new Error('式が途中で終わっています（値が必要です）');
+        switch (t.type) {
+          case 'num': p++; return num(t.text);
+          case 'var': p++; return { t: 'var', v: t.text };
+          case 'const': p++; return { t: 'const', v: t.text };
+          case 'fn':
+            p++;
+            if (!toks[p] || toks[p].type !== 'lp') throw new Error(`関数 ${t.text} の後ろに ( が必要です（例: ${t.text}(x)）`);
+            p++;
+            return un(t.text, parseParenBody());
+          case 'lp': p++; return parseParenBody();
+          case 'rp': throw new Error("値が必要です（')' の前）");
+          case 'op': throw new Error(`演算子 ${t.text} の前に値がありません`);
+        }
+        throw new Error('式を解釈できません');
+      }
+
+      const root = parseExpr();
+      if (p < toks.length) {
+        if (toks[p].type === 'rp') throw new Error('対応する開きカッコ ( がありません');
+        throw new Error(`式を解釈できません: '${toks[p].text}'`);
+      }
+      return root;
+    }
+
+    /* ============ 前置・後置パーサ ============ */
+    function lexTokens(str) {
+      const s = normalizeInput(str).trim();
+      if (!s) throw new Error('式が空です');
+      return s.split(/\s+/).map(w => {
+        if (NUM_RE.test(w)) return { type: 'num', text: w };
+        if (BIN.includes(w)) return { type: 'bin', text: w };
+        if (w === '(' || w === ')') throw new Error('前置・後置記法ではカッコは使いません');
+        if (w.toLowerCase() === 'neg') return { type: 'neg', text: 'neg' };
+        if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(w)) {
+          const c = classifyId(w);
+          return { type: c.kind, text: c.name };
+        }
+        throw new Error(`解釈できないトークンです: '${w}'（トークンはスペースで区切ってください）`);
+      });
+    }
+    const isUnaryTok = t => t.type === 'neg' || t.type === 'fn';
+    const leafOf = t => t.type === 'num' ? num(t.text) : { t: t.type, v: t.text };
+
+    function parsePostfix(str) {
+      const toks = lexTokens(str);
+      const st = [];
+      for (const t of toks) {
+        if (t.type === 'bin') {
+          if (st.length < 2) throw new Error(`演算子 ${t.text} の被演算子が足りません`);
+          const b = st.pop(), a = st.pop();
+          st.push(bin(t.text, a, b));
+        } else if (isUnaryTok(t)) {
+          if (st.length < 1) throw new Error(`${t.text} の被演算子が足りません`);
+          st.push(un(t.type === 'neg' ? 'neg' : t.text, st.pop()));
+        } else st.push(leafOf(t));
+      }
+      if (st.length > 1) throw new Error('値が余っています（演算子が足りません）');
+      return st[0];
+    }
+
+    function parsePrefix(str) {
+      const toks = lexTokens(str);
+      const st = [];
+      for (let i = toks.length - 1; i >= 0; i--) {
+        const t = toks[i];
+        if (t.type === 'bin') {
+          if (st.length < 2) throw new Error(`演算子 ${t.text} の被演算子が足りません`);
+          const a = st.pop(), b = st.pop();
+          st.push(bin(t.text, a, b));
+        } else if (isUnaryTok(t)) {
+          if (st.length < 1) throw new Error(`${t.text} の被演算子が足りません`);
+          st.push(un(t.type === 'neg' ? 'neg' : t.text, st.pop()));
+        } else st.push(leafOf(t));
+      }
+      if (st.length > 1) throw new Error('値が余っています（演算子が足りません）');
+      return st[0];
+    }
+
+    function parseByNotation(str, notation, opts) {
+      if (notation === 'prefix') return parsePrefix(str);
+      if (notation === 'postfix') return parsePostfix(str);
+      return parseInfix(str, opts);
+    }
+
+    /* ============ シリアライズ ============ */
+    function postfixTokens(n, out) {
+      out = out || [];
+      children(n).forEach(c => postfixTokens(c, out));
+      out.push(tokText(n));
+      return out;
+    }
+    function prefixTokens(n, out) {
+      out = out || [];
+      out.push(tokText(n));
+      children(n).forEach(c => prefixTokens(c, out));
+      return out;
+    }
+    function nodePrec(n) {
+      if (n.t === 'bin') return PREC[n.op];
+      if (n.t === 'un') return n.op === 'neg' ? NEG_PREC : 10;
+      if (n.t === 'num' && n.v[0] === '-') return NEG_PREC;
+      return 10;
+    }
+    const isNegLike = n => (n.t === 'un' && n.op === 'neg') || (n.t === 'num' && n.v[0] === '-');
+
+    function toInfix(n, full) {
+      if (isLeaf(n)) return n.v;
+      if (n.t === 'un') {
+        if (n.op === 'neg') {
+          if (full) return `(-${toInfix(n.a, true)})`;
+          const a = toInfix(n.a, false);
+          return '-' + ((nodePrec(n.a) < NEG_PREC || isNegLike(n.a)) ? `(${a})` : a);
+        }
+        return `${n.op}(${toInfix(n.a, full)})`;
+      }
+      const L = toInfix(n.l, full), R = toInfix(n.r, full);
+      if (full) return `(${L} ${n.op} ${R})`;
+      const p = PREC[n.op];
+      const lp = nodePrec(n.l), rp = nodePrec(n.r);
+      const lw = lp < p || (lp === p && n.op === '^');
+      const rw = rp < p || (rp === p && n.op !== '^') || isNegLike(n.r);
+      return `${lw ? '(' + L + ')' : L} ${n.op} ${rw ? '(' + R + ')' : R}`;
+    }
+
+    function serialize(n, notation) {
+      if (notation === 'prefix') return prefixTokens(n).join(' ');
+      if (notation === 'postfix') return postfixTokens(n).join(' ');
+      return toInfix(n, false);
+    }
+
+    /* ============ 評価 ============ */
+    function fmt(v) {
+      if (!isFinite(v)) return String(v);
+      return String(parseFloat(v.toPrecision(12)));
+    }
+    function checkFinite(v) {
+      if (!isFinite(v)) throw new Error('結果が数として定義できません');
+      return v;
+    }
+    function applyBin(op, a, b) {
+      switch (op) {
+        case '+': return checkFinite(a + b);
+        case '-': return checkFinite(a - b);
+        case '*': return checkFinite(a * b);
+        case '/': if (b === 0) throw new Error('ゼロ除算です'); return checkFinite(a / b);
+        case '%': if (b === 0) throw new Error('ゼロ除算です'); return checkFinite(a % b);
+        case '^': return checkFinite(Math.pow(a, b));
+      }
+      throw new Error('未知の演算子: ' + op);
+    }
+    function applyUn(op, a, angle) {
+      const k = angle === 'deg' ? Math.PI / 180 : 1;
+      switch (op) {
+        case 'neg': return -a;
+        case 'sqrt': if (a < 0) throw new Error('負の数の平方根は計算できません'); return Math.sqrt(a);
+        case 'abs': return Math.abs(a);
+        case 'sin': return checkFinite(Math.sin(a * k));
+        case 'cos': return checkFinite(Math.cos(a * k));
+        case 'tan': return checkFinite(Math.tan(a * k));
+        case 'log': if (a <= 0) throw new Error('log は正の数のみ'); return Math.log10(a);
+        case 'ln': if (a <= 0) throw new Error('ln は正の数のみ'); return Math.log(a);
+        case 'exp': return checkFinite(Math.exp(a));
+        case 'floor': return Math.floor(a);
+        case 'ceil': return Math.ceil(a);
+        case 'round': return Math.round(a);
+      }
+      throw new Error('未知の関数: ' + op);
+    }
+    function collectVars(n, set) {
+      set = set || [];
+      if (n.t === 'var' && !set.includes(n.v)) set.push(n.v);
+      children(n).forEach(c => collectVars(c, set));
+      return set;
+    }
+    function leafValue(n, vars) {
+      if (n.t === 'num') return parseFloat(n.v);
+      if (n.t === 'const') return CONSTS[n.v];
+      return vars[n.v];
+    }
+    function evalNode(n, vars, angle) {
+      if (isLeaf(n)) return leafValue(n, vars);
+      if (n.t === 'un') return checkFinite(applyUn(n.op, evalNode(n.a, vars, angle), angle));
+      return applyBin(n.op, evalNode(n.l, vars, angle), evalNode(n.r, vars, angle));
+    }
+
+    /* ============ ステップ生成 ============ */
+    function stackPrec(top) {
+      if (top === 'neg') return NEG_PREC;
+      if (PREC[top] !== undefined) return PREC[top];
+      return 10;
+    }
+
+    function shuntingSteps(infixStr) {
+      const lex = lexInfix(infixStr);
+      const toks = [];
+      let prev = null;
+      for (const t of lex) {
+        const unary = t.type === 'op' && (t.text === '-' || t.text === '+') &&
+          (!prev || prev.type === 'op' || prev.type === 'lp');
+        if (unary) { if (t.text === '-') toks.push({ type: 'neg', text: 'neg' }); }
+        else toks.push(t);
+        prev = t;
+      }
+      const out = [], st = [], rows = [];
+      let n = 0;
+      const push = (tok, action) => {
+        n++;
+        rows.push({ cells: [n, tok, action, '[ ' + st.join(' ') + ' ]', out.join(' ')], stack: st.slice() });
+      };
+      for (const t of toks) {
+        const popped = [];
+        if (t.type === 'num' || t.type === 'var' || t.type === 'const') {
+          out.push(t.text); push(t.text, '値 → 出力へ');
+        } else if (t.type === 'fn' || t.type === 'neg') {
+          st.push(t.text); push(t.text, (t.type === 'neg' ? '単項マイナス' : '関数') + ' → スタックへ');
+        } else if (t.type === 'lp') {
+          st.push('('); push('(', '( → スタックへ');
+        } else if (t.type === 'rp') {
+          while (st.length && st[st.length - 1] !== '(') { const x = st.pop(); out.push(x); popped.push(x); }
+          st.pop();
+          if (st.length && (FUNCS.includes(st[st.length - 1]))) { const f = st.pop(); out.push(f); popped.push(f); }
+          push(')', '( まで pop' + (popped.length ? ' → 出力: ' + popped.join(' ') : ''));
+        } else {
+          const cp = PREC[t.text];
+          while (st.length) {
+            const top = st[st.length - 1];
+            if (top === '(') break;
+            const tp = stackPrec(top);
+            if (tp > cp || (tp === cp && t.text !== '^')) { out.push(st.pop()); popped.push(top); } else break;
+          }
+          st.push(t.text);
+          push(t.text, popped.length ? `優先度が高い/同じ(左結合)を pop → 出力: ${popped.join(' ')}、その後 push` : '演算子 → スタックへ');
+        }
+      }
+      while (st.length) {
+        const x = st.pop(); out.push(x);
+        push('終了', `残りを pop → 出力: ${x}`);
+      }
+      return { rows, stackTitle: '演算子スタック' };
+    }
+
+    function traversalSteps(root, order) {
+      const rows = [], out = [];
+      let n = 0;
+      const label = nd => isLeaf(nd) ? nd.v : nd.op;
+      function emit(nd, path) {
+        n++; out.push(tokText(nd));
+        rows.push({ cells: [n, tokText(nd), toInfix(nd, false), out.join(' ')], stack: path.slice() });
+      }
+      function visit(nd, path) {
+        if (order === 'pre') emit(nd, path);
+        const next = path.concat([label(nd)]);
+        children(nd).forEach(c => visit(c, next));
+        if (order === 'post') emit(nd, path);
+      }
+      visit(root, []);
+      return { rows, stackTitle: '再帰の呼び出し経路' };
+    }
+
+    function evalSteps(root, vars, angle) {
+      const missing = collectVars(root).filter(v => vars[v] === undefined);
+      if (missing.length) return { message: `変数 ${missing.join(', ')} の値を入力すると表示されます` };
+      const toks = [];
+      (function walk(nd) { children(nd).forEach(walk); toks.push(nd); })(root);
+      const st = [], rows = [];
+      let n = 0;
+      for (const nd of toks) {
+        n++;
+        let op = '';
+        try {
+          if (isLeaf(nd)) {
+            const v = leafValue(nd, vars); st.push(v);
+            op = nd.t === 'num' ? '値を push' : `${nd.v} = ${fmt(v)} を push`;
+          } else if (nd.t === 'un') {
+            const a = st.pop(); const r = applyUn(nd.op, a, angle); st.push(checkFinite(r));
+            op = `${nd.op}(${fmt(a)}) = ${fmt(r)}`;
+          } else {
+            const b = st.pop(), a = st.pop(); const r = applyBin(nd.op, a, b); st.push(r);
+            op = `${fmt(a)} ${nd.op} ${fmt(b)} = ${fmt(r)}`;
+          }
+        } catch (e) {
+          rows.push({ cells: [n, tokText(nd), 'エラー: ' + e.message, '[ ' + st.map(fmt).join(' ') + ' ]'], stack: st.map(fmt) });
+          break;
+        }
+        rows.push({ cells: [n, tokText(nd), op, '[ ' + st.map(fmt).join(' ') + ' ]'], stack: st.map(fmt) });
+      }
+      return { rows, stackTitle: '値スタック' };
+    }
+
+    function reduceSteps(root, vars, angle) {
+      const missing = collectVars(root).filter(v => vars[v] === undefined);
+      if (missing.length) return { message: `変数 ${missing.join(', ')} の値を入力すると表示されます` };
+      const rows = [];
+      let n = 0;
+      const add = (expr, desc) => { rows.push({ cells: [n++, expr, desc], stack: null }); };
+      let cur = root;
+      add(toInfix(cur, false), '元の式');
+      let hasSubst = false;
+      const subst = nd => {
+        if (nd.t === 'var' || nd.t === 'const') { hasSubst = true; return num(fmt(leafValue(nd, vars))); }
+        if (nd.t === 'bin') return bin(nd.op, subst(nd.l), subst(nd.r));
+        if (nd.t === 'un') return un(nd.op, subst(nd.a));
+        return nd;
+      };
+      cur = subst(cur);
+      if (hasSubst) add(toInfix(cur, false), '変数・定数を値に置き換え');
+
+      function reduceOnce(nd) {
+        if (nd.t === 'bin') {
+          if (nd.l.t !== 'num') { const r = reduceOnce(nd.l); return { node: bin(nd.op, r.node, nd.r), desc: r.desc }; }
+          if (nd.r.t !== 'num') { const r = reduceOnce(nd.r); return { node: bin(nd.op, nd.l, r.node), desc: r.desc }; }
+          const a = parseFloat(nd.l.v), b = parseFloat(nd.r.v);
+          const v = applyBin(nd.op, a, b);
+          return { node: num(fmt(v)), desc: `${nd.l.v} ${nd.op} ${nd.r.v} = ${fmt(v)}` };
+        }
+        if (nd.t === 'un') {
+          if (nd.a.t !== 'num') { const r = reduceOnce(nd.a); return { node: un(nd.op, r.node), desc: r.desc }; }
+          const a = parseFloat(nd.a.v);
+          const v = checkFinite(applyUn(nd.op, a, angle));
+          return { node: num(fmt(v)), desc: `${nd.op}(${nd.a.v}) = ${fmt(v)}` };
+        }
+        return null;
+      }
+      let guard = 0;
+      while (cur.t !== 'num' && guard++ < 200) {
+        try {
+          const r = reduceOnce(cur);
+          cur = r.node;
+          add(toInfix(cur, false), r.desc);
+        } catch (e) {
+          add('—', 'エラー: ' + e.message);
+          break;
+        }
+      }
+      return { rows, stackTitle: null };
+    }
+
+    const TABS = {
+      shunt: { label: '後置: 操車場', head: ['Step','トークン','動作','スタック','出力'], build: ctx => shuntingSteps(toInfix(ctx.ast, false)) },
+      pre:   { label: '前置: 前順走査', head: ['Step','出力','部分式','出力の累計'], build: ctx => traversalSteps(ctx.ast, 'pre') },
+      post:  { label: '後置: 後順走査', head: ['Step','出力','部分式','出力の累計'], build: ctx => traversalSteps(ctx.ast, 'post') },
+      eval:  { label: 'RPN評価', head: ['Step','トークン','操作','値スタック'], build: ctx => evalSteps(ctx.ast, ctx.vars, ctx.angle) },
+      reduce:{ label: '簡約過程', head: ['Step','式','操作'], build: ctx => reduceSteps(ctx.ast, ctx.vars, ctx.angle) }
     };
 
-    const isRightAssociative = (op) => op === '^';
-
-    // --- 全角/特殊記号の正規化 ---
-    function normalizeInput(str) {
-      if (!str) return '';
-      let normalized = str.normalize('NFKC');
-      normalized = normalized
-        .replace(/[×✕✖＊]/g, '*')
-        .replace(/[÷／]/g, '/')
-        .replace(/[＋]/g, '+')
-        .replace(/[−ー―‐]/g, '-')
-        .replace(/[＾]/g, '^')
-        .replace(/[（]/g, '(')
-        .replace(/[）]/g, ')');
-      return normalized;
+    /* ============ 構文木レイアウト ============ */
+    function layoutTree(root) {
+      let leaf = 0, maxD = 0, id = 0;
+      const list = [];
+      (function go(n, d) {
+        n.id = id++; n.depth = d; maxD = Math.max(maxD, d); list.push(n);
+        const ch = children(n);
+        if (!ch.length) n.x = leaf++;
+        else { ch.forEach(c => go(c, d + 1)); n.x = (ch[0].x + ch[ch.length - 1].x) / 2; }
+      })(root, 0);
+      return { list, leaves: leaf, maxD };
+    }
+    function nodeLabel(n) {
+      if (n.t === 'bin') return SYM[n.op];
+      if (n.t === 'un') return n.op;
+      if (n.t === 'const' && n.v === 'pi') return 'π';
+      return n.v;
+    }
+    function orderOf(root, kind) {
+      const out = [];
+      (function go(n) {
+        if (kind === 'pre') out.push(n);
+        if (kind === 'in') {
+          if (n.t === 'bin') { go(n.l); out.push(n); go(n.r); return; }
+          if (n.t === 'un') { out.push(n); go(n.a); return; }
+          out.push(n); return;
+        }
+        children(n).forEach(go);
+        if (kind === 'post') out.push(n);
+      })(root);
+      return out;
     }
 
-    // --- トークナイザー（字句解析） ---
-    function tokenize(expr) {
-      const cleanExpr = normalizeInput(expr);
-      const tokens = [];
-      let i = 0;
+    /* ============ アプリ状態 ============ */
+    const STORE_KEY = 'polishCalcState_v2';
+    const state = {
+      notation: 'infix', input: '(1 * 2) + 3', implicit: true, angle: 'rad',
+      noKb: false, dark: false, history: [], vars: {}, tab: 'shunt',
+      quizScore: { ok: 0, total: 0, streak: 0 }
+    };
+    let ast = null, treeInfo = null, lastVarKey = null;
+    let stepMode = false, stepIdx = 0, curSteps = null;
 
-      while (i < cleanExpr.length) {
-        const ch = cleanExpr[i];
-
-        if (/\s/.test(ch)) {
-          i++;
-          continue;
-        }
-
-        if (/[0-9.]/.test(ch)) {
-          let numStr = '';
-          while (i < cleanExpr.length && /[0-9.]/.test(cleanExpr[i])) {
-            numStr += cleanExpr[i];
-            i++;
-          }
-          tokens.push(numStr);
-          continue;
-        }
-
-        if (['+', '-', '*', '/', '^', '(', ')'].includes(ch)) {
-          tokens.push(ch);
-          i++;
-          continue;
-        }
-
-        if (/[a-zA-Z]/.test(ch)) {
-          let varStr = '';
-          while (i < cleanExpr.length && /[a-zA-Z0-9_]/.test(cleanExpr[i])) {
-            varStr += cleanExpr[i];
-            i++;
-          }
-          tokens.push(varStr);
-          continue;
-        }
-
-        throw new Error(`不正な文字が含まれています: '${ch}'`);
+    function saveState() {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) Object.assign(state, JSON.parse(raw));
+      } catch (e) {}
+      if (!localStorage.getItem(STORE_KEY)) {
+        try { state.dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) {}
       }
-      return tokens;
     }
 
-    // --- 中置記法 -> 逆ポーランド記法 (Shunting-yard Algorithm) ---
-    function infixToPostfixWithSteps(tokens) {
-      const output = [];
-      const stack = [];
-      const steps = [];
+    const $ = id => document.getElementById(id);
 
-      tokens.forEach((token, index) => {
-        if (!isNaN(parseFloat(token)) || /^[a-zA-Z_]\w*$/.test(token)) {
-          output.push(token);
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        } else if (['+', '-', '*', '/', '^'].includes(token)) {
-          while (
-            stack.length > 0 &&
-            stack[stack.length - 1] !== '(' &&
-            (
-              precedence[stack[stack.length - 1]] > precedence[token] ||
-              (precedence[stack[stack.length - 1]] === precedence[token] && !isRightAssociative(token))
-            )
-          ) {
-            output.push(stack.pop());
-          }
-          stack.push(token);
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        } else if (token === '(') {
-          stack.push(token);
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        } else if (token === ')') {
-          let matched = false;
-          while (stack.length > 0) {
-            const top = stack.pop();
-            if (top === '(') {
-              matched = true;
-              break;
-            } else {
-              output.push(top);
-            }
-          }
-          if (!matched) throw new Error("カッコの対応が不正です");
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        }
+    /* ============ コピー ============ */
+    function copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+      return new Promise((resolve, reject) => {
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy') ? resolve() : reject(); } catch (e) { reject(e); }
+        document.body.removeChild(ta);
       });
-
-      while (stack.length > 0) {
-        const top = stack.pop();
-        if (top === '(' || top === ')') throw new Error("カッコの対応が不正です");
-        output.push(top);
-        steps.push({ step: steps.length + 1, token: '終了処理', stack: [...stack], output: [...output].join(' ') });
-      }
-
-      return { postfix: output, steps };
+    }
+    function flash(btn, msg) {
+      const old = btn.dataset.label || btn.textContent;
+      btn.dataset.label = old;
+      btn.textContent = msg;
+      clearTimeout(btn._t);
+      btn._t = setTimeout(() => { btn.textContent = old; }, 1200);
+    }
+    function doCopy(text, btn) {
+      copyToClipboard(text).then(() => flash(btn, 'コピーしました ✓')).catch(() => flash(btn, 'コピー失敗'));
     }
 
-    // --- 中置記法 -> ポーランド記法 ---
-    function infixToPrefixWithSteps(tokens) {
-      const reversedTokens = [...tokens].reverse().map(t => {
-        if (t === '(') return ')';
-        if (t === ')') return '(';
-        return t;
+    /* ============ メイン処理 ============ */
+    function currentVars() {
+      const v = {};
+      Object.keys(state.vars).forEach(k => {
+        const raw = normalizeInput(String(state.vars[k])).trim();
+        if (raw !== '' && isFinite(Number(raw))) v[k] = Number(raw);
       });
+      return v;
+    }
 
-      const output = [];
-      const stack = [];
-      const steps = [];
+    function setOutputs(infix, full, pre, post, isErr) {
+      const set = (id, txt) => { const el = $(id); el.textContent = txt; el.classList.toggle('dim', !!isErr); };
+      set('outInfix', infix); set('outFull', full); set('outPrefix', pre); set('outPostfix', post);
+    }
 
-      reversedTokens.forEach((token, index) => {
-        if (!isNaN(parseFloat(token)) || /^[a-zA-Z_]\w*$/.test(token)) {
-          output.push(token);
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        } else if (['+', '-', '*', '/', '^'].includes(token)) {
-          while (
-            stack.length > 0 &&
-            stack[stack.length - 1] !== '(' &&
-            (
-              precedence[stack[stack.length - 1]] > precedence[token] ||
-              (precedence[stack[stack.length - 1]] === precedence[token] && isRightAssociative(token))
-            )
-          ) {
-            output.push(stack.pop());
-          }
-          stack.push(token);
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        } else if (token === '(') {
-          stack.push(token);
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
-        } else if (token === ')') {
-          let matched = false;
-          while (stack.length > 0) {
-            const top = stack.pop();
-            if (top === '(') {
-              matched = true;
-              break;
-            } else {
-              output.push(top);
-            }
-          }
-          if (!matched) throw new Error("カッコの対応が不正です");
-          steps.push({ step: index + 1, token, stack: [...stack], output: [...output].join(' ') });
+    function recompute(opts) {
+      const keepStep = opts && opts.keepStep;
+      const resEl = $('calcResult');
+      resEl.className = 'result-val';
+      ast = null; treeInfo = null;
+      let errMsg = null;
+      if (!state.input.trim()) {
+        setOutputs('-', '-', '-', '-', true);
+        resEl.textContent = '= 0';
+      } else {
+        try {
+          ast = parseByNotation(state.input, state.notation, { implicit: state.implicit });
+        } catch (e) { errMsg = e.message; }
+      }
+
+      if (ast) {
+        setOutputs(toInfix(ast, false), toInfix(ast, true), prefixTokens(ast).join(' '), postfixTokens(ast).join(' '), false);
+        treeInfo = layoutTree(ast);
+        const names = collectVars(ast);
+        renderVarPanel(names);
+        const vars = currentVars();
+        const missing = names.filter(n => vars[n] === undefined);
+        if (missing.length) {
+          resEl.textContent = `変数 ${missing.join(', ')} の値を入力してください`;
+          resEl.classList.add('soft');
+        } else {
+          try { resEl.textContent = '= ' + fmt(evalNode(ast, vars, state.angle)); }
+          catch (e) { resEl.textContent = e.message; resEl.classList.add('error'); }
         }
+      } else {
+        if (state.input.trim()) {
+          setOutputs('—', '—', '—', '—', true);
+          resEl.textContent = errMsg; resEl.classList.add('error');
+        }
+        renderVarPanel([]);
+      }
+      drawTree();
+      if (!keepStep) { stepMode = false; stepIdx = 0; }
+      renderSteps();
+      saveState();
+    }
+
+    /* ============ 変数パネル ============ */
+    function renderVarPanel(names) {
+      const key = names.join(',');
+      $('varCard').classList.toggle('hidden', names.length === 0);
+      if (key === lastVarKey) return;
+      lastVarKey = key;
+      const panel = $('varPanel');
+      panel.innerHTML = '';
+      names.forEach(n => {
+        const row = document.createElement('div');
+        row.className = 'var-row';
+        const lab = document.createElement('span'); lab.textContent = n + ' =';
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.inputMode = 'decimal'; inp.placeholder = '数値';
+        inp.value = state.vars[n] !== undefined ? state.vars[n] : '';
+        inp.addEventListener('input', () => { state.vars[n] = inp.value; recompute({ keepStep: true }); });
+        row.appendChild(lab); row.appendChild(inp); panel.appendChild(row);
       });
-
-      while (stack.length > 0) {
-        const top = stack.pop();
-        if (top === '(' || top === ')') throw new Error("カッコの対応が不正です");
-        output.push(top);
-        steps.push({ step: steps.length + 1, token: '終了処理', stack: [...stack], output: [...output].join(' ') });
-      }
-
-      const prefix = output.reverse();
-      return { prefix, steps };
     }
 
-    // --- 逆ポーランド記法の計算 ---
-    function evaluatePostfix(postfixTokens) {
-      const stack = [];
-      for (let token of postfixTokens) {
-        if (!isNaN(parseFloat(token))) {
-          stack.push(parseFloat(token));
-        } else if (['+', '-', '*', '/', '^'].includes(token)) {
-          if (stack.length < 2) throw new Error("数式が不完全です");
-          const b = stack.pop();
-          const a = stack.pop();
-          let res = 0;
-          switch (token) {
-            case '+': res = a + b; break;
-            case '-': res = a - b; break;
-            case '*': res = a * b; break;
-            case '/': 
-              if (b === 0) throw new Error("ゼロ除算エラー");
-              res = a / b; 
-              break;
-            case '^': res = Math.pow(a, b); break;
-          }
-          stack.push(res);
-        }
-      }
-      if (stack.length !== 1) throw new Error("数式が不完全です");
-      return stack[0];
-    }
+    /* ============ 構文木描画・アニメーション ============ */
+    const anim = { idx: -1, timer: null, order: [] };
+    const XS = 58, YS = 66, PAD = 32, R = 20;
 
-    // --- アプリ状態 ---
-    let currentTab = 'RPN';
-    let currentPostfixSteps = [];
-    let currentPrefixSteps = [];
-
-    // --- メイン計算・描画処理 ---
-    function processInput() {
-      const inputVal = document.getElementById('exprInput').value;
-      const normalizedStr = normalizeInput(inputVal);
-
-      document.getElementById('outInfix').innerText = normalizedStr || '-';
-
-      if (!normalizedStr.trim()) {
-        document.getElementById('outPrefix').innerText = '-';
-        document.getElementById('outPostfix').innerText = '-';
-        document.getElementById('calcResult').innerText = '= 0';
-        document.getElementById('calcResult').classList.remove('error');
-        document.getElementById('stepsTableBody').innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">式を入力してください</td></tr>';
+    function drawTree() {
+      stopAnim();
+      const wrap = $('treeWrap');
+      if (!ast) {
+        wrap.innerHTML = '<div class="table-msg">式を正しく入力すると構文木が表示されます</div>';
+        $('visitOut').textContent = '';
+        anim.order = []; anim.idx = -1;
         return;
       }
+      const w = Math.max(treeInfo.leaves, 1) * XS + PAD * 2 - (XS - 2 * R) + 4;
+      const h = (treeInfo.maxD + 1) * YS + PAD;
+      const px = n => PAD + n.x * XS, py = n => PAD + n.depth * YS - 6;
+      let edges = '', nodes = '';
+      treeInfo.list.forEach(n => {
+        children(n).forEach(c => {
+          edges += `<line class="tedge" x1="${px(n)}" y1="${py(n)}" x2="${px(c)}" y2="${py(c)}"/>`;
+        });
+      });
+      treeInfo.list.forEach(n => {
+        const lab = nodeLabel(n);
+        const fs = lab.length > 4 ? 9 : lab.length > 2 ? 11 : 14;
+        nodes += `<g class="tnode ${isLeaf(n) ? 'leaf' : 'op'}" data-id="${n.id}"><circle cx="${px(n)}" cy="${py(n)}" r="${R}"/><text x="${px(n)}" y="${py(n)}" style="font-size:${fs}px">${esc(lab)}</text></g>`;
+      });
+      wrap.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${edges}${nodes}</svg>`;
+      anim.order = orderOf(ast, $('animOrder').value);
+      anim.idx = -1;
+      updateAnim();
+    }
 
-      try {
-        const tokens = tokenize(normalizedStr);
-        
-        // 逆ポーランド
-        const postfixRes = infixToPostfixWithSteps(tokens);
-        currentPostfixSteps = postfixRes.steps;
-        document.getElementById('outPostfix').innerText = postfixRes.postfix.join(' ');
+    function updateAnim() {
+      const svg = $('treeWrap');
+      treeInfo && treeInfo.list.forEach(n => {
+        const g = svg.querySelector(`[data-id="${n.id}"]`);
+        if (g) { g.classList.remove('visited', 'current'); }
+      });
+      const toks = [];
+      anim.order.forEach((n, i) => {
+        if (i > anim.idx) return;
+        const g = svg.querySelector(`[data-id="${n.id}"]`);
+        if (g) g.classList.add(i === anim.idx ? 'current' : 'visited');
+        toks.push(tokText(n));
+      });
+      $('visitOut').textContent = toks.length ? '訪問順: ' + toks.join(' ') : '';
+    }
+    function animStepOnce() {
+      if (!anim.order.length) return false;
+      if (anim.idx >= anim.order.length - 1) { anim.idx = -1; }
+      anim.idx++;
+      updateAnim();
+      return anim.idx < anim.order.length - 1;
+    }
+    function stopAnim() {
+      if (anim.timer) { clearInterval(anim.timer); anim.timer = null; }
+      const b = $('animPlay'); if (b) b.textContent = '▶ 再生';
+    }
+    function startAnim() {
+      if (!anim.order.length) return;
+      if (anim.idx >= anim.order.length - 1) anim.idx = -1;
+      $('animPlay').textContent = '⏸ 停止';
+      const tick = () => { if (!animStepOnce()) stopAnim(); };
+      tick();
+      if (anim.order.length > 1) anim.timer = setInterval(tick, Number($('animSpeed').value));
+    }
 
-        // ポーランド
-        const prefixRes = infixToPrefixWithSteps(tokens);
-        currentPrefixSteps = prefixRes.steps;
-        document.getElementById('outPrefix').innerText = prefixRes.prefix.join(' ');
-
-        // 計算値
-        const val = evaluatePostfix(postfixRes.postfix);
-        document.getElementById('calcResult').innerText = `= ${val}`;
-        document.getElementById('calcResult').classList.remove('error');
-
-        // テーブル更新
-        renderSteps();
-
-      } catch (err) {
-        document.getElementById('outPrefix').innerText = '構文エラー';
-        document.getElementById('outPostfix').innerText = '構文エラー';
-        document.getElementById('calcResult').innerText = 'Error';
-        document.getElementById('calcResult').classList.add('error');
-        document.getElementById('stepsTableBody').innerHTML = `<tr><td colspan="4" class="error-msg" style="text-align:center;">${err.message}</td></tr>`;
-      }
+    /* ============ ステップ表 ============ */
+    function renderTabs() {
+      const g = $('tabGroup');
+      g.innerHTML = '';
+      Object.keys(TABS).forEach(k => {
+        const b = document.createElement('button');
+        b.className = 'tab-btn' + (state.tab === k ? ' active' : '');
+        b.textContent = TABS[k].label;
+        b.addEventListener('click', () => { state.tab = k; stepMode = false; stepIdx = 0; renderTabs(); renderSteps(); saveState(); });
+        g.appendChild(b);
+      });
     }
 
     function renderSteps() {
-      const steps = currentTab === 'RPN' ? currentPostfixSteps : currentPrefixSteps;
-      const tbody = document.getElementById('stepsTableBody');
-      
-      if (!steps || steps.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#94a3b8;">ステップ情報がありません</td></tr>';
+      const def = TABS[state.tab];
+      const head = $('stepsHead'), body = $('stepsTableBody');
+      head.innerHTML = '<tr>' + def.head.map(h => `<th>${esc(h)}</th>`).join('') + '</tr>';
+      curSteps = null;
+      if (!ast) {
+        body.innerHTML = `<tr><td colspan="${def.head.length}" class="table-msg">式を正しく入力すると表示されます</td></tr>`;
+        renderStack(null, null); updateStepCtrl(0); return;
+      }
+      let res;
+      try { res = def.build({ ast, vars: currentVars(), angle: state.angle }); }
+      catch (e) { res = { message: e.message }; }
+      if (res.message) {
+        body.innerHTML = `<tr><td colspan="${def.head.length}" class="table-msg">${esc(res.message)}</td></tr>`;
+        renderStack(null, null); updateStepCtrl(0); return;
+      }
+      curSteps = res;
+      const total = res.rows.length;
+      if (stepIdx > total - 1) stepIdx = total - 1;
+      const shown = stepMode ? res.rows.slice(0, stepIdx + 1) : res.rows;
+      const curI = stepMode ? stepIdx : total - 1;
+      body.innerHTML = shown.map((r, i) =>
+        `<tr class="${i === curI && stepMode ? 'cur' : ''}">${r.cells.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('');
+      const wrap = $('tableWrap');
+      const tr = body.children[curI];
+      if (tr) wrap.scrollTop = Math.max(0, tr.offsetTop - wrap.clientHeight / 2);
+      renderStack(res, res.rows[curI]);
+      updateStepCtrl(total);
+    }
+
+    function renderStack(res, row) {
+      const box = $('stackBox');
+      if (!res || res.stackTitle === null || res.stackTitle === undefined) { box.classList.add('hidden'); return; }
+      box.classList.remove('hidden');
+      $('stackTitle').textContent = res.stackTitle + (res.stackTitle.includes('経路') ? '（根→現在）' : '（下が底）');
+      const items = $('stackItems');
+      const st = row && row.stack ? row.stack : [];
+      if (!st.length) { items.innerHTML = '<div class="stack-empty">（空）</div>'; return; }
+      items.innerHTML = st.slice().reverse().map((s, i) =>
+        `<div class="stack-item ${i === 0 ? 'top' : ''}">${esc(s)}</div>`).join('');
+    }
+
+    function updateStepCtrl(total) {
+      const on = stepMode && total > 0;
+      ['stFirst', 'stPrev', 'stNext', 'stLast'].forEach(id => $(id).classList.toggle('hidden', !on));
+      $('stModeBtn').textContent = stepMode ? '全表示に戻す' : 'ステップ実行';
+      $('stModeBtn').disabled = total === 0;
+      $('stInfo').textContent = on ? `${stepIdx + 1} / ${total}` : (total ? `全 ${total} ステップ` : '');
+      if (on) {
+        $('stFirst').disabled = $('stPrev').disabled = stepIdx <= 0;
+        $('stNext').disabled = $('stLast').disabled = stepIdx >= total - 1;
+      }
+    }
+
+    /* ============ 入力操作 ============ */
+    const input = () => $('exprInput');
+    function afterEdit() { state.input = input().value; recompute(); }
+
+    function insertAtCursor(text) {
+      const el = input();
+      const s = el.selectionStart == null ? el.value.length : el.selectionStart;
+      const e = el.selectionEnd == null ? el.value.length : el.selectionEnd;
+      el.setRangeText(text, s, e, 'end');
+      afterEdit();
+    }
+    function insertFromKey(btn) {
+      const val = btn.dataset.val, kind = btn.dataset.kind;
+      const el = input();
+      if (state.notation === 'infix') {
+        if (kind === 'op') insertAtCursor(` ${val} `);
+        else if (kind === 'fn') insertAtCursor(`${val}(`);
+        else insertAtCursor(val);
         return;
       }
-
-      tbody.innerHTML = steps.map(s => `
-        <tr>
-          <td>${s.step}</td>
-          <td><strong>${s.token}</strong></td>
-          <td>[ ${s.stack.join(', ')} ]</td>
-          <td>${s.output}</td>
-        </tr>
-      `).join('');
-    }
-
-    function switchTab(tab) {
-      currentTab = tab;
-      document.getElementById('tabRPN').classList.toggle('active', tab === 'RPN');
-      document.getElementById('tabPrefix').classList.toggle('active', tab === 'Prefix');
-      renderSteps();
-    }
-
-    function copyText(elementId) {
-      const text = document.getElementById(elementId).innerText;
-      if (text && text !== '-' && text !== '構文エラー') {
-        navigator.clipboard.writeText(text);
-        alert('コピーしました: ' + text);
+      const s = el.selectionStart == null ? el.value.length : el.selectionStart;
+      const e = el.selectionEnd == null ? el.value.length : el.selectionEnd;
+      const before = el.value.slice(0, s), after = el.value.slice(e);
+      if (kind === 'digit') {
+        // 直前が演算子や英字なら、数字がくっつかないようスペースを挟む
+        insertAtCursor((/[^\d.\s]$/.test(before) ? ' ' : '') + val);
+        return;
       }
+      const lead = before.length > 0 && !/\s$/.test(before) ? ' ' : '';
+      const trail = /^\s/.test(after) ? '' : ' ';
+      insertAtCursor(lead + val + trail);
+    }
+    function backspace() {
+      const el = input();
+      let s = el.selectionStart, e = el.selectionEnd;
+      if (s == null) { s = e = el.value.length; }
+      if (s === e) { if (s === 0) return; s = s - 1; }
+      el.setRangeText('', s, e, 'end');
+      afterEdit();
+    }
+    function clearAll() { input().value = ''; afterEdit(); }
+
+    function placeholderFor(n) {
+      return n === 'infix' ? '例: (1 * 2) + 3' : n === 'prefix' ? '例: + * 1 2 3' : '例: 1 2 * 3 +';
+    }
+    function setNotation(n, convert) {
+      if (convert && ast) { input().value = serialize(ast, n); state.input = input().value; }
+      state.notation = n;
+      document.body.dataset.mode = n;
+      document.querySelectorAll('#notationSeg button').forEach(b => b.classList.toggle('active', b.dataset.n === n));
+      $('dispLabel').textContent = n === 'infix' ? 'INFIX EXPRESSION' : n === 'prefix' ? 'PREFIX EXPRESSION' : 'POSTFIX EXPRESSION';
+      input().placeholder = placeholderFor(n);
+      recompute();
     }
 
-    // --- イベントリスナーの確実なバインド ---
+    /* ============ 履歴 ============ */
+    function renderHistory() {
+      const ul = $('histList');
+      ul.innerHTML = '';
+      state.history.forEach((h, i) => {
+        const li = document.createElement('li');
+        const b = document.createElement('button');
+        b.innerHTML = `<span class="h-expr">${esc(h.e)}</span><span class="h-res">${esc(h.r)}</span>`;
+        b.title = `${h.n === 'infix' ? '中置' : h.n === 'prefix' ? '前置' : '後置'}: ${h.e}`;
+        b.addEventListener('click', () => {
+          input().value = h.e; state.input = h.e;
+          setNotation(h.n, false);
+        });
+        li.appendChild(b); ul.appendChild(li);
+      });
+      $('histEmpty').classList.toggle('hidden', state.history.length > 0);
+    }
+    function addHistory() {
+      if (!ast) return;
+      const names = collectVars(ast), vars = currentVars();
+      let r = '';
+      if (names.some(n => vars[n] === undefined)) r = '(変数あり)';
+      else { try { r = fmt(evalNode(ast, vars, state.angle)); } catch (e) { r = 'エラー'; } }
+      const rec = { e: state.input.trim(), n: state.notation, r };
+      const top = state.history[0];
+      if (top && top.e === rec.e && top.n === rec.n) { top.r = r; }
+      else state.history.unshift(rec);
+      state.history = state.history.slice(0, 30);
+      renderHistory(); saveState();
+    }
+
+    /* ============ クイズ ============ */
+    let quiz = null;
+    const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    const pick = arr => arr[rand(0, arr.length - 1)];
+
+    function buildRandomTree(nOps, diff) {
+      const ops = diff === 1 ? ['+', '-', '*', '+', '-'] : diff === 2 ? ['+', '-', '*', '/', '*', '-'] : ['+', '-', '*', '/', '^', '%', '*'];
+      (function noop() {})();
+      function build(n) {
+        if (n === 0) return num(rand(1, 9));
+        if (diff >= 3 && Math.random() < 0.2) return un('neg', build(n - 1));
+        const op = pick(ops);
+        if (op === '^') return bin('^', build(n - 1), num(rand(2, 3)));
+        const left = rand(0, n - 1);
+        return bin(op, build(left), build(n - 1 - left));
+      }
+      return build(nOps);
+    }
+    function makeQuizTree(diff, needValue) {
+      for (let i = 0; i < 200; i++) {
+        const nOps = diff === 1 ? rand(2, 3) : diff === 2 ? rand(3, 5) : rand(5, 7);
+        const t = buildRandomTree(nOps, diff);
+        if (t.t === 'num') continue;
+        try {
+          const v = evalNode(t, {}, 'rad');
+          if (!isFinite(v) || Math.abs(v) > 99999) continue;
+          if (Math.abs(v * 1000 - Math.round(v * 1000)) > 1e-6) continue;
+          if (needValue || diff < 3 || true) { /* 値が扱いやすいものだけ採用 */ }
+          return t;
+        } catch (e) { /* 再抽選 */ }
+      }
+      return bin('+', num(1), bin('*', num(2), num(3)));
+    }
+
+    function newQuiz() {
+      let type = $('quizType').value;
+      if (type === 'random') type = pick(['in2pre', 'in2post', 'pre2in', 'post2in', 'post2val']);
+      const diff = Number($('quizDiff').value);
+      const tree = makeQuizTree(diff, type === 'post2val');
+      const spec = {
+        in2pre:  { from: 'infix',   to: 'prefix',  label: '次の中置記法を前置記法（ポーランド記法）に変換してください' },
+        in2post: { from: 'infix',   to: 'postfix', label: '次の中置記法を後置記法（逆ポーランド記法）に変換してください' },
+        pre2in:  { from: 'prefix',  to: 'infix',   label: '次の前置記法を中置記法に直してください（カッコは必要なところだけでOK）' },
+        post2in: { from: 'postfix', to: 'infix',   label: '次の後置記法を中置記法に直してください（カッコは必要なところだけでOK）' },
+        post2val:{ from: 'postfix', to: 'value',   label: '次の後置記法を計算してください' }
+      }[type];
+      quiz = { type, tree, spec, done: false };
+      $('quizQ').innerHTML = `<div class="q-label">${esc(spec.label)}${diff >= 3 ? '（単項マイナスは neg）' : ''}</div><div class="q-expr">${esc(serialize(tree, spec.from))}</div>`;
+      const a = $('quizAns');
+      a.disabled = false; a.value = ''; a.focus();
+      a.placeholder = spec.to === 'value' ? '数値を入力' : spec.to === 'infix' ? '中置記法で入力 (例: (1 + 2) * 3)' : spec.to === 'prefix' ? 'スペース区切りで入力 (例: + * 1 2 3)' : 'スペース区切りで入力 (例: 1 2 * 3 +)';
+      $('quizCheck').disabled = false; $('quizShow').disabled = false;
+      setFb('', '');
+    }
+    function setFb(cls, html) { const f = $('quizFb'); f.className = 'quiz-fb ' + cls; f.innerHTML = html; }
+    function updateQuizScore() {
+      const s = state.quizScore;
+      $('quizScore').textContent = `正解 ${s.ok} / ${s.total}　連続 ${s.streak}`;
+    }
+    function quizExplain() {
+      const t = quiz.tree;
+      return `<br>中置: <code>${esc(toInfix(t, false))}</code>　前置: <code>${esc(prefixTokens(t).join(' '))}</code>　後置: <code>${esc(postfixTokens(t).join(' '))}</code>`;
+    }
+    function quizCorrectAnswer() {
+      return quiz.spec.to === 'value' ? fmt(evalNode(quiz.tree, {}, 'rad')) : serialize(quiz.tree, quiz.spec.to);
+    }
+    function checkQuiz() {
+      if (!quiz) return;
+      const ans = $('quizAns').value;
+      if (!ans.trim()) { setFb('ng', '答えを入力してください'); return; }
+      let ok = false;
+      try {
+        if (quiz.spec.to === 'value') {
+          const v = Number(normalizeInput(ans).trim());
+          if (!isFinite(v)) throw new Error('数値で入力してください');
+          ok = Math.abs(v - evalNode(quiz.tree, {}, 'rad')) < 1e-6;
+        } else {
+          const t = parseByNotation(ans, quiz.spec.to, { implicit: false });
+          ok = postfixTokens(t).join(' ') === postfixTokens(quiz.tree).join(' ');
+        }
+      } catch (e) {
+        setFb('ng', '形式エラー: ' + esc(e.message)); return;
+      }
+      const s = state.quizScore;
+      if (!quiz.done) {
+        s.total++;
+        if (ok) { s.ok++; s.streak++; } else s.streak = 0;
+        quiz.done = true;
+        updateQuizScore(); saveState();
+      }
+      if (ok) setFb('ok', '✅ 正解！' + quizExplain());
+      else setFb('ng', '❌ 不正解（式の構造が違います）。もう一度考えるか「答えを見る」を押してください。');
+    }
+    function showQuiz() {
+      if (!quiz) return;
+      if (!quiz.done) {
+        quiz.done = true; state.quizScore.total++; state.quizScore.streak = 0;
+        updateQuizScore(); saveState();
+      }
+      setFb('', `答え: <code>${esc(quizCorrectAnswer())}</code>${quizExplain()}`);
+    }
+
+    /* ============ 初期化 ============ */
     document.addEventListener('DOMContentLoaded', () => {
-      const exprInput = document.getElementById('exprInput');
+      loadState();
+      // URLパラメータ（共有リンク）
+      try {
+        const q = new URLSearchParams(location.search);
+        if (q.get('e') !== null) {
+          state.input = q.get('e');
+          const n = q.get('n');
+          if (['infix', 'prefix', 'postfix'].includes(n)) state.notation = n;
+        }
+      } catch (e) {}
 
-      // テキスト入力の監視
-      exprInput.addEventListener('input', processInput);
+      input().value = state.input;
+      $('optImplicit').checked = !!state.implicit;
+      $('optAngle').value = state.angle;
+      $('optNoKb').checked = !!state.noKb;
+      $('optDark').checked = !!state.dark;
+      applyTheme(); applyKb();
+      if (!TABS[state.tab]) state.tab = 'shunt';
 
-      // 電卓ボタンのクリック処理
-      document.querySelectorAll('.calc-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const val = btn.getAttribute('data-val');
-          if (val) {
-            exprInput.value += val;
-            processInput();
-          }
+      renderTabs();
+      renderHistory();
+      updateQuizScore();
+      setNotation(state.notation, false);
+
+      input().addEventListener('input', afterEdit);
+      input().addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addHistory(); }
+        else if (e.key === 'Escape') { e.preventDefault(); clearAll(); }
+      });
+
+      $('notationSeg').addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        setNotation(b.dataset.n, true);
+      });
+
+      const pad = $('keypad'), fnpad = $('fnpad');
+      [pad, fnpad].forEach(p => {
+        p.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+        p.addEventListener('click', e => {
+          const b = e.target.closest('button[data-kind]');
+          if (b) insertFromKey(b);
         });
       });
+      $('btnBack').addEventListener('click', backspace);
+      $('btnAC').addEventListener('click', clearAll);
+      $('btnClearText').addEventListener('click', clearAll);
 
-      // AC（クリア）ボタン
-      document.getElementById('btnAC').addEventListener('click', () => {
-        exprInput.value = '';
-        processInput();
+      $('optImplicit').addEventListener('change', e => { state.implicit = e.target.checked; recompute(); });
+      $('optAngle').addEventListener('change', e => { state.angle = e.target.value; recompute(); });
+      $('optNoKb').addEventListener('change', e => { state.noKb = e.target.checked; applyKb(); saveState(); });
+      $('optDark').addEventListener('change', e => { state.dark = e.target.checked; applyTheme(); saveState(); });
+
+      $('btnAddHist').addEventListener('click', addHistory);
+      $('btnClearHist').addEventListener('click', () => { state.history = []; renderHistory(); saveState(); });
+
+      document.querySelectorAll('[data-copy]').forEach(b => {
+        b.addEventListener('click', () => {
+          const t = $(b.dataset.copy).textContent;
+          if (ast && t && t !== '-' && t !== '—') doCopy(t, b);
+        });
+      });
+      $('btnCopyAll').addEventListener('click', e => {
+        if (!ast) return;
+        const t = `中置: ${toInfix(ast, false)}\n完全括弧: ${toInfix(ast, true)}\n前置: ${prefixTokens(ast).join(' ')}\n後置: ${postfixTokens(ast).join(' ')}`;
+        doCopy(t, e.target);
+      });
+      $('btnShare').addEventListener('click', e => {
+        const base = location.href.split('?')[0].split('#')[0];
+        const url = `${base}?e=${encodeURIComponent(state.input)}&n=${state.notation}`;
+        doCopy(url, e.target);
       });
 
-      // ディスプレイ右上の「クリア」
-      document.getElementById('btnClearText').addEventListener('click', () => {
-        exprInput.value = '';
-        processInput();
-      });
+      $('animOrder').addEventListener('change', () => { stopAnim(); anim.order = ast ? orderOf(ast, $('animOrder').value) : []; anim.idx = -1; updateAnim(); });
+      $('animPlay').addEventListener('click', () => { if (anim.timer) stopAnim(); else startAnim(); });
+      $('animStep').addEventListener('click', () => { stopAnim(); animStepOnce(); });
+      $('animReset').addEventListener('click', () => { stopAnim(); anim.idx = -1; updateAnim(); });
+      $('animSpeed').addEventListener('input', () => { if (anim.timer) { stopAnim(); startAnim(); } });
 
-      // 1文字削除（⌫）ボタン
-      document.getElementById('btnBack').addEventListener('click', () => {
-        exprInput.value = exprInput.value.slice(0, -1);
-        processInput();
-      });
+      $('stModeBtn').addEventListener('click', () => { stepMode = !stepMode; stepIdx = 0; renderSteps(); });
+      $('stFirst').addEventListener('click', () => { stepIdx = 0; renderSteps(); });
+      $('stPrev').addEventListener('click', () => { stepIdx = Math.max(0, stepIdx - 1); renderSteps(); });
+      $('stNext').addEventListener('click', () => { if (curSteps) stepIdx = Math.min(curSteps.rows.length - 1, stepIdx + 1); renderSteps(); });
+      $('stLast').addEventListener('click', () => { if (curSteps) stepIdx = curSteps.rows.length - 1; renderSteps(); });
 
-      // 初期計算実行
-      processInput();
+      $('lrnQuiz').addEventListener('click', () => switchLearn('quiz'));
+      $('lrnExplain').addEventListener('click', () => switchLearn('explain'));
+      $('quizNew').addEventListener('click', newQuiz);
+      $('quizCheck').addEventListener('click', checkQuiz);
+      $('quizShow').addEventListener('click', showQuiz);
+      $('quizAns').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkQuiz(); } });
     });
+
+    function switchLearn(w) {
+      $('quizPane').classList.toggle('hidden', w !== 'quiz');
+      $('explainPane').classList.toggle('hidden', w !== 'explain');
+      $('lrnQuiz').classList.toggle('active', w === 'quiz');
+      $('lrnExplain').classList.toggle('active', w === 'explain');
+    }
+    function applyTheme() { document.documentElement.dataset.theme = state.dark ? 'dark' : 'light'; }
+    function applyKb() { input().setAttribute('inputmode', state.noKb ? 'none' : 'text'); }
   </script>
 </body>
 </html>
