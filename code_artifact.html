@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>十二支（干支）サークル</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for cute Japanese typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Kiwi Maru', serif, sans-serif;
+      background-color: #fdf8f5;
+    }
+    
+    /* Circle position logic with responsive canvas container */
+    .zodiac-circle-container {
+      position: relative;
+      width: 100%;
+      max-width: 620px; /* Expanded for 3x larger icons */
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
+    }
+
+    /* Grayscale vs Vibrant Color Styling for Zodiac Items */
+    .zodiac-item {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: grayscale(100%) opacity(0.4) saturate(0%);
+      cursor: pointer;
+      background-color: rgba(255, 255, 255, 0.7);
+    }
+
+    .zodiac-item:hover {
+      filter: grayscale(40%) opacity(0.85) saturate(70%);
+      transform: translate(-50%, -50%) scale(1.08) !important;
+    }
+
+    .zodiac-item.active {
+      filter: grayscale(0%) opacity(1) saturate(130%);
+      z-index: 30;
+      background-color: #ffffff;
+      box-shadow: 0 12px 28px -4px rgba(244, 114, 182, 0.45), 0 0 20px 2px rgba(251, 191, 36, 0.4);
+    }
+
+    /* Pulse animation for the selected active zodiac */
+    @keyframes active-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1.22); }
+      50% { transform: translate(-50%, -50%) scale(1.32); }
+    }
+
+    .zodiac-item.active-anim {
+      animation: active-pulse 2.2s infinite ease-in-out;
+    }
+
+    /* Modal Animation */
+    .modal-backdrop {
+      transition: opacity 0.3s ease;
+    }
+    .modal-content {
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+  </style>
+<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body class="min-h-screen text-slate-700 flex flex-col justify-between p-3 sm:p-6 select-none bg-radial from-amber-50 via-rose-50 to-orange-50">
+<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+
+  <!-- Header Section -->
+  <header class="text-center mt-1 mb-2 sm:mb-4">
+    <h1 class="text-2xl sm:text-4xl font-bold text-rose-500 tracking-wider drop-shadow-sm flex items-center justify-center gap-2">
+      <span>🌸</span> 十二支めぐり <span>🌸</span>
+    </h1>
+    <p class="text-xs sm:text-base text-rose-400 mt-1">生まれ年や気になる年の干支を調べよう</p>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-2xl mx-auto w-full flex-1 flex flex-col items-center justify-center">
+
+    <!-- Year Controller Card -->
+    <div class="bg-white/80 backdrop-blur-md p-3 sm:p-5 rounded-3xl shadow-lg border border-rose-100 w-full mb-2 sm:mb-4 text-center">
+      <label for="yearInput" class="block text-xs font-bold text-rose-400 uppercase tracking-widest mb-1">
+        西暦年を入力 (1900 ~ 2100)
+      </label>
+      
+      <div class="flex items-center justify-center gap-2 sm:gap-3">
+        <button id="prevYearBtn" class="w-10 h-10 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold text-xl flex items-center justify-center transition active:scale-95 shadow-sm" title="前年">
+          ＜
+        </button>
+        
+        <div class="relative">
+          <input 
+            type="number" 
+            id="yearInput" 
+            min="1900" 
+            max="2100" 
+            class="w-36 text-center text-2xl sm:text-3xl font-bold text-slate-700 bg-rose-50/50 border-2 border-rose-200 rounded-2xl py-1.5 sm:py-2 px-3 focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100 transition shadow-inner"
+            placeholder="2026"
+          />
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-rose-400 font-bold text-sm pointer-events-none">年</span>
+        </div>
+
+        <button id="nextYearBtn" class="w-10 h-10 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-600 font-bold text-xl flex items-center justify-center transition active:scale-95 shadow-sm" title="翌年">
+          ＞
+        </button>
+      </div>
+
+      <!-- Quick Reset / Info badge -->
+      <div class="mt-2 sm:mt-3 flex items-center justify-center gap-2">
+        <button id="resetBtn" class="text-xs bg-rose-50 text-rose-500 hover:bg-rose-100 border border-rose-200 px-3 py-1 rounded-full transition shadow-xs">
+          今年（<span id="currentYearText"></span>年）に戻す
+        </button>
+      </div>
+    </div>
+
+    <!-- Zodiac Wheel Container -->
+    <div class="relative w-full flex items-center justify-center my-1 sm:my-2">
+      <!-- Background Decor Pattern Circle -->
+      <div class="zodiac-circle-container flex items-center justify-center">
+        <!-- Inner Decorative Ring -->
+        <div class="absolute w-[68%] h-[68%] rounded-full border-2 border-dashed border-rose-200/80 pointer-events-none"></div>
+        <div class="absolute w-[42%] h-[42%] rounded-full bg-white/70 backdrop-blur-md border border-rose-100 shadow-inner pointer-events-none"></div>
+
+        <!-- Center Display (Current Active Zodiac Info) -->
+        <div id="centerDisplay" class="z-10 text-center pointer-events-none p-2 sm:p-4 rounded-full flex flex-col items-center justify-center">
+          <div id="centerKanji" class="text-3xl sm:text-5xl font-bold text-rose-500 mb-0.5 drop-shadow-sm">子</div>
+          <div id="centerReading" class="text-xs sm:text-sm font-medium text-slate-500">（ね・ねずみ）</div>
+          <div id="centerYear" class="mt-1 sm:mt-2 inline-block px-3 py-0.5 bg-rose-100/80 text-rose-600 rounded-full text-xs sm:text-sm font-bold shadow-xs">
+            2026年
+          </div>
+          <p class="text-[10px] sm:text-xs text-rose-400 font-medium mt-1">※アイコンタップで年一覧表示</p>
+        </div>
+
+        <!-- Zodiac Items Render Target (12 Items placed via JS dynamically) -->
+        <div id="zodiacWheel" class="absolute inset-0 w-full h-full"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal for Zodiac Year List -->
+  <div id="yearModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
+    <!-- Backdrop -->
+    <div id="modalBackdrop" class="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"></div>
+
+    <!-- Modal Content Window -->
+    <div class="modal-content relative bg-white w-full max-w-md rounded-3xl shadow-2xl border border-rose-100 p-6 z-10 transform scale-90">
+      
+      <!-- Close Button -->
+      <button id="closeModalBtn" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-rose-100 text-slate-400 hover:text-rose-500 transition flex items-center justify-center text-xl font-bold">
+        ✕
+      </button>
+
+      <!-- Modal Header -->
+      <div class="flex items-center gap-4 border-b border-rose-100 pb-4 mb-4">
+        <div id="modalIconContainer" class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center p-2 shadow-sm">
+          <!-- SVG Icon will be inserted here -->
+        </div>
+        <div>
+          <div class="flex items-baseline gap-2">
+            <h2 id="modalZodiacName" class="text-2xl font-bold text-slate-800">子年</h2>
+            <span id="modalZodiacReading" class="text-sm font-medium text-rose-400">（ね・ねずみ）</span>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">1900年〜2100年の該当年（全<span id="modalYearCount"></span>回）</p>
+        </div>
+      </div>
+
+      <!-- Years Grid List -->
+      <div class="max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+        <div id="modalYearGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          <!-- Years will be generated dynamically -->
+        </div>
+      </div>
+
+      <!-- Footer Action -->
+      <div class="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+        <button id="closeModalFooterBtn" class="px-5 py-2 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-xl text-sm transition shadow-sm active:scale-95">
+          閉じる
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center text-xs text-rose-300 py-2">
+    © 十二支サークル Interactive App
+  </footer>
+
+  <!-- App Script Logic -->
+  <script>
+    // 12 Zodiac Data Object with SVG drawings
+    const ZODIAC_DATA = [
+      {
+        id: 'rat',
+        kanji: '子',
+        reading: 'ね・ねずみ',
+        animal: '子（ねずみ）',
+        index: 0, // 1900 % 12 = 4 (Rat in Chinese Zodiac calendar calculation formula)
+        // SVG Icon (Cute Rat)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="50" cy="55" r="32" fill="#E2E8F0"/><circle cx="28" cy="28" r="16" fill="#CBD5E1"/><circle cx="28" cy="28" r="10" fill="#F472B6"/><circle cx="72" cy="28" r="16" fill="#CBD5E1"/><circle cx="72" cy="28" r="10" fill="#F472B6"/><circle cx="40" cy="50" r="4" fill="#334155"/><circle cx="60" cy="50" r="4" fill="#334155"/><ellipse cx="50" cy="58" rx="5" ry="3" fill="#F472B6"/><path d="M46 64 Q50 67 54 64" stroke="#475569" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="34" cy="56" r="4" fill="#F472B6" opacity="0.4"/><circle cx="66" cy="56" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'ox',
+        kanji: '丑',
+        reading: 'うし',
+        animal: '丑（うし）',
+        index: 1,
+        // SVG Icon (Cute Ox)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M22 30 Q12 15 25 22 Q32 30 35 35" fill="#E2E8F0" stroke="#94A3B8" stroke-width="2"/><path d="M78 30 Q88 15 75 22 Q68 30 65 35" fill="#E2E8F0" stroke="#94A3B8" stroke-width="2"/><circle cx="50" cy="55" r="33" fill="#FEF3C7"/><circle cx="40" cy="48" r="4" fill="#334155"/><circle cx="60" cy="48" r="4" fill="#334155"/><ellipse cx="50" cy="62" rx="16" ry="10" fill="#FDE68A"/><circle cx="44" cy="62" r="2.5" fill="#B45309"/><circle cx="56" cy="62" r="2.5" fill="#B45309"/><path d="M22 40 C15 35 15 50 25 48 Z" fill="#F472B6"/><path d="M78 40 C85 35 85 50 75 48 Z" fill="#F472B6"/></svg>`
+      },
+      {
+        id: 'tiger',
+        kanji: '寅',
+        reading: 'とら',
+        animal: '寅（とら）',
+        index: 2,
+        // SVG Icon (Cute Tiger)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="28" cy="28" r="12" fill="#FDBA74"/><circle cx="72" cy="28" r="12" fill="#FDBA74"/><circle cx="50" cy="55" r="33" fill="#FB923C"/><path d="M50 26 L50 34 M42 30 L58 30" stroke="#475569" stroke-width="3" stroke-linecap="round"/><path d="M22 50 L30 52 M24 58 L32 58" stroke="#475569" stroke-width="3" stroke-linecap="round"/><path d="M78 50 L70 52 M76 58 L68 58" stroke="#475569" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="50" r="4" fill="#1E293B"/><circle cx="62" cy="50" r="4" fill="#1E293B"/><ellipse cx="50" cy="62" rx="12" ry="8" fill="#FFEDD5"/><polygon points="50,58 46,55 54,55" fill="#475569"/><circle cx="32" cy="58" r="4" fill="#F472B6" opacity="0.5"/><circle cx="68" cy="58" r="4" fill="#F472B6" opacity="0.5"/></svg>`
+      },
+      {
+        id: 'rabbit',
+        kanji: '卯',
+        reading: 'う・うさぎ',
+        animal: '卯（うさぎ）',
+        index: 3,
+        // SVG Icon (Cute Rabbit)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="36" cy="28" rx="9" ry="24" fill="#F1F5F9"/><ellipse cx="36" cy="28" rx="5" ry="18" fill="#F472B6"/><ellipse cx="64" cy="28" rx="9" ry="24" fill="#F1F5F9"/><ellipse cx="64" cy="28" rx="5" ry="18" fill="#F472B6"/><circle cx="50" cy="60" r="30" fill="#FFFFFF"/><circle cx="38" cy="54" r="4" fill="#334155"/><circle cx="62" cy="54" r="4" fill="#334155"/><polygon points="50,60 46,57 54,57" fill="#F472B6"/><path d="M46 64 Q50 67 54 64" stroke="#94A3B8" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="30" cy="60" r="5" fill="#F472B6" opacity="0.4"/><circle cx="70" cy="60" r="5" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'dragon',
+        kanji: '辰',
+        reading: 'たつ',
+        animal: '辰（たつ）',
+        index: 4,
+        // SVG Icon (Cute Dragon)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M30 25 L25 10 L38 20" fill="#F59E0B"/><path d="M70 25 L75 10 L62 20" fill="#F59E0B"/><circle cx="50" cy="55" r="33" fill="#34D399"/><ellipse cx="50" cy="64" rx="20" ry="14" fill="#A7F3D0"/><circle cx="38" cy="48" r="4" fill="#064E3B"/><circle cx="62" cy="48" r="4" fill="#064E3B"/><circle cx="43" cy="60" r="2.5" fill="#047857"/><circle cx="57" cy="60" r="2.5" fill="#047857"/><path d="M22 55 Q16 55 18 45 Q26 48 24 55" fill="#F59E0B"/><path d="M78 55 Q84 55 82 45 Q74 48 76 55" fill="#F59E0B"/><circle cx="30" cy="58" r="4" fill="#F472B6" opacity="0.5"/><circle cx="70" cy="58" r="4" fill="#F472B6" opacity="0.5"/></svg>`
+      },
+      {
+        id: 'snake',
+        kanji: '巳',
+        reading: 'み・へび',
+        animal: '巳（へび）',
+        index: 5,
+        // SVG Icon (Cute Snake)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M30 75 C 10 50, 40 30, 50 30 C 75 30, 85 55, 65 72 C 50 82, 35 68, 45 55" fill="none" stroke="#A7F3D0" stroke-width="18" stroke-linecap="round"/><circle cx="50" cy="32" r="24" fill="#6EE7B7"/><circle cx="42" cy="28" r="3.5" fill="#064E3B"/><circle cx="58" cy="28" r="3.5" fill="#064E3B"/><path d="M50 36 Q50 44 46 46 M50 42 Q54 46 54 46" stroke="#EF4444" stroke-width="2" fill="none"/><circle cx="36" cy="34" r="3.5" fill="#F472B6" opacity="0.4"/><circle cx="64" cy="34" r="3.5" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'horse',
+        kanji: '午',
+        reading: 'うま',
+        animal: '午（うま）',
+        index: 6,
+        // SVG Icon (Cute Horse)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M40 18 Q50 8 60 18 L58 35 L42 35 Z" fill="#78350F"/><circle cx="50" cy="55" r="32" fill="#D97706"/><polygon points="25,25 35,38 20,40" fill="#D97706"/><polygon points="75,25 65,38 80,40" fill="#D97706"/><ellipse cx="50" cy="62" rx="18" ry="12" fill="#FDE68A"/><circle cx="38" cy="48" r="4" fill="#451A03"/><circle cx="62" cy="48" r="4" fill="#451A03"/><circle cx="43" cy="60" r="2.5" fill="#78350F"/><circle cx="57" cy="60" r="2.5" fill="#78350F"/><path d="M30 20 L50 20 L40 10 Z" fill="#F59E0B"/></svg>`
+      },
+      {
+        id: 'goat',
+        kanji: '未',
+        reading: 'ひつじ',
+        animal: '未（ひつじ）',
+        index: 7,
+        // SVG Icon (Cute Sheep/Goat)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M20 38 Q12 20 28 28" fill="none" stroke="#D97706" stroke-width="6" stroke-linecap="round"/><path d="M80 38 Q88 20 72 28" fill="none" stroke="#D97706" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="56" r="32" fill="#F8FAFC"/><circle cx="35" cy="30" r="12" fill="#F1F5F9"/><circle cx="65" cy="30" r="12" fill="#F1F5F9"/><circle cx="50" cy="26" r="14" fill="#F1F5F9"/><circle cx="38" cy="52" r="4" fill="#334155"/><circle cx="62" cy="52" r="4" fill="#334155"/><ellipse cx="50" cy="60" rx="6" ry="4" fill="#CBD5E1"/><path d="M47 64 Q50 67 53 64" stroke="#64748B" stroke-width="2" fill="none"/><circle cx="32" cy="58" r="4" fill="#F472B6" opacity="0.4"/><circle cx="68" cy="58" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'monkey',
+        kanji: '申',
+        reading: 'さる',
+        animal: '申（さる）',
+        index: 8,
+        // SVG Icon (Cute Monkey)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><circle cx="20" cy="50" r="14" fill="#B45309"/><circle cx="20" cy="50" r="8" fill="#FDE68A"/><circle cx="80" cy="50" r="14" fill="#B45309"/><circle cx="80" cy="50" r="8" fill="#FDE68A"/><circle cx="50" cy="52" r="33" fill="#B45309"/><path d="M28 45 C28 30 72 30 72 45 C72 68 60 75 50 75 C40 75 28 68 28 45 Z" fill="#FDE68A"/><circle cx="40" cy="48" r="4" fill="#451A03"/><circle cx="60" cy="48" r="4" fill="#451A03"/><ellipse cx="50" cy="56" rx="5" ry="3" fill="#78350F"/><path d="M44 64 Q50 69 56 64" stroke="#78350F" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="33" cy="56" r="4" fill="#F472B6" opacity="0.4"/><circle cx="67" cy="56" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'rooster',
+        kanji: '酉',
+        reading: 'とり',
+        animal: '酉（とり）',
+        index: 9,
+        // SVG Icon (Cute Rooster)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><path d="M50 12 C44 22 56 22 50 32" stroke="#EF4444" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="50" cy="56" r="32" fill="#FFFBEB"/><polygon points="50,52 68,56 50,62" fill="#F59E0B"/><path d="M50 62 Q50 72 46 68" stroke="#EF4444" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="38" cy="48" r="4" fill="#1E293B"/><circle cx="62" cy="48" r="4" fill="#1E293B"/><circle cx="30" cy="58" r="4" fill="#F472B6" opacity="0.4"/><circle cx="70" cy="58" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'dog',
+        kanji: '戌',
+        reading: 'いぬ',
+        animal: '戌（いぬ）',
+        index: 10,
+        // SVG Icon (Cute Dog)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><ellipse cx="22" cy="45" rx="10" ry="20" fill="#78350F" transform="rotate(15 22 45)"/><ellipse cx="78" cy="45" rx="10" ry="20" fill="#78350F" transform="rotate(-15 78 45)"/><circle cx="50" cy="55" r="32" fill="#F59E0B"/><circle cx="38" cy="48" r="4" fill="#451A03"/><circle cx="62" cy="48" r="4" fill="#451A03"/><ellipse cx="50" cy="62" rx="14" ry="10" fill="#FFFBEB"/><ellipse cx="50" cy="57" rx="5" ry="3.5" fill="#451A03"/><path d="M46 64 Q50 68 54 64" stroke="#451A03" stroke-width="2" fill="none"/><circle cx="32" cy="56" r="4" fill="#F472B6" opacity="0.4"/><circle cx="68" cy="56" r="4" fill="#F472B6" opacity="0.4"/></svg>`
+      },
+      {
+        id: 'boar',
+        kanji: '亥',
+        reading: 'いのしし',
+        animal: '亥（いのしし）',
+        index: 11,
+        // SVG Icon (Cute Boar)
+        svg: `<svg viewBox="0 0 100 100" class="w-full h-full"><polygon points="28,26 38,36 22,40" fill="#78350F"/><polygon points="72,26 62,36 78,40" fill="#78350F"/><circle cx="50" cy="55" r="32" fill="#881337"/><path d="M30 38 L70 38 M35 32 L65 32" stroke="#FDE68A" stroke-width="3" stroke-linecap="round"/><circle cx="38" cy="48" r="4" fill="#FFFBEB"/><circle cx="62" cy="48" r="4" fill="#FFFBEB"/><ellipse cx="50" cy="60" rx="14" ry="9" fill="#FDA4AF"/><circle cx="44" cy="60" r="2.5" fill="#881337"/><circle cx="56" cy="60" r="2.5" fill="#881337"/><path d="M34 66 Q30 68 36 60" stroke="#FFFBEB" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M66 66 Q70 68 64 60" stroke="#FFFBEB" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`
+      }
+    ];
+
+    // App State Management
+    const MIN_YEAR = 1900;
+    const MAX_YEAR = 2100;
+    const STORAGE_KEY = 'zodiac_selected_year';
+
+    // Dynamic current year determination
+    const CURRENT_YEAR = new Date().getFullYear();
+    // Default fallback to 2026 if outside bounds or dynamic
+    const DEFAULT_YEAR = (CURRENT_YEAR >= MIN_YEAR && CURRENT_YEAR <= MAX_YEAR) ? CURRENT_YEAR : 2026;
+
+    let selectedYear = DEFAULT_YEAR;
+    let selectedZodiacIndex = 0;
+
+    // DOM Elements
+    const yearInput = document.getElementById('yearInput');
+    const prevYearBtn = document.getElementById('prevYearBtn');
+    const nextYearBtn = document.getElementById('nextYearBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const currentYearText = document.getElementById('currentYearText');
+    const zodiacWheel = document.getElementById('zodiacWheel');
+
+    // Center Displays
+    const centerKanji = document.getElementById('centerKanji');
+    const centerReading = document.getElementById('centerReading');
+    const centerYear = document.getElementById('centerYear');
+
+    // Modal Elements
+    const yearModal = document.getElementById('yearModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const closeModalFooterBtn = document.getElementById('closeModalFooterBtn');
+    const modalIconContainer = document.getElementById('modalIconContainer');
+    const modalZodiacName = document.getElementById('modalZodiacName');
+    const modalZodiacReading = document.getElementById('modalZodiacReading');
+    const modalYearCount = document.getElementById('modalYearCount');
+    const modalYearGrid = document.getElementById('modalYearGrid');
+
+    /**
+     * Calculate Zodiac Index from Year
+     * In Japanese/Chinese Zodiac:
+     * 1900 = Rat (子, Index 0)
+     * Formula: (year - 1900) % 12
+     */
+    function getZodiacIndexFromYear(year) {
+      let offset = (year - 1900) % 12;
+      if (offset < 0) offset += 12;
+      return offset;
+    }
+
+    /**
+     * Initialize Application
+     */
+    function initApp() {
+      currentYearText.textContent = DEFAULT_YEAR;
+
+      // Load saved year from localStorage
+      const savedYear = localStorage.getItem(STORAGE_KEY);
+      if (savedYear !== null) {
+        const parsed = parseInt(savedYear, 10);
+        if (!isNaN(parsed) && parsed >= MIN_YEAR && parsed <= MAX_YEAR) {
+          selectedYear = parsed;
+        } else {
+          selectedYear = DEFAULT_YEAR;
+        }
+      } else {
+        selectedYear = DEFAULT_YEAR;
+      }
+
+      // Render Circle Layout
+      renderZodiacCircle();
+
+      // Update State & UI
+      updateYearAndZodiac(selectedYear, false);
+
+      // Attach Event Listeners
+      setupEventListeners();
+    }
+
+    /**
+     * Render Zodiac Items in a Circle Layout
+     */
+    function renderZodiacCircle() {
+      zodiacWheel.innerHTML = '';
+      const total = ZODIAC_DATA.length;
+      
+      // Radius percentage from center for enlarged icons
+      const radius = 38; 
+
+      ZODIAC_DATA.forEach((zodiac, i) => {
+        // Calculate angle in radians (Clockwise starting from top / 子 at 12 o'clock)
+        const angleDegree = (i * (360 / total)) - 90;
+        const angleRad = (angleDegree * Math.PI) / 180;
+
+        // Calculate X and Y coordinates in percentage
+        const x = 50 + radius * Math.cos(angleRad);
+        const y = 50 + radius * Math.sin(angleRad);
+
+        // Create Item element (Approx 3x larger icon box with responsive dimensions)
+        const itemEl = document.createElement('div');
+        itemEl.className = 'zodiac-item absolute w-20 h-20 sm:w-28 sm:h-28 flex flex-col items-center justify-center p-2 rounded-3xl border-2 border-rose-100 shadow-md transition-all duration-300';
+        itemEl.style.left = `${x}%`;
+        itemEl.style.top = `${y}%`;
+        itemEl.style.transform = `translate(-50%, -50%)`;
+        itemEl.dataset.index = i;
+
+        itemEl.innerHTML = `
+          <div class="w-12 h-12 sm:w-16 sm:h-16 pointer-events-none drop-shadow-xs">${zodiac.svg}</div>
+          <span class="text-xs sm:text-sm font-bold text-slate-700 mt-1 pointer-events-none">${zodiac.kanji}</span>
+        `;
+
+        // Click Handler: Highlights Zodiac and Opens Year Modal
+        itemEl.addEventListener('click', () => {
+          handleZodiacClick(i);
+        });
+
+        zodiacWheel.appendChild(itemEl);
+      });
+    }
+
+    /**
+     * Handle Direct Zodiac Item Click
+     */
+    function handleZodiacClick(zodiacIndex) {
+      // Find the closest year matching this zodiac to current selectedYear
+      const currentZodiacIdx = getZodiacIndexFromYear(selectedYear);
+      let diff = zodiacIndex - currentZodiacIdx;
+      let targetYear = selectedYear + diff;
+
+      // Ensure within range
+      if (targetYear < MIN_YEAR) targetYear += 12;
+      if (targetYear > MAX_YEAR) targetYear -= 12;
+
+      updateYearAndZodiac(targetYear, true);
+      openYearModal(zodiacIndex);
+    }
+
+    /**
+     * Update Year and Active Zodiac Display
+     */
+    function updateYearAndZodiac(year, saveToStorage = true) {
+      selectedYear = year;
+      yearInput.value = selectedYear;
+
+      if (saveToStorage) {
+        localStorage.setItem(STORAGE_KEY, selectedYear.toString());
+      }
+
+      selectedZodiacIndex = getZodiacIndexFromYear(selectedYear);
+      const currentZodiac = ZODIAC_DATA[selectedZodiacIndex];
+
+      // Update Center Info
+      centerKanji.textContent = currentZodiac.kanji;
+      centerReading.textContent = `（${currentZodiac.reading}）`;
+      centerYear.textContent = `${selectedYear}年`;
+
+      // Update Circle Highlight
+      const items = zodiacWheel.querySelectorAll('.zodiac-item');
+      items.forEach((item) => {
+        const idx = parseInt(item.dataset.index, 10);
+        if (idx === selectedZodiacIndex) {
+          item.classList.add('active', 'active-anim', 'ring-4', 'ring-amber-300', 'border-rose-400');
+        } else {
+          item.classList.remove('active', 'active-anim', 'ring-4', 'ring-amber-300', 'border-rose-400');
+        }
+      });
+    }
+
+    /**
+     * Input Validation & Fallback Logic
+     */
+    function validateAndUpdateInput() {
+      const val = yearInput.value.trim();
+      const num = parseInt(val, 10);
+
+      // Reset to DEFAULT_YEAR if invalid, non-numeric, or out of 1900-2100 bounds
+      if (val === '' || isNaN(num) || num < MIN_YEAR || num > MAX_YEAR) {
+        updateYearAndZodiac(DEFAULT_YEAR, true);
+      } else {
+        updateYearAndZodiac(num, true);
+      }
+    }
+
+    /**
+     * Modal Logic: Display all years for a given Zodiac (1900 - 2100)
+     */
+    function openYearModal(zodiacIndex) {
+      const zodiac = ZODIAC_DATA[zodiacIndex];
+
+      // Calculate all years matching this zodiac in range 1900-2100
+      const matchingYears = [];
+      for (let y = MIN_YEAR; y <= MAX_YEAR; y++) {
+        if (getZodiacIndexFromYear(y) === zodiacIndex) {
+          matchingYears.push(y);
+        }
+      }
+
+      // Populate Modal Elements
+      modalIconContainer.innerHTML = zodiac.svg;
+      modalZodiacName.textContent = `${zodiac.kanji}年 (${zodiac.animal})`;
+      modalZodiacReading.textContent = `（${zodiac.reading}）`;
+      modalYearCount.textContent = matchingYears.length;
+
+      // Clear & Build Year Grid
+      modalYearGrid.innerHTML = '';
+      matchingYears.forEach(yr => {
+        const btn = document.createElement('button');
+        const isSelected = (yr === selectedYear);
+
+        btn.className = `py-2 px-3 rounded-xl text-sm font-bold transition shadow-xs flex flex-col items-center justify-center border ${
+          isSelected 
+            ? 'bg-rose-500 text-white border-rose-500 ring-2 ring-rose-200' 
+            : 'bg-rose-50/60 hover:bg-rose-100 text-slate-700 border-rose-100'
+        }`;
+        
+        btn.innerHTML = `
+          <span>${yr}年</span>
+        `;
+
+        // Click on year in modal selects it and closes modal
+        btn.addEventListener('click', () => {
+          updateYearAndZodiac(yr, true);
+          closeYearModal();
+        });
+
+        modalYearGrid.appendChild(btn);
+      });
+
+      // Show Modal
+      yearModal.classList.remove('opacity-0', 'pointer-events-none');
+      const content = yearModal.querySelector('.modal-content');
+      content.classList.remove('scale-90');
+      content.classList.add('scale-100');
+    }
+
+    /**
+     * Close Modal
+     */
+    function closeYearModal() {
+      const content = yearModal.querySelector('.modal-content');
+      content.classList.remove('scale-100');
+      content.classList.add('scale-90');
+      
+      yearModal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    /**
+     * Setup Event Listeners
+     */
+    function setupEventListeners() {
+      // Input Change / Blur events
+      yearInput.addEventListener('change', validateAndUpdateInput);
+      yearInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          validateAndUpdateInput();
+          yearInput.blur();
+        }
+      });
+
+      // Arrow Buttons
+      prevYearBtn.addEventListener('click', () => {
+        let newYr = selectedYear - 1;
+        if (newYr < MIN_YEAR) newYr = MAX_YEAR;
+        updateYearAndZodiac(newYr, true);
+      });
+
+      nextYearBtn.addEventListener('click', () => {
+        let newYr = selectedYear + 1;
+        if (newYr > MAX_YEAR) newYr = MIN_YEAR;
+        updateYearAndZodiac(newYr, true);
+      });
+
+      // Reset Button
+      resetBtn.addEventListener('click', () => {
+        updateYearAndZodiac(DEFAULT_YEAR, true);
+      });
+
+      // Modal Close Events
+      closeModalBtn.addEventListener('click', closeYearModal);
+      closeModalFooterBtn.addEventListener('click', closeYearModal);
+      modalBackdrop.addEventListener('click', closeYearModal);
+
+      // ESC key closes modal
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeYearModal();
+        }
+      });
+    }
+
+    // Initialize on DOM load
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
