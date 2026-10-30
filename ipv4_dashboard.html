@@ -4,407 +4,359 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IPv4 & インターネットルーティング リアルタイム分析ダッシュボード</title>
-  
-  <!-- ポップなフォントの読み込み -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;900&family=Noto+Sans+JP:wght@700;900&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS & Chart.js -->
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;900&family=Noto+Sans+JP:wght@700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
   <style>
     body { font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif; }
-    
-    /* 立体的なドラムパッドスタイルボタン */
-    .drum-pad {
-      transition: all 0.1s ease;
-      box-shadow: 0 6px 0 #d6d3d1, 0 10px 20px rgba(0,0,0,0.06);
-    }
-    .drum-pad:active:not(:disabled) {
-      transform: translateY(6px);
-      box-shadow: 0 0px 0 #d6d3d1, 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .btn-orange {
-      box-shadow: 0 6px 0 #c2410c, 0 10px 20px rgba(0,0,0,0.06);
-    }
-    .btn-orange:active:not(:disabled) {
-      transform: translateY(6px);
-      box-shadow: 0 0px 0 #c2410c, 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    /* カスタムスクロールバー */
-    .chart-scroll-container::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    .chart-scroll-container::-webkit-scrollbar-track {
-      background: #fff7ed;
-      border-radius: 8px;
-    }
-    .chart-scroll-container::-webkit-scrollbar-thumb {
-      background: #fdba74;
-      border-radius: 8px;
-    }
+    .drum-pad { transition: all .1s ease; box-shadow: 0 6px 0 #d6d3d1, 0 10px 20px rgba(0,0,0,.06); }
+    .drum-pad:active:not(:disabled) { transform: translateY(6px); box-shadow: 0 0 0 #d6d3d1; }
+    .drum-pad:disabled { opacity: .6; cursor: wait; }
+    .tab-btn { background: #e7e5e4; color: #57534e; }
+    .tab-btn:hover { background: #d6d3d1; }
+    .tab-btn.on { background: #f97316; color: #fff; box-shadow: 0 6px 0 #c2410c, 0 10px 20px rgba(0,0,0,.06); }
+    .tab-btn.on:active { box-shadow: 0 0 0 #c2410c; }
+    .pill { background: #fff; border: 2px solid #fed7aa; color: #9a3412; transition: all .15s; }
+    .pill:hover { background: #ffedd5; }
+    .pill.on { background: #f97316; border-color: #f97316; color: #fff; }
+    .hidden { display: none !important; }
+    .kpi { animation: pop .4s ease both; }
+    @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+    th.sortable:hover { background: #fed7aa; }
+    td, th { user-select: text; }
+    .sbar { height: 6px; border-radius: 9999px; background: #fed7aa; overflow: hidden; min-width: 60px; }
+    .sbar > i { display: block; height: 100%; background: #f97316; }
   </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
-<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center justify-center relative p-3 sm:p-8 select-none">
-<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
+<body class="bg-gradient-to-br from-amber-50 via-orange-100 to-yellow-100 text-stone-700 min-h-screen flex flex-col items-center relative p-3 sm:p-8">
+<a href="menu.html" style="position:absolute;top:10px;right:10px;font-size:12px;color:#333;text-decoration:none;background:rgba(255,255,255,.8);padding:5px 10px;border-radius:4px;z-index:1000;border:1px solid #ddd;">メニューに戻る</a>
 
-  <!-- メインカードコンテナ -->
-  <div id="main-container" class="p-4 sm:p-8 bg-white/95 rounded-3xl shadow-[0_20px_40px_rgba(180,150,120,0.2)] border-4 border-orange-200 max-w-5xl w-full my-4">
-    
-    <!-- ヘッダー -->
-    <header class="text-center mb-6">
-      <h1 class="text-2xl sm:text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
-        IPv4 & インターネットルーティング リアルタイムダッシュボード
-      </h1>
-      <p class="text-xs text-orange-400 font-bold tracking-widest">Live RIPE Stat API Analytics — BGP, IPv4, IPv6 & ASNs</p>
-    </header>
+<div class="p-4 sm:p-8 bg-white/95 rounded-3xl shadow-[0_20px_40px_rgba(180,150,120,0.2)] border-4 border-orange-200 max-w-5xl w-full my-4">
 
-    <!-- コントロールパネル -->
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-orange-50/80 p-3.5 rounded-2xl border-2 border-orange-200">
-      <div class="flex items-center gap-2">
-        <label for="topXInput" class="text-xs sm:text-sm font-black text-stone-600">表示件数 (Top X):</label>
-        <input type="number" id="topXInput" value="10" min="3" max="20" 
-          class="w-16 px-2 py-1 text-center font-black bg-white border-2 border-orange-300 rounded-xl text-orange-600 focus:outline-none focus:border-orange-500"
-          onchange="renderCurrentTab()">
-        <span class="text-[11px] text-stone-400 font-bold hidden sm:inline">※ランキンググラフに反映</span>
-      </div>
+  <header class="text-center mb-6">
+    <h1 class="text-2xl sm:text-3xl font-black mb-1 text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-red-500 to-yellow-500 tracking-wider">
+      IPv4 & インターネットルーティング リアルタイムダッシュボード
+    </h1>
+    <p class="text-xs text-orange-400 font-bold tracking-widest">Live RIPE Stat API Analytics — IPv4, IPv6 & ASNs</p>
+  </header>
 
-      <button onclick="executeRealAPIFetch()" class="drum-pad bg-orange-500 text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl cursor-pointer hover:bg-orange-600 transition-colors flex items-center gap-2">
-        <span id="spin-icon">🔄</span> RIPE Stat APIから全データを動的更新
-      </button>
+  <!-- KPI -->
+  <div id="kpis" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4"></div>
+
+  <!-- コントロール -->
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-orange-50/80 p-3.5 rounded-2xl border-2 border-orange-200">
+    <div class="flex flex-wrap items-center gap-3">
+      <div id="metricPills" class="flex flex-wrap gap-1.5"></div>
+      <label class="flex items-center gap-2 text-xs font-black text-stone-600">
+        Top <input id="topX" type="range" min="3" max="20" value="10" class="accent-orange-500 w-24">
+        <span id="topXVal" class="text-orange-600 w-5 text-center">10</span>
+      </label>
     </div>
-
-    <!-- タブ切り替えボタン -->
-    <div class="flex flex-wrap justify-center gap-2 mb-4">
-      <button class="tab-btn active drum-pad btn-orange bg-orange-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('countries', event)">
-        国別 IPv4 ブロック数
-      </button>
-      <button class="tab-btn drum-pad bg-stone-200 text-stone-600 hover:bg-stone-300 font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('asn', event)">
-        【新】自律ネットワーク数 (ASN)
-      </button>
-      <button class="tab-btn drum-pad bg-stone-200 text-stone-600 hover:bg-stone-300 font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('rirShare', event)">
-        【新】5大地域(RIR) シェア
-      </button>
-      <button class="tab-btn drum-pad bg-stone-200 text-stone-600 hover:bg-stone-300 font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer transition-colors" onclick="switchTab('profile', event)">
-        【新】国別ネットワーク構造比較
-      </button>
-    </div>
-
-    <!-- API通信ステータス ＆ ログパネル -->
-    <div id="status-panel" class="mb-4 p-3.5 bg-stone-100 rounded-2xl border-2 border-stone-200 text-xs font-mono leading-relaxed">
-      <div id="status-message" class="text-stone-700">初期化中... RIPE Stat API からデータを読み込みます。</div>
-      <!-- 進捗バー -->
-      <div class="w-full bg-stone-200 h-2 rounded-full mt-2 overflow-hidden hidden" id="progress-bar-container">
-        <div id="progress-bar" class="bg-orange-500 h-full w-0 transition-all duration-200"></div>
-      </div>
-    </div>
-
-    <!-- グラフ・表示コンテナ -->
-    <div class="w-full min-h-[380px] max-h-[60vh] overflow-y-auto border-2 border-orange-100 rounded-2xl bg-stone-50/50 p-3 chart-scroll-container relative flex flex-col justify-center" id="chart-wrapper">
-      
-      <!-- [Tab 1] 国別 IPv4 -->
-      <div id="tab-countries" class="w-full h-full"><canvas id="countriesChart"></canvas></div>
-      
-      <!-- [Tab 2] ASN（自律システム数） -->
-      <div id="tab-asn" class="w-full h-full hidden"><canvas id="asnChart"></canvas></div>
-      
-      <!-- [Tab 3] 5大地域RIRシェア -->
-      <div id="tab-rirShare" class="w-full h-full hidden" style="min-height:350px;"><canvas id="rirShareChart"></canvas></div>
-      
-      <!-- [Tab 4] 国別ネットワークプロファイル詳細 -->
-      <div id="tab-profile" class="w-full h-full hidden">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h3 class="font-black text-stone-700 text-sm">🌍 取得済み国のネットワークインフラ比較一覧</h3>
-          <input type="text" id="profileSearch" placeholder="国コード検索 (例: JP, US)" oninput="filterProfileTable()" class="px-3 py-1.5 text-xs border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-400">
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr class="bg-orange-100/70 text-orange-900 border-b-2 border-orange-200">
-                <th class="p-2.5 rounded-tl-xl">国 (Country Code)</th>
-                <th class="p-2.5">IPv4 プレフィックス数</th>
-                <th class="p-2.5">IPv6 プレフィックス数</th>
-                <th class="p-2.5">自律ネットワーク (ASN) 数</th>
-                <th class="p-2.5 rounded-tr-xl">管轄レジストリ (RIR)</th>
-              </tr>
-            </thead>
-            <tbody id="profileTableBody" class="divide-y divide-stone-200 font-mono">
-              <!-- JSで動的生成 -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
+    <button id="reloadBtn" class="drum-pad bg-orange-500 text-white font-black text-xs sm:text-sm px-4 py-2.5 rounded-xl cursor-pointer hover:bg-orange-600 flex items-center gap-2">
+      <span id="spin">🔄</span> 最新データを取得
+    </button>
   </div>
 
-  <script>
-    // 主要20カ国のリスト（APIの400エラーを防ぐため各指定で問い合わせ）
-    const targetCountries = [
-      { code: 'US', name: 'アメリカ合衆国 (United States)', rir: 'ARIN' },
-      { code: 'CN', name: '中華人民共和国 (China)', rir: 'APNIC' },
-      { code: 'JP', name: '日本 (Japan)', rir: 'APNIC' },
-      { code: 'GB', name: 'イギリス (United Kingdom)', rir: 'RIPE NCC' },
-      { code: 'DE', name: 'ドイツ (Germany)', rir: 'RIPE NCC' },
-      { code: 'KR', name: '大韓民国 (South Korea)', rir: 'APNIC' },
-      { code: 'FR', name: 'フランス (France)', rir: 'RIPE NCC' },
-      { code: 'BR', name: 'ブラジル (Brazil)', rir: 'LACNIC' },
-      { code: 'IN', name: 'インド (India)', rir: 'APNIC' },
-      { code: 'AU', name: 'オーストラリア (Australia)', rir: 'APNIC' },
-      { code: 'CA', name: 'カナダ (Canada)', rir: 'ARIN' },
-      { code: 'NL', name: 'オランダ (Netherlands)', rir: 'RIPE NCC' },
-      { code: 'IT', name: 'イタリア (Italy)', rir: 'RIPE NCC' },
-      { code: 'RU', name: 'ロシア (Russia)', rir: 'RIPE NCC' },
-      { code: 'SG', name: 'シンガポール (Singapore)', rir: 'APNIC' },
-      { code: 'ES', name: 'スペイン (Spain)', rir: 'RIPE NCC' },
-      { code: 'SE', name: 'スウェーデン (Sweden)', rir: 'RIPE NCC' },
-      { code: 'MX', name: 'メキシコ (Mexico)', rir: 'LACNIC' },
-      { code: 'ZA', name: '南アフリカ (South Africa)', rir: 'AFRINIC' },
-      { code: 'ID', name: 'インドネシア (Indonesia)', rir: 'APNIC' }
-    ];
+  <!-- タブ -->
+  <div id="tabs" class="flex flex-wrap justify-center gap-2 mb-4">
+    <button class="tab-btn on drum-pad font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer" data-tab="rank">🏆 ランキング</button>
+    <button class="tab-btn drum-pad font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer" data-tab="rir">🍩 RIRシェア</button>
+    <button class="tab-btn drum-pad font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer" data-tab="scatter">🫧 IPv4 × ASN 散布図</button>
+    <button class="tab-btn drum-pad font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm cursor-pointer" data-tab="table">📋 比較テーブル</button>
+  </div>
 
-    // APIから取得した純粋なリアルタイム生データを保持
-    let fetchedNetworkData = [];
-    let activeCharts = {};
-    let currentTab = 'countries';
+  <!-- ステータス -->
+  <div class="mb-4 p-3.5 bg-stone-100 rounded-2xl border-2 border-stone-200 text-xs font-mono leading-relaxed">
+    <div id="status" class="text-stone-700">初期化中...</div>
+    <div id="barWrap" class="w-full bg-stone-200 h-2 rounded-full mt-2 overflow-hidden hidden">
+      <div id="bar" class="bg-orange-500 h-full w-0 transition-all duration-200"></div>
+    </div>
+  </div>
 
-    // --- タブ切り替え ---
-    function switchTab(tabName, evt) {
-      currentTab = tabName;
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active', 'btn-orange', 'bg-orange-500', 'text-white');
-        btn.classList.add('bg-stone-200', 'text-stone-600');
-      });
-      
-      ['countries', 'asn', 'rirShare', 'profile'].forEach(id => {
-        document.getElementById(`tab-${id}`).classList.add('hidden');
-      });
-      
-      if (evt && evt.target) {
-        evt.target.classList.add('active', 'btn-orange', 'bg-orange-500', 'text-white');
-        evt.target.classList.remove('bg-stone-200', 'text-stone-600');
-      }
-      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-      renderCurrentTab();
-    }
+  <!-- 表示エリア -->
+  <div class="w-full border-2 border-orange-100 rounded-2xl bg-stone-50/50 p-3">
+    <div id="empty" class="text-center text-stone-400 font-bold py-24">データを読み込み中です…</div>
 
-    // --- RIPE Stat API からの本物リアルタイムデータ並列取得 ---
-    async function executeRealAPIFetch() {
-      const statusMsg = document.getElementById('status-message');
-      const spinIcon = document.getElementById('spin-icon');
-      const progressContainer = document.getElementById('progress-bar-container');
-      const progressBar = document.getElementById('progress-bar');
-      
-      spinIcon.classList.add('animate-spin');
-      progressContainer.classList.remove('hidden');
-      progressBar.style.width = '0%';
+    <div id="tab-rank" class="hidden"><div id="rankBox" style="position:relative"><canvas id="rankChart"></canvas></div></div>
+    <div id="tab-rir" class="hidden"><div style="position:relative;height:400px"><canvas id="rirChart"></canvas></div>
+      <p class="text-[11px] text-stone-400 mt-2 text-center">※ 取得した20カ国内での割合です(世界全体のシェアではありません)</p></div>
+    <div id="tab-scatter" class="hidden"><div style="position:relative;height:460px"><canvas id="scatterChart"></canvas></div>
+      <p class="text-[11px] text-stone-400 mt-2 text-center">横軸=ASN数 / 縦軸=IPv4アドレス数(対数) / 円の大きさ=IPv6ブロック数</p></div>
 
-      statusMsg.className = "text-blue-600 font-bold";
-      statusMsg.innerHTML = "🌐 RIPE Stat API から主要20カ国のインフラデータ（IPv4, IPv6, BGP-ASN）を非同期取得中...";
+    <div id="tab-table" class="hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <h3 class="font-black text-stone-700 text-sm">🌍 国別ネットワークインフラ比較(見出しクリックで並べ替え)</h3>
+        <div class="flex gap-2">
+          <input type="text" id="search" placeholder="検索 (例: JP, 日本, APNIC)" class="px-3 py-1.5 text-xs border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-400">
+          <button id="csvBtn" class="pill text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead><tr id="thead" class="bg-orange-100/70 text-orange-900 border-b-2 border-orange-200"></tr></thead>
+          <tbody id="tbody" class="font-mono"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
-      fetchedNetworkData = [];
-      let completed = 0;
+  <p class="text-[11px] text-stone-400 text-center mt-4 leading-relaxed">
+    データ源: RIPE Stat <code>country-resource-list</code>(各RIRの国別割当リスト)。<br>
+    ここでの数値は「その国に割り当てられた資源」であり、BGPで実際に経路広告されている数とは異なります。
+  </p>
+</div>
 
+<script>
+  const COUNTRIES = [
+    ['US','アメリカ合衆国 (United States)','ARIN'],['CN','中華人民共和国 (China)','APNIC'],['JP','日本 (Japan)','APNIC'],
+    ['GB','イギリス (United Kingdom)','RIPE NCC'],['DE','ドイツ (Germany)','RIPE NCC'],['KR','大韓民国 (South Korea)','APNIC'],
+    ['FR','フランス (France)','RIPE NCC'],['BR','ブラジル (Brazil)','LACNIC'],['IN','インド (India)','APNIC'],
+    ['AU','オーストラリア (Australia)','APNIC'],['CA','カナダ (Canada)','ARIN'],['NL','オランダ (Netherlands)','RIPE NCC'],
+    ['IT','イタリア (Italy)','RIPE NCC'],['RU','ロシア (Russia)','RIPE NCC'],['SG','シンガポール (Singapore)','APNIC'],
+    ['ES','スペイン (Spain)','RIPE NCC'],['SE','スウェーデン (Sweden)','RIPE NCC'],['MX','メキシコ (Mexico)','LACNIC'],
+    ['ZA','南アフリカ (South Africa)','AFRINIC'],['ID','インドネシア (Indonesia)','APNIC']
+  ].map(([code, name, rir]) => ({ code, name, rir, short: name.split(' ')[0] }));
+
+  const METRICS = {
+    v4addr: { label: 'IPv4アドレス数', color: '#f97316', unit: '個' },
+    ipv4:   { label: 'IPv4ブロック数', color: '#fb923c', unit: 'ブロック' },
+    ipv6:   { label: 'IPv6ブロック数', color: '#14b8a6', unit: 'ブロック' },
+    asn:    { label: 'ASN数',          color: '#3b82f6', unit: '個' }
+  };
+  const RIR_COLORS = { 'ARIN': '#3b82f6', 'APNIC': '#f97316', 'RIPE NCC': '#14b8a6', 'LACNIC': '#ec4899', 'AFRINIC': '#a855f7' };
+  const CACHE_KEY = 'ipv4dash_v2';
+  const $ = id => document.getElementById(id);
+  const nf = new Intl.NumberFormat('ja-JP');
+  const cf = new Intl.NumberFormat('ja-JP', { notation: 'compact', maximumFractionDigits: 1 });
+  const flag = c => [...c].map(ch => String.fromCodePoint(127397 + ch.charCodeAt(0))).join('');
+
+  let data = [], failed = [], loading = false, updatedAt = null;
+  let tab = 'rank', metric = 'v4addr', sort = { key: 'v4addr', dir: -1 };
+  const charts = {};
+
+  // ---------- 解析 ----------
+  const ip2int = s => s.split('.').reduce((a, o) => a * 256 + (+o), 0);
+  function v4Size(s) {
+    s = String(s).trim();
+    if (s.includes('/')) return Math.pow(2, 32 - parseInt(s.split('/')[1], 10));
+    if (s.includes('-')) { const [a, b] = s.split('-'); return ip2int(b.trim()) - ip2int(a.trim()) + 1; }
+    return 1;
+  }
+  function asnSize(s) {
+    const m = String(s).match(/\d+/g) || [];
+    return m.length >= 2 ? Math.max(1, +m[1] - +m[0] + 1) : 1;
+  }
+  function summarize(c, r) {
+    const v4 = r.ipv4 || [], v6 = r.ipv6 || [], as = r.asn || [];
+    return { ...c, ipv4: v4.length, v4addr: v4.reduce((s, x) => s + v4Size(x), 0), ipv6: v6.length, asn: as.reduce((s, x) => s + asnSize(x), 0) };
+  }
+
+  // ---------- 通信 ----------
+  async function getJSON(url, ms = 120000) {
+    // AbortSignalはfetchを中継する環境(iframe等)で複製できずエラーになるため使わない
+    let t;
+    const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new Error('タイムアウト')), ms); });
+    try {
+      return await Promise.race([
+        fetch(url).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }),
+        timeout
+      ]);
+    } finally { clearTimeout(t); }
+  }
+  async function fetchCountry(c) {
+    const url = `https://stat.ripe.net/data/country-resource-list/data.json?resource=${c.code}`;
+    for (let i = 0; i < 2; i++) {
       try {
-        // 並列フェッチ実行
-        const fetchPromises = targetCountries.map(async (c) => {
-          const url = `https://stat.ripe.net/data/country-resource-list/data.json?resource=${c.code}`;
-          try {
-            const response = await fetch(url);
-            if (response.ok) {
-              const json = await response.json();
-              if (json.data && json.data.resources) {
-                const res = json.data.resources;
-                const v4Count = res.ipv4 ? res.ipv4.length : 0;
-                const v6Count = res.ipv6 ? res.ipv6.length : 0;
-                const asnCount = res.asn ? res.asn.length : 0;
-
-                fetchedNetworkData.push({
-                  code: c.code,
-                  name: c.name,
-                  rir: c.rir,
-                  ipv4: v4Count,
-                  ipv6: v6Count,
-                  asn: asnCount
-                });
-              }
-            }
-          } catch (e) {
-            console.warn(`Fetch error for ${c.code}:`, e);
-          } finally {
-            completed++;
-            const pct = Math.round((completed / targetCountries.length) * 100);
-            progressBar.style.width = `${pct}%`;
-          }
-        });
-
-        await Promise.all(fetchPromises);
-
-        if (fetchedNetworkData.length > 0) {
-          statusMsg.className = "text-emerald-700 font-bold";
-          statusMsg.innerHTML = `✅ 【通信成功】 ${fetchedNetworkData.length} カ国の最新インフラデータをリアルタイムフェッチ完了！`;
-          renderCurrentTab();
-        } else {
-          throw new Error("有効なデータを取得できませんでした。");
-        }
-
-      } catch (error) {
-        statusMsg.className = "text-red-600 font-bold";
-        statusMsg.innerHTML = `❌ 【取得失敗】 APIエラー: ${error.message}`;
-      } finally {
-        spinIcon.classList.remove('animate-spin');
-        setTimeout(() => progressContainer.classList.add('hidden'), 1000);
-      }
+        const j = await getJSON(url);
+        if (!j?.data?.resources) throw new Error('empty');
+        return summarize(c, j.data.resources);
+      } catch (e) { if (i) throw e; await new Promise(r => setTimeout(r, 700)); }
     }
+  }
+  function setStatus(html, cls) { const s = $('status'); s.className = cls; s.innerHTML = html; }
 
-    // --- 各タブの描画ロジック ---
-    function renderCurrentTab() {
-      if (fetchedNetworkData.length === 0) return;
-
-      const topX = parseInt(document.getElementById('topXInput').value) || 10;
-      const box = document.getElementById('chart-wrapper');
-
-      // 1. 国別 IPv4 ブロック数
-      if (currentTab === 'countries') {
-        const sorted = [...fetchedNetworkData].sort((a, b) => b.ipv4 - a.ipv4).slice(0, topX);
-        box.style.height = `${Math.max(320, topX * 35)}px`;
-
-        if (activeCharts['countries']) activeCharts['countries'].destroy();
-
-        const ctx = document.getElementById('countriesChart').getContext('2d');
-        activeCharts['countries'] = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: sorted.map(d => `${d.code} (${d.name.split(' ')[0]})`),
-            datasets: [{
-              label: 'IPv4 プレフィックスブロック数',
-              data: sorted.map(d => d.ipv4),
-              backgroundColor: 'rgba(249, 115, 22, 0.85)',
-              borderRadius: 6
-            }]
-          },
-          options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { tooltip: { callbacks: { label: (ctx) => ` IPv4ブロック数: ${Number(ctx.raw).toLocaleString()} 個` } } },
-            scales: { x: { grid: { color: '#f3f4f6' } }, y: { grid: { display: false } } }
-          }
-        });
-      } 
-      
-      // 2. BGP ASNs (自律システム数 - ルーティング網の密度)
-      else if (currentTab === 'asn') {
-        const sorted = [...fetchedNetworkData].sort((a, b) => b.asn - a.asn).slice(0, topX);
-        box.style.height = `${Math.max(320, topX * 35)}px`;
-
-        if (activeCharts['asn']) activeCharts['asn'].destroy();
-
-        const ctx = document.getElementById('asnChart').getContext('2d');
-        activeCharts['asn'] = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: sorted.map(d => `${d.code} (${d.name.split(' ')[0]})`),
-            datasets: [{
-              label: '自律ネットワーク数 (ASN)',
-              data: sorted.map(d => d.asn),
-              backgroundColor: 'rgba(20, 184, 166, 0.85)',
-              borderRadius: 6
-            }]
-          },
-          options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { tooltip: { callbacks: { label: (ctx) => ` 広告ASN数: ${Number(ctx.raw).toLocaleString()} 個` } } },
-            scales: { x: { grid: { color: '#f3f4f6' } }, y: { grid: { display: false } } }
-          }
-        });
+  async function load() {
+    if (loading) return;
+    loading = true;
+    $('reloadBtn').disabled = true; $('spin').classList.add('animate-spin');
+    $('barWrap').classList.remove('hidden'); $('bar').style.width = '0%';
+    setStatus(`🌐 RIPE Stat API から ${COUNTRIES.length} カ国分を取得中...`, 'text-blue-600 font-bold');
+    // 同時6件に制限(帯域の奪い合いによる全件タイムアウトを防ぐ)
+    let done = 0, next = 0;
+    const ok = [], errs = [], hadData = data.length > 0;
+    const worker = async () => {
+      while (next < COUNTRIES.length) {
+        const c = COUNTRIES[next++];
+        try { ok.push(await fetchCountry(c)); }
+        catch (e) { errs.push({ code: c.code, msg: e.message || String(e) }); console.warn('fetch failed', c.code, e); }
+        if (!hadData && ok.length) { data = [...ok]; try { render(); } catch (e) { console.error('render failed', e); } }
+        $('bar').style.width = Math.round(++done / COUNTRIES.length * 100) + '%';
       }
-
-      // 3. 5大地域 (RIR) シェア
-      else if (currentTab === 'rirShare') {
-        box.style.height = `380px`;
-
-        const rirTotals = {};
-        fetchedNetworkData.forEach(d => {
-          rirTotals[d.rir] = (rirTotals[d.rir] || 0) + d.ipv4;
-        });
-
-        if (activeCharts['rirShare']) activeCharts['rirShare'].destroy();
-
-        const ctx = document.getElementById('rirShareChart').getContext('2d');
-        activeCharts['rirShare'] = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels: Object.keys(rirTotals).map(r => `地域レジストリ: ${r}`),
-            datasets: [{
-              data: Object.values(rirTotals),
-              backgroundColor: [
-                'rgba(249, 115, 22, 0.85)',
-                'rgba(20, 184, 166, 0.85)',
-                'rgba(59, 130, 246, 0.85)',
-                'rgba(236, 72, 153, 0.85)',
-                'rgba(168, 85, 247, 0.85)'
-              ]
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom' },
-              tooltip: { callbacks: { label: (ctx) => ` IPv4集計: ${Number(ctx.raw).toLocaleString()} 個` } }
-            }
-          }
-        });
-      }
-
-      // 4. 国別ネットワーク構造比較テーブル
-      else if (currentTab === 'profile') {
-        box.style.height = `auto`;
-        renderProfileTable(fetchedNetworkData);
-      }
+    };
+    await Promise.all(Array.from({ length: 6 }, worker));
+    failed = errs.map(e => e.code);
+    if (ok.length) {
+      data = ok; updatedAt = new Date();
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ t: updatedAt.toISOString(), data })); } catch (e) {}
+      const warn = failed.length ? ` <span class="text-amber-600">(取得失敗: ${failed.join(', ')} → 再取得で再試行)</span>` : '';
+      setStatus(`✅ ${ok.length}カ国を取得完了 — ${updatedAt.toLocaleString('ja-JP')}${warn}`, 'text-emerald-700 font-bold');
+    } else {
+      const keep = data.length ? '(前回のデータを表示中)' : '';
+      const why = errs[0] ? ` [${errs[0].code}: ${errs[0].msg}]` : '';
+      setStatus(`❌ 取得に失敗しました。${why} ${keep}`, 'text-red-600 font-bold');
     }
+    loading = false;
+    $('reloadBtn').disabled = false; $('spin').classList.remove('animate-spin');
+    setTimeout(() => $('barWrap').classList.add('hidden'), 800);
+    render();
+  }
 
-    // テーブルの描画
-    function renderProfileTable(data) {
-      const tbody = document.getElementById('profileTableBody');
-      tbody.innerHTML = '';
+  // ---------- UI ----------
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    render();
+  }
+  function renderPills() {
+    $('metricPills').innerHTML = Object.entries(METRICS).map(([k, m]) =>
+      `<button class="pill text-xs font-bold px-3 py-1.5 rounded-full cursor-pointer ${k === metric ? 'on' : ''}" data-m="${k}">${m.label}</button>`).join('');
+  }
+  function mkChart(id, cfg) {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart($(id).getContext('2d'), cfg);
+  }
+  function renderKPIs() {
+    const sum = k => data.reduce((s, d) => s + d[k], 0);
+    const top = [...data].sort((a, b) => b.v4addr - a.v4addr)[0];
+    const items = [
+      ['🌍', '対象国数', data.length + ' カ国'],
+      ['📦', 'IPv4アドレス合計', cf.format(sum('v4addr'))],
+      ['🕸️', 'ASN合計', nf.format(sum('asn'))],
+      ['👑', 'IPv4最多', top ? `${flag(top.code)} ${top.code}` : '-']
+    ];
+    $('kpis').innerHTML = items.map(([i, l, v], n) => `
+      <div class="kpi bg-white border-2 border-orange-100 rounded-2xl p-3 text-center" style="animation-delay:${n * 60}ms">
+        <div class="text-lg">${i}</div><div class="text-[11px] text-stone-400 font-bold">${l}</div>
+        <div class="text-lg font-black text-orange-600">${v}</div></div>`).join('');
+  }
 
-      const sorted = [...data].sort((a, b) => b.ipv4 - a.ipv4);
+  const axisY = { grid: { display: false } };
+  function render() {
+    const has = data.length > 0;
+    $('empty').classList.toggle('hidden', has);
+    ['rank', 'rir', 'scatter', 'table'].forEach(t => $('tab-' + t).classList.toggle('hidden', !has || t !== tab));
+    $('kpis').classList.toggle('hidden', !has);
+    if (!has) return;
+    renderKPIs();
+    const m = METRICS[metric], total = data.reduce((s, d) => s + d[metric], 0);
+    const topX = +$('topX').value;
 
-      sorted.forEach(d => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-orange-50/50 transition-colors border-b border-stone-200/60";
-        tr.innerHTML = `
-          <td class="p-2.5 font-bold text-stone-800">${d.code} <span class="text-[11px] font-normal text-stone-500">(${d.name})</span></td>
-          <td class="p-2.5 font-bold text-orange-600">${Number(d.ipv4).toLocaleString()}</td>
-          <td class="p-2.5 font-bold text-teal-600">${Number(d.ipv6).toLocaleString()}</td>
-          <td class="p-2.5 font-bold text-blue-600">${Number(d.asn).toLocaleString()}</td>
-          <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-200 text-stone-700">${d.rir}</span></td>
-        `;
-        tbody.appendChild(tr);
+    if (tab === 'rank') {
+      const s = [...data].sort((a, b) => b[metric] - a[metric]).slice(0, topX);
+      $('rankBox').style.height = Math.max(320, topX * 34) + 'px';
+      mkChart('rankChart', {
+        type: 'bar',
+        data: { labels: s.map(d => `${flag(d.code)} ${d.code} ${d.short}`),
+          datasets: [{ label: m.label, data: s.map(d => d[metric]), borderRadius: 6,
+            backgroundColor: s.map(d => d.code === 'JP' ? '#ef4444' : m.color + 'd9') }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: c => ` ${m.label}: ${nf.format(c.raw)} ${m.unit}(${(c.raw / total * 100).toFixed(1)}%)`,
+            afterLabel: c => s[c.dataIndex].rir } } },
+          scales: { x: { grid: { color: '#f3f4f6' }, ticks: { callback: v => cf.format(v) } }, y: axisY } }
       });
-    }
+    } else if (tab === 'rir') {
+      const t = {}; data.forEach(d => t[d.rir] = (t[d.rir] || 0) + d[metric]);
+      const keys = Object.keys(t);
+      mkChart('rirChart', {
+        type: 'doughnut',
+        data: { labels: keys, datasets: [{ data: keys.map(k => t[k]), backgroundColor: keys.map(k => RIR_COLORS[k]), borderWidth: 3, borderColor: '#fff' }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '55%',
+          plugins: { legend: { position: 'bottom' }, title: { display: true, text: m.label + ' の地域別内訳' },
+            tooltip: { callbacks: { label: c => ` ${c.label}: ${nf.format(c.raw)} ${m.unit}(${(c.raw / total * 100).toFixed(1)}%)` } } } }
+      });
+    } else if (tab === 'scatter') {
+      const maxV6 = Math.max(...data.map(d => d.ipv6), 1);
+      const sets = Object.keys(RIR_COLORS).map(r => ({
+        label: r, backgroundColor: RIR_COLORS[r] + 'b3', borderColor: RIR_COLORS[r],
+        data: data.filter(d => d.rir === r).map(d => ({ x: Math.max(d.asn, 1), y: Math.max(d.v4addr, 1), r: 5 + 17 * Math.sqrt(d.ipv6 / maxV6), d }))
+      })).filter(s => s.data.length);
+      const labelPlugin = { id: 'lbl', afterDatasetsDraw(ch) {
+        const c = ch.ctx; c.save(); c.font = '700 11px sans-serif'; c.fillStyle = '#44403c'; c.textAlign = 'center';
+        ch.data.datasets.forEach((ds, i) => ch.getDatasetMeta(i).data.forEach((p, j) => c.fillText(ds.data[j].d.code, p.x, p.y - p.options.radius - 4)));
+        c.restore(); } };
+      mkChart('scatterChart', {
+        type: 'bubble', data: { datasets: sets }, plugins: [labelPlugin],
+        options: { responsive: true, maintainAspectRatio: false, layout: { padding: 16 },
+          plugins: { tooltip: { callbacks: { label: c => { const d = c.raw.d;
+            return [` ${flag(d.code)} ${d.name}`, ` IPv4: ${nf.format(d.v4addr)} / ASN: ${nf.format(d.asn)}`, ` IPv6ブロック: ${nf.format(d.ipv6)}`]; } } } },
+          scales: { x: { type: 'logarithmic', title: { display: true, text: 'ASN数' }, grid: { color: '#f3f4f6' }, ticks: { callback: v => cf.format(v) } },
+                    y: { type: 'logarithmic', title: { display: true, text: 'IPv4アドレス数' }, grid: { color: '#f3f4f6' }, ticks: { callback: v => cf.format(v) } } } }
+      });
+    } else renderTable();
+  }
 
-    // テーブル検索フィルター
-    function filterProfileTable() {
-      const query = document.getElementById('profileSearch').value.toUpperCase();
-      const filtered = fetchedNetworkData.filter(d => 
-        d.code.includes(query) || d.name.toUpperCase().includes(query) || d.rir.includes(query)
-      );
-      renderProfileTable(filtered);
-    }
+  // ---------- テーブル ----------
+  const COLS = [['code', '国'], ['v4addr', 'IPv4アドレス数'], ['ipv4', 'IPv4ブロック'], ['ipv6', 'IPv6ブロック'], ['asn', 'ASN数'], ['rir', 'RIR']];
+  function visibleRows() {
+    const q = $('search').value.trim().toUpperCase();
+    const rows = data.filter(d => !q || d.code.includes(q) || d.name.toUpperCase().includes(q) || d.rir.includes(q));
+    const { key, dir } = sort;
+    return rows.sort((a, b) => (typeof a[key] === 'string' ? a[key].localeCompare(b[key]) : a[key] - b[key]) * dir);
+  }
+  function renderTable() {
+    $('thead').innerHTML = COLS.map(([k, l]) =>
+      `<th class="sortable p-2.5" data-k="${k}">${l} ${sort.key === k ? (sort.dir > 0 ? '▲' : '▼') : ''}</th>`).join('');
+    const rows = visibleRows(), tot = data.reduce((s, d) => s + d.v4addr, 0);
+    $('tbody').innerHTML = rows.length ? rows.map(d => `
+      <tr class="hover:bg-orange-50/60 border-b border-stone-200/60 ${d.code === 'JP' ? 'bg-red-50/60' : ''}">
+        <td class="p-2.5 font-bold text-stone-800">${flag(d.code)} ${d.code} <span class="text-[11px] font-normal text-stone-500">${d.short}</span></td>
+        <td class="p-2.5 font-bold text-orange-600"><div>${nf.format(d.v4addr)}</div>
+          <div class="sbar mt-1" title="${(d.v4addr / tot * 100).toFixed(1)}%"><i style="width:${d.v4addr / tot * 100}%"></i></div></td>
+        <td class="p-2.5">${nf.format(d.ipv4)}</td>
+        <td class="p-2.5 font-bold text-teal-600">${nf.format(d.ipv6)}</td>
+        <td class="p-2.5 font-bold text-blue-600">${nf.format(d.asn)}</td>
+        <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:${RIR_COLORS[d.rir]}">${d.rir}</span></td>
+      </tr>`).join('') : '<tr><td colspan="6" class="p-6 text-center text-stone-400 font-bold">該当する国がありません</td></tr>';
+  }
+  function exportCSV() {
+    const head = ['code', 'name', 'rir', 'ipv4_addresses', 'ipv4_blocks', 'ipv6_blocks', 'asn'];
+    const lines = visibleRows().map(d => [d.code, `"${d.name}"`, d.rir, d.v4addr, d.ipv4, d.ipv6, d.asn].join(','));
+    const blob = new Blob(['\ufeff' + [head.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'ipv4_dashboard.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
 
-    // 初期化ロード
-    executeRealAPIFetch();
-  </script>
+  // ---------- イベント ----------
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
+  $('metricPills').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) { metric = b.dataset.m; renderPills(); render(); } });
+  $('topX').addEventListener('input', e => { $('topXVal').textContent = e.target.value; if (tab === 'rank') render(); });
+  $('reloadBtn').addEventListener('click', load);
+  $('search').addEventListener('input', renderTable);
+  $('csvBtn').addEventListener('click', exportCSV);
+  $('thead').addEventListener('click', e => {
+    const th = e.target.closest('[data-k]'); if (!th) return;
+    const k = th.dataset.k;
+    sort = { key: k, dir: sort.key === k ? -sort.dir : (k === 'code' || k === 'rir' ? 1 : -1) };
+    renderTable();
+  });
+
+  // ---------- 初期化 ----------
+  renderPills();
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (c?.data?.length) {
+      data = c.data; updatedAt = new Date(c.t);
+      setStatus(`💾 キャッシュを表示中(${updatedAt.toLocaleString('ja-JP')}) — 最新データを確認しています...`, 'text-stone-600 font-bold');
+      render();
+    }
+  } catch (e) {}
+  load();
+</script>
 </body>
 </html>
