@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>超軽量・スマートオーディオプレーヤー</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --primary: #f97316;
+      --text: #44403c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .menu-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      font-size: 11px; color: #71716a;
+      text-decoration: none;
+      background: rgba(255,255,255,0.9);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1.5px solid #e4e4e7;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .container {
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 2px solid #fed7aa;
+      box-shadow: 0 10px 25px rgba(180,150,120,0.15);
+      padding: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .btn-drum {
+      background: var(--primary); color: white; border: none; border-radius: 8px;
+      padding: 10px; font-size: 12px; font-weight: bold; cursor: pointer;
+      box-shadow: 0 3px 0 #c2410c; display: flex; align-items: center; justify-content: center; width: 100%;
+      margin-bottom: 6px;
+    }
+    .btn-drum:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
+
+    .status-text { text-align: center; font-size: 11px; font-weight: bold; color: #78716c; margin-bottom: 12px; }
+
+    .display-pad {
+      background: #292524; color: #f5f5f4; padding: 14px;
+      border-radius: 16px; text-align: center; margin-bottom: 12px;
+    }
+
+    .track-title {
+      font-size: 0.95rem; font-weight: bold; color: #fde047;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;
+    }
+
+    input[type=range] {
+      width: 100%; height: 8px; background: #44403c; border-radius: 999px;
+      outline: none; -webkit-appearance: none; touch-action: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px;
+      border-radius: 50%; background: #fb923c; cursor: pointer;
+    }
+
+    .time-display {
+      font-size: 1.25rem; font-weight: bold; color: #fb923c;
+      font-family: monospace; margin-top: 6px;
+    }
+
+    .controls-main { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+    .btn-secondary {
+      background: white; border: 1px solid #e7e5e4; color: #44403c;
+      font-size: 12px; font-weight: bold; padding: 10px; border-radius: 12px;
+      cursor: pointer; flex: 1; max-width: 90px; box-shadow: 0 3px 0 #d6d3d1;
+    }
+    .btn-secondary:active { transform: translateY(2px); box-shadow: 0 1px 0 #d6d3d1; }
+
+    .btn-play {
+      background: var(--primary); color: white; border: none; font-size: 14px;
+      font-weight: bold; padding: 10px; border-radius: 12px; cursor: pointer;
+      flex: 2; max-width: 160px; box-shadow: 0 3px 0 #c2410c;
+    }
+    .btn-play:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
+
+    .box-sub {
+      background: rgba(255,247,237,0.7); padding: 10px; border-radius: 12px;
+      border: 1px solid #ffedd5; margin-bottom: 12px;
+    }
+    .box-title { font-size: 11px; font-weight: bold; color: var(--primary); margin-bottom: 6px; }
+
+    .flex-wrap { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 4px; }
+    .btn-seek {
+      background: white; border: 1px solid #e7e5e4; color: #57534e;
+      font-size: 11px; font-weight: bold; padding: 6px 0; border-radius: 8px;
+      flex: 1; min-width: 55px; cursor: pointer; box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-seek:active { transform: translateY(2px); box-shadow: 0 0 0; }
+
+    .btn-speed {
+      background: white; border: 1px solid #e7e5e4; color: #57534e;
+      font-size: 11px; font-weight: bold; padding: 6px 0; border-radius: 8px;
+      flex: 1; cursor: pointer; box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-speed:active { transform: translateY(2px); box-shadow: 0 0 0; }
+    .btn-speed.active {
+      background: var(--primary); color: white; border-color: #ea580c;
+      box-shadow: 0 2px 0 #c2410c;
+    }
+
+    .playlist-box { max-height: 140px; overflow-y: auto; }
+    .playlist-item {
+      padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border: 1px solid #e7e5e4; background: white; color: #57534e; margin-bottom: 4px;
+    }
+    .playlist-item.active { background: var(--primary); color: white; border-color: #ea580c; }
+  </style>
+  <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+
+<a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+<div class="container">
+  <h1>オーディオプレーヤー</h1>
+
+  <button id="selectFolderBtn" class="btn-drum">📁 フォルダ変更</button>
+  <input type="file" id="fallbackFolderInput" accept="audio/*" multiple style="display: none;">
+
+  <div id="folderStatus" class="status-text">未選択</div>
+
+  <div class="display-pad">
+    <div id="trackTitle" class="track-title">トラックが選択されていません</div>
+    <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" aria-label="再生位置">
+    <div id="timeDisplay" class="time-display">00:00:00 / 00:00:00</div>
+  </div>
+
+  <div class="controls-main">
+    <button id="prevBtn" class="btn-secondary" aria-label="前の曲へ" title="前の曲">⏮ 前へ</button>
+    <button id="playPauseBtn" class="btn-play" aria-label="再生または一時停止" title="再生/一時停止">▶ 再生</button>
+    <button id="nextBtn" class="btn-secondary" aria-label="次の曲へ" title="次の曲">次へ ⏭</button>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ スキップコントロール</div>
+    <div class="flex-wrap">
+      <button class="btn-seek" data-seconds="-30">-30秒</button>
+      <button class="btn-seek" data-seconds="-15">-15秒</button>
+      <button class="btn-seek" data-seconds="-10">-10秒</button>
+      <button class="btn-seek" data-seconds="-5">-5秒</button>
+    </div>
+    <div class="flex-wrap">
+      <button class="btn-seek" data-seconds="5">+5秒</button>
+      <button class="btn-seek" data-seconds="10">+10秒</button>
+      <button class="btn-seek" data-seconds="15">+15秒</button>
+      <button class="btn-seek" data-seconds="30">+30秒</button>
+    </div>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ 再生速度</div>
+    <div class="flex-wrap">
+      <button class="btn-speed" data-speed="1.0">1.0x</button>
+      <button class="btn-speed" data-speed="1.5">1.5x</button>
+      <button class="btn-speed" data-speed="2.0">2.0x</button>
+      <button class="btn-speed" data-speed="2.5">2.5x</button>
+      <button class="btn-speed" data-speed="3.0">3.0x</button>
+    </div>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ プレイリスト</div>
+    <div class="playlist-box">
+      <div id="playlist"></div>
+    </div>
+  </div>
+</div>
+
+<audio id="audioPlayer" preload="auto"></audio>
+
+<script>
+  const STORAGE_PREFIX = 'AudioPlayer_';
+
+  let fileList = [];
+  let currentIndex = -1;
+  let isUserSeeking = false;
+  let currentObjectUrl = null;
+  let currentSpeed = 1.0;
+  let allowSave = false;
+  let lastSaveTime = 0;
+
+  const audio = document.getElementById('audioPlayer');
+  const selectFolderBtn = document.getElementById('selectFolderBtn');
+  const fallbackInput = document.getElementById('fallbackFolderInput');
+  const folderStatus = document.getElementById('folderStatus');
+  const trackTitle = document.getElementById('trackTitle');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const seekSlider = document.getElementById('seekSlider');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const playlistEl = document.getElementById('playlist');
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    // ワイヤレスイヤホンのリモコン操作（Media Session API）
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', async () => {
+        if (fileList.length > 0 && audio.paused) {
+          try {
+            await audio.play();
+            playPauseBtn.textContent = '⏸ 一時停止';
+          } catch (e) {}
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audio.pause();
+        playPauseBtn.textContent = '▶ 再生';
+        saveState(true);
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (fileList.length === 0) return;
+        if (currentIndex > 0) {
+          playTrackDirect(currentIndex - 1, 0);
+        } else {
+          audio.currentTime = 0;
+          audio.play().catch(e => console.error(e));
+          playPauseBtn.textContent = '⏸ 一時停止';
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (fileList.length === 0) return;
+        if (currentIndex < fileList.length - 1) {
+          playTrackDirect(currentIndex + 1, 0);
+        }
+      });
+    }
+
+    document.querySelectorAll('.btn-seek').forEach(btn => {
+      btn.addEventListener('click', () => seekSeconds(parseFloat(btn.dataset.seconds)));
+    });
+
+    const savedSpeed = parseFloat(localStorage.getItem(STORAGE_PREFIX + 'last_speed') || 1.0);
+    setPlaybackSpeed(savedSpeed);
+
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed);
+        setPlaybackSpeed(speed);
+        if (allowSave) {
+          localStorage.setItem(STORAGE_PREFIX + 'last_speed', speed);
+        }
+      });
+    });
+
+    // 起動時に保存されたファイルリスト（fileList）を復元する
+    const savedFileList = localStorage.getItem(STORAGE_PREFIX + 'file_list');
+    if (savedFileList) {
+      try {
+        fileList = JSON.parse(savedFileList);
+        renderPlaylist();
+        folderStatus.textContent = `選択中: スマホ内ファイル (${fileList.length}曲)`;
+
+        const savedName = localStorage.getItem(STORAGE_PREFIX + 'last_file');
+        const savedTime = parseFloat(localStorage.getItem(STORAGE_PREFIX + 'last_time') || 0);
+
+        if (savedName) {
+          const idx = fileList.findIndex(f => f.name === savedName);
+          if (idx !== -1) {
+            currentIndex = idx;
+            await loadTrack(currentIndex);
+            if (savedTime > 0) audio.currentTime = savedTime;
+            timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
+            if (audio.duration) seekSlider.value = (audio.currentTime / audio.duration) * 100;
+          }
+        }
+      } catch (e) {
+        console.error('Restore fileList error:', e);
+      }
+    }
+
+    allowSave = true;
+  });
+
+  window.addEventListener('beforeunload', () => {
+    saveState(true);
+    if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+    audio.removeAttribute('src');
+    audio.load();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      playPauseBtn.click();
+    } else if (e.code === 'ArrowLeft') {
+      e.preventDefault();
+      seekSeconds(-10);
+    } else if (e.code === 'ArrowRight') {
+      e.preventDefault();
+      seekSeconds(10);
+    }
+  });
+
+  function setPlaybackSpeed(speed) {
+    currentSpeed = speed;
+    audio.playbackRate = speed;
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      const btnSpeed = parseFloat(btn.dataset.speed);
+      btn.classList.toggle('active', btnSpeed === speed);
+    });
+  }
+
+  selectFolderBtn.addEventListener('click', () => {
+    fallbackInput.click();
+  });
+
+  fallbackInput.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    const validExts = ['mp3', 'm4a', 'wav', 'ogg', 'aac', 'flac'];
+    const validFiles = files.filter(f => validExts.includes(f.name.split('.').pop().toLowerCase()));
+
+    if (validFiles.length === 0) {
+      folderStatus.textContent = "音声ファイルが見つかりませんでした";
+      return;
+    }
+
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    validFiles.sort((a, b) => collator.compare(a.name, b.name));
+
+    fileList = validFiles.map(f => ({
+      name: f.name,
+      file: f
+    }));
+
+    localStorage.setItem(STORAGE_PREFIX + 'file_list', JSON.stringify(fileList));
+    folderStatus.textContent = `選択中: スマホ内ファイル (${fileList.length}曲)`;
+    renderPlaylist();
+    playTrackDirect(0, 0);
+  });
+
+  window.setAndroidFiles = function(jsonString) {
+    try {
+      const parsedFiles = JSON.parse(jsonString);
+      if (!parsedFiles || parsedFiles.length === 0) return;
+
+      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+      parsedFiles.sort((a, b) => collator.compare(a.name, b.name));
+
+      fileList = parsedFiles.map(item => ({
+        name: item.name,
+        uri: item.uri
+      }));
+
+      // フォルダ選択情報を永続化
+      localStorage.setItem(STORAGE_PREFIX + 'file_list', JSON.stringify(fileList));
+
+      folderStatus.textContent = `選択中: スマホ内ファイル (${fileList.length}曲)`;
+      renderPlaylist();
+      playTrackDirect(0, 0);
+    } catch (e) {
+      console.error('setAndroidFiles error:', e);
+      folderStatus.textContent = "ファイルの読み込みに失敗しました";
+    }
+  };
+
+  playPauseBtn.addEventListener('click', async () => {
+    if (fileList.length > 0 && !audio.paused) {
+      audio.pause();
+      playPauseBtn.textContent = '▶ 再生';
+      saveState(true);
+      return;
+    }
+
+    if (fileList.length > 0 && audio.paused) {
+      try {
+        await audio.play();
+        playPauseBtn.textContent = '⏸ 一時停止';
+      } catch(e) {
+        console.error('Play error:', e);
+      }
+      return;
+    }
+
+    selectFolderBtn.click();
+  });
+
+  function renderPlaylist() {
+    const fragment = document.createDocumentFragment();
+    fileList.forEach((fileEntry, index) => {
+      const div = document.createElement('div');
+      div.className = `playlist-item ${index === currentIndex ? 'active' : ''}`;
+      div.textContent = `${index + 1}. ${fileEntry.name}`;
+      div.addEventListener('click', () => playTrackDirect(index, 0));
+      fragment.appendChild(div);
+    });
+    playlistEl.innerHTML = '';
+    playlistEl.appendChild(fragment);
+  }
+
+  async function loadTrack(index) {
+    if (index < 0 || index >= fileList.length) return;
+    currentIndex = index;
+    const fileEntry = fileList[currentIndex];
+
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
+
+    if (fileEntry.uri) {
+      audio.src = fileEntry.uri;
+    } else if (fileEntry.file) {
+      currentObjectUrl = URL.createObjectURL(fileEntry.file);
+      audio.src = currentObjectUrl;
+    }
+
+    audio.playbackRate = currentSpeed;
+    trackTitle.textContent = fileEntry.name;
+
+    const items = playlistEl.children;
+    for (let i = 0; i < items.length; i++) {
+      items[i].classList.toggle('active', i === currentIndex);
+    }
+
+    return new Promise(resolve => {
+      const onLoaded = () => {
+        timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration || 0)}`;
+        audio.removeEventListener('loadedmetadata', onLoaded);
+        resolve();
+      };
+      audio.addEventListener('loadedmetadata', onLoaded);
+    });
+  }
+
+  // 同期的にソースをセットして即座に再生する関数（前へ・次へ・プレイリストタップ用）
+  function playTrackDirect(index, seekTime = 0) {
+    if (index < 0 || index >= fileList.length) return;
+    currentIndex = index;
+    const fileEntry = fileList[currentIndex];
+
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
+
+    if (fileEntry.uri) {
+      audio.src = fileEntry.uri;
+    } else if (fileEntry.file) {
+      currentObjectUrl = URL.createObjectURL(fileEntry.file);
+      audio.src = currentObjectUrl;
+    }
+
+    audio.playbackRate = currentSpeed;
+    trackTitle.textContent = fileEntry.name;
+
+    const items = playlistEl.children;
+    for (let i = 0; i < items.length; i++) {
+      items[i].classList.toggle('active', i === currentIndex);
+    }
+
+    audio.currentTime = seekTime;
+    audio.play().then(() => {
+      playPauseBtn.textContent = '⏸ 一時停止';
+      saveState(true);
+    }).catch(e => {
+      console.error('Play error:', e);
+      playPauseBtn.textContent = '▶ 再生';
+    });
+  }
+
+  // 「前へ」ボタン：常に先頭から再生開始
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if (fileList.length === 0) return;
+    if (currentIndex > 0) {
+      playTrackDirect(currentIndex - 1, 0);
+    } else {
+      audio.currentTime = 0;
+      audio.play().catch(e => console.error(e));
+      playPauseBtn.textContent = '⏸ 一時停止';
+    }
+  });
+
+  // 「次へ」ボタン：常に先頭から再生開始
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if (fileList.length === 0) return;
+    if (currentIndex < fileList.length - 1) {
+      playTrackDirect(currentIndex + 1, 0);
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    if (currentIndex < fileList.length - 1) {
+      playTrackDirect(currentIndex + 1, 0);
+    } else {
+      playPauseBtn.textContent = '▶ 再生';
+    }
+  });
+
+  seekSlider.addEventListener('input', () => {
+    isUserSeeking = true;
+    if (audio.duration) {
+      const targetTime = (seekSlider.value / 100) * audio.duration;
+      timeDisplay.textContent = `${formatTime(targetTime)} / ${formatTime(audio.duration)}`;
+    }
+  });
+
+  const commitSeek = () => {
+    if (!isUserSeeking) return;
+    if (audio.duration) {
+      audio.currentTime = (seekSlider.value / 100) * audio.duration;
+    }
+    isUserSeeking = false;
+    saveState(true);
+  };
+
+  seekSlider.addEventListener('change', commitSeek);
+  seekSlider.addEventListener('touchend', commitSeek);
+  seekSlider.addEventListener('mouseup', commitSeek);
+
+  function seekSeconds(seconds) {
+    if (!audio.src || isNaN(audio.duration)) return;
+    let targetTime = audio.currentTime + seconds;
+    audio.currentTime = Math.max(0, Math.min(targetTime, audio.duration));
+    saveState(true);
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    if (!isUserSeeking && audio.duration) {
+      seekSlider.value = (audio.currentTime / audio.duration) * 100;
+      timeDisplay.textContent = `${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`;
+      saveState(false);
+    }
+  });
+
+  function formatTime(seconds) {
+    if (isNaN(seconds)) return "00:00:00";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+
+  function saveState(force = false) {
+    if (!allowSave || currentIndex < 0 || !fileList[currentIndex]) return;
+
+    const now = Date.now();
+    if (!force && now - lastSaveTime < 5000) return;
+
+    localStorage.setItem(STORAGE_PREFIX + 'last_file', fileList[currentIndex].name);
+    localStorage.setItem(STORAGE_PREFIX + 'last_time', audio.currentTime);
+    localStorage.setItem(STORAGE_PREFIX + 'last_speed', currentSpeed);
+
+    lastSaveTime = now;
+  }
+</script>
+
+</body>
+</html>
