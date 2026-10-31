@@ -186,30 +186,35 @@
   </div>
 </div>
 
-<audio id="audioPlayer" preload="auto"></audio>
-
 <script>
-  const STORAGE_PREFIX = 'AudioPlayer_';
-  const SAVE_INTERVAL_MS = 5000;
-
-  let fileList = [];
-  let currentIndex = -1;
-  let currentSpeed = 1.0;
-  let isUserSeeking = false;
-  let allowSave = false;
-  let lastSaveTime = 0;
-
-  const audio = document.getElementById('audioPlayer');
-  const selectFolderBtn = document.getElementById('selectFolderBtn');
-  const folderStatus = document.getElementById('folderStatus');
   const trackTitle = document.getElementById('trackTitle');
+  const folderStatus = document.getElementById('folderStatus');
   const timeDisplay = document.getElementById('timeDisplay');
   const seekSlider = document.getElementById('seekSlider');
   const playPauseBtn = document.getElementById('playPauseBtn');
   const playlistEl = document.getElementById('playlist');
 
-  window.addEventListener('DOMContentLoaded', async () => {
-    setupMediaSession();
+  let names = [];
+  let currentIndex = -1;
+  let currentDurationMs = 0;
+  let errorText = null;
+  let isUserSeeking = false;
+
+  const native = (method, ...args) => {
+    if (window.AndroidBridge) window.AndroidBridge[method](...args);
+  };
+
+  window.addEventListener('DOMContentLoaded', () => {
+    try {
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('AudioPlayer_'))
+        .forEach(key => localStorage.removeItem(key));
+    } catch (e) {}
+
+    document.getElementById('selectFolderBtn').addEventListener('click', () => native('pickFolder'));
+    playPauseBtn.addEventListener('click', () => native('togglePlay'));
+    document.getElementById('prevBtn').addEventListener('click', () => native('prev'));
+    document.getElementById('nextBtn').addEventListener('click', () => native('next'));
 
     document.querySelectorAll('.btn-seek').forEach(btn => {
       btn.addEventListener('click', () => seekSeconds(parseFloat(btn.dataset.seconds)));
@@ -218,26 +223,23 @@
     document.querySelectorAll('.btn-speed').forEach(btn => {
       btn.addEventListener('click', () => {
         const speed = parseFloat(btn.dataset.speed);
-        setPlaybackSpeed(speed);
-        localStorage.setItem(STORAGE_PREFIX + 'last_speed', speed);
+        showSpeed(speed);
+        native('setSpeed', speed);
       });
     });
-    setPlaybackSpeed(parseFloat(localStorage.getItem(STORAGE_PREFIX + 'last_speed')) || 1.0);
 
-    await restoreState();
-    allowSave = true;
-  });
-
-  window.addEventListener('pagehide', () => saveState(true));
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveState(true);
+    if (window.AndroidBridge) {
+      window.AndroidBridge.onPageReady();
+    } else {
+      folderStatus.textContent = 'Androidアプリ内でのみ動作します';
+    }
   });
 
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
     if (e.code === 'Space') {
       e.preventDefault();
-      togglePlay();
+      native('togglePlay');
     } else if (e.code === 'ArrowLeft') {
       e.preventDefault();
       seekSeconds(-10);
@@ -247,222 +249,90 @@
     }
   });
 
-  function setupMediaSession() {
-    if (!('mediaSession' in navigator)) return;
-    navigator.mediaSession.setActionHandler('play', resume);
-    navigator.mediaSession.setActionHandler('pause', () => audio.pause());
-    navigator.mediaSession.setActionHandler('previoustrack', playPrev);
-    navigator.mediaSession.setActionHandler('nexttrack', playNext);
-  }
+  window.onPlaylist = (list) => {
+    names = list;
+    renderPlaylist();
+    showCurrentTrack();
+    refreshStatus();
+  };
 
-  function setPlaybackSpeed(speed) {
-    currentSpeed = speed;
-    audio.defaultPlaybackRate = speed;
-    audio.playbackRate = speed;
-    document.querySelectorAll('.btn-speed').forEach(btn => {
-      btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
-    });
-  }
+  window.onPlayerState = (state) => {
+    currentDurationMs = state.duration;
+    playPauseBtn.textContent = state.playing ? '⏸ 一時停止' : '▶ 再生';
+    showSpeed(state.speed);
 
-  function pickFolder() {
-    if (window.AndroidBridge) {
-      window.AndroidBridge.pickFolder();
-    } else {
-      folderStatus.textContent = 'Androidアプリ内でのみフォルダを選択できます';
+    if (state.index !== currentIndex) {
+      currentIndex = state.index;
+      showCurrentTrack();
     }
-  }
 
-  window.setAndroidFiles = function (jsonString) {
-    try {
-      const files = JSON.parse(jsonString);
-      if (!Array.isArray(files) || files.length === 0) {
-        folderStatus.textContent = '音声ファイルが見つかりませんでした';
-        return;
-      }
+    if (!isUserSeeking) {
+      seekSlider.value = state.duration > 0 ? (state.position / state.duration) * 100 : 0;
+      updateTimeDisplay(state.position);
+    }
 
-      const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-      files.sort((a, b) => collator.compare(a.name, b.name));
-
-      fileList = files.map(({ name, uri }) => ({ name, uri }));
-      localStorage.setItem(STORAGE_PREFIX + 'file_list', JSON.stringify(fileList));
-
-      renderPlaylist();
-      playTrack(0);
-    } catch (e) {
-      console.error('setAndroidFiles error:', e);
-      folderStatus.textContent = 'ファイルの読み込みに失敗しました';
+    if (state.error !== errorText) {
+      errorText = state.error;
+      refreshStatus();
     }
   };
 
-  async function restoreState() {
-    let saved = null;
-    try {
-      saved = JSON.parse(localStorage.getItem(STORAGE_PREFIX + 'file_list'));
-    } catch (e) {
-      console.error('Restore fileList error:', e);
+  function refreshStatus() {
+    if (errorText) {
+      folderStatus.textContent = errorText;
+    } else if (names.length > 0) {
+      folderStatus.textContent = `選択中: スマホ内ファイル (${names.length}曲)`;
+    } else {
+      folderStatus.textContent = '未選択';
     }
-    if (!Array.isArray(saved) || saved.length === 0) return;
-
-    fileList = saved;
-    renderPlaylist();
-    updateFolderStatus();
-
-    const index = fileList.findIndex(f => f.name === localStorage.getItem(STORAGE_PREFIX + 'last_file'));
-    if (index === -1) return;
-
-    selectTrack(index);
-    await waitForMetadata();
-
-    const savedTime = parseFloat(localStorage.getItem(STORAGE_PREFIX + 'last_time')) || 0;
-    if (savedTime > 0) audio.currentTime = savedTime;
-    updateTimeDisplay();
-    if (audio.duration) seekSlider.value = (audio.currentTime / audio.duration) * 100;
-  }
-
-  function waitForMetadata() {
-    return new Promise(resolve => {
-      const done = () => {
-        clearTimeout(timer);
-        audio.removeEventListener('loadedmetadata', done);
-        audio.removeEventListener('error', done);
-        resolve();
-      };
-      const timer = setTimeout(done, 5000);
-      audio.addEventListener('loadedmetadata', done);
-      audio.addEventListener('error', done);
-    });
-  }
-
-  function updateFolderStatus() {
-    folderStatus.textContent = `選択中: スマホ内ファイル (${fileList.length}曲)`;
-  }
-
-  function updateTimeDisplay(time = audio.currentTime) {
-    timeDisplay.textContent = `${formatTime(time)} / ${formatTime(audio.duration)}`;
   }
 
   function renderPlaylist() {
     const fragment = document.createDocumentFragment();
-    fileList.forEach((entry, index) => {
+    names.forEach((name, index) => {
       const div = document.createElement('div');
-      div.className = 'playlist-item' + (index === currentIndex ? ' active' : '');
-      div.textContent = `${index + 1}. ${entry.name}`;
-      div.addEventListener('click', () => playTrack(index));
+      div.className = 'playlist-item';
+      div.textContent = `${index + 1}. ${name}`;
+      div.addEventListener('click', () => native('playIndex', index));
       fragment.appendChild(div);
     });
     playlistEl.replaceChildren(fragment);
-    updateFolderStatus();
   }
 
-  function selectTrack(index) {
-    currentIndex = index;
-    const entry = fileList[index];
-
-    audio.src = entry.uri;
-    audio.playbackRate = currentSpeed;
-    trackTitle.textContent = entry.name;
-    updateFolderStatus();
-
-    Array.from(playlistEl.children).forEach((el, i) => el.classList.toggle('active', i === index));
-    playlistEl.children[index]?.scrollIntoView({ block: 'nearest' });
+  function showCurrentTrack() {
+    trackTitle.textContent = names[currentIndex] || 'トラックが選択されていません';
+    Array.from(playlistEl.children).forEach((el, i) => el.classList.toggle('active', i === currentIndex));
+    playlistEl.children[currentIndex]?.scrollIntoView({ block: 'nearest' });
   }
 
-  function playTrack(index) {
-    if (index < 0 || index >= fileList.length) return;
-    selectTrack(index);
-    audio.play().catch(e => console.error('Play error:', e));
+  function showSpeed(speed) {
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.speed) - speed) < 0.01);
+    });
   }
 
-  function resume() {
-    if (fileList.length === 0) return;
-    if (currentIndex < 0) {
-      playTrack(0);
-      return;
-    }
-    audio.play().catch(e => console.error('Play error:', e));
+  function updateTimeDisplay(positionMs) {
+    timeDisplay.textContent = `${formatTime(positionMs / 1000)} / ${formatTime(currentDurationMs / 1000)}`;
   }
-
-  function togglePlay() {
-    if (fileList.length === 0) {
-      pickFolder();
-    } else if (audio.paused) {
-      resume();
-    } else {
-      audio.pause();
-    }
-  }
-
-  function playPrev() {
-    if (fileList.length === 0) return;
-    if (currentIndex > 0) {
-      playTrack(currentIndex - 1);
-    } else {
-      audio.currentTime = 0;
-      resume();
-    }
-  }
-
-  function playNext() {
-    if (currentIndex >= 0 && currentIndex < fileList.length - 1) {
-      playTrack(currentIndex + 1);
-    }
-  }
-
-  selectFolderBtn.addEventListener('click', pickFolder);
-  playPauseBtn.addEventListener('click', togglePlay);
-  document.getElementById('prevBtn').addEventListener('click', playPrev);
-  document.getElementById('nextBtn').addEventListener('click', playNext);
-
-  audio.addEventListener('play', () => {
-    playPauseBtn.textContent = '⏸ 一時停止';
-  });
-
-  audio.addEventListener('pause', () => {
-    playPauseBtn.textContent = '▶ 再生';
-    saveState(true);
-  });
-
-  audio.addEventListener('ended', () => {
-    if (currentIndex < fileList.length - 1) playNext();
-    else playPauseBtn.textContent = '▶ 再生';
-  });
-
-  audio.addEventListener('error', () => {
-    if (audio.getAttribute('src')) {
-      folderStatus.textContent = '再生できないファイルです。フォルダを選び直してください';
-    }
-  });
-
-  audio.addEventListener('timeupdate', () => {
-    if (isUserSeeking || !audio.duration) return;
-    seekSlider.value = (audio.currentTime / audio.duration) * 100;
-    updateTimeDisplay();
-    saveState(false);
-  });
 
   seekSlider.addEventListener('input', () => {
     isUserSeeking = true;
-    if (audio.duration) {
-      updateTimeDisplay((seekSlider.value / 100) * audio.duration);
-    }
+    updateTimeDisplay((seekSlider.value / 100) * currentDurationMs);
   });
 
   const commitSeek = () => {
     if (!isUserSeeking) return;
-    if (audio.duration) {
-      audio.currentTime = (seekSlider.value / 100) * audio.duration;
+    if (currentDurationMs > 0) {
+      native('seekTo', (seekSlider.value / 100) * currentDurationMs);
     }
     isUserSeeking = false;
-    saveState(true);
   };
   seekSlider.addEventListener('change', commitSeek);
   seekSlider.addEventListener('touchend', commitSeek);
   seekSlider.addEventListener('mouseup', commitSeek);
 
   function seekSeconds(seconds) {
-    if (!Number.isFinite(audio.duration)) return;
-    audio.currentTime = Math.max(0, Math.min(audio.currentTime + seconds, audio.duration));
-    saveState(true);
+    native('seekBy', seconds * 1000);
   }
 
   function formatTime(seconds) {
@@ -472,18 +342,6 @@
     const s = Math.floor(seconds % 60);
     const pad = n => String(n).padStart(2, '0');
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  }
-
-  function saveState(force = false) {
-    if (!allowSave || currentIndex < 0 || !fileList[currentIndex]) return;
-
-    const now = Date.now();
-    if (!force && now - lastSaveTime < SAVE_INTERVAL_MS) return;
-
-    localStorage.setItem(STORAGE_PREFIX + 'last_file', fileList[currentIndex].name);
-    localStorage.setItem(STORAGE_PREFIX + 'last_time', audio.currentTime);
-    localStorage.setItem(STORAGE_PREFIX + 'last_speed', currentSpeed);
-    lastSaveTime = now;
   }
 </script>
 
