@@ -19,6 +19,10 @@ class PlaybackStore(context: Context) {
         get() = prefs.getString(KEY_LAST_URI, null)
         set(value) = prefs.edit().putString(KEY_LAST_URI, value).apply()
 
+    var treeUri: String?
+        get() = prefs.getString(KEY_TREE_URI, null)
+        set(value) = prefs.edit().putString(KEY_TREE_URI, value).apply()
+
     fun loadFiles(): List<AudioFile> {
         val json = prefs.getString(KEY_FILES, null) ?: return emptyList()
         return try {
@@ -78,6 +82,7 @@ class PlaybackStore(context: Context) {
         const val PREFS_NAME = "player"
         const val KEY_SPEED = "speed"
         const val KEY_LAST_URI = "last_uri"
+        const val KEY_TREE_URI = "tree_uri"
         const val KEY_FILES = "files"
         const val KEY_POSITIONS = "positions"
 

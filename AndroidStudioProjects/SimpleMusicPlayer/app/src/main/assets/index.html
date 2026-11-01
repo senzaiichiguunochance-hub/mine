@@ -28,7 +28,6 @@
       -webkit-user-select: none;
     }
 
-
     .container {
       background: var(--card-bg);
       border-radius: 24px;
@@ -54,6 +53,9 @@
       margin-bottom: 6px;
     }
     .btn-drum:active { transform: translateY(2px); box-shadow: 0 1px 0 #c2410c; }
+
+    .btn-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .btn-row .btn-drum { margin-bottom: 0; flex: 1; }
 
     .status-text { text-align: center; font-size: 11px; font-weight: bold; color: #78716c; margin-bottom: 12px; }
 
@@ -129,13 +131,17 @@
     }
     .playlist-item.active { background: var(--primary); color: white; border-color: #ea580c; }
   </style>
-  </head>
+</head>
 <body>
 
 <div class="container">
   <h1>オーディオプレーヤー</h1>
 
   <button id="selectFolderBtn" class="btn-drum">📁 フォルダ変更</button>
+  <div class="btn-row">
+    <button id="openFolderBtn" class="btn-drum">📂 現在のフォルダを開く</button>
+    <button id="refreshFolderBtn" class="btn-drum">🔄 リストを更新</button>
+  </div>
 
   <div id="folderStatus" class="status-text">未選択</div>
 
@@ -212,6 +218,9 @@
     } catch (e) {}
 
     document.getElementById('selectFolderBtn').addEventListener('click', () => native('pickFolder'));
+    document.getElementById('openFolderBtn').addEventListener('click', () => native('openCurrentFolder'));
+    document.getElementById('refreshFolderBtn').addEventListener('click', () => native('refreshFolder'));
+
     playPauseBtn.addEventListener('click', () => native('togglePlay'));
     document.getElementById('prevBtn').addEventListener('click', () => native('prev'));
     document.getElementById('nextBtn').addEventListener('click', () => native('next'));

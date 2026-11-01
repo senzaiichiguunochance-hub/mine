@@ -74,6 +74,8 @@ class MainActivity : ComponentActivity() {
             } catch (_: SecurityException) {
             }
 
+            store.treeUri = uri.toString()
+
             thread {
                 val files = scanAudioFiles(uri)
                 runOnUiThread {
@@ -107,6 +109,81 @@ class MainActivity : ComponentActivity() {
 
         @JavascriptInterface
         fun pickFolder() = runOnUiThread { openDirectory.launch(null) }
+
+        @JavascriptInterface
+        fun openCurrentFolder() = runOnUiThread {
+            val treeUriStr = store.treeUri
+
+            // フォルダが未選択の場合はピッカーを起動してあげる
+            if (treeUriStr == null) {
+                openDirectory.launch(null)
+                return@runOnUiThread
+            }
+
+            var opened = false
+
+            // 1. まずは選択されたフォルダを直接開くトライ
+            try {
+                val treeUri = Uri.parse(treeUriStr)
+                val docId = DocumentsContract.getTreeDocumentId(treeUri)
+                val docUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)
+
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(docUri, DocumentsContract.Document.MIME_TYPE_DIR)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+                opened = true
+            } catch (_: Exception) {
+            }
+
+            // 2. 直接オープンに失敗した場合は、ツリーURIそのもので開く（デフォルト/ルート付近にフォールバック）
+            if (!opened) {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(treeUriStr)).apply {
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(intent)
+                    opened = true
+                } catch (_: Exception) {
+                }
+            }
+
+            // 3. それでもダメな場合の最終手段：ファイルアプリのトップやピッカーを開いて音を止めないようにする
+            if (!opened) {
+                try {
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "*/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun refreshFolder() = runOnUiThread {
+            val treeUriStr = store.treeUri
+            if (treeUriStr == null) {
+                errorMessage = "フォルダが選択されていません"
+                pushState()
+                return@runOnUiThread
+            }
+
+            thread {
+                try {
+                    val files = scanAudioFiles(Uri.parse(treeUriStr))
+                    runOnUiThread {
+                        if (isFinishing || isDestroyed) return@runOnUiThread
+                        updateFilesSafely(files)
+                    }
+                } catch (_: Exception) {
+                }
+            }
+        }
 
         @JavascriptInterface
         fun togglePlay() = runOnUiThread {
@@ -254,6 +331,59 @@ class MainActivity : ComponentActivity() {
 
         val c = controller
         if (c != null) loadPlaylist(c, play = true) else pendingPlay = true
+    }
+
+    private fun updateFilesSafely(files: List<AudioFile>) {
+        if (files.isEmpty()) {
+            errorMessage = "音声ファイルが見つかりませんでした"
+            pushState()
+            return
+        }
+
+        val c = controller
+        val currentPlayingUri = if (c != null && c.mediaItemCount > 0 && c.currentMediaItemIndex in 0 until c.mediaItemCount) {
+            c.getMediaItemAt(c.currentMediaItemIndex).mediaId
+        } else {
+            null
+        }
+        val isCurrentlyPlaying = c != null && isPlaying(c)
+
+        store.saveFiles(files)
+
+        if (c == null) return
+
+        val items = files.map { file ->
+            MediaItem.Builder()
+                .setMediaId(file.uri)
+                .setUri(file.uri)
+                .setMediaMetadata(MediaMetadata.Builder().setTitle(file.name).build())
+                .build()
+        }
+
+        // 再生中のファイルがまだ存在する場合は、その位置を維持してプレイリストだけを安全に更新
+        val newIndex = if (currentPlayingUri != null) {
+            files.indexOfFirst { it.uri == currentPlayingUri }
+        } else {
+            -1
+        }
+
+        if (newIndex != -1 && isCurrentlyPlaying) {
+            // 再生を中断・邪魔しないように、現在の再生状態・位置を保ったままプレイリスト（Timeline）のみを更新
+            val currentPos = c.currentPosition
+            c.setMediaItems(items, newIndex, currentPos)
+            c.prepare()
+            c.play()
+        } else {
+            // 再生中でない場合や、再生中のファイル自体が削除されていた場合
+            val fallbackIndex = if (newIndex != -1) newIndex else 0
+            val uriToRestore = files[fallbackIndex].uri
+            c.setMediaItems(items, fallbackIndex, store.getPosition(uriToRestore))
+            c.prepare()
+        }
+
+        errorMessage = null
+        pushPlaylist()
+        pushState()
     }
 
     private fun loadPlaylist(c: MediaController, play: Boolean) {
