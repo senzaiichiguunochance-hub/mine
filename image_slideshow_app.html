@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>画像スライドショー Player</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* カスタムスクロールバー */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -24,13 +21,16 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #ff8c42;
         }
+        .sb { background:#fff; border:2px solid #fed7aa; border-radius:.75rem; padding:.45rem .75rem; font-size:.8rem; font-weight:700; color:#c2410c; display:inline-flex; align-items:center; gap:.35rem; transition:.15s; }
+        .sb:hover { border-color:#ff5500; }
+        .sb:disabled { opacity:.3; cursor:not-allowed; }
+        .sb.on { background:#ff5500; border-color:#ff5500; color:#fff; }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body class="bg-[#fffdf9] text-gray-800 min-h-screen flex flex-col font-sans antialiased">
 <a href="menu.html" style="position:absolute;top:10px;right:10px;font-size:12px;color:#333;text-decoration:none;background:rgba(255,255,255,.8);padding:5px 10px;border-radius:4px;z-index:1000;border:1px solid #ddd;">メニューに戻る</a>
 
-    <!-- ヘッダー -->
     <header class="bg-white border-b border-orange-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <h1 class="text-xl md:text-2xl font-black text-[#ff5500] tracking-wide flex items-center gap-2">
@@ -42,17 +42,14 @@
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- 左カラム：設定 & 画像管理 (5 cols) -->
         <section class="lg:col-span-5 space-y-6 flex flex-col">
-            
-            <!-- 設定パネル -->
+
             <div class="bg-white border-2 border-orange-200 rounded-2xl p-5 shadow-sm">
                 <h2 class="text-lg font-bold text-[#ff5500] mb-4 flex items-center gap-2 border-b border-orange-100 pb-2">
                     <i class="fa-solid fa-sliders text-[#ff5500]"></i> スライドショー設定
                 </h2>
 
                 <div class="space-y-4">
-                    <!-- 切り替え速度 -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label for="speed" class="text-sm font-bold text-gray-700">
@@ -68,7 +65,6 @@
                         </div>
                     </div>
 
-                    <!-- 繰り返し回数 -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
                             <label for="repeat" class="text-sm font-bold text-gray-700">
@@ -80,7 +76,6 @@
                                class="w-full bg-white border-2 border-orange-200 rounded-xl px-3 py-2 text-sm font-bold text-gray-800 focus:outline-none focus:border-[#ff5500] transition shadow-inner">
                     </div>
 
-                    <!-- ストレッチ設定 -->
                     <div class="flex items-center justify-between pt-2 border-t border-orange-100">
                         <div>
                             <span class="text-sm font-bold text-gray-700 block">ストレッチ表示</span>
@@ -94,7 +89,19 @@
                 </div>
             </div>
 
-            <!-- 画像選択・管理パネル -->
+            <div class="bg-white border-2 border-orange-200 rounded-2xl p-5 shadow-sm">
+                <h2 class="text-lg font-bold text-[#ff5500] mb-1 flex items-center gap-2 border-b border-orange-100 pb-2">
+                    <i class="fa-solid fa-arrows-up-down-left-right"></i> 位置合わせ
+                    <button id="align-reset" class="sb ml-auto">リセット</button>
+                </h2>
+                <p class="text-xs text-gray-500 mb-3">2枚目以降の位置・大きさを微調整（1枚目が基準）</p>
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-700"><span class="flex justify-between"><span>横位置</span><span id="ax-v" class="text-[#ff5500]">0.0%</span></span><input type="range" id="ax" min="-10" max="10" step="0.1" value="0" class="w-full accent-[#ff5500]"></label>
+                    <label class="block text-xs font-bold text-gray-700"><span class="flex justify-between"><span>縦位置</span><span id="ay-v" class="text-[#ff5500]">0.0%</span></span><input type="range" id="ay" min="-10" max="10" step="0.1" value="0" class="w-full accent-[#ff5500]"></label>
+                    <label class="block text-xs font-bold text-gray-700"><span class="flex justify-between"><span>拡大率</span><span id="az-v" class="text-[#ff5500]">100.0%</span></span><input type="range" id="az" min="90" max="110" step="0.1" value="100" class="w-full accent-[#ff5500]"></label>
+                </div>
+            </div>
+
             <div class="bg-white border-2 border-orange-200 rounded-2xl p-5 shadow-sm flex-1 flex flex-col min-h-[350px]">
                 <div class="flex justify-between items-center mb-3 border-b border-orange-100 pb-2">
                     <h2 class="text-lg font-bold text-[#ff5500] flex items-center gap-2">
@@ -106,7 +113,6 @@
                     </button>
                 </div>
 
-                <!-- ファイル選択・ドラッグ＆ドロップエリア -->
                 <div class="mb-4">
                     <label id="drop-zone" class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-orange-300 hover:border-[#ff5500] bg-orange-50/50 hover:bg-orange-50 rounded-2xl cursor-pointer transition-all duration-200 group">
                         <div class="flex flex-col items-center justify-center pt-4 pb-4 px-2 text-center">
@@ -118,7 +124,11 @@
                     </label>
                 </div>
 
-                <!-- 画像サムネイルリスト -->
+                <div class="flex gap-2 mb-3">
+                    <label class="sb cursor-pointer"><i class="fa-solid fa-camera"></i> 撮影<input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden"></label>
+                    <button id="btn-sort" class="sb"><i class="fa-solid fa-arrow-down-a-z"></i> 名前順</button>
+                </div>
+
                 <div id="image-list" class="flex-1 overflow-y-auto space-y-2 max-h-[280px] pr-1">
                     <div id="empty-state" class="h-full flex flex-col items-center justify-center text-gray-400 py-8">
                         <i class="fa-solid fa-file-image text-4xl mb-2 text-orange-200"></i>
@@ -129,21 +139,25 @@
 
         </section>
 
-        <!-- 右カラム：再生ビューア (7 cols) -->
         <section class="lg:col-span-7 flex flex-col space-y-4">
-            
-            <!-- アクションボタンエリア -->
+
             <div class="bg-white border-2 border-orange-200 rounded-2xl p-4 flex flex-wrap gap-3 items-center justify-between shadow-sm">
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3">
                     <button id="btn-start" class="bg-[#ff5500] hover:bg-[#e04b00] active:bg-[#c94300] text-white font-black text-base py-2.5 px-7 rounded-xl transition shadow-[0_4px_12px_rgba(255,85,0,0.35)] flex items-center gap-2 disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed">
                         <i class="fa-solid fa-play"></i> 開始
                     </button>
                     <button id="btn-stop" class="bg-gray-700 hover:bg-gray-800 text-white font-bold text-sm py-2.5 px-5 rounded-xl transition shadow flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed" disabled>
                         <i class="fa-solid fa-square"></i> 停止
                     </button>
+                    <button id="btn-pause" class="sb" disabled><i class="fa-solid fa-pause"></i> 一時停止</button>
+                    <button id="btn-prev" class="sb" title="前のコマ (←)" disabled><i class="fa-solid fa-backward-step"></i></button>
+                    <button id="btn-next" class="sb" title="次のコマ (→)" disabled><i class="fa-solid fa-forward-step"></i></button>
+                    <button id="btn-diff" class="sb" title="差分表示 (D)" disabled><i class="fa-solid fa-circle-half-stroke"></i> 差分</button>
+                    <button id="btn-mark" class="sb" title="マーカー (M)"><i class="fa-solid fa-circle-dot"></i> マーカー</button>
+                    <button id="btn-mark-clear" class="sb" disabled>消去</button>
+                    <button id="btn-full" class="sb" title="全画面 (F)"><i class="fa-solid fa-expand"></i></button>
                 </div>
 
-                <!-- ステータス表示 -->
                 <div class="flex items-center gap-4 text-sm font-bold text-gray-600">
                     <div>
                         ループ: <span id="status-loop" class="text-[#ff5500] font-black text-base">0</span> / <span id="status-max-loop">6</span>
@@ -151,27 +165,29 @@
                     <div>
                         コマ: <span id="status-index" class="text-[#ff5500] font-black text-base">0</span> / <span id="status-total-img">0</span>
                     </div>
+                    <div>
+                        見つけた数: <span id="mark-count" class="text-[#ff5500] font-black text-base">0</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- 画像表示メインステージ -->
-            <div class="bg-gray-50 border-2 border-orange-200 rounded-2xl p-3 flex-1 min-h-[450px] flex items-center justify-center relative overflow-hidden shadow-inner">
-                
-                <!-- プレイ中プログレスバー -->
+            <div id="stage" class="bg-gray-50 border-2 border-orange-200 rounded-2xl p-3 flex-1 min-h-[450px] flex items-center justify-center relative overflow-hidden shadow-inner">
+
                 <div id="progress-bar-container" class="absolute top-0 left-0 w-full h-1.5 bg-orange-100 hidden">
                     <div id="progress-bar" class="h-full bg-[#ff5500] w-0 transition-all duration-75"></div>
                 </div>
 
-                <!-- 未選択時のオーバーレイ -->
                 <div id="viewer-placeholder" class="text-center text-gray-400 p-6">
                     <i class="fa-solid fa-display text-5xl mb-3 text-orange-200"></i>
                     <p class="text-base font-bold text-gray-600">スライドショー表示エリア</p>
                     <p class="text-xs text-gray-500 mt-1">画像をドラッグ＆ドロップするか追加して「開始」を押してください</p>
+                    <p class="text-[11px] text-gray-400 mt-3">Space: 開始/一時停止 ・ ←→: コマ送り ・ Esc: 停止 ・ D: 差分 ・ M: マーカー ・ F: 全画面 ・ 画面タップ: 一時停止</p>
                 </div>
 
-                <!-- スライドショー画像表示エレメント -->
-                <div id="image-wrapper" class="w-full h-full flex items-center justify-center overflow-auto hidden">
-                    <img id="slideshow-img" src="" alt="Slideshow Frame" class="object-contain transition-none">
+                <div id="image-wrapper" class="w-full h-full flex items-center justify-center hidden">
+                    <div id="frame-box" class="relative grid">
+                        <div id="marks" class="absolute inset-0 z-10 pointer-events-none"></div>
+                    </div>
                 </div>
 
             </div>
@@ -180,25 +196,47 @@
 
     </main>
 
-    <!-- JS アプリケーションロジック -->
+    <div id="split-modal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-4 max-w-3xl w-full max-h-full overflow-auto">
+            <p class="text-xs font-bold text-gray-700 mb-2">赤い線の位置で2枚に分割します（線は下のスライダーで移動）</p>
+            <div class="relative w-full">
+                <img id="split-img" class="w-full block" alt="分割プレビュー">
+                <div id="split-line" class="absolute bg-red-500 pointer-events-none"></div>
+            </div>
+            <div class="flex flex-wrap gap-3 items-center mt-3">
+                <select id="split-dir" class="sb"><option value="h">上下に分割</option><option value="v">左右に分割</option></select>
+                <input type="range" id="split-pos" min="5" max="95" step="0.5" value="50" class="flex-1 accent-[#ff5500]">
+                <button id="split-ok" class="sb on">分割する</button>
+                <button id="split-cancel" class="sb">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- IndexedDB ストレージ定義 (画像の再起動時復元用) ---
+        // 画像は容量が大きいため localStorage ではなく IndexedDB に保存する
         const DB_NAME = 'SlideshowAppDB';
         const DB_VERSION = 1;
         const STORE_NAME = 'images';
 
+        let dbPromise = null;
         function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                request.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-                    }
-                };
-                request.onsuccess = (e) => resolve(e.target.result);
-                request.onerror = (e) => reject(e.target.error);
-            });
+            if (!dbPromise) {
+                dbPromise = new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        }
+                    };
+                    request.onsuccess = (e) => resolve(e.target.result);
+                    request.onerror = (e) => {
+                        dbPromise = null;
+                        reject(e.target.error);
+                    };
+                });
+            }
+            return dbPromise;
         }
 
         async function saveImagesToDB(imageList) {
@@ -206,12 +244,13 @@
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_NAME, 'readwrite');
                 const store = tx.objectStore(STORE_NAME);
-                store.clear(); // 既存データを全削除して入れ替え
+                store.clear();
                 imageList.forEach((item, index) => {
                     store.put({ id: index, name: item.name, data: item.data });
                 });
                 tx.oncomplete = () => resolve();
                 tx.onerror = (e) => reject(e.target.error);
+                tx.onabort = (e) => reject(e.target.error);
             });
         }
 
@@ -219,13 +258,8 @@
             const db = await openDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const request = store.getAll();
-                request.onsuccess = () => {
-                    // ID順にソート
-                    const res = request.result.sort((a, b) => a.id - b.id);
-                    resolve(res);
-                };
+                const request = tx.objectStore(STORE_NAME).getAll();
+                request.onsuccess = () => resolve(request.result.sort((a, b) => a.id - b.id));
                 request.onerror = (e) => reject(e.target.error);
             });
         }
@@ -234,182 +268,353 @@
             const db = await openDB();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                store.clear();
+                tx.objectStore(STORE_NAME).clear();
                 tx.oncomplete = () => resolve();
                 tx.onerror = (e) => reject(e.target.error);
             });
         }
 
-        // --- アプリケーション状態 ---
-        let images = []; // { name: string, data: base64 } の配列
+        let images = [];
         let timerId = null;
         let isPlaying = false;
+        let isPaused = false;
         let currentIndex = 0;
         let currentLoop = 0;
+        let rowEls = [];
+        let frames = [];
+        let framesDirty = true;
+        let diffMode = false;
+        let markMode = false;
+        let markers = [];
+        let dragFrom = null;
+        let splitIdx = -1;
 
-        // DOM要素
-        const fileInput = document.getElementById('file-input');
-        const dropZone = document.getElementById('drop-zone');
-        const imageListContainer = document.getElementById('image-list');
-        const emptyState = document.getElementById('empty-state');
-        const imageCountEl = document.getElementById('image-count');
-        const btnClear = document.getElementById('btn-clear');
-        
-        const speedInput = document.getElementById('speed');
-        const speedVal = document.getElementById('speed-val');
-        const repeatInput = document.getElementById('repeat');
-        const repeatVal = document.getElementById('repeat-val');
-        const stretchInput = document.getElementById('stretch');
-        
-        const btnStart = document.getElementById('btn-start');
-        const btnStop = document.getElementById('btn-stop');
-        
-        const statusLoop = document.getElementById('status-loop');
-        const statusMaxLoop = document.getElementById('status-max-loop');
-        const statusIndex = document.getElementById('status-index');
-        const statusTotalImg = document.getElementById('status-total-img');
-        
-        const viewerPlaceholder = document.getElementById('viewer-placeholder');
-        const imageWrapper = document.getElementById('image-wrapper');
-        const slideshowImg = document.getElementById('slideshow-img');
-        const progressBarContainer = document.getElementById('progress-bar-container');
-        const progressBar = document.getElementById('progress-bar');
+        const $ = (id) => document.getElementById(id);
+        const [fileInput, cameraInput, dropZone, imageListContainer, emptyState, imageCountEl, btnClear] =
+            ['file-input', 'camera-input', 'drop-zone', 'image-list', 'empty-state', 'image-count', 'btn-clear'].map($);
+        const [speedInput, speedVal, repeatInput, repeatVal, stretchInput] =
+            ['speed', 'speed-val', 'repeat', 'repeat-val', 'stretch'].map($);
+        const [btnStart, btnStop, btnPause, btnPrev, btnNext, btnDiff, btnMark, btnMarkClear, btnFull] =
+            ['btn-start', 'btn-stop', 'btn-pause', 'btn-prev', 'btn-next', 'btn-diff', 'btn-mark', 'btn-mark-clear', 'btn-full'].map($);
+        const [statusLoop, statusMaxLoop, statusIndex, statusTotalImg, markCount] =
+            ['status-loop', 'status-max-loop', 'status-index', 'status-total-img', 'mark-count'].map($);
+        const [viewerPlaceholder, imageWrapper, frameBox, marksEl, progressBarContainer, progressBar, stage] =
+            ['viewer-placeholder', 'image-wrapper', 'frame-box', 'marks', 'progress-bar-container', 'progress-bar', 'stage'].map($);
+        const [splitModal, splitImg, splitLine, splitDir, splitPos] =
+            ['split-modal', 'split-img', 'split-line', 'split-dir', 'split-pos'].map($);
+        const alignInputs = ['ax', 'ay', 'az'].map($);
 
-        // --- 設定値の保存・復元 (localStorage) ---
+        function getRepeat() {
+            const n = parseInt(repeatInput.value, 10);
+            return Number.isFinite(n) ? Math.min(999, Math.max(1, n)) : 1;
+        }
+
+        function getIntervalMs() {
+            const s = parseFloat(speedInput.value);
+            return Math.max(50, (Number.isFinite(s) ? s : 0.2) * 1000);
+        }
+
         function saveSettings() {
-            const settings = {
-                speed: parseFloat(speedInput.value),
-                repeat: parseInt(repeatInput.value, 10),
-                stretch: stretchInput.checked
-            };
-            localStorage.setItem('slideshow_settings', JSON.stringify(settings));
+            try {
+                localStorage.setItem('slideshow_settings', JSON.stringify({
+                    speed: parseFloat(speedInput.value),
+                    repeat: getRepeat(),
+                    stretch: stretchInput.checked
+                }));
+            } catch (e) {
+                console.error('設定の保存に失敗しました', e);
+            }
         }
 
         function loadSettings() {
-            const saved = localStorage.getItem('slideshow_settings');
-            if (saved) {
-                try {
+            try {
+                const saved = localStorage.getItem('slideshow_settings');
+                if (saved) {
                     const settings = JSON.parse(saved);
                     if (settings.speed !== undefined) speedInput.value = settings.speed;
                     if (settings.repeat !== undefined) repeatInput.value = settings.repeat;
                     if (settings.stretch !== undefined) stretchInput.checked = settings.stretch;
-                } catch (e) {
-                    console.error('設定の復元に失敗しました', e);
                 }
+            } catch (e) {
+                console.error('設定の復元に失敗しました', e);
             }
             updateSettingsUI();
         }
 
         function updateSettingsUI() {
+            const repeat = getRepeat();
             speedVal.textContent = parseFloat(speedInput.value).toFixed(2) + ' 秒';
-            repeatVal.textContent = repeatInput.value + ' 回';
-            statusMaxLoop.textContent = repeatInput.value;
-            applyStretchMode();
+            repeatVal.textContent = repeat + ' 回';
+            statusMaxLoop.textContent = repeat;
+            applyLayout();
         }
 
-        // --- ストレッチモード適用 ---
-        function applyStretchMode() {
-            const isStretch = stretchInput.checked;
-            if (isStretch) {
-                // ストレッチON: スマホ等の縦画面では横幅を親コンテナ最大(100%)にし、その割合で縦幅を維持
-                slideshowImg.className = 'w-full max-w-full h-auto object-contain transition-none border-2 border-orange-200 rounded-xl shadow-md';
-                imageWrapper.className = 'w-full h-full flex items-center justify-center overflow-hidden';
+        // hidden 状態を壊さないよう、各要素のクラスを個別に更新する
+        function applyLayout() {
+            const s = stretchInput.checked;
+            frameBox.className = `relative grid isolate ${s ? 'w-full' : 'w-max'} ${diffMode ? 'bg-black' : ''}`;
+            frames.forEach(f => {
+                f.className = s ? 'w-full h-auto block rounded-xl' : 'max-w-none max-h-none block rounded-xl';
+            });
+            imageWrapper.classList.toggle('overflow-hidden', s);
+            imageWrapper.classList.toggle('overflow-auto', !s);
+        }
+
+        // 2枚目以降のみ位置・拡大率を補正する（1枚目が基準）
+        function applyAlign() {
+            const [x, y, z] = alignInputs.map(i => parseFloat(i.value));
+            $('ax-v').textContent = x.toFixed(1) + '%';
+            $('ay-v').textContent = y.toFixed(1) + '%';
+            $('az-v').textContent = z.toFixed(1) + '%';
+            frames.forEach((f, i) => {
+                f.style.transform = i === 0 ? '' : `translate(${x}%, ${y}%) scale(${z / 100})`;
+            });
+        }
+
+        function showViewer(visible) {
+            viewerPlaceholder.classList.toggle('hidden', visible);
+            imageWrapper.classList.toggle('hidden', !visible);
+        }
+
+        // 全画像を同じ位置に重ねておき visibility だけを切り替える（src の差し替えによるデコード遅延・ちらつきを避ける）
+        async function buildFrames() {
+            frames.forEach(f => f.remove());
+            frames = images.map(item => {
+                const f = new Image();
+                f.src = item.data;
+                f.alt = item.name;
+                f.draggable = false;
+                f.style.gridArea = '1 / 1';
+                f.style.visibility = 'hidden';
+                frameBox.insertBefore(f, marksEl);
+                return f;
+            });
+            applyLayout();
+            applyAlign();
+            await Promise.all(frames.map(f => f.decode().catch(() => {})));
+        }
+
+        async function ensureFrames() {
+            if (!framesDirty) return;
+            framesDirty = false;
+            await buildFrames();
+        }
+
+        function showFrame(i) {
+            frames.forEach((f, k) => {
+                f.style.visibility = (diffMode ? k < 2 : k === i) ? 'visible' : 'hidden';
+            });
+        }
+
+        function setButtons() {
+            btnStart.disabled = images.length < 2 || isPlaying;
+            btnStop.disabled = !isPlaying;
+            btnPause.disabled = !isPlaying;
+            btnPrev.disabled = !isPlaying;
+            btnNext.disabled = !isPlaying;
+            btnDiff.disabled = images.length < 2 || isPlaying;
+            btnClear.disabled = images.length === 0;
+            fileInput.disabled = isPlaying;
+            cameraInput.disabled = isPlaying;
+            btnPause.innerHTML = isPaused
+                ? '<i class="fa-solid fa-play"></i> 再開'
+                : '<i class="fa-solid fa-pause"></i> 一時停止';
+        }
+
+        function highlightActiveRow() {
+            rowEls.forEach((row, i) => {
+                const active = isPlaying && i === currentIndex;
+                row.classList.toggle('border-[#ff5500]', active);
+                row.classList.toggle('bg-orange-100/60', active);
+                row.classList.toggle('border-orange-100', !active);
+            });
+        }
+
+        function renderMarks() {
+            marksEl.innerHTML = '';
+            markers.forEach((m, i) => {
+                const d = document.createElement('div');
+                d.dataset.i = i;
+                d.className = 'absolute rounded-full border-4 border-red-500 -translate-x-1/2 -translate-y-1/2';
+                d.style.cssText = `left:${m.x}%;top:${m.y}%;width:7%;aspect-ratio:1;`;
+                marksEl.appendChild(d);
+            });
+            markCount.textContent = markers.length;
+            btnMarkClear.disabled = markers.length === 0;
+        }
+
+        marksEl.addEventListener('click', (e) => {
+            if (!markMode) return;
+            e.stopPropagation();
+            if (e.target.dataset.i !== undefined) {
+                markers.splice(Number(e.target.dataset.i), 1);
             } else {
-                // ストレッチOFF: 元の画像サイズを表示（親要素を超える場合はスクロール可能）
-                slideshowImg.className = 'max-w-none max-h-none transition-none shadow-md rounded-xl';
-                imageWrapper.className = 'w-full h-full flex items-center justify-center overflow-auto';
+                const r = marksEl.getBoundingClientRect();
+                markers.push({ x: (e.clientX - r.left) / r.width * 100, y: (e.clientY - r.top) / r.height * 100 });
             }
+            renderMarks();
+        });
+
+        function toggleMarkMode() {
+            markMode = !markMode;
+            btnMark.classList.toggle('on', markMode);
+            marksEl.classList.toggle('pointer-events-none', !markMode);
+            marksEl.classList.toggle('cursor-crosshair', markMode);
         }
 
-        // --- UI表示の更新 ---
+        function iconBtn(icon, title, fn, disabled) {
+            const b = document.createElement('button');
+            b.className = 'text-gray-400 hover:text-[#ff5500] p-1.5 transition disabled:opacity-20';
+            b.title = title;
+            b.disabled = !!disabled;
+            b.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+            b.addEventListener('click', fn);
+            return b;
+        }
+
+        // 再生中は呼ばない（サムネイルの再生成が重いため）
         function renderImageList() {
-            // 画像件数表示
             imageCountEl.textContent = `${images.length}枚`;
             statusTotalImg.textContent = images.length;
-            
-            // 全削除ボタンの有効化切り替え
-            btnClear.disabled = images.length === 0;
+            setButtons();
 
-            // 開始ボタンの有効化判定 (2枚以上で有効)
-            btnStart.disabled = images.length < 2 || isPlaying;
+            imageListContainer.innerHTML = '';
+            rowEls = [];
 
             if (images.length === 0) {
-                imageListContainer.innerHTML = '';
                 imageListContainer.appendChild(emptyState);
                 return;
             }
 
-            imageListContainer.innerHTML = '';
             images.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = `flex items-center justify-between p-2 rounded-xl bg-orange-50/40 border-2 ${
-                    currentIndex === index && isPlaying ? 'border-[#ff5500] bg-orange-100/60' : 'border-orange-100'
-                } hover:border-orange-300 transition`;
-
-                div.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <span class="text-xs font-black text-orange-400 w-5 text-right">${index + 1}</span>
-                        <img src="${item.data}" alt="${item.name}" class="w-10 h-10 object-cover rounded-lg bg-white border border-orange-200">
-                        <span class="text-xs font-bold text-gray-700 truncate max-w-[140px] md:max-w-[180px]">${item.name}</span>
-                    </div>
-                    <button data-index="${index}" class="btn-delete-item text-gray-400 hover:text-red-500 p-1.5 transition">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                `;
-                imageListContainer.appendChild(div);
-            });
-
-            // 削除ボタンイベント
-            document.querySelectorAll('.btn-delete-item').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const idx = parseInt(btn.getAttribute('data-index'), 10);
-                    images.splice(idx, 1);
-                    await saveImagesToDB(images);
-                    renderImageList();
-                    if (images.length < 2 && isPlaying) {
-                        stopSlideshow();
-                    }
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-2 rounded-xl bg-orange-50/40 border-2 border-orange-100 hover:border-orange-300 transition';
+                row.draggable = true;
+                row.addEventListener('dragstart', (e) => {
+                    dragFrom = index;
+                    e.dataTransfer.setData('text/plain', 'row');
                 });
+                row.addEventListener('drop', (e) => {
+                    if (dragFrom === null) return;
+                    e.stopPropagation();
+                    const from = dragFrom;
+                    dragFrom = null;
+                    moveImage(from, index);
+                });
+                row.addEventListener('dragend', () => { dragFrom = null; });
+
+                const left = document.createElement('div');
+                left.className = 'flex items-center gap-3 overflow-hidden';
+
+                const num = document.createElement('span');
+                num.className = 'text-xs font-black text-orange-400 w-5 text-right';
+                num.textContent = index + 1;
+
+                const thumb = document.createElement('img');
+                thumb.src = item.data;
+                thumb.alt = item.name;
+                thumb.draggable = false;
+                thumb.className = 'w-10 h-10 object-cover rounded-lg bg-white border border-orange-200';
+
+                const name = document.createElement('span');
+                name.className = 'text-xs font-bold text-gray-700 truncate max-w-[110px] md:max-w-[150px]';
+                name.textContent = item.name;
+
+                left.append(num, thumb, name);
+
+                const actions = document.createElement('div');
+                actions.className = 'flex items-center shrink-0';
+                actions.append(
+                    iconBtn('fa-arrow-up', '上へ', () => moveImage(index, index - 1), index === 0),
+                    iconBtn('fa-scissors', '1枚の写真を2枚に分割', () => openSplit(index)),
+                    iconBtn('fa-xmark', '削除', () => removeImage(index))
+                );
+
+                row.append(left, actions);
+                imageListContainer.appendChild(row);
+                rowEls.push(row);
             });
+
+            highlightActiveRow();
         }
 
-        // --- 画像ファイル一括読み込み処理 ---
+        // 画像リストが変わるたびに、表示の作り直し・マーカー消去・IndexedDB保存を行う
+        async function commitImages() {
+            framesDirty = true;
+            markers = [];
+            renderMarks();
+            renderImageList();
+            if (diffMode && images.length >= 2) {
+                await setDiff(true);
+            } else {
+                if (diffMode) await setDiff(false);
+                showViewer(false);
+            }
+            try {
+                await saveImagesToDB(images);
+            } catch (err) {
+                console.error('IndexedDBへの保存に失敗:', err);
+                alert('画像の保存に失敗しました（容量不足の可能性があります）。このまま使用はできますが、再読み込みすると消えます。');
+            }
+        }
+
+        async function moveImage(from, to) {
+            if (isPlaying || from === to || to < 0 || to >= images.length) return;
+            const [item] = images.splice(from, 1);
+            images.splice(to, 0, item);
+            await commitImages();
+        }
+
+        async function removeImage(idx) {
+            stopSlideshow();
+            images.splice(idx, 1);
+            currentIndex = 0;
+            await commitImages();
+        }
+
+        $('btn-sort').addEventListener('click', async () => {
+            if (isPlaying) return;
+            images.sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true }));
+            await commitImages();
+        });
+
         function readFileAsDataURL(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve({ name: file.name, data: reader.result });
-                reader.onerror = reject;
+                reader.onerror = () => reject(reader.error);
                 reader.readAsDataURL(file);
             });
         }
 
         async function handleFilesAdd(filesList) {
+            if (isPlaying) return;
             const files = Array.from(filesList).filter(file => file.type.startsWith('image/'));
             if (files.length === 0) return;
 
-            const newImages = await Promise.all(files.map(readFileAsDataURL));
-            images = images.concat(newImages);
-
-            // IndexedDBに保存
-            await saveImagesToDB(images);
-            
-            renderImageList();
+            try {
+                images = images.concat(await Promise.all(files.map(readFileAsDataURL)));
+            } catch (err) {
+                console.error('画像の読み込みに失敗:', err);
+                alert('画像の読み込みに失敗しました。');
+                return;
+            }
+            await commitImages();
         }
 
-        fileInput.addEventListener('change', async (e) => {
-            await handleFilesAdd(e.target.files);
-            fileInput.value = ''; // リセット
+        [fileInput, cameraInput].forEach(input => {
+            input.addEventListener('change', async (e) => {
+                await handleFilesAdd(e.target.files);
+                input.value = '';
+            });
         });
 
-        // --- ドラッグ＆ドロップイベント ---
         ['dragenter', 'dragover'].forEach(eventName => {
             dropZone.addEventListener(eventName, (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.classList.add('border-[#ff5500]', 'bg-orange-100/50');
-            }, false);
+            });
         });
 
         ['dragleave', 'drop'].forEach(eventName => {
@@ -417,121 +622,177 @@
                 e.preventDefault();
                 e.stopPropagation();
                 dropZone.classList.remove('border-[#ff5500]', 'bg-orange-100/50');
-            }, false);
+            });
         });
 
-        dropZone.addEventListener('drop', async (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            await handleFilesAdd(files);
+        dropZone.addEventListener('drop', (e) => handleFilesAdd(e.dataTransfer.files));
+
+        // ドロップ位置を外すとブラウザが画像を開いてしまうのを防ぐ
+        ['dragover', 'drop'].forEach(eventName => {
+            window.addEventListener(eventName, (e) => e.preventDefault());
         });
 
-        // 全削除
         btnClear.addEventListener('click', async () => {
-            images = [];
-            await clearImagesDB();
             stopSlideshow();
-            renderImageList();
-            viewerPlaceholder.classList.remove('hidden');
-            imageWrapper.classList.add('hidden');
+            images = [];
+            currentIndex = 0;
+            await commitImages();
         });
 
-        // --- スライドショー再生ロジック ---
-        function startSlideshow() {
-            if (images.length < 2) return;
+        function openSplit(idx) {
+            if (isPlaying) return;
+            splitIdx = idx;
+            splitImg.src = images[idx].data;
+            splitModal.classList.remove('hidden');
+            updateSplitLine();
+        }
+
+        function updateSplitLine() {
+            const p = splitPos.value;
+            splitLine.style.cssText = splitDir.value === 'h'
+                ? `left:0;right:0;top:${p}%;height:3px`
+                : `top:0;bottom:0;left:${p}%;width:3px`;
+        }
+
+        splitDir.addEventListener('change', updateSplitLine);
+        splitPos.addEventListener('input', updateSplitLine);
+        $('split-cancel').addEventListener('click', () => splitModal.classList.add('hidden'));
+
+        $('split-ok').addEventListener('click', async () => {
+            const src = images[splitIdx];
+            if (!src) return;
+            const img = new Image();
+            img.src = src.data;
+            await img.decode();
+            const w = img.naturalWidth;
+            const h = img.naturalHeight;
+            const p = splitPos.value / 100;
+            const rects = splitDir.value === 'h'
+                ? [[0, 0, w, h * p], [0, h * p, w, h * (1 - p)]]
+                : [[0, 0, w * p, h], [w * p, 0, w * (1 - p), h]];
+            const base = src.name.replace(/\.[^.]+$/, '');
+            const parts = rects.map(([x, y, cw, ch], i) => {
+                const c = document.createElement('canvas');
+                c.width = Math.round(cw);
+                c.height = Math.round(ch);
+                c.getContext('2d').drawImage(img, x, y, cw, ch, 0, 0, c.width, c.height);
+                return { name: `${base}_${i + 1}.jpg`, data: c.toDataURL('image/jpeg', 0.95) };
+            });
+            images.splice(splitIdx, 1, ...parts);
+            splitModal.classList.add('hidden');
+            await commitImages();
+        });
+
+        function tick() {
+            currentIndex++;
+            if (currentIndex >= images.length) {
+                currentIndex = 0;
+                currentLoop++;
+                if (currentLoop > getRepeat()) {
+                    stopSlideshow();
+                    return;
+                }
+            }
+            updateSlideFrame();
+        }
+
+        function scheduleTimer() {
+            clearInterval(timerId);
+            timerId = setInterval(tick, getIntervalMs());
+        }
+
+        async function startSlideshow() {
+            if (isPlaying || images.length < 2) return;
+            if (diffMode) await setDiff(false);
+
+            repeatInput.value = getRepeat();
+            updateSettingsUI();
 
             isPlaying = true;
+            isPaused = false;
             currentIndex = 0;
             currentLoop = 1;
+            setButtons();
 
-            btnStart.disabled = true;
-            btnStop.disabled = false;
-            fileInput.disabled = true;
+            await ensureFrames();
+            if (!isPlaying) return;
 
-            viewerPlaceholder.classList.add('hidden');
-            imageWrapper.classList.remove('hidden');
+            showViewer(true);
             progressBarContainer.classList.remove('hidden');
-
             updateSlideFrame();
-
-            const intervalMs = Math.max(50, parseFloat(speedInput.value) * 1000);
-            const totalLoops = parseInt(repeatInput.value, 10);
-
-            timerId = setInterval(() => {
-                currentIndex++;
-
-                // 1周完了したか判定
-                if (currentIndex >= images.length) {
-                    currentIndex = 0;
-                    currentLoop++;
-                    if (currentLoop > totalLoops) {
-                        stopSlideshow();
-                        return;
-                    }
-                }
-
-                updateSlideFrame();
-            }, intervalMs);
+            scheduleTimer();
         }
 
         function stopSlideshow() {
-            if (timerId) {
-                clearInterval(timerId);
-                timerId = null;
-            }
+            clearInterval(timerId);
+            timerId = null;
             isPlaying = false;
-
-            btnStart.disabled = images.length < 2;
-            btnStop.disabled = true;
-            fileInput.disabled = false;
+            isPaused = false;
             progressBarContainer.classList.add('hidden');
+            setButtons();
+            highlightActiveRow();
+        }
 
-            renderImageList();
+        function setPaused(paused) {
+            if (!isPlaying) return;
+            isPaused = paused;
+            clearInterval(timerId);
+            if (!paused) scheduleTimer();
+            setButtons();
+        }
+
+        function step(delta) {
+            if (!isPlaying) return;
+            setPaused(true);
+            currentIndex = (currentIndex + delta + images.length) % images.length;
+            updateSlideFrame();
         }
 
         function updateSlideFrame() {
-            // 切り替えエフェクトなしで瞬時に変更
-            slideshowImg.src = images[currentIndex].data;
-            
-            // ステータス表示更新
+            showFrame(currentIndex);
+
             statusLoop.textContent = currentLoop;
             statusIndex.textContent = currentIndex + 1;
 
-            // プログレスバー計算
-            const totalFrames = images.length * parseInt(repeatInput.value, 10);
-            const currentFrameCount = ((currentLoop - 1) * images.length) + (currentIndex + 1);
-            const progressPercent = (currentFrameCount / totalFrames) * 100;
-            progressBar.style.width = `${progressPercent}%`;
+            const totalFrames = images.length * getRepeat();
+            const currentFrameCount = (currentLoop - 1) * images.length + currentIndex + 1;
+            progressBar.style.width = `${Math.min(100, (currentFrameCount / totalFrames) * 100)}%`;
 
-            renderImageList(); // リスト側のアクティブ行ハイライト
+            highlightActiveRow();
         }
 
-        // --- イベントリスナー設定 ---
+        // 1枚目と2枚目を重ね、2枚目に difference ブレンドをかけて違いだけを光らせる
+        async function setDiff(on) {
+            if (on && (images.length < 2 || isPlaying)) return;
+            diffMode = on;
+            btnDiff.classList.toggle('on', on);
+            if (on) {
+                await ensureFrames();
+                showViewer(true);
+            }
+            applyLayout();
+            frames.forEach((f, k) => { f.style.mixBlendMode = on && k === 1 ? 'difference' : ''; });
+            showFrame(0);
+        }
+
+        function toggleFullscreen() {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else if (stage.requestFullscreen) stage.requestFullscreen();
+        }
+
         speedInput.addEventListener('input', () => {
             updateSettingsUI();
             saveSettings();
-            if (isPlaying) {
-                // 再生中の場合は即時インターバル更新
-                clearInterval(timerId);
-                const intervalMs = Math.max(50, parseFloat(speedInput.value) * 1000);
-                const totalLoops = parseInt(repeatInput.value, 10);
-                timerId = setInterval(() => {
-                    currentIndex++;
-                    if (currentIndex >= images.length) {
-                        currentIndex = 0;
-                        currentLoop++;
-                        if (currentLoop > totalLoops) {
-                            stopSlideshow();
-                            return;
-                        }
-                    }
-                    updateSlideFrame();
-                }, intervalMs);
-            }
+            if (isPlaying && !isPaused) scheduleTimer();
+        });
+
+        repeatInput.addEventListener('input', () => {
+            updateSettingsUI();
+            saveSettings();
         });
 
         repeatInput.addEventListener('change', () => {
-            if (repeatInput.value < 1) repeatInput.value = 1;
+            repeatInput.value = getRepeat();
             updateSettingsUI();
             saveSettings();
         });
@@ -541,19 +802,57 @@
             saveSettings();
         });
 
+        alignInputs.forEach(input => input.addEventListener('input', applyAlign));
+        $('align-reset').addEventListener('click', () => {
+            alignInputs.forEach((input, i) => { input.value = i === 2 ? 100 : 0; });
+            applyAlign();
+        });
+
         btnStart.addEventListener('click', startSlideshow);
         btnStop.addEventListener('click', stopSlideshow);
+        btnPause.addEventListener('click', () => setPaused(!isPaused));
+        btnPrev.addEventListener('click', () => step(-1));
+        btnNext.addEventListener('click', () => step(1));
+        btnDiff.addEventListener('click', () => setDiff(!diffMode));
+        btnMark.addEventListener('click', toggleMarkMode);
+        btnMarkClear.addEventListener('click', () => { markers = []; renderMarks(); });
+        btnFull.addEventListener('click', toggleFullscreen);
 
-        // --- 初期化 & 再起動時の復元 ---
+        imageWrapper.addEventListener('click', () => {
+            if (!markMode && isPlaying) setPaused(!isPaused);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey || e.altKey) return;
+            if (e.target.matches('input[type=range], input[type=number], select')) return;
+            if (!splitModal.classList.contains('hidden')) return;
+
+            switch (e.key) {
+                case ' ':
+                    e.preventDefault();
+                    document.activeElement.blur();
+                    if (isPlaying) setPaused(!isPaused);
+                    else startSlideshow();
+                    break;
+                case 'Escape': stopSlideshow(); break;
+                case 'ArrowLeft': step(-1); break;
+                case 'ArrowRight': step(1); break;
+                case 'd': case 'D': setDiff(!diffMode); break;
+                case 'm': case 'M': toggleMarkMode(); break;
+                case 'f': case 'F': toggleFullscreen(); break;
+            }
+        });
+
         window.addEventListener('load', async () => {
-            // 1. 設定の復元
             loadSettings();
+            applyAlign();
+            renderMarks();
+            setButtons();
 
-            // 2. 画像の復元 (IndexedDB)
             try {
-                const restoredImages = await loadImagesFromDB();
-                if (restoredImages && restoredImages.length > 0) {
-                    images = restoredImages.map(item => ({ name: item.name, data: item.data }));
+                const restored = await loadImagesFromDB();
+                if (restored && restored.length > 0) {
+                    images = restored.map(item => ({ name: item.name, data: item.data }));
                     renderImageList();
                 }
             } catch (err) {
