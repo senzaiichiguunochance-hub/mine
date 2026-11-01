@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>超軽量・スマートオーディオプレーヤー</title>
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #f7fee7, #ecfccb, #d9f99d); /* 淡いライムのグラデーション */
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --primary: #65a30d; /* アクセントカラー（爽やかなライム・グリーン） */
+      --text: #3f3f46;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+
+    .container {
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 2px solid #bef264; /* カードの枠線を淡いライムに */
+      box-shadow: 0 10px 25px rgba(130,160,100,0.15);
+      padding: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .btn-drum {
+      background: var(--primary); color: white; border: none; border-radius: 8px;
+      padding: 10px; font-size: 12px; font-weight: bold; cursor: pointer;
+      box-shadow: 0 3px 0 #4d7c0f; display: flex; align-items: center; justify-content: center; width: 100%;
+      margin-bottom: 6px;
+    }
+    .btn-drum:active { transform: translateY(2px); box-shadow: 0 1px 0 #4d7c0f; }
+
+    .status-text { text-align: center; font-size: 11px; font-weight: bold; color: #78716c; margin-bottom: 12px; }
+
+    .display-pad {
+      background: #1c1917; color: #f5f5f4; padding: 14px;
+      border-radius: 16px; text-align: center; margin-bottom: 12px;
+    }
+
+    .track-title {
+      font-size: 0.95rem; font-weight: bold; color: #bef264; /* 再生中の曲名をライム系に */
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;
+    }
+
+    input[type=range] {
+      width: 100%; height: 8px; background: #44403c; border-radius: 999px;
+      outline: none; -webkit-appearance: none; touch-action: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 20px; height: 20px;
+      border-radius: 50%; background: #84cc16; cursor: pointer;
+    }
+
+    .time-display {
+      font-size: 1.25rem; font-weight: bold; color: #bef264;
+      font-family: monospace; margin-top: 6px;
+    }
+
+    .controls-main { display: flex; justify-content: center; gap: 8px; margin-bottom: 12px; }
+    .btn-secondary {
+      background: white; border: 1px solid #e7e5e4; color: #44403c;
+      font-size: 12px; font-weight: bold; padding: 10px; border-radius: 12px;
+      cursor: pointer; flex: 1; max-width: 90px; box-shadow: 0 3px 0 #d6d3d1;
+    }
+    .btn-secondary:active { transform: translateY(2px); box-shadow: 0 1px 0 #d6d3d1; }
+
+    .btn-play {
+      background: var(--primary); color: white; border: none; font-size: 14px;
+      font-weight: bold; padding: 10px; border-radius: 12px; cursor: pointer;
+      flex: 2; max-width: 160px; box-shadow: 0 3px 0 #4d7c0f;
+    }
+    .btn-play:active { transform: translateY(2px); box-shadow: 0 1px 0 #4d7c0f; }
+
+    .box-sub {
+      background: rgba(247,254,231,0.7); padding: 10px; border-radius: 12px;
+      border: 1px solid #ecfccb; margin-bottom: 12px;
+    }
+    .box-title { font-size: 11px; font-weight: bold; color: var(--primary); margin-bottom: 6px; }
+
+    .flex-wrap { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-bottom: 4px; }
+    .btn-seek {
+      background: white; border: 1px solid #e7e5e4; color: #57534e;
+      font-size: 11px; font-weight: bold; padding: 6px 0; border-radius: 8px;
+      flex: 1; min-width: 55px; cursor: pointer; box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-seek:active { transform: translateY(2px); box-shadow: 0 0 0; }
+
+    .btn-speed {
+      background: white; border: 1px solid #e7e5e4; color: #57534e;
+      font-size: 11px; font-weight: bold; padding: 6px 0; border-radius: 8px;
+      flex: 1; cursor: pointer; box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-speed:active { transform: translateY(2px); box-shadow: 0 0 0; }
+    .btn-speed.active {
+      background: var(--primary); color: white; border-color: #4d7c0f;
+      box-shadow: 0 2px 0 #4d7c0f;
+    }
+
+    .playlist-box { max-height: 140px; overflow-y: auto; }
+    .playlist-item {
+      padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold;
+      cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border: 1px solid #e7e5e4; background: white; color: #57534e; margin-bottom: 4px;
+    }
+    .playlist-item.active { background: var(--primary); color: white; border-color: #4d7c0f; }
+  </style>
+  </head>
+<body>
+
+<div class="container">
+  <h1>オーディオプレーヤー</h1>
+
+  <button id="selectFolderBtn" class="btn-drum">📁 フォルダ変更</button>
+
+  <div id="folderStatus" class="status-text">未選択</div>
+
+  <div class="display-pad">
+    <div id="trackTitle" class="track-title">トラックが選択されていません</div>
+    <input type="range" id="seekSlider" min="0" max="100" value="0" step="0.1" aria-label="再生位置">
+    <div id="timeDisplay" class="time-display">00:00:00 / 00:00:00</div>
+  </div>
+
+  <div class="controls-main">
+    <button id="prevBtn" class="btn-secondary" aria-label="前の曲へ" title="前の曲">⏮ 前へ</button>
+    <button id="playPauseBtn" class="btn-play" aria-label="再生または一時停止" title="再生/一時停止">▶ 再生</button>
+    <button id="nextBtn" class="btn-secondary" aria-label="次の曲へ" title="次の曲">次へ ⏭</button>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ スキップコントロール</div>
+    <div class="flex-wrap">
+      <button class="btn-seek" data-seconds="-30">-30秒</button>
+      <button class="btn-seek" data-seconds="-15">-15秒</button>
+      <button class="btn-seek" data-seconds="-10">-10秒</button>
+      <button class="btn-seek" data-seconds="-5">-5秒</button>
+    </div>
+    <div class="flex-wrap">
+      <button class="btn-seek" data-seconds="5">+5秒</button>
+      <button class="btn-seek" data-seconds="10">+10秒</button>
+      <button class="btn-seek" data-seconds="15">+15秒</button>
+      <button class="btn-seek" data-seconds="30">+30秒</button>
+    </div>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ 再生速度</div>
+    <div class="flex-wrap">
+      <button class="btn-speed" data-speed="1.0">1.0x</button>
+      <button class="btn-speed" data-speed="1.5">1.5x</button>
+      <button class="btn-speed" data-speed="2.0">2.0x</button>
+      <button class="btn-speed" data-speed="2.5">2.5x</button>
+      <button class="btn-speed" data-speed="3.0">3.0x</button>
+    </div>
+  </div>
+
+  <div class="box-sub">
+    <div class="box-title">★ プレイリスト</div>
+    <div class="playlist-box">
+      <div id="playlist"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const trackTitle = document.getElementById('trackTitle');
+  const folderStatus = document.getElementById('folderStatus');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const seekSlider = document.getElementById('seekSlider');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const playlistEl = document.getElementById('playlist');
+
+  let names = [];
+  let currentIndex = -1;
+  let currentDurationMs = 0;
+  let errorText = null;
+  let isUserSeeking = false;
+
+  const native = (method, ...args) => {
+    if (window.AndroidBridge) window.AndroidBridge[method](...args);
+  };
+
+  window.addEventListener('DOMContentLoaded', () => {
+    try {
+      Object.keys(localStorage)
+        .filter(key => key.startsWith('AudioPlayer_'))
+        .forEach(key => localStorage.removeItem(key));
+    } catch (e) {}
+
+    document.getElementById('selectFolderBtn').addEventListener('click', () => native('pickFolder'));
+    playPauseBtn.addEventListener('click', () => native('togglePlay'));
+    document.getElementById('prevBtn').addEventListener('click', () => native('prev'));
+    document.getElementById('nextBtn').addEventListener('click', () => native('next'));
+
+    document.querySelectorAll('.btn-seek').forEach(btn => {
+      btn.addEventListener('click', () => seekSeconds(parseFloat(btn.dataset.seconds)));
+    });
+
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed);
+        showSpeed(speed);
+        native('setSpeed', speed);
+      });
+    });
+
+    if (window.AndroidBridge) {
+      window.AndroidBridge.onPageReady();
+    } else {
+      folderStatus.textContent = 'Androidアプリ内でのみ動作します';
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      native('togglePlay');
+    } else if (e.code === 'ArrowLeft') {
+      e.preventDefault();
+      seekSeconds(-10);
+    } else if (e.code === 'ArrowRight') {
+      e.preventDefault();
+      seekSeconds(10);
+    }
+  });
+
+  window.onPlaylist = (list) => {
+    names = list;
+    renderPlaylist();
+    showCurrentTrack();
+    refreshStatus();
+  };
+
+  window.onPlayerState = (state) => {
+    currentDurationMs = state.duration;
+    playPauseBtn.textContent = state.playing ? '⏸ 一時停止' : '▶ 再生';
+    showSpeed(state.speed);
+
+    if (state.index !== currentIndex) {
+      currentIndex = state.index;
+      showCurrentTrack();
+    }
+
+    if (!isUserSeeking) {
+      seekSlider.value = state.duration > 0 ? (state.position / state.duration) * 100 : 0;
+      updateTimeDisplay(state.position);
+    }
+
+    if (state.error !== errorText) {
+      errorText = state.error;
+      refreshStatus();
+    }
+  };
+
+  function refreshStatus() {
+    if (errorText) {
+      folderStatus.textContent = errorText;
+    } else if (names.length > 0) {
+      folderStatus.textContent = `選択中: スマホ内ファイル (${names.length}曲)`;
+    } else {
+      folderStatus.textContent = '未選択';
+    }
+  }
+
+  function renderPlaylist() {
+    const fragment = document.createDocumentFragment();
+    names.forEach((name, index) => {
+      const div = document.createElement('div');
+      div.className = 'playlist-item';
+      div.textContent = `${index + 1}. ${name}`;
+      div.addEventListener('click', () => native('playIndex', index));
+      fragment.appendChild(div);
+    });
+    playlistEl.replaceChildren(fragment);
+  }
+
+  function showCurrentTrack() {
+    trackTitle.textContent = names[currentIndex] || 'トラックが選択されていません';
+    Array.from(playlistEl.children).forEach((el, i) => el.classList.toggle('active', i === currentIndex));
+    playlistEl.children[currentIndex]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function showSpeed(speed) {
+    document.querySelectorAll('.btn-speed').forEach(btn => {
+      btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.speed) - speed) < 0.01);
+    });
+  }
+
+  function updateTimeDisplay(positionMs) {
+    timeDisplay.textContent = `${formatTime(positionMs / 1000)} / ${formatTime(currentDurationMs / 1000)}`;
+  }
+
+  seekSlider.addEventListener('input', () => {
+    isUserSeeking = true;
+    updateTimeDisplay((seekSlider.value / 100) * currentDurationMs);
+  });
+
+  const commitSeek = () => {
+    if (!isUserSeeking) return;
+    if (currentDurationMs > 0) {
+      native('seekTo', (seekSlider.value / 100) * currentDurationMs);
+    }
+    isUserSeeking = false;
+  };
+  seekSlider.addEventListener('change', commitSeek);
+  seekSlider.addEventListener('touchend', commitSeek);
+  seekSlider.addEventListener('mouseup', commitSeek);
+
+  function seekSeconds(seconds) {
+    native('seekBy', seconds * 1000);
+  }
+
+  function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) return '00:00:00';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  }
+</script>
+
+</body>
+</html>
