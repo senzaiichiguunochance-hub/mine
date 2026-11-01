@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>戦国スライドアニメーション</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        .container {
+            position: relative;
+            width: 900px;
+            max-width: 100%;
+            aspect-ratio: 16 / 9;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .char-image {
+            position: absolute;
+            bottom: 0;
+            right: 10%;
+            height: 80%;
+        }
+
+        /* 右からスライドイン用クラス */
+        .char-image.slide-from-right {
+            animation: slideInRight 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        /* 左からスライドイン用クラス */
+        .char-image.slide-from-left {
+            animation: slideInLeft 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes slideInRight {
+            0% {
+                transform: translateX(200%); /* 画面右外側から */
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideInLeft {
+            0% {
+                transform: translateX(-200%); /* 画面左外側から */
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .hint {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="stage">
+        <!-- 固定背景 -->
+        <img src="background.jpg" alt="背景" class="bg-image">
+        <!-- 初期表示 -->
+        <img src="001.png" alt="キャラクター" class="char-image slide-from-right" id="chara">
+    </div>
+    <div class="hint">画面をクリックすると、左右ランダムでランダムキャラクターが登場します</div>
+
+<script>
+        const maxImages = 10; // 実際の枚数より多く設定していてもOKになります
+        const stage = document.getElementById('stage');
+        const charaImg = document.getElementById('chara');
+
+        stage.addEventListener('click', () => {
+            const randomNum = Math.floor(Math.random() * maxImages) + 1;
+            const paddedNum = String(randomNum).padStart(3, '0');
+            const nextSrc = paddedNum + ".png";
+
+            // 90%の確率で左、10%で右
+            const isLeft = Math.random() <= 0.5;
+            const animClass = isLeft ? 'slide-from-left' : 'slide-from-right';
+
+            const testImg = new Image();
+            testImg.src = nextSrc;
+            
+            testImg.onload = function() {
+                // ファイルが存在する場合
+                charaImg.className = 'char-image';
+                charaImg.src = nextSrc;
+                void charaImg.offsetWidth;
+                charaImg.classList.add(animClass);
+            };
+
+            testImg.onerror = function() {
+                // 【修正】ファイルが無い場合も、001.pngにしつつ、決めた方向（animClass）を維持する！
+                charaImg.className = 'char-image';
+                charaImg.src = "001.png";
+                void charaImg.offsetWidth;
+                charaImg.classList.add(animClass); // ← ここを右固定から変更！
+            };
+        });
+    </script>
+</body>
+</html>
