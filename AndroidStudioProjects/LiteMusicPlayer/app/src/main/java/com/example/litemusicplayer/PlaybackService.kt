@@ -61,8 +61,14 @@ class PlaybackService : MediaSessionService() {
             if (mediaItem == null || reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) return
 
             store.lastUri = mediaItem.mediaId
-            val savedPosition = store.getPosition(mediaItem.mediaId)
-            if (savedPosition > 0) player.seekTo(savedPosition)
+
+            // ONの場合は記憶した位置を無視して最初から再生
+            if (store.playFromBeginning) {
+                player.seekTo(0)
+            } else {
+                val savedPosition = store.getPosition(mediaItem.mediaId)
+                if (savedPosition > 0) player.seekTo(savedPosition)
+            }
         }
     }
 

@@ -19,6 +19,10 @@ class PlaybackStore(context: Context) {
         get() = prefs.getString(KEY_LAST_URI, null)
         set(value) = prefs.edit().putString(KEY_LAST_URI, value).apply()
 
+    var playFromBeginning: Boolean
+        get() = prefs.getBoolean(KEY_PLAY_FROM_BEGINNING, false)
+        set(value) = prefs.edit().putBoolean(KEY_PLAY_FROM_BEGINNING, value).apply()
+
     fun loadFiles(): List<AudioFile> {
         val json = prefs.getString(KEY_FILES, null) ?: return emptyList()
         return try {
@@ -80,6 +84,7 @@ class PlaybackStore(context: Context) {
         const val KEY_LAST_URI = "last_uri"
         const val KEY_FILES = "files"
         const val KEY_POSITIONS = "positions"
+        const val KEY_PLAY_FROM_BEGINNING = "play_from_beginning" // 追加
 
         const val MAX_ENTRIES = 10
         const val MIN_POSITION_MS = 3_000L

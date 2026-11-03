@@ -159,6 +159,11 @@ class MainActivity : ComponentActivity() {
             store.speed = speed.toFloat()
             controller?.setPlaybackSpeed(speed.toFloat())
         }
+
+        @JavascriptInterface
+        fun setPlayFromBeginning(enabled: Boolean) = runOnUiThread {
+            store.playFromBeginning = enabled
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")

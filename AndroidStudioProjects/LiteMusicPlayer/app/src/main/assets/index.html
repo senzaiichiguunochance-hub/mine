@@ -151,6 +151,13 @@
     <button id="nextBtn" class="btn-secondary" aria-label="次の曲へ" title="次の曲">次へ ⏭</button>
   </div>
 
+  <div style="text-align: center; margin-bottom: 12px; font-size: 12px; font-weight: bold; color: #57534e;">
+    <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+      <input type="checkbox" id="playFromBeginningCb" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+      毎回曲の初めから再生する
+    </label>
+  </div>
+
   <div class="box-sub">
     <div class="box-title">★ スキップコントロール</div>
     <div class="flex-wrap">
@@ -205,11 +212,22 @@
   };
 
   window.addEventListener('DOMContentLoaded', () => {
-    try {
+try {
       Object.keys(localStorage)
         .filter(key => key.startsWith('AudioPlayer_'))
         .forEach(key => localStorage.removeItem(key));
     } catch (e) {}
+
+    const savedPlayFromBeginning = localStorage.getItem('playFromBeginning') === 'true';
+    playFromBeginningCb.checked = savedPlayFromBeginning;
+
+    playFromBeginningCb.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      localStorage.setItem('playFromBeginning', checked);
+      native('setPlayFromBeginning', checked);
+    });
+
+    native('setPlayFromBeginning', savedPlayFromBeginning);
 
     document.getElementById('selectFolderBtn').addEventListener('click', () => native('pickFolder'));
     playPauseBtn.addEventListener('click', () => native('togglePlay'));
