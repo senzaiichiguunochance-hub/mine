@@ -84,7 +84,7 @@ class PlaybackStore(context: Context) {
         const val KEY_LAST_URI = "last_uri"
         const val KEY_FILES = "files"
         const val KEY_POSITIONS = "positions"
-        const val KEY_PLAY_FROM_BEGINNING = "play_from_beginning" // 追加
+        const val KEY_PLAY_FROM_BEGINNING = "play_from_beginning"
 
         const val MAX_ENTRIES = 10
         const val MIN_POSITION_MS = 3_000L
