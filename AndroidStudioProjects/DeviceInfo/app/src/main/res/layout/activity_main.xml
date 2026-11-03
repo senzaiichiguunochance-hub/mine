@@ -2,15 +2,15 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:background="#F4F6FA"
+    android:clipToPadding="false"
+    android:padding="12dp">
 
-    <TextView
-        android:id="@+id/infoTextView"
+    <!-- 各カテゴリのカードは MainActivity.kt から動的に追加される -->
+    <LinearLayout
+        android:id="@+id/container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="情報を収集中..."
-        android:textSize="16sp"
-        android:fontFamily="monospace"
-        android:textColor="@android:color/black" />
+        android:orientation="vertical" />
 
 </ScrollView>
