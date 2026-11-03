@@ -1,12 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-}
-
-dependencies {
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.biometric:biometric:1.1.0")
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -44,6 +39,11 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
