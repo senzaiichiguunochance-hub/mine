@@ -94,7 +94,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             .flowOn(Dispatchers.Default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // ピン留め→通常項目、ピン留め→シークレット、の順。シークレットは文字順で並びが推測されないよう日時順固定
+    // ON: 通常・シークレットを区別せず並べ替え。OFF: 通常項目のみ並べ替え、シークレットは後ろに日時順固定（文字順から中身を推測されないため）
     private fun arrange(
         normals: List<ClipEntity>,
         secrets: SecretSnapshot,
@@ -106,6 +106,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             query.isEmpty() -> secrets.items
             !secrets.revealed -> emptyList()
             else -> secrets.items.filter { it.text.contains(query, ignoreCase = true) }
+        }
+        if (secrets.revealed) {
+            val byOrder: Comparator<ClipItem> = when (order) {
+                SortOrder.DATE_DESC -> compareByDescending<ClipItem> { it.timestamp }
+                SortOrder.DATE_ASC -> compareBy<ClipItem> { it.timestamp }
+                SortOrder.TEXT_ASC -> compareBy<ClipItem> { it.text }.thenByDescending { it.timestamp }
+                SortOrder.TEXT_DESC -> compareByDescending<ClipItem> { it.text }.thenByDescending { it.timestamp }
+            }
+            return (normalItems + visibleSecrets)
+                .sortedWith(compareByDescending<ClipItem> { it.isPinned }.then(byOrder))
         }
         val byDate: Comparator<ClipItem> =
             if (order == SortOrder.DATE_ASC) compareBy<ClipItem> { it.timestamp } else compareByDescending<ClipItem> { it.timestamp }

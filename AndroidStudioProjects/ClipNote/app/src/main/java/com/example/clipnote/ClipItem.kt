@@ -15,4 +15,4 @@ enum class SortOrder {
 }
 
 const val MAX_ITEMS = 10000
-const val MASK_TEXT = "••••••"
+const val MASK_TEXT = "・・・・・"

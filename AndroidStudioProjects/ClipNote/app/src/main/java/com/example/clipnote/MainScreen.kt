@@ -472,7 +472,7 @@ private fun TopPanel(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    Icons.Default.Lock,
+                    if (isSecretMode) Icons.Default.LockOpen else Icons.Default.Lock,
                     contentDescription = "シークレット",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(16.dp)
@@ -557,12 +557,26 @@ private fun ClipRow(
             Column(modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp)) {
-                Text(
-                    text = if (masked) MASK_TEXT else item.text,
-                    maxLines = if (expanded && !masked) Int.MAX_VALUE else 3,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (masked) MaterialTheme.colorScheme.outline else Color.Unspecified
-                )
+                Row(verticalAlignment = Alignment.Top) {
+                    if (item.isSecret) {
+                        Icon(
+                            imageVector = if (masked) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = if (masked) "ロック中" else "ロック解除中",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(top = 3.dp)
+                                .size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    Text(
+                        text = if (masked) MASK_TEXT else item.text,
+                        modifier = Modifier.weight(1f),
+                        maxLines = if (expanded && !masked) Int.MAX_VALUE else 3,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (masked) MaterialTheme.colorScheme.outline else Color.Unspecified
+                    )
+                }
                 if (!masked) {
                     val chars = item.text.codePointCount(0, item.text.length)
                     val lines = item.text.lines().size
