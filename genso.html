@@ -5,7 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>元素記号学習マスター</title>
     <style>
+        /* === デフォルト: base.html 配色（オレンジ） === */
         :root {
+            --primary-color: #f97316;
+            --secondary-color: #ea580c;
+            --bg-color: #fff7ed;
+            --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-color: #44403c;
+            --correct-color: #16a34a;
+            --wrong-color: #dc2626;
+            --neon-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+            --btn-text: #fff;
+        }
+
+        .theme-cool {
             --primary-color: #00d4ff;
             --secondary-color: #0056b3;
             --bg-color: #0a0e14;
@@ -448,7 +462,7 @@
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
-<body class="theme-cool">
+<body class="theme-orange">
     <a href="menu.html" class="back-link">メニューに戻る</a>
 
 <header>
@@ -494,6 +508,7 @@
             <div class="setting-item">
                 <label class="setting-label" for="theme-select">カラーテーマ:</label>
                 <select id="theme-select" class="setting-select" onchange="applyTheme(); saveSettings();">
+                    <option value="orange">オレンジ</option>
                     <option value="cool">クール</option>
                     <option value="cute">かわいい</option>
                     <option value="beautiful">キレイ</option>

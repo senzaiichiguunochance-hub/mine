@@ -1,155 +1,273 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音声文字起こし</title>
-    <link rel="stylesheet" type="text/css" href="Style.css" />
-    <style>
-        /* Style.cssでカバーしきれない微調整 */
-        #result-area {
-            background-color: #0f1a3a;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 200px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            text-align: left;
-            border: 1px solid var(--primary-color);
-        }
-        .interim {
-            color: #888;
-        }
-        #status {
-            margin-bottom: 15px;
-            font-weight: bold;
-            min-height: 1.2em;
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-    </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>音声文字起こし</title>
+  <style>
+    /* === 共通カラー変数・基本設定（base.html） === */
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-border: #fed7aa;
+      --primary: #f97316;
+      --primary-dark: #c2410c;
+      --primary-border: #ea580c;
+      --sub-bg: rgba(255, 247, 237, 0.7);
+      --sub-border: #ffedd5;
+      --text: #44403c;
+      --text-muted: #78716c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .menu-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 11px;
+      color: #71716a;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1.5px solid #e4e4e7;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .container {
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 2px solid var(--card-border);
+      box-shadow: 0 10px 25px rgba(180, 150, 120, 0.15);
+      padding: 16px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 3px 0 var(--primary-dark);
+      width: 100%;
+    }
+    .btn-primary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-dark); }
+
+    .btn-secondary {
+      background: white;
+      border: 1px solid #e7e5e4;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: bold;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 2px 0 #d6d3d1;
+    }
+    .btn-secondary:active { transform: translateY(2px); box-shadow: 0 0 0 #d6d3d1; }
+
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .box-sub {
+      background: var(--sub-bg);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--sub-border);
+      margin-bottom: 12px;
+    }
+    .box-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    /* === このアプリ用 === */
+    select {
+      border: 1.5px solid var(--card-border);
+      border-radius: 10px;
+      padding: 8px;
+      font-size: 13px;
+      background: white;
+      color: var(--text);
+      font-family: inherit;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .controls .btn-primary { width: auto; padding: 8px 16px; }
+    #status {
+      font-size: 12px;
+      font-weight: bold;
+      min-height: 1.2em;
+      text-align: center;
+      color: var(--text);
+    }
+    #result-area {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 200px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      text-align: left;
+      border: 1.5px solid var(--card-border);
+      color: var(--text);
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .interim { color: var(--text-muted); }
+  </style>
+  <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000;">メニューに戻る</a>
+  <a href="menu.html" class="menu-btn">メニューに戻る</a>
 
-    <div class="container">
-        <header class="header">
-            <h1>🎙️ 音声文字起こし</h1>
-        </header>
+  <div class="container">
+    <h1>🎙️ 音声文字起こし</h1>
 
-        <div class="box">
-            <div class="controls">
-                <select id="language-select">
-                    <option value="ja-JP">日本語 (Japanese)</option>
-                    <option value="en-US">英語 (English)</option>
-                </select>
-                <button id="start-btn" class="primary">開始</button>
-                <button id="stop-btn" class="secondary" disabled>停止</button>
-                <button id="clear-btn" style="background-color:#6c757d;">クリア</button>
-            </div>
-            <div id="status">待機中...</div>
-        </div>
-
-        <div class="box">
-            <div id="result-area"></div>
-        </div>
+    <div class="box-sub">
+      <div class="box-title">★ 操作</div>
+      <div class="controls">
+        <select id="language-select">
+          <option value="ja-JP">日本語 (Japanese)</option>
+          <option value="en-US">英語 (English)</option>
+        </select>
+        <button id="start-btn" class="btn-primary">開始</button>
+        <button id="stop-btn" class="btn-secondary" disabled>停止</button>
+        <button id="clear-btn" class="btn-secondary">クリア</button>
+      </div>
+      <div id="status">待機中...</div>
     </div>
 
-    <script>
-        // ブラウザの音声認識APIの互換性をチェック
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    <div class="box-sub">
+      <div class="box-title">★ 文字起こし結果</div>
+      <div id="result-area"></div>
+    </div>
+  </div>
 
-        if (!SpeechRecognition) {
-            alert("お使いのブラウザは音声認識に対応していません。Google Chromeをお試しください。");
-        } else {
-            const recognition = new SpeechRecognition();
-            
-            // 設定
-            recognition.continuous = true; // 連続して認識する
-            recognition.interimResults = true; // 途中経過の文字も表示する
+  <script>
+    // ブラウザの音声認識APIの互換性をチェック
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-            const startBtn = document.getElementById('start-btn');
-            const stopBtn = document.getElementById('stop-btn');
-            const clearBtn = document.getElementById('clear-btn');
-            const resultArea = document.getElementById('result-area');
-            const statusText = document.getElementById('status');
-            const langSelect = document.getElementById('language-select');
+    if (!SpeechRecognition) {
+      alert("お使いのブラウザは音声認識に対応していません。Google Chromeをお試しください。");
+    } else {
+      const recognition = new SpeechRecognition();
 
-            let finalTranscript = ''; // 確定した文章を保持する変数
+      // 設定
+      recognition.continuous = true; // 連続して認識する
+      recognition.interimResults = true; // 途中経過の文字も表示する
 
-            // 開始ボタン
-            startBtn.addEventListener('click', () => {
-                recognition.lang = langSelect.value; // 言語設定を適用
-                recognition.start();
-                
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                langSelect.disabled = true;
-                statusText.textContent = "聞き取り中... 🎙️";
-                statusText.style.color = "var(--secondary-color)";
-            });
+      const startBtn = document.getElementById('start-btn');
+      const stopBtn = document.getElementById('stop-btn');
+      const clearBtn = document.getElementById('clear-btn');
+      const resultArea = document.getElementById('result-area');
+      const statusText = document.getElementById('status');
+      const langSelect = document.getElementById('language-select');
 
-            // 停止ボタン
-            stopBtn.addEventListener('click', () => {
-                recognition.stop();
-                
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                langSelect.disabled = false;
-                statusText.textContent = "停止しました";
-                statusText.style.color = "var(--font-color)";
-            });
+      let finalTranscript = ''; // 確定した文章を保持する変数
 
-            // クリアボタン
-            clearBtn.addEventListener('click', () => {
-                finalTranscript = '';
-                resultArea.innerHTML = '';
-            });
+      // 開始ボタン
+      startBtn.addEventListener('click', () => {
+        recognition.lang = langSelect.value; // 言語設定を適用
+        recognition.start();
 
-            // 音声認識の結果が返ってきたときの処理
-            recognition.onresult = (event) => {
-                let interimTranscript = ''; // 途中経過の文章
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        langSelect.disabled = true;
+        statusText.textContent = "聞き取り中... 🎙️";
+        statusText.style.color = "var(--primary-dark)";
+      });
 
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript + '。\n'; // 確定したら改行を追加
-                    } else {
-                        interimTranscript = transcript;
-                    }
-                }
+      // 停止ボタン
+      stopBtn.addEventListener('click', () => {
+        recognition.stop();
 
-                // HTMLに表示（確定した文章は黒、途中経過はグレー）
-                resultArea.innerHTML = finalTranscript + '<span class="interim">' + interimTranscript + '</span>';
-            };
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        langSelect.disabled = false;
+        statusText.textContent = "停止しました";
+        statusText.style.color = "var(--text)";
+      });
 
-            // エラーハンドリング
-            recognition.onerror = (event) => {
-                console.error("Error:", event.error);
-                statusText.textContent = "エラーが発生しました: " + event.error;
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-                langSelect.disabled = false;
-            };
+      // クリアボタン
+      clearBtn.addEventListener('click', () => {
+        finalTranscript = '';
+        resultArea.innerHTML = '';
+      });
 
-            // 音声認識が自動で止まってしまった場合の処理（再開などはせず状態を戻す）
-            recognition.onend = () => {
-                if (startBtn.disabled) { 
-                    // 意図せず止まった場合や、stop()が完了した場合
-                    startBtn.disabled = false;
-                    stopBtn.disabled = true;
-                    langSelect.disabled = false;
-                    statusText.textContent = "待機中...";
-                    statusText.style.color = "var(--font-color)";
-                }
-            };
+      // 音声認識の結果が返ってきたときの処理
+      recognition.onresult = (event) => {
+        let interimTranscript = ''; // 途中経過の文章
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript + '。\n'; // 確定したら改行を追加
+          } else {
+            interimTranscript = transcript;
+          }
         }
-    </script>
+
+        // HTMLに表示（確定した文章は通常色、途中経過はグレー）
+        resultArea.innerHTML = finalTranscript + '<span class="interim">' + interimTranscript + '</span>';
+      };
+
+      // エラーハンドリング
+      recognition.onerror = (event) => {
+        console.error("Error:", event.error);
+        statusText.textContent = "エラーが発生しました: " + event.error;
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        langSelect.disabled = false;
+      };
+
+      // 音声認識が止まった場合の処理（再開はせず状態を戻す）
+      recognition.onend = () => {
+        if (startBtn.disabled) {
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          langSelect.disabled = false;
+          statusText.textContent = "待機中...";
+          statusText.style.color = "var(--text)";
+        }
+      };
+    }
+  </script>
 </body>
 </html>

@@ -5,33 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>物理公式ソルバー | 入力値から使える公式を自動推論</title>
     <style>
-        :root { 
-            --bg: #0f172a; 
-            --card: #1e293b; 
-            --primary: #38bdf8; 
-            --secondary: #94a3b8; 
-            --accent: #f472b6; 
-            --success: #4ade80; 
-            --border: #334155; 
+        /* === 共通カラー変数（base.html 準拠） === */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --card-border: #fed7aa;
+            --primary: #f97316;
+            --primary-dark: #c2410c;
+            --primary-border: #ea580c;
+            --sub-bg: rgba(255, 247, 237, 0.7);
+            --sub-border: #ffedd5;
+            --text: #44403c;
+            --text-muted: #78716c;
         }
         * { box-sizing: border-box; }
-        body { 
-            font-family: 'Helvetica Neue', Arial, sans-serif; 
-            background: var(--bg); 
-            color: #e2e8f0; 
-            margin: 0; 
-            padding: 20px; 
-            font-size: 14px; 
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
             line-height: 1.5;
+            min-height: 100vh;
         }
-        
+
+        /* 右上：メニューに戻るボタン */
+        .menu-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 11px;
+            color: #71716a;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1.5px solid #e4e4e7;
+            font-weight: bold;
+            z-index: 1000;
+        }
+
         /* ヘッダーエリア */
         .app-header {
             max-width: 1400px;
             margin: 0 auto 20px;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(180, 150, 120, 0.15);
             padding: 15px 20px;
             position: relative;
         }
@@ -39,32 +62,32 @@
             font-size: 1.3rem;
             color: var(--primary);
             margin: 0 0 6px 0;
-            font-weight: bold;
+            font-weight: 900;
         }
         .app-description {
-            color: var(--secondary);
+            color: var(--text-muted);
             font-size: 0.85rem;
             margin: 0 0 12px 0;
         }
         .usage-steps {
             display: flex;
             gap: 15px;
-            background: rgba(15, 23, 42, 0.6);
+            background: var(--sub-bg);
             padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
+            border-radius: 12px;
+            border: 1px solid var(--sub-border);
             flex-wrap: wrap;
         }
         .step-item {
             font-size: 0.8rem;
-            color: #cbd5e1;
+            color: var(--text);
             display: flex;
             align-items: center;
             gap: 6px;
         }
         .step-num {
             background: var(--primary);
-            color: #0f172a;
+            color: #fff;
             font-weight: bold;
             border-radius: 50%;
             width: 18px;
@@ -76,80 +99,99 @@
         }
 
         /* メインレイアウト */
-        .container { 
-            max-width: 1400px; 
-            margin: 0 auto; 
-            display: grid; 
-            grid-template-columns: 450px 1fr; 
-            gap: 20px; 
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 450px 1fr;
+            gap: 20px;
         }
         @media (max-width: 1024px) {
             .container { grid-template-columns: 1fr; }
         }
 
-        .panel { 
-            background: var(--card); 
-            border-radius: 12px; 
-            padding: 20px; 
-            border: 1px solid var(--border); 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+        .panel {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 20px;
+            border: 2px solid var(--card-border);
+            box-shadow: 0 10px 25px rgba(180, 150, 120, 0.15);
         }
-        h2 { 
-            font-size: 1.1rem; 
-            color: var(--primary); 
-            border-bottom: 1px solid var(--border); 
-            padding-bottom: 10px; 
+        h2 {
+            font-size: 1.1rem;
+            color: var(--primary);
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px;
             margin-top: 0;
-            margin-bottom: 15px; 
-            display: flex; 
-            justify-content: space-between; 
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
-        
-        .input-container { 
-            max-height: calc(100vh - 280px); 
-            min-height: 400px;
-            overflow-y: auto; 
-            padding-right: 10px; 
+
+        /* ボタン（base.html の btn-primary 準拠） */
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 0 var(--primary-dark);
         }
-        .category-title { 
-            font-size: 0.75rem; 
-            color: var(--accent); 
-            font-weight: bold; 
-            margin: 20px 0 8px; 
-            text-transform: uppercase; 
-            border-left: 3px solid var(--accent); 
-            padding-left: 8px; 
+        .btn-primary:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--primary-dark);
+        }
+
+        .input-container {
+            max-height: calc(100vh - 280px);
+            min-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        .category-title {
+            font-size: 0.75rem;
+            color: var(--primary-dark);
+            font-weight: bold;
+            margin: 20px 0 8px;
+            text-transform: uppercase;
+            border-left: 3px solid var(--primary);
+            padding-left: 8px;
         }
         .category-title:first-child { margin-top: 0; }
-        
+
         .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .field { 
-            background: #0f172a; 
-            padding: 8px 12px; 
-            border-radius: 8px; 
-            border: 1px solid #475569; 
-            transition: border-color 0.2s, background-color 0.2s; 
+        .field {
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            transition: border-color 0.2s, background-color 0.2s;
         }
         .field:focus-within { border-color: var(--primary); }
-        .field.has-value { border-color: var(--success); background: rgba(74, 222, 128, 0.05); }
-        label { display: block; font-size: 0.7rem; color: var(--secondary); margin-bottom: 4px; }
-        input { background: transparent; border: none; color: white; width: 100%; font-size: 1rem; outline: none; font-weight: bold; }
-        
+        .field.has-value { border-color: var(--primary); background: var(--sub-bg); }
+        label { display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; }
+        input { background: transparent; border: none; color: var(--text); width: 100%; font-size: 1rem; outline: none; font-weight: bold; }
+        input::placeholder { color: #d6d3d1; font-weight: normal; }
+
         /* テーブル */
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; color: var(--secondary); padding: 12px; border-bottom: 2px solid var(--border); font-size: 0.8rem; }
-        td { padding: 14px 12px; border-bottom: 1px solid var(--border); }
-        .formula-badge { background: rgba(14, 165, 233, 0.1); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-weight: bold; }
-        .math-process { color: var(--success); font-family: monospace; font-size: 0.85rem; }
-        .final-val { font-size: 1.1rem; font-weight: bold; color: #fff; }
-        .unit { font-size: 0.8rem; color: var(--secondary); margin-left: 4px; }
-        
+        th { text-align: left; color: var(--text-muted); padding: 12px; border-bottom: 2px solid var(--card-border); font-size: 0.8rem; }
+        td { padding: 14px 12px; border-bottom: 1px solid var(--sub-border); }
+        .target-name { color: var(--primary-dark); font-weight: bold; }
+        .formula-badge { background: #ffedd5; color: var(--primary-dark); padding: 4px 8px; border-radius: 6px; font-family: 'Courier New', monospace; font-weight: bold; }
+        .math-process { color: var(--text-muted); font-family: monospace; font-size: 0.85rem; }
+        .final-val { font-size: 1.1rem; font-weight: bold; color: var(--text); }
+        .unit { font-size: 0.8rem; color: var(--text-muted); margin-left: 4px; }
+
         /* 空状態メッセージ */
         .empty-state {
             text-align: center;
             padding: 50px 20px;
-            color: var(--secondary);
+            color: var(--text-muted);
         }
         .empty-state-icon {
             font-size: 2rem;
@@ -158,13 +200,13 @@
         }
 
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 
-<a href="menu.html" style="position: absolute; top: 15px; right: 20px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.9); padding: 6px 12px; border-radius: 6px; z-index: 1000; border: 1px solid #ccc; font-weight: bold;">メニューに戻る</a>
+<a href="menu.html" class="menu-btn">メニューに戻る</a>
 
 <!-- アプリの目的・説明ヘッダー -->
 <div class="app-header">
@@ -182,7 +224,7 @@
     <div class="panel">
         <h2>
             <span>値の入力</span>
-            <button onclick="clearInputs()" style="background: var(--accent); border: none; color: white; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold;">値の初期化</button>
+            <button class="btn-primary" onclick="clearInputs()">値の初期化</button>
         </h2>
         <div class="input-container">
             <div class="category-title">Mechanics / 力学</div>
@@ -194,7 +236,7 @@
                 <div class="field"><label>時間 t (s)</label><input type="number" step="any" data-key="t" placeholder="例: 5" oninput="solve()"></div>
                 <div class="field"><label>距離 r (m)</label><input type="number" step="any" data-key="r" placeholder="例: 50" oninput="solve()"></div>
             </div>
-            
+
             <div class="category-title">Electromagnetism / 電磁気</div>
             <div class="input-grid">
                 <div class="field"><label>電圧 V (V)</label><input type="number" step="any" data-key="V_elec" placeholder="例: 100" oninput="solve()"></div>
@@ -202,7 +244,7 @@
                 <div class="field"><label>抵抗 R (Ω)</label><input type="number" step="any" data-key="R" placeholder="例: 50" oninput="solve()"></div>
                 <div class="field"><label>電力 P (W)</label><input type="number" step="any" data-key="P_elec" placeholder="例: 200" oninput="solve()"></div>
             </div>
-            
+
             <div class="category-title">Thermodynamics / 熱力学</div>
             <div class="input-grid">
                 <div class="field"><label>圧力 P (Pa)</label><input type="number" step="any" data-key="pres" placeholder="例: 101325" oninput="solve()"></div>
@@ -210,7 +252,7 @@
                 <div class="field"><label>物質量 n (mol)</label><input type="number" step="any" data-key="n" placeholder="例: 1" oninput="solve()"></div>
                 <div class="field"><label>温度 T (K)</label><input type="number" step="any" data-key="T" placeholder="例: 273.15" oninput="solve()"></div>
             </div>
-            
+
             <div class="category-title">Modern Physics / 現代物理</div>
             <div class="input-grid">
                 <div class="field"><label>エネルギー E (J)</label><input type="number" step="any" data-key="E" placeholder="例: 1e-19" oninput="solve()"></div>
@@ -233,7 +275,7 @@
             </thead>
             <tbody id="res-body"></tbody>
         </table>
-        
+
         <!-- 未入力・結果なし時のプレースホルダー -->
         <div id="empty-state" class="empty-state">
             <div class="empty-state-icon">🔍</div>
@@ -244,9 +286,9 @@
 
 <script>
 // 定数宣言
-const G = 6.6743e-11; 
-const R_gas = 8.314; 
-const h_planck = 6.626e-34; 
+const G = 6.6743e-11;
+const R_gas = 8.314;
+const h_planck = 6.626e-34;
 const c_light = 299792458;
 
 // 公式の定義（キー名を一意に変更して競合を防止）
@@ -289,20 +331,20 @@ function clearInputs() {
 }
 
 function solve() {
-    let dataPool = {}; 
-    
+    let dataPool = {};
+
     // 入力値の取得＆スタイリングの更新
-    document.querySelectorAll('input').forEach(el => { 
+    document.querySelectorAll('input').forEach(el => {
         const field = el.closest('.field');
         if (el.value !== "" && !isNaN(parseFloat(el.value))) {
-            dataPool[el.dataset.key] = parseFloat(el.value); 
+            dataPool[el.dataset.key] = parseFloat(el.value);
             field.classList.add('has-value');
         } else {
             field.classList.remove('has-value');
         }
     });
-    
-    let results = []; 
+
+    let results = [];
 
     // 公式のスキャン
     formulas.forEach(f => {
@@ -312,12 +354,12 @@ function solve() {
             const val = f.calc(dataPool);
             // ゼロ除算等のNaN/Infinityチェック
             if (!isNaN(val) && isFinite(val)) {
-                results.push({ 
-                    name: f.name, 
-                    formula: f.formula, 
-                    proc: f.proc(dataPool), 
-                    val: val, 
-                    unit: f.unit 
+                results.push({
+                    name: f.name,
+                    formula: f.formula,
+                    proc: f.proc(dataPool),
+                    val: val,
+                    unit: f.unit
                 });
             }
         }
@@ -335,16 +377,16 @@ function solve() {
     } else {
         emptyState.style.display = 'none';
         tableHeader.style.display = 'table-header-group';
-        
+
         body.innerHTML = results.map(r => {
             const absVal = Math.abs(r.val);
-            const formattedVal = (absVal >= 10000 || (absVal < 0.001 && absVal !== 0)) 
-                ? r.val.toExponential(3) 
+            const formattedVal = (absVal >= 10000 || (absVal < 0.001 && absVal !== 0))
+                ? r.val.toExponential(3)
                 : parseFloat(r.val.toFixed(4));
 
             return `
             <tr>
-                <td style="color:var(--accent); font-weight:bold;">${r.name}</td>
+                <td class="target-name">${r.name}</td>
                 <td><span class="formula-badge">${r.formula}</span></td>
                 <td><span class="math-process">${r.proc}</span></td>
                 <td style="text-align: right;">

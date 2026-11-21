@@ -1,921 +1,1123 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ネオン・モグラたたき ARCADE</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0518;
-    --surface: #150c2e;
-    --surface-2: #1d1140;
-    --magenta: #ff2e88;
-    --cyan: #00e5ff;
-    --gold: #ffd23f;
-    --text: #f2ecff;
-    --muted: #a89bc9;
-    --danger: #ff5252;
-  }
-
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: 'Zen Kaku Gothic New', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background:
-      radial-gradient(circle at 15% 10%, rgba(255,46,136,0.12), transparent 40%),
-      radial-gradient(circle at 85% 90%, rgba(0,229,255,0.10), transparent 45%),
-      var(--bg);
-    color: var(--text);
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 24px 12px 60px;
-    position: relative;
-  }
-
-  .back-link {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    font-size: 13px;
-    color: var(--muted);
-    text-decoration: none;
-    background: rgba(21,12,46,0.85);
-    border: 1px solid rgba(255,46,136,0.4);
-    padding: 7px 14px;
-    border-radius: 999px;
-    z-index: 1000;
-    transition: color 0.2s, border-color 0.2s;
-  }
-  .back-link:hover { color: var(--text); border-color: var(--cyan); }
-
-  #game-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    border: 1px solid rgba(255,46,136,0.35);
-    box-shadow: 0 0 40px rgba(255,46,136,0.15), inset 0 0 60px rgba(0,229,255,0.03);
-    background: linear-gradient(180deg, var(--surface), #0d0722);
-    border-radius: 18px;
-    overflow: hidden;
-    max-width: 760px;
-    width: 100%;
-  }
-
-  /* ---------- info panel ---------- */
-  #info-panel {
-    width: 260px;
-    flex-shrink: 0;
-    padding: 26px 22px;
-    border-right: 1px solid rgba(255,46,136,0.25);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    gap: 18px;
-  }
-
-  h1 {
-    font-family: 'DotGothic16', monospace;
-    letter-spacing: 0.05em;
-    color: var(--magenta);
-    text-shadow: 0 0 12px rgba(255,46,136,0.7);
-    text-align: center;
-    margin: 0 0 4px;
-    font-size: 1.55em;
-  }
-  .subtitle {
-    text-align: center;
-    color: var(--cyan);
-    font-family: 'DotGothic16', monospace;
-    font-size: 0.75em;
-    letter-spacing: 0.25em;
-    margin: 0 0 18px;
-    opacity: 0.8;
-  }
-
-  .stats-row {
-    display: flex;
-    gap: 10px;
-  }
-  .info-box {
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid rgba(255,255,255,0.06);
-    padding: 10px 8px;
-    border-radius: 10px;
-    text-align: center;
-  }
-  .info-box h2 {
-    margin: 0 0 4px;
-    font-size: 0.68em;
-    color: var(--muted);
-    font-weight: 500;
-    letter-spacing: 0.05em;
-  }
-  .info-box p {
-    margin: 0;
-    font-family: 'DotGothic16', monospace;
-    font-size: 1.6em;
-    color: var(--cyan);
-    line-height: 1;
-  }
-  #combo.active { color: var(--gold); text-shadow: 0 0 10px rgba(255,210,63,0.8); }
-  #high-score-box p { color: var(--gold); font-size: 1.3em; }
-
-  #time-bar-track {
-    height: 6px;
-    width: 100%;
-    background: rgba(255,255,255,0.08);
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 8px;
-  }
-  #time-bar-fill {
-    height: 100%;
-    width: 100%;
-    background: linear-gradient(90deg, var(--cyan), var(--magenta));
-    transition: width 1s linear;
-  }
-
-  .difficulty-select {
-    display: flex;
-    gap: 6px;
-  }
-  .diff-btn {
-    flex: 1;
-    padding: 8px 4px;
-    font-size: 0.75em;
-    background: var(--surface-2);
-    color: var(--muted);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-  .diff-btn.selected {
-    color: var(--bg);
-    background: var(--cyan);
-    border-color: var(--cyan);
-    font-weight: 700;
-  }
-  .diff-btn:disabled { cursor: not-allowed; opacity: 0.5; }
-
-  button:focus-visible, .diff-btn:focus-visible, .hole:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 2px;
-  }
-
-  .key-layout-select {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-bottom: 14px;
-    padding: 8px 10px;
-    background: var(--surface-2);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 8px;
-  }
-  .key-layout-select .kls-title {
-    font-size: 0.65em;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    margin-bottom: 2px;
-  }
-  .key-layout-select label {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 0.72em;
-    color: var(--text);
-    cursor: pointer;
-  }
-  .key-layout-select input[type="checkbox"] {
-    accent-color: var(--cyan);
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-
-  .key-hint {
-    position: absolute;
-    top: 8%;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    font-family: 'DotGothic16', monospace;
-    font-size: 11px;
-    color: var(--cyan);
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: 5;
-    text-transform: uppercase;
-  }
-  .key-hint span { min-width: 1px; }
-
-  #startButton {
-    padding: 16px;
-    font-size: 1.15em;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--magenta), #b5006b);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: transform 0.15s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 0 #7a0044, 0 0 20px rgba(255,46,136,0.4);
-  }
-  #startButton:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 5px 0 #7a0044, 0 0 26px rgba(255,46,136,0.6); }
-  #startButton:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 #7a0044; }
-  #startButton:disabled { background: #3a3454; color: #756b8f; box-shadow: none; cursor: not-allowed; }
-
-  /* ---------- game board ---------- */
-  #board-area {
-    position: relative;
-    padding: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-width: 300px;
-  }
-  #game-container {
-    display: grid;
-    grid-template-columns: repeat(3, 108px);
-    grid-template-rows: repeat(3, 108px);
-    gap: 18px;
-  }
-  .hole {
-    width: 108px;
-    height: 108px;
-    background: radial-gradient(circle at 50% 40%, #050310, #000);
-    border-radius: 50%;
-    position: relative;
-    cursor: pointer;
-    border: 3px solid #2a2350;
-    overflow: hidden;
-    transition: border-color 0.25s, box-shadow 0.25s;
-  }
-  .hole:hover { border-color: var(--cyan); box-shadow: 0 0 16px rgba(0,229,255,0.35); }
-  .hole.miss-flash { border-color: var(--danger); box-shadow: 0 0 18px rgba(255,82,82,0.6); }
-
-  .mole {
-    width: 90px;
-    height: 90px;
-    background: radial-gradient(circle at 35% 30%, #4fd8ff, #007fb3);
-    border-radius: 50%;
-    position: absolute;
-    left: 9px;
-    bottom: -110px;
-    transition: bottom 0.2s cubic-bezier(.34,1.56,.64,1);
-    box-shadow: 0 0 20px #00aaff, 0 0 34px rgba(0,170,255,0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 52px;
-    user-select: none;
-  }
-  .mole.up { bottom: 9px; }
-  .mole.golden {
-    background: radial-gradient(circle at 35% 30%, #fff2b0, var(--gold));
-    box-shadow: 0 0 24px var(--gold), 0 0 40px rgba(255,210,63,0.6);
-  }
-  .mole.hit {
-    background: radial-gradient(circle, var(--magenta), #7a0044);
-    box-shadow: 0 0 32px var(--magenta), 0 0 50px rgba(255,46,136,0.7);
-    transform: scale(0.8);
-    opacity: 0;
-    transition: all 0.25s ease-out;
-  }
-
-  .float-text {
-    position: absolute;
-    font-family: 'DotGothic16', monospace;
-    font-weight: 700;
-    font-size: 20px;
-    color: var(--gold);
-    pointer-events: none;
-    z-index: 20;
-    animation: float-up 0.7s ease-out forwards;
-    text-shadow: 0 0 8px rgba(255,210,63,0.8);
-  }
-  @keyframes float-up {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-46px); opacity: 0; }
-  }
-
-  .particle {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 10;
-    opacity: 1;
-    transition: transform 0.5s ease-out, opacity 0.5s ease-out;
-  }
-
-  #countdown-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(5,3,16,0.85);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    font-family: 'DotGothic16', monospace;
-    font-size: 4em;
-    color: var(--cyan);
-    text-shadow: 0 0 20px var(--cyan);
-    z-index: 30;
-    border-radius: 12px;
-  }
-
-  /* ---------- result modal ---------- */
-  #result-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(5,3,16,0.82);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    padding: 20px;
-  }
-  #result-card {
-    background: linear-gradient(180deg, var(--surface-2), var(--surface));
-    border: 1px solid rgba(255,46,136,0.4);
-    box-shadow: 0 0 50px rgba(255,46,136,0.3);
-    border-radius: 16px;
-    padding: 32px 36px;
-    text-align: center;
-    max-width: 320px;
-    width: 100%;
-  }
-  #result-card h2 {
-    font-family: 'DotGothic16', monospace;
-    color: var(--magenta);
-    font-size: 1.4em;
-    margin: 0 0 6px;
-    letter-spacing: 0.08em;
-  }
-  #result-score {
-    font-family: 'DotGothic16', monospace;
-    font-size: 3em;
-    color: var(--cyan);
-    margin: 10px 0;
-  }
-  #new-record-badge {
-    display: none;
-    background: var(--gold);
-    color: #3a2900;
-    font-weight: 700;
-    font-size: 0.8em;
-    padding: 4px 12px;
-    border-radius: 999px;
-    margin: 0 auto 14px;
-    width: fit-content;
-    letter-spacing: 0.05em;
-  }
-  #result-highscore { color: var(--muted); font-size: 0.85em; margin-bottom: 20px; }
-  
-  .share-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .btn-share {
-    flex: 1;
-    background: transparent;
-    color: #ffffff;
-    border: 1px solid var(--cyan);
-    padding: 8px 10px;
-    font-family: 'DotGothic16', monospace;
-    font-size: 0.8em;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.2s;
-  }
-  .btn-share:hover { background: var(--cyan); color: #041018; }
-
-  #retryButton {
-    width: 100%;
-    padding: 14px;
-    font-size: 1em;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--cyan), #007fb3);
-    color: #041018;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    letter-spacing: 0.03em;
-  }
-  #retryButton:hover { filter: brightness(1.1); }
-
-  @media (prefers-reduced-motion: reduce) {
-    .mole, .particle, .float-text, .hole { transition: none !important; animation: none !important; }
-  }
-
-  @media (max-width: 700px) {
-    #game-wrapper { flex-direction: column; }
-    #info-panel {
-      order: 1;
-      width: 100%;
-      border-right: none;
-      border-bottom: 1px solid rgba(255,46,136,0.25);
-    }
-    #board-area { order: 2; width: 100%; padding: 22px 10px; }
-    #game-container {
-      width: 100%;
-      max-width: 380px;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 12px;
-    }
-    .hole { width: auto; aspect-ratio: 1/1; height: auto; }
-    .mole { width: 84%; height: 84%; left: 8%; font-size: 14vw; }
-    .mole.up { bottom: 8%; }
-  }
-</style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
-</head>
-<body>
-<a class="back-link" href="menu.html">メニューに戻る</a>
-
-<div id="game-wrapper">
-  <div id="info-panel">
-    <div>
-      <h1>ネオンモグラ</h1>
-      <p class="subtitle">ARCADE EDITION</p>
-
-      <div class="stats-row" style="margin-bottom:10px;">
-        <div class="info-box">
-          <h2>スコア</h2>
-          <p id="score">0</p>
-        </div>
-        <div class="info-box">
-          <h2>コンボ</h2>
-          <p id="combo">x1</p>
-        </div>
-      </div>
-
-      <div class="info-box" style="margin-bottom:10px;">
-        <h2>残り時間</h2>
-        <p id="time">20</p>
-        <div id="time-bar-track"><div id="time-bar-fill"></div></div>
-      </div>
-
-      <div class="info-box" id="high-score-box" style="margin-bottom:14px;">
-        <h2>ハイスコア</h2>
-        <p id="high-score">0</p>
-      </div>
-
-      <div class="difficulty-select" id="difficulty-select" style="margin-bottom:14px;">
-        <button class="diff-btn" data-diff="easy">かんたん</button>
-        <button class="diff-btn selected" data-diff="normal">ふつう</button>
-        <button class="diff-btn" data-diff="hard">むずい</button>
-      </div>
-
-      <div class="key-layout-select" id="key-layout-select">
-        <div class="kls-title">キー操作 (クリックに加えて)</div>
-        <label><input type="checkbox" data-layout="numpad"> テンキー (7 8 9 / 4 5 6 / 1 2 3)</label>
-        <label><input type="checkbox" data-layout="qwe"> Q W E / A S D / Z X C</label>
-        <label><input type="checkbox" data-layout="uio"> U I O / J K L / M , .</label>
-      </div>
-    </div>
-    <button id="startButton">ゲーム開始</button>
-  </div>
-
-  <div id="board-area">
-    <div id="game-container"></div>
-    <div id="countdown-overlay">3</div>
-  </div>
-</div>
-
-<div id="result-overlay">
-  <div id="result-card">
-    <h2>GAME OVER</h2>
-    <div id="new-record-badge">✨ NEW RECORD ✨</div>
-    <div id="result-score">0</div>
-    <div id="result-highscore">ハイスコア: 0</div>
-    <div class="share-row">
-      <button class="btn-share" id="share-x-btn" type="button">Xでシェア</button>
-      <button class="btn-share" id="share-line-btn" type="button">LINEでシェア</button>
-    </div>
-    <button id="retryButton">もう一度あそぶ</button>
-  </div>
-</div>
-
-<script>
-  const gameContainer = document.getElementById('game-container');
-  const scoreDisplay = document.getElementById('score');
-  const comboDisplay = document.getElementById('combo');
-  const timeDisplay = document.getElementById('time');
-  const timeBarFill = document.getElementById('time-bar-fill');
-  const highScoreDisplay = document.getElementById('high-score');
-  const startButton = document.getElementById('startButton');
-  const countdownOverlay = document.getElementById('countdown-overlay');
-  const difficultySelect = document.getElementById('difficulty-select');
-  const keyLayoutSelect = document.getElementById('key-layout-select');
-  const resultOverlay = document.getElementById('result-overlay');
-  const resultScore = document.getElementById('result-score');
-  const resultHighScore = document.getElementById('result-highscore');
-  const newRecordBadge = document.getElementById('new-record-badge');
-  const retryButton = document.getElementById('retryButton');
-  const shareXBtn = document.getElementById('share-x-btn');
-  const shareLineBtn = document.getElementById('share-line-btn');
-
-  const DIFFICULTIES = {
-    easy:   { duration: 30, startInterval: 1200, minInterval: 700, speedUp: 0.990, label: 'かんたん' },
-    normal: { duration: 25, startInterval: 950,  minInterval: 500, speedUp: 0.985, label: 'ふつう' },
-    hard:   { duration: 20, startInterval: 650,  minInterval: 320, speedUp: 0.970, label: 'むずい' },
-  };
-  let currentDifficulty = 'normal';
-  let gameEndedDate = null;
-
-  // 穴のインデックス0-8は左上→右下(行優先)。各レイアウトは物理キー位置(e.code)で判定する。
-  const KEY_LAYOUTS = {
-    numpad: {
-      codes: ['Numpad7', 'Numpad8', 'Numpad9', 'Numpad4', 'Numpad5', 'Numpad6', 'Numpad1', 'Numpad2', 'Numpad3'],
-      labels: ['7', '8', '9', '4', '5', '6', '1', '2', '3'],
-    },
-    qwe: {
-      codes: ['KeyQ', 'KeyW', 'KeyE', 'KeyA', 'KeyS', 'KeyD', 'KeyZ', 'KeyX', 'KeyC'],
-      labels: ['Q', 'W', 'E', 'A', 'S', 'D', 'Z', 'X', 'C'],
-    },
-    uio: {
-      codes: ['KeyU', 'KeyI', 'KeyO', 'KeyJ', 'KeyK', 'KeyL', 'KeyM', 'Comma', 'Period'],
-      labels: ['U', 'I', 'O', 'J', 'K', 'L', 'M', ',', '.'],
-    },
-  };
-  const KEY_LAYOUT_NAMES = Object.keys(KEY_LAYOUTS);
-  const keyLayoutStorageKey = 'neonMoguraKeyLayouts';
-
-  function loadKeyLayoutState() {
-    const state = {};
-    let saved = null;
-    try { saved = JSON.parse(localStorage.getItem(keyLayoutStorageKey)); } catch (e) { saved = null; }
-    KEY_LAYOUT_NAMES.forEach(name => {
-      state[name] = (saved && typeof saved[name] === 'boolean') ? saved[name] : true; // 初回はデフォルトで全ON
-    });
-    return state;
-  }
-  function saveKeyLayoutState() {
-    localStorage.setItem(keyLayoutStorageKey, JSON.stringify(keyLayoutState));
-  }
-  let keyLayoutState = loadKeyLayoutState();
-
-  function updateKeyHints() {
-    KEY_LAYOUT_NAMES.forEach(name => {
-      const on = keyLayoutState[name];
-      document.querySelectorAll(`.kh-${name}`).forEach(el => { el.style.display = on ? '' : 'none'; });
-    });
-  }
-
-  KEY_LAYOUT_NAMES.forEach(name => {
-    const cb = keyLayoutSelect.querySelector(`input[data-layout="${name}"]`);
-    cb.checked = keyLayoutState[name];
-    cb.addEventListener('change', () => {
-      keyLayoutState[name] = cb.checked;
-      saveKeyLayoutState();
-      updateKeyHints();
-    });
-  });
-
-  const icons = ['🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦉', '🐺', '🐴', '🐝', '🐢', '🐍', '🦎', '🐙', '🦑', '🦀', '🐠', '🐬', '🦈', '🐊', '🐅', 'ZEBRA', '🐘', '🦒', '🐕', '🐈', '🦃', '🦢', '🐇', '🦔'];
-
-  let score = 0;
-  let combo = 0;
-  let time = 20;
-  let interval = 750;
-  let settings = DIFFICULTIES.normal;
-  let holeTimer = null;
-  let timerId = null;
-  let gameRunning = false;
-  let activeIndex = -1;
-  let moleHit = false;
-  let holes = [];
-  let audioCtx = null;
-
-  const highScoreKey = 'neonMoguraHighScore';
-  highScoreDisplay.textContent = localStorage.getItem(highScoreKey) || 0;
-
-  function createBoard() {
-    gameContainer.innerHTML = '';
-    holes = [];
-    for (let i = 0; i < 9; i++) {
-      const hole = document.createElement('div');
-      hole.classList.add('hole');
-      hole.tabIndex = 0;
-      const mole = document.createElement('div');
-      mole.classList.add('mole');
-      hole.appendChild(mole);
-
-      const keyHint = document.createElement('div');
-      keyHint.classList.add('key-hint');
-      KEY_LAYOUT_NAMES.forEach(name => {
-        const span = document.createElement('span');
-        span.classList.add(`kh-${name}`);
-        span.textContent = KEY_LAYOUTS[name].labels[i];
-        keyHint.appendChild(span);
-      });
-      hole.appendChild(keyHint);
-
-      gameContainer.appendChild(hole);
-      holes.push({ hole, mole });
-
-      const handler = (e) => {
-        if (!gameRunning) return;
-        if (i === activeIndex && mole.classList.contains('up') && !moleHit) {
-          whack(mole, hole, i, e);
-        } else {
-          missClick(hole);
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>モグラたたき | 森のひろば</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ============================================================
+         カラーパレット（base.html のオレンジ系から「空と森」へ一新）
+         ============================================================ */
+      :root {
+        --page-bg: linear-gradient(180deg, #79cdf7 0%, #c9edfb 32%, #dcf6c6 74%, #b9e893 100%);
+        --card-bg: rgba(255, 255, 255, 0.97);
+        --card-border: #8fd8ae;
+        --card-shadow: 0 18px 40px rgba(21, 90, 52, 0.22), 0 3px 0 rgba(21, 90, 52, 0.08);
+        --ink: #20362a;
+        --muted: #5d7266;
+        --primary: #0b9e6d;
+        --primary-dark: #067647;
+        --primary-deep: #045c36;
+        --accent: #ffb020;
+        --accent-dark: #b54708;
+        --danger: #f04438;
+        --box-bg: #effaf2;
+        --box-border: #cdeeda;
+        --chip-bg: #ffffff;
+        --grass-1: #55c46e;
+        --grass-2: #3aa856;
+        --grass-edge: #2c8a44;
+        --soil-1: #b57e50;
+        --soil-2: #7c4a2d;
+        --modal-bg: rgba(9, 43, 27, 0.62);
+        --hint-bg: rgba(255, 255, 255, 0.82);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page-bg: linear-gradient(180deg, #052e2b 0%, #07332a 40%, #0a4028 78%, #0d4d2c 100%);
+          --card-bg: #0e2a21;
+          --card-border: #1f4d3a;
+          --card-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+          --ink: #eaf7ee;
+          --muted: #a7c4b2;
+          --primary: #12b76a;
+          --primary-dark: #067647;
+          --primary-deep: #054f31;
+          --box-bg: #123528;
+          --box-border: #1e4a37;
+          --chip-bg: #143a2a;
+          --grass-1: #35a355;
+          --grass-2: #268047;
+          --grass-edge: #1c6b38;
+          --modal-bg: rgba(2, 18, 11, 0.72);
+          --hint-bg: rgba(10, 40, 26, 0.85);
         }
-      };
-      hole.addEventListener('mousedown', handler);
-      hole.addEventListener('touchstart', (e) => { e.preventDefault(); handler(e); }, { passive: false });
-      hole.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); } });
-    }
-    updateKeyHints();
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (!gameRunning || e.repeat) return;
-    for (const name of KEY_LAYOUT_NAMES) {
-      if (!keyLayoutState[name]) continue;
-      const idx = KEY_LAYOUTS[name].codes.indexOf(e.code);
-      if (idx === -1) continue;
-      e.preventDefault();
-      const { hole, mole } = holes[idx];
-      if (idx === activeIndex && mole.classList.contains('up') && !moleHit) {
-        whack(mole, hole, idx, e);
-      } else {
-        missClick(hole);
       }
-      break;
-    }
-  });
 
-  function ensureAudio() {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-  }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html {
+        -webkit-text-size-adjust: 100%;
+        background: var(--page-bg);
+        min-height: 100%;
+      }
 
-  function playTone(freq, duration = 0.12, type = 'square', volume = 0.18, delay = 0) {
-    if (!audioCtx) return;
-    const t0 = audioCtx.currentTime + delay;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    gain.gain.setValueAtTime(volume, t0);
-    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.start(t0);
-    osc.stop(t0 + duration);
-  }
+      body {
+        font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", sans-serif;
+        color: var(--ink);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 22px 12px 52px;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        overflow-x: hidden;
+      }
 
-  function createParticles(x, y, color) {
-    for (let i = 0; i < 14; i++) {
-      const particle = document.createElement('div');
-      particle.classList.add('particle');
-      const size = Math.random() * 7 + 3;
-      particle.style.width = `${size}px`;
-      particle.style.height = `${size}px`;
-      particle.style.backgroundColor = color;
-      particle.style.boxShadow = `0 0 8px ${color}`;
+      /* 背景の流れる雲 */
+      .cloud {
+        position: fixed;
+        z-index: 0;
+        opacity: 0.75;
+        pointer-events: none;
+        animation: drift linear infinite;
+      }
+      .cloud.c1 { top: 4%; width: 150px; animation-duration: 74s; }
+      .cloud.c2 { top: 13%; width: 96px; animation-duration: 105s; animation-delay: -38s; opacity: 0.55; }
+      .cloud.c3 { top: 26%; width: 120px; animation-duration: 88s; animation-delay: -64s; opacity: 0.4; }
+      @keyframes drift {
+        from { transform: translateX(-30vw); }
+        to { transform: translateX(115vw); }
+      }
+      @media (prefers-color-scheme: dark) { .cloud { opacity: 0.16; } }
 
-      const rect = gameContainer.getBoundingClientRect();
-      particle.style.left = `${x - rect.left}px`;
-      particle.style.top = `${y - rect.top}px`;
+      /* === メインカード（base.html のコンテナを継承） === */
+      .container {
+        position: relative;
+        z-index: 1;
+        background: var(--card-bg);
+        border-radius: 24px;
+        border: 2px solid var(--card-border);
+        box-shadow: var(--card-shadow);
+        padding: 18px 18px 20px;
+        width: 100%;
+        max-width: 560px;
+      }
 
-      gameContainer.appendChild(particle);
+      /* === キービジュアル（描き起こしSVGシーン） === */
+      .hero {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid var(--box-border);
+        line-height: 0;
+      }
+      .hero svg { width: 100%; height: auto; display: block; }
 
-      const angle = Math.random() * 360;
-      const distance = Math.random() * 70 + 40;
-      const tx = Math.cos(angle * Math.PI / 180) * distance;
-      const ty = Math.sin(angle * Math.PI / 180) * distance;
+      h1 {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        color: var(--primary-deep);
+        margin: 14px 0 2px;
+        text-shadow: 0 2px 0 rgba(11, 158, 109, 0.18);
+      }
+      @media (prefers-color-scheme: dark) { h1 { color: #4ade80; text-shadow: none; } }
+      .subtitle {
+        text-align: center;
+        font-family: "Baloo 2", "M PLUS Rounded 1c", sans-serif;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.34em;
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
 
-      requestAnimationFrame(() => {
-        particle.style.transform = `translate(${tx}px, ${ty}px)`;
-        particle.style.opacity = 0;
+      /* === スタッツ（base.html の .box-sub を発展） === */
+      .stats-row { display: flex; gap: 10px; margin-bottom: 10px; }
+      .box-sub {
+        flex: 1;
+        background: var(--box-bg);
+        padding: 10px 8px 9px;
+        border-radius: 14px;
+        border: 1.5px solid var(--box-border);
+        text-align: center;
+      }
+      .box-title {
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: var(--primary-dark);
+        margin-bottom: 2px;
+      }
+      @media (prefers-color-scheme: dark) { .box-title { color: #4ade80; } }
+      .box-value {
+        font-family: "Baloo 2", sans-serif;
+        font-size: 1.9rem;
+        font-weight: 800;
+        line-height: 1.05;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .box-value.combo-on { color: var(--accent-dark); }
+      @media (prefers-color-scheme: dark) { .box-value.combo-on { color: var(--accent); } }
+      .box-value.time-low { color: var(--danger); }
+
+      #time-bar-track {
+        height: 8px;
+        background: var(--box-border);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-top: 7px;
+      }
+      #time-bar-fill {
+        height: 100%;
+        width: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #12b76a, #7ce38b);
+        transition: width 0.12s linear;
+      }
+      #time-bar-fill.low { background: linear-gradient(90deg, #f04438, #ff8a5c); }
+
+      .meta-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 12px 0;
+        flex-wrap: wrap;
+      }
+      .high-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--chip-bg);
+        border: 1.5px solid var(--box-border);
+        border-radius: 999px;
+        padding: 6px 14px 6px 10px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: var(--muted);
+        min-height: 36px;
+      }
+      .high-chip b {
+        font-family: "Baloo 2", sans-serif;
+        font-size: 1.05rem;
+        color: var(--accent-dark);
+      }
+      @media (prefers-color-scheme: dark) { .high-chip b { color: var(--accent); } }
+      .high-chip svg { width: 17px; height: 17px; }
+
+      /* === 難易度セグメント === */
+      .difficulty-select { display: flex; gap: 6px; flex: 1 1 230px; }
+      .diff-btn {
+        flex: 1;
+        min-height: 44px;
+        padding: 8px 6px;
+        white-space: nowrap;
+        font-family: inherit;
+        font-size: 0.82rem;
+        font-weight: 800;
+        background: var(--chip-bg);
+        color: var(--muted);
+        border: 1.5px solid var(--box-border);
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 2px 0 var(--box-border);
+        transition: transform 0.1s, box-shadow 0.1s, background 0.15s, color 0.15s;
+      }
+      .diff-btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--box-border); }
+      .diff-btn.selected {
+        background: var(--primary);
+        border-color: var(--primary-dark);
+        color: #fff;
+        box-shadow: 0 2px 0 var(--primary-dark);
+      }
+      .diff-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      button:focus-visible, .hole:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      /* === ゲームボード（草原パネル） === */
+      #board-area { position: relative; margin-top: 4px; }
+      #board {
+        position: relative;
+        border-radius: 20px;
+        padding: clamp(12px, 3.4vw, 20px);
+        background:
+          repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.055) 0 34px, rgba(0, 0, 0, 0.045) 34px 68px),
+          linear-gradient(180deg, var(--grass-1), var(--grass-2));
+        border: 2px solid var(--grass-edge);
+        box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.25), inset 0 -10px 24px rgba(0, 60, 25, 0.22), 0 6px 16px rgba(21, 90, 52, 0.18);
+      }
+      #board.shake { animation: board-shake 0.22s ease; }
+      @keyframes board-shake {
+        0%, 100% { transform: translateX(0); }
+        30% { transform: translateX(-4px); }
+        65% { transform: translateX(4px); }
+      }
+      #game-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: clamp(8px, 2.6vw, 16px);
+      }
+
+      /* --- 穴とモグラ --- */
+      .hole {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 0.94;
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font-family: inherit;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .hole .mound-back,
+      .hole .pit,
+      .hole .mound-front { position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+      .mound-back {
+        bottom: 1%;
+        width: 96%;
+        height: 42%;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 34%, #c98f5c 0%, var(--soil-1) 46%, var(--soil-2) 100%);
+        box-shadow: 0 4px 8px rgba(60, 32, 10, 0.35);
+      }
+      .pit {
+        bottom: 15%;
+        width: 78%;
+        height: 31%;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 42%, #170c05 0%, #2b1709 58%, #41240f 100%);
+        box-shadow: inset 0 7px 12px rgba(0, 0, 0, 0.9), inset 0 -3px 5px rgba(120, 72, 34, 0.55);
+        z-index: 1;
+      }
+      .mole-clip {
+        position: absolute;
+        left: 0; right: 0; top: 0; bottom: 13%;
+        overflow: hidden;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .mole {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 86%;
+        transform: translate(-50%, 108%);
+        transition: transform 0.19s cubic-bezier(0.34, 1.45, 0.64, 1);
+        line-height: 0;
+        filter: drop-shadow(0 3px 3px rgba(43, 23, 8, 0.35));
+      }
+      .mole.up { transform: translate(-50%, 6%); }
+      .mole.hit { transform: translate(-50%, 34%) scale(0.94); transition: transform 0.16s ease-in; }
+      .mole svg { width: 100%; height: auto; display: block; overflow: visible; }
+      .mole .eye-dizzy, .mole .mouth-dizzy { display: none; }
+      .mole.hit .eye-normal, .mole.hit .mouth-normal { display: none; }
+      .mole.hit .eye-dizzy, .mole.hit .mouth-dizzy { display: block; }
+      .mole .sparkle { animation: twinkle 0.9s ease-in-out infinite alternate; transform-origin: center; transform-box: fill-box; }
+      .mole .sparkle.s2 { animation-delay: 0.45s; }
+      @keyframes twinkle { from { opacity: 0.25; transform: scale(0.7) rotate(0deg); } to { opacity: 1; transform: scale(1.15) rotate(20deg); } }
+      .mole.hit .star-spin { animation: star-spin 0.7s linear infinite; transform-origin: center; transform-box: fill-box; }
+      @keyframes star-spin { to { transform: rotate(360deg); } }
+
+      .mound-front {
+        bottom: 0;
+        width: 99%;
+        height: 34%;
+        z-index: 3;
+        line-height: 0;
+      }
+      .mound-front svg { width: 100%; height: 100%; display: block; }
+      .hole.miss-flash .pit { box-shadow: inset 0 7px 12px rgba(0,0,0,0.9), 0 0 0 4px rgba(240, 68, 56, 0.75); }
+
+      .key-hint {
+        position: absolute;
+        top: 2%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 4;
+        font-family: "Baloo 2", sans-serif;
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        background: var(--hint-bg);
+        border-radius: 6px;
+        padding: 1px 7px;
+        pointer-events: none;
+      }
+
+      .float-text {
+        position: absolute;
+        left: 50%;
+        top: 16%;
+        transform: translateX(-50%);
+        z-index: 6;
+        font-family: "Baloo 2", sans-serif;
+        font-weight: 800;
+        font-size: clamp(1.15rem, 5.4vw, 1.6rem);
+        color: #fff;
+        -webkit-text-stroke: 4px var(--primary-dark);
+        paint-order: stroke fill;
+        text-shadow: 0 3px 0 rgba(4, 92, 54, 0.35);
+        pointer-events: none;
+        animation: float-up 0.72s ease-out forwards;
+        white-space: nowrap;
+      }
+      .float-text.gold { -webkit-text-stroke-color: var(--accent-dark); text-shadow: 0 3px 0 rgba(181, 71, 8, 0.35); }
+      @keyframes float-up {
+        0% { transform: translate(-50%, 6px) scale(0.7); opacity: 0; }
+        22% { transform: translate(-50%, 0) scale(1.12); opacity: 1; }
+        100% { transform: translate(-50%, -44px) scale(1); opacity: 0; }
+      }
+      .particle {
+        position: absolute;
+        z-index: 5;
+        pointer-events: none;
+        border-radius: 50%;
+        transition: transform 0.5s cubic-bezier(0.17, 0.67, 0.35, 1), opacity 0.5s ease-out;
+      }
+      .particle.star { border-radius: 0; clip-path: polygon(50% 0%, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0% 50%, 37% 37%); }
+
+      /* === カウントダウン === */
+      #countdown-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        border-radius: 20px;
+        background: rgba(6, 46, 25, 0.55);
+        backdrop-filter: blur(2px);
+      }
+      #countdown-overlay span {
+        font-family: "Baloo 2", sans-serif;
+        font-size: clamp(3.4rem, 16vw, 5.2rem);
+        font-weight: 800;
+        color: #fff;
+        -webkit-text-stroke: 6px var(--primary-dark);
+        paint-order: stroke fill;
+        text-shadow: 0 6px 0 rgba(4, 92, 54, 0.4);
+        animation: count-pop 0.55s ease;
+      }
+      @keyframes count-pop { 0% { transform: scale(1.7); opacity: 0; } 60% { transform: scale(0.94); opacity: 1; } 100% { transform: scale(1); } }
+
+      /* === プライマリボタン（base.html の .btn-primary を継承・発展） === */
+      .btn-primary {
+        background: linear-gradient(180deg, #14c07f, var(--primary) 55%, #0a8a5c);
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        padding: 15px 10px;
+        font-family: inherit;
+        font-size: 1.08rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        box-shadow: 0 5px 0 var(--primary-dark), 0 10px 18px rgba(11, 158, 109, 0.3);
+        width: 100%;
+        min-height: 56px;
+        margin-top: 16px;
+        transition: transform 0.1s, box-shadow 0.1s, filter 0.15s;
+        text-shadow: 0 1px 2px rgba(4, 92, 54, 0.5);
+      }
+      .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+      .btn-primary:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 2px 0 var(--primary-dark); }
+      .btn-primary:disabled { background: #9db8ab; box-shadow: 0 3px 0 #7d9a8b; cursor: not-allowed; text-shadow: none; }
+      @media (prefers-color-scheme: dark) { .btn-primary:disabled { background: #33503f; box-shadow: 0 3px 0 #22382c; color: #8fb8a0; } }
+
+      .btn-secondary {
+        background: var(--chip-bg);
+        border: 1.5px solid var(--box-border);
+        color: var(--ink);
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 800;
+        padding: 10px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        box-shadow: 0 2px 0 var(--box-border);
+        width: 100%;
+        min-height: 48px;
+        transition: transform 0.1s, box-shadow 0.1s;
+      }
+      .btn-secondary:active { transform: translateY(2px); box-shadow: 0 0 0 var(--box-border); }
+
+      /* === ルール説明 === */
+      .rules {
+        background: var(--box-bg);
+        border: 1.5px solid var(--box-border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        margin-top: 16px;
+      }
+      .rules .box-title { text-align: left; margin-bottom: 8px; }
+      .rule-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.83rem;
+        font-weight: 500;
+        color: var(--ink);
+        padding: 4px 0;
+      }
+      .rule-row svg { width: 26px; height: 26px; flex-shrink: 0; }
+      .rule-row b { font-weight: 800; }
+      .rule-note { font-size: 0.74rem; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+      /* === 結果モーダル === */
+      #result-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: var(--modal-bg);
+      }
+      #result-card {
+        background: var(--card-bg);
+        border: 2px solid var(--card-border);
+        border-radius: 22px;
+        box-shadow: var(--card-shadow);
+        padding: 22px 22px 20px;
+        text-align: center;
+        width: 100%;
+        max-width: 340px;
+        animation: card-in 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
+      }
+      @keyframes card-in { from { transform: translateY(18px) scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
+      #result-card .result-mole { width: 104px; margin: 0 auto; line-height: 0; }
+      #result-card h2 {
+        font-family: "Baloo 2", "M PLUS Rounded 1c", sans-serif;
+        font-size: 1.05rem;
+        letter-spacing: 0.3em;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      #result-score {
+        font-family: "Baloo 2", sans-serif;
+        font-size: 3.6rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--primary-dark);
+      }
+      @media (prefers-color-scheme: dark) { #result-score { color: #4ade80; } }
+      #new-record-badge {
+        display: none;
+        width: fit-content;
+        margin: 2px auto 10px;
+        background: linear-gradient(180deg, #ffd25e, var(--accent));
+        color: #7a3a00;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        padding: 5px 14px;
+        border-radius: 999px;
+        box-shadow: 0 3px 0 var(--accent-dark);
+      }
+      .result-stats { display: flex; gap: 8px; margin: 12px 0 4px; }
+      .result-stats .box-sub { padding: 8px 4px 7px; }
+      .result-stats .box-value { font-size: 1.3rem; }
+      #result-highscore { font-size: 0.8rem; color: var(--muted); font-weight: 700; margin-top: 8px; }
+      #result-card .btn-primary { margin-top: 14px; }
+      #result-card .btn-secondary { margin-top: 10px; }
+
+      @media (max-width: 380px) {
+        h1 { font-size: 1.7rem; }
+        .box-value { font-size: 1.6rem; }
+        .container { padding: 14px 12px 16px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .cloud, .mole .sparkle, .mole.hit .star-spin, #result-card { animation: none !important; }
+        .mole, .particle, .float-text, #time-bar-fill { transition: none !important; }
+        .float-text { animation-duration: 0.01s; }
+        #board.shake { animation: none; }
+      }
+
+      /* === 右上：メニューに戻るボタン（base.html と同じ） === */
+      .menu-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 11px;
+        color: #71716a;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1.5px solid #e4e4e7;
+        font-weight: bold;
+        z-index: 1000;
+      }
+    </style>
+    <!-- GoatCounter アクセス解析 -->
+    <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  </head>
+  <body>
+
+    <!-- 右上固定リンク -->
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+    <!-- 背景の雲 -->
+    <svg class="cloud c1" viewBox="0 0 200 60" aria-hidden="true"><g fill="#ffffff"><ellipse cx="55" cy="40" rx="48" ry="18"/><ellipse cx="105" cy="28" rx="42" ry="22"/><ellipse cx="150" cy="42" rx="40" ry="15"/></g></svg>
+    <svg class="cloud c2" viewBox="0 0 200 60" aria-hidden="true"><g fill="#ffffff"><ellipse cx="55" cy="40" rx="48" ry="18"/><ellipse cx="105" cy="28" rx="42" ry="22"/><ellipse cx="150" cy="42" rx="40" ry="15"/></g></svg>
+    <svg class="cloud c3" viewBox="0 0 200 60" aria-hidden="true"><g fill="#ffffff"><ellipse cx="55" cy="40" rx="48" ry="18"/><ellipse cx="105" cy="28" rx="42" ry="22"/><ellipse cx="150" cy="42" rx="40" ry="15"/></g></svg>
+
+    <!-- モグラの描き起こしフィギュア（バナー／アイコン共用） -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <g id="moleFigure">
+          <circle cx="-52" cy="-148" r="17" fill="#8a5a3b"/><circle cx="-52" cy="-148" r="9" fill="#eec39c"/>
+          <circle cx="52" cy="-148" r="17" fill="#8a5a3b"/><circle cx="52" cy="-148" r="9" fill="#eec39c"/>
+          <ellipse cx="0" cy="-76" rx="74" ry="80" fill="#a06a42"/>
+          <ellipse cx="-26" cy="-118" rx="38" ry="30" fill="#b57e50" opacity="0.75"/>
+          <ellipse cx="0" cy="-50" rx="46" ry="40" fill="#f0d7b4"/>
+          <ellipse cx="-66" cy="-14" rx="16" ry="11" fill="#8a5a3b" transform="rotate(24 -66 -14)"/>
+          <ellipse cx="66" cy="-14" rx="16" ry="11" fill="#8a5a3b" transform="rotate(-24 66 -14)"/>
+          <circle cx="-44" cy="-70" r="9" fill="#f2a18f" opacity="0.55"/>
+          <circle cx="44" cy="-70" r="9" fill="#f2a18f" opacity="0.55"/>
+          <g stroke="#8a6844" stroke-width="2" stroke-linecap="round" opacity="0.65">
+            <path d="M-30 -66 L-52 -70"/><path d="M-30 -58 L-50 -54"/>
+            <path d="M30 -66 L52 -70"/><path d="M30 -58 L50 -54"/>
+          </g>
+          <ellipse cx="0" cy="-64" rx="30" ry="21" fill="#f5e0c0"/>
+          <path d="M-9 -46 Q0 -39 9 -46" stroke="#6b4426" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <rect x="-6" y="-45" width="12" height="13" rx="3" fill="#ffffff" stroke="#d8c3a5" stroke-width="1.5"/>
+          <ellipse cx="0" cy="-74" rx="14" ry="10" fill="#e5637e"/>
+          <ellipse cx="0" cy="-70" rx="14" ry="5" fill="#c94f68" opacity="0.55"/>
+          <circle cx="-5" cy="-78" r="3.5" fill="#ffffff" opacity="0.9"/>
+          <circle cx="-27" cy="-104" r="8.5" fill="#2b1a12"/><circle cx="-30" cy="-107" r="3" fill="#ffffff"/>
+          <circle cx="27" cy="-104" r="8.5" fill="#2b1a12"/><circle cx="24" cy="-107" r="3" fill="#ffffff"/>
+          <path d="M0 -158 C0 -166 -2 -170 -6 -176" stroke="#5da244" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M-6 -176 C-18 -182 -26 -178 -30 -168 C-20 -164 -10 -167 -6 -176 Z" fill="#69b84f"/>
+          <path d="M-4 -178 C4 -188 14 -188 20 -180 C12 -172 2 -172 -4 -178 Z" fill="#7cc75e"/>
+        </g>
+        <g id="moleGoldFigure">
+          <circle cx="-52" cy="-148" r="17" fill="#d99a26"/><circle cx="-52" cy="-148" r="9" fill="#ffe9a8"/>
+          <circle cx="52" cy="-148" r="17" fill="#d99a26"/><circle cx="52" cy="-148" r="9" fill="#ffe9a8"/>
+          <ellipse cx="0" cy="-76" rx="74" ry="80" fill="#f2b63c"/>
+          <ellipse cx="-26" cy="-118" rx="38" ry="30" fill="#ffd968" opacity="0.8"/>
+          <ellipse cx="0" cy="-50" rx="46" ry="40" fill="#fff0bd"/>
+          <ellipse cx="-66" cy="-14" rx="16" ry="11" fill="#d99a26" transform="rotate(24 -66 -14)"/>
+          <ellipse cx="66" cy="-14" rx="16" ry="11" fill="#d99a26" transform="rotate(-24 66 -14)"/>
+          <circle cx="-44" cy="-70" r="9" fill="#f59e6c" opacity="0.6"/>
+          <circle cx="44" cy="-70" r="9" fill="#f59e6c" opacity="0.6"/>
+          <ellipse cx="0" cy="-64" rx="30" ry="21" fill="#ffedb8"/>
+          <path d="M-9 -46 Q0 -39 9 -46" stroke="#8a5a12" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <rect x="-6" y="-45" width="12" height="13" rx="3" fill="#ffffff" stroke="#e3c98a" stroke-width="1.5"/>
+          <ellipse cx="0" cy="-74" rx="14" ry="10" fill="#e5637e"/>
+          <circle cx="-5" cy="-78" r="3.5" fill="#ffffff" opacity="0.9"/>
+          <circle cx="-27" cy="-104" r="8.5" fill="#3a2403"/><circle cx="-30" cy="-107" r="3" fill="#ffffff"/>
+          <circle cx="27" cy="-104" r="8.5" fill="#3a2403"/><circle cx="24" cy="-107" r="3" fill="#ffffff"/>
+          <path d="M-26 -160 L-30 -182 L-13 -168 L0 -186 L13 -168 L30 -182 L26 -160 Z" fill="#ffcf3d" stroke="#d99a26" stroke-width="3" stroke-linejoin="round"/>
+          <circle cx="0" cy="-166" r="4" fill="#e5637e"/>
+        </g>
+      </defs>
+    </svg>
+
+    <main class="container">
+      <!-- キービジュアル -->
+      <div class="hero" aria-hidden="true">
+        <svg viewBox="0 0 520 168">
+          <defs>
+            <linearGradient id="heroSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#6ec6f5"/><stop offset="1" stop-color="#d8f3fd"/>
+            </linearGradient>
+          </defs>
+          <rect width="520" height="168" fill="url(#heroSky)"/>
+          <g stroke="#ffd93f" stroke-width="5" stroke-linecap="round">
+            <path d="M52 6 V14"/><path d="M20 22 L27 29"/><path d="M84 22 L77 29"/><path d="M14 44 H22"/><path d="M82 44 H90"/>
+          </g>
+          <circle cx="52" cy="40" r="19" fill="#ffd93f"/><circle cx="52" cy="40" r="19" fill="none" stroke="#ffb020" stroke-width="3"/>
+          <g fill="#ffffff" opacity="0.95">
+            <ellipse cx="168" cy="34" rx="34" ry="13"/><ellipse cx="192" cy="26" rx="26" ry="15"/><ellipse cx="216" cy="36" rx="26" ry="11"/>
+            <ellipse cx="392" cy="24" rx="28" ry="11"/><ellipse cx="412" cy="17" rx="20" ry="12"/>
+          </g>
+          <path d="M0 108 Q130 68 262 100 T520 92 V168 H0 Z" fill="#8ede9b"/>
+          <path d="M0 140 Q150 110 305 132 T520 126 V168 H0 Z" fill="#4caf68"/>
+          <ellipse cx="88" cy="152" rx="54" ry="12" fill="#8a5a3b"/>
+          <ellipse cx="260" cy="158" rx="66" ry="13" fill="#8a5a3b"/>
+          <ellipse cx="432" cy="152" rx="54" ry="12" fill="#8a5a3b"/>
+          <use href="#moleFigure" transform="translate(88 154) scale(0.52)"/>
+          <use href="#moleGoldFigure" transform="translate(432 154) scale(0.58)"/>
+          <use href="#moleFigure" transform="translate(260 160) scale(0.88)"/>
+          <g>
+            <circle cx="150" cy="146" r="4" fill="#ff8fb3"/><circle cx="161" cy="150" r="4" fill="#ffffff"/><circle cx="156" cy="140" r="4" fill="#ffd93f"/>
+            <circle cx="352" cy="142" r="4" fill="#ffffff"/><circle cx="363" cy="147" r="4" fill="#ff8fb3"/>
+            <circle cx="36" cy="132" r="4" fill="#ffd93f"/><circle cx="486" cy="130" r="4" fill="#ffffff"/>
+          </g>
+          <g stroke="#2c8a44" stroke-width="3" stroke-linecap="round" fill="none">
+            <path d="M120 160 q-3 -10 -8 -14"/><path d="M124 160 q0 -11 4 -16"/>
+            <path d="M398 162 q-3 -10 -8 -14"/><path d="M402 162 q0 -11 4 -16"/>
+          </g>
+        </svg>
+      </div>
+
+      <h1>モグラたたき</h1>
+      <p class="subtitle">MOGURA TATAKI</p>
+
+      <!-- スタッツ -->
+      <div class="stats-row">
+        <div class="box-sub">
+          <div class="box-title">スコア</div>
+          <div class="box-value" id="score">0</div>
+        </div>
+        <div class="box-sub">
+          <div class="box-title">コンボ倍率</div>
+          <div class="box-value" id="combo">×1</div>
+        </div>
+        <div class="box-sub">
+          <div class="box-title">残り時間</div>
+          <div class="box-value" id="time">25</div>
+        </div>
+      </div>
+      <div id="time-bar-track" aria-hidden="true"><div id="time-bar-fill"></div></div>
+
+      <div class="meta-row">
+        <span class="high-chip">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v2h3v4a5 5 0 0 1-5 5h-.42A6 6 0 0 1 13 17.92V20h4v2H7v-2h4v-2.08A6 6 0 0 1 7.42 14H7a5 5 0 0 1-5-5V5h3V3zm14 4v4a3 3 0 0 0 3-3V7h-3zM5 7H2v1a3 3 0 0 0 3 3V7z" fill="#ffb020"/></svg>
+          ハイスコア <b id="high-score">0</b>
+        </span>
+        <div class="difficulty-select" id="difficulty-select" role="group" aria-label="難易度">
+          <button type="button" class="diff-btn" data-diff="easy">かんたん</button>
+          <button type="button" class="diff-btn selected" data-diff="normal">ふつう</button>
+          <button type="button" class="diff-btn" data-diff="hard">むずかしい</button>
+        </div>
+      </div>
+
+      <!-- ゲームボード -->
+      <div id="board-area">
+        <div id="board">
+          <div id="game-container"></div>
+        </div>
+        <div id="countdown-overlay"><span id="countdown-num">3</span></div>
+      </div>
+
+      <button type="button" class="btn-primary" id="startButton">ゲームスタート</button>
+
+      <!-- ルール -->
+      <section class="rules" aria-label="あそびかた">
+        <div class="box-title">★ あそびかた</div>
+        <div class="rule-row">
+          <svg viewBox="-100 -198 200 200" aria-hidden="true"><use href="#moleFigure"/></svg>
+          <span>顔を出したモグラをタップ！ <b>1点</b></span>
+        </div>
+        <div class="rule-row">
+          <svg viewBox="-100 -198 200 200" aria-hidden="true"><use href="#moleGoldFigure"/></svg>
+          <span>レアな<b>金モグラ</b>は <b>3点</b>。見逃すな！</span>
+        </div>
+        <div class="rule-row">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.8l2.5 6.1 6.6.5-5 4.3 1.6 6.4L12 15.7l-5.7 3.4L7.9 12.7l-5-4.3 6.6-.5z" fill="#ffb020" stroke="#b54708" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          <span><b>5コンボ</b>ごとに倍率アップ（最大×5）。空振りや見逃しでコンボ消滅</span>
+        </div>
+        <p class="rule-note">キーボードでも遊べます：Q W E / A S D / Z X C、テンキー、U I O / J K L / M , . の3レイアウト対応。時間切れまで、どんどん速くなります。</p>
+      </section>
+    </main>
+
+    <!-- 結果モーダル -->
+    <div id="result-overlay" role="dialog" aria-modal="true" aria-labelledby="result-heading">
+      <div id="result-card">
+        <div class="result-mole">
+          <svg viewBox="-100 -198 200 200" aria-hidden="true"><use href="#moleFigure"/></svg>
+        </div>
+        <h2 id="result-heading">GAME OVER</h2>
+        <div id="result-score">0</div>
+        <div id="new-record-badge">NEW RECORD!</div>
+        <div class="result-stats">
+          <div class="box-sub">
+            <div class="box-title">ヒット</div>
+            <div class="box-value" id="result-hits">0</div>
+          </div>
+          <div class="box-sub">
+            <div class="box-title">最大コンボ</div>
+            <div class="box-value" id="result-maxcombo">0</div>
+          </div>
+          <div class="box-sub">
+            <div class="box-title">命中率</div>
+            <div class="box-value" id="result-accuracy">–</div>
+          </div>
+        </div>
+        <div id="result-highscore">ハイスコア: 0</div>
+        <button type="button" class="btn-primary" id="retryButton">もう一度あそぶ</button>
+        <button type="button" class="btn-secondary" id="closeResultButton">とじる</button>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+      const gameContainer = document.getElementById('game-container');
+      const board = document.getElementById('board');
+      const scoreDisplay = document.getElementById('score');
+      const comboDisplay = document.getElementById('combo');
+      const timeDisplay = document.getElementById('time');
+      const timeBarFill = document.getElementById('time-bar-fill');
+      const highScoreDisplay = document.getElementById('high-score');
+      const startButton = document.getElementById('startButton');
+      const countdownOverlay = document.getElementById('countdown-overlay');
+      const countdownNum = document.getElementById('countdown-num');
+      const difficultySelect = document.getElementById('difficulty-select');
+      const resultOverlay = document.getElementById('result-overlay');
+      const resultScore = document.getElementById('result-score');
+      const resultHits = document.getElementById('result-hits');
+      const resultMaxCombo = document.getElementById('result-maxcombo');
+      const resultAccuracy = document.getElementById('result-accuracy');
+      const resultHighScore = document.getElementById('result-highscore');
+      const newRecordBadge = document.getElementById('new-record-badge');
+      const retryButton = document.getElementById('retryButton');
+      const closeResultButton = document.getElementById('closeResultButton');
+
+      const DIFFICULTIES = {
+        easy:   { duration: 30, startInterval: 1150, minInterval: 680, speedUp: 0.990 },
+        normal: { duration: 25, startInterval: 920,  minInterval: 480, speedUp: 0.985 },
+        hard:   { duration: 20, startInterval: 640,  minInterval: 310, speedUp: 0.968 },
+      };
+      let currentDifficulty = 'normal';
+      let settings = DIFFICULTIES.normal;
+
+      const KEY_LAYOUTS = [
+        ['KeyQ','KeyW','KeyE','KeyA','KeyS','KeyD','KeyZ','KeyX','KeyC'],
+        ['Numpad7','Numpad8','Numpad9','Numpad4','Numpad5','Numpad6','Numpad1','Numpad2','Numpad3'],
+        ['KeyU','KeyI','KeyO','KeyJ','KeyK','KeyL','KeyM','Comma','Period'],
+      ];
+      const KEY_HINTS = ['Q','W','E','A','S','D','Z','X','C'];
+
+      /* ---------- モグラSVG（バリエーション生成） ---------- */
+      const PALETTES = {
+        normal: { ear:'#8a5a3b', inner:'#eec39c', fur:'#a06a42', shade:'#b57e50', belly:'#f0d7b4', muzzle:'#f5e0c0', paw:'#8a5a3b', line:'#6b4426' },
+        gold:   { ear:'#d99a26', inner:'#ffe9a8', fur:'#f2b63c', shade:'#ffd968', belly:'#fff0bd', muzzle:'#ffedb8', paw:'#d99a26', line:'#8a5a12' },
+      };
+      const ACCESSORIES = {
+        sprout: '<path d="M0 -158 C0 -166 -2 -170 -6 -176" stroke="#5da244" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M-6 -176 C-18 -182 -26 -178 -30 -168 C-20 -164 -10 -167 -6 -176 Z" fill="#69b84f"/><path d="M-4 -178 C4 -188 14 -188 20 -180 C12 -172 2 -172 -4 -178 Z" fill="#7cc75e"/>',
+        flower: '<g><circle cx="52" cy="-160" r="8" fill="#ff8fb3"/><circle cx="66" cy="-152" r="8" fill="#ff8fb3"/><circle cx="62" cy="-140" r="8" fill="#ff8fb3"/><circle cx="46" cy="-142" r="8" fill="#ff8fb3"/><circle cx="44" cy="-154" r="8" fill="#ff8fb3"/><circle cx="54" cy="-151" r="6.5" fill="#ffd93f"/></g>',
+        helmet: '<path d="M-58 -138 A58 58 0 0 1 58 -138 Z" fill="#ffc61a"/><rect x="-66" y="-142" width="132" height="11" rx="5.5" fill="#f5a623"/><rect x="-8" y="-196" width="16" height="18" rx="5" fill="#f5a623"/>',
+        shades: '<g><rect x="-52" y="-118" width="42" height="26" rx="9" fill="#263238"/><rect x="10" y="-118" width="42" height="26" rx="9" fill="#263238"/><path d="M-10 -110 Q0 -116 10 -110" stroke="#263238" stroke-width="5" fill="none"/><path d="M-44 -112 L-24 -98" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.5"/><path d="M18 -112 L38 -98" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.5"/></g>',
+        crown:  '<path d="M-26 -160 L-30 -182 L-13 -168 L0 -186 L13 -168 L30 -182 L26 -160 Z" fill="#ffcf3d" stroke="#d99a26" stroke-width="3" stroke-linejoin="round"/><circle cx="0" cy="-166" r="4" fill="#e5637e"/>',
+        none: '',
+      };
+      function moleSVG(golden, accessory) {
+        const p = golden ? PALETTES.gold : PALETTES.normal;
+        const acc = ACCESSORIES[golden ? 'crown' : accessory] || '';
+        const sparkles = golden
+          ? '<path class="sparkle" d="M-72 -150 l3.5 8 8 3.5 -8 3.5 -3.5 8 -3.5 -8 -8 -3.5 8 -3.5z" fill="#fff3b0"/><path class="sparkle s2" d="M66 -96 l2.8 6.4 6.4 2.8 -6.4 2.8 -2.8 6.4 -2.8 -6.4 -6.4 -2.8 6.4 -2.8z" fill="#fff3b0"/>'
+          : '';
+        const dizzyStars = '<g class="star-spin" opacity="0"><path d="M-58 -168 l2.6 6 6 2.6 -6 2.6 -2.6 6 -2.6 -6 -6 -2.6 6 -2.6z" fill="#ffb020"/><path d="M52 -176 l2.2 5 5 2.2 -5 2.2 -2.2 5 -2.2 -5 -5 -2.2 5 -2.2z" fill="#ffb020"/></g>';
+        return '<svg viewBox="-100 -200 200 200" aria-hidden="true">'
+          + '<circle cx="-52" cy="-148" r="17" fill="' + p.ear + '"/><circle cx="-52" cy="-148" r="9" fill="' + p.inner + '"/>'
+          + '<circle cx="52" cy="-148" r="17" fill="' + p.ear + '"/><circle cx="52" cy="-148" r="9" fill="' + p.inner + '"/>'
+          + '<ellipse cx="0" cy="-76" rx="74" ry="80" fill="' + p.fur + '"/>'
+          + '<ellipse cx="-26" cy="-118" rx="38" ry="30" fill="' + p.shade + '" opacity="0.75"/>'
+          + '<ellipse cx="0" cy="-50" rx="46" ry="40" fill="' + p.belly + '"/>'
+          + '<ellipse cx="-66" cy="-14" rx="16" ry="11" fill="' + p.paw + '" transform="rotate(24 -66 -14)"/>'
+          + '<ellipse cx="66" cy="-14" rx="16" ry="11" fill="' + p.paw + '" transform="rotate(-24 66 -14)"/>'
+          + '<circle cx="-44" cy="-70" r="9" fill="#f2a18f" opacity="0.55"/><circle cx="44" cy="-70" r="9" fill="#f2a18f" opacity="0.55"/>'
+          + '<g stroke="#8a6844" stroke-width="2" stroke-linecap="round" opacity="0.6"><path d="M-30 -66 L-52 -70"/><path d="M-30 -58 L-50 -54"/><path d="M30 -66 L52 -70"/><path d="M30 -58 L50 -54"/></g>'
+          + '<ellipse cx="0" cy="-64" rx="30" ry="21" fill="' + p.muzzle + '"/>'
+          + '<g class="mouth-normal"><path d="M-9 -46 Q0 -39 9 -46" stroke="' + p.line + '" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="-6" y="-45" width="12" height="13" rx="3" fill="#ffffff" stroke="#d8c3a5" stroke-width="1.5"/></g>'
+          + '<g class="mouth-dizzy"><ellipse cx="0" cy="-44" rx="7" ry="9" fill="' + p.line + '"/></g>'
+          + '<ellipse cx="0" cy="-74" rx="14" ry="10" fill="#e5637e"/><ellipse cx="0" cy="-70" rx="14" ry="5" fill="#c94f68" opacity="0.55"/><circle cx="-5" cy="-78" r="3.5" fill="#ffffff" opacity="0.9"/>'
+          + '<g class="eye-normal"><circle cx="-27" cy="-104" r="8.5" fill="#2b1a12"/><circle cx="-30" cy="-107" r="3" fill="#ffffff"/><circle cx="27" cy="-104" r="8.5" fill="#2b1a12"/><circle cx="24" cy="-107" r="3" fill="#ffffff"/></g>'
+          + '<g class="eye-dizzy" stroke="#2b1a12" stroke-width="4.5" stroke-linecap="round"><path d="M-35 -112 L-19 -96 M-19 -112 L-35 -96"/><path d="M19 -112 L35 -96 M35 -112 L19 -96"/></g>'
+          + acc + sparkles + dizzyStars
+          + '</svg>';
+      }
+      const MOUND_FRONT = '<svg viewBox="0 0 200 70" preserveAspectRatio="none" aria-hidden="true">'
+        + '<path d="M2 70 C6 30 40 8 100 8 C160 8 194 30 198 70 Z" fill="#7c4a2d"/>'
+        + '<path d="M14 70 C20 38 48 18 100 18 C152 18 180 38 186 70 Z" fill="#96683c"/>'
+        + '<g fill="#6e3f22"><ellipse cx="52" cy="52" rx="7" ry="3.4"/><ellipse cx="140" cy="58" rx="9" ry="4"/><ellipse cx="102" cy="44" rx="5" ry="2.6"/></g>'
+        + '<g fill="#c9c2b4"><ellipse cx="70" cy="62" rx="6" ry="3.4"/><ellipse cx="158" cy="44" rx="5" ry="3"/></g>'
+        + '<g stroke="#2f9e4f" stroke-width="4" stroke-linecap="round" fill="none"><path d="M22 34 q-2 -12 -8 -18"/><path d="M28 32 q1 -12 7 -18"/><path d="M172 34 q2 -12 8 -18"/><path d="M166 32 q-1 -12 -7 -18"/></g>'
+        + '</svg>';
+
+      /* ---------- 状態 ---------- */
+      let score = 0, combo = 0, maxCombo = 0, hits = 0, attempts = 0;
+      let sessionHigh = 0;
+      let timeLeft = settings.duration;
+      let interval = settings.startInterval;
+      let holeTimer = null, tickTimer = null;
+      let gameRunning = false, countingDown = false;
+      let activeIndex = -1, moleHit = true, lastIndex = -1;
+      let holes = [];
+      let audioCtx = null;
+
+      function createBoard() {
+        gameContainer.innerHTML = '';
+        holes = [];
+        for (let i = 0; i < 9; i++) {
+          const hole = document.createElement('button');
+          hole.type = 'button';
+          hole.className = 'hole';
+          hole.setAttribute('aria-label', '穴 ' + (i + 1));
+          hole.innerHTML =
+            '<span class="mound-back"></span>'
+            + '<span class="pit"></span>'
+            + '<span class="mole-clip"><span class="mole"></span></span>'
+            + '<span class="mound-front">' + MOUND_FRONT + '</span>'
+            + '<span class="key-hint">' + KEY_HINTS[i] + '</span>';
+          gameContainer.appendChild(hole);
+          const mole = hole.querySelector('.mole');
+          holes.push({ hole, mole });
+          hole.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            handleTap(i, e);
+          });
+        }
+      }
+
+      function handleTap(i, e) {
+        if (!gameRunning) return;
+        attempts++;
+        const { hole, mole } = holes[i];
+        if (i === activeIndex && mole.classList.contains('up') && !moleHit) {
+          whack(mole, hole, e);
+        } else {
+          miss(hole);
+        }
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (!gameRunning || e.repeat) return;
+        for (const layout of KEY_LAYOUTS) {
+          const idx = layout.indexOf(e.code);
+          if (idx !== -1) { e.preventDefault(); handleTap(idx, null); return; }
+        }
       });
 
-      setTimeout(() => particle.remove(), 520);
-    }
-  }
-
-  function showFloatText(hole, text, color) {
-    const el = document.createElement('div');
-    el.classList.add('float-text');
-    el.textContent = text;
-    el.style.color = color;
-    el.style.left = '50%';
-    el.style.top = '30%';
-    el.style.transform = 'translateX(-50%)';
-    hole.appendChild(el);
-    setTimeout(() => el.remove(), 720);
-  }
-
-  function missClick(hole) {
-    if (combo > 0) playTone(140, 0.15, 'sawtooth', 0.15);
-    combo = 0;
-    updateCombo();
-    hole.classList.add('miss-flash');
-    setTimeout(() => hole.classList.remove('miss-flash'), 250);
-  }
-
-  function updateCombo() {
-    const multiplier = 1 + Math.floor(combo / 5);
-    comboDisplay.textContent = `x${multiplier}`;
-    comboDisplay.classList.toggle('active', multiplier > 1);
-    return multiplier;
-  }
-
-  function whack(mole, hole, index, event) {
-    moleHit = true;
-    const isGolden = mole.classList.contains('golden');
-    combo++;
-    const multiplier = updateCombo();
-    const points = (isGolden ? 3 : 1) * multiplier;
-    score += points;
-    scoreDisplay.textContent = score;
-
-    playTone(isGolden ? 1046 : 880, 0.1, isGolden ? 'triangle' : 'square', 0.16);
-    if (isGolden) playTone(1318, 0.12, 'triangle', 0.14, 0.06);
-
-    mole.classList.add('hit');
-    mole.classList.remove('up');
-
-    const rect = hole.getBoundingClientRect();
-    createParticles(rect.left + rect.width / 2, rect.top + rect.height / 2, isGolden ? '#ffd23f' : '#00e5ff');
-    showFloatText(hole, `+${points}`, isGolden ? '#ffd23f' : '#00e5ff');
-
-    setTimeout(() => mole.classList.remove('hit', 'golden'), 250);
-  }
-
-  function popMole() {
-    if (activeIndex !== -1 && !moleHit) {
-      combo = 0;
-      updateCombo();
-    }
-    holes.forEach(h => h.mole.classList.remove('up', 'golden'));
-    const idx = Math.floor(Math.random() * holes.length);
-    activeIndex = idx;
-    moleHit = false;
-    const isGolden = Math.random() < 0.12;
-    const { mole } = holes[idx];
-    mole.textContent = isGolden ? '✨' : icons[Math.floor(Math.random() * icons.length)];
-    mole.classList.toggle('golden', isGolden);
-    mole.classList.add('up');
-  }
-
-  function scheduleMole() {
-    holeTimer = setTimeout(() => {
-      popMole();
-      interval = Math.max(settings.minInterval, interval * settings.speedUp);
-      scheduleMole();
-    }, interval);
-  }
-
-  function countdown(callback) {
-    let n = 3;
-    countdownOverlay.style.display = 'flex';
-    countdownOverlay.textContent = n;
-    ensureAudio();
-    playTone(660, 0.08, 'sine', 0.14);
-    const step = () => {
-      n--;
-      if (n > 0) {
-        countdownOverlay.textContent = n;
-        playTone(660, 0.08, 'sine', 0.14);
-        setTimeout(step, 600);
-      } else {
-        countdownOverlay.textContent = 'START!';
-        playTone(880, 0.18, 'triangle', 0.18);
-        setTimeout(() => {
-          countdownOverlay.style.display = 'none';
-          callback();
-        }, 500);
+      /* ---------- サウンド ---------- */
+      function ensureAudio() {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) audioCtx = new AC();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
       }
-    };
-    setTimeout(step, 600);
-  }
+      function playTone(freq, dur, type, vol, delay, slideTo) {
+        if (!audioCtx) return;
+        const t0 = audioCtx.currentTime + (delay || 0);
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, t0);
+        if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+        gain.gain.setValueAtTime(vol || 0.15, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(t0); osc.stop(t0 + dur);
+      }
 
-  function setDifficulty(diff) {
-    if (gameRunning) return;
-    currentDifficulty = diff;
-    settings = DIFFICULTIES[diff];
-    time = settings.duration;
-    timeDisplay.textContent = time;
-    timeBarFill.style.width = '100%';
-    [...difficultySelect.children].forEach(btn => btn.classList.toggle('selected', btn.dataset.diff === diff));
-  }
+      /* ---------- エフェクト ---------- */
+      function createParticles(hole, golden) {
+        const colors = golden ? ['#ffd23f', '#ffb020', '#fff3b0'] : ['#7ce38b', '#12b76a', '#d9f99d'];
+        for (let i = 0; i < 14; i++) {
+          const pt = document.createElement('span');
+          pt.className = 'particle' + (i % 3 === 0 ? ' star' : '');
+          const size = 5 + Math.random() * 7;
+          pt.style.width = size + 'px';
+          pt.style.height = size + 'px';
+          pt.style.backgroundColor = colors[i % colors.length];
+          pt.style.left = '50%';
+          pt.style.top = '38%';
+          hole.appendChild(pt);
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 42 + Math.random() * 62;
+          requestAnimationFrame(() => {
+            pt.style.transform = 'translate(' + Math.cos(angle) * dist + 'px,' + (Math.sin(angle) * dist - 18) + 'px) rotate(' + (Math.random() * 160 - 80) + 'deg)';
+            pt.style.opacity = '0';
+          });
+          setTimeout(() => pt.remove(), 540);
+        }
+      }
+      function showFloatText(hole, text, golden) {
+        const el = document.createElement('span');
+        el.className = 'float-text' + (golden ? ' gold' : '');
+        el.textContent = text;
+        hole.appendChild(el);
+        setTimeout(() => el.remove(), 740);
+      }
 
-  difficultySelect.addEventListener('click', (e) => {
-    const btn = e.target.closest('.diff-btn');
-    if (btn) setDifficulty(btn.dataset.diff);
-  });
+      /* ---------- ゲームロジック ---------- */
+      function updateCombo() {
+        const mult = Math.min(5, 1 + Math.floor(combo / 5));
+        comboDisplay.textContent = '×' + mult;
+        comboDisplay.classList.toggle('combo-on', mult > 1);
+        return mult;
+      }
+      function miss(hole) {
+        if (combo >= 3) playTone(150, 0.14, 'sawtooth', 0.1);
+        combo = 0;
+        updateCombo();
+        hole.classList.add('miss-flash');
+        setTimeout(() => hole.classList.remove('miss-flash'), 240);
+        board.classList.remove('shake');
+        void board.offsetWidth;
+        board.classList.add('shake');
+      }
+      function whack(mole, hole) {
+        moleHit = true;
+        const golden = mole.dataset.golden === '1';
+        combo++;
+        maxCombo = Math.max(maxCombo, combo);
+        hits++;
+        const mult = updateCombo();
+        const points = (golden ? 3 : 1) * mult;
+        score += points;
+        scoreDisplay.textContent = score;
+        if (golden) { playTone(1046, 0.1, 'triangle', 0.16); playTone(1318, 0.12, 'triangle', 0.15, 0.06); playTone(1568, 0.16, 'triangle', 0.14, 0.12); }
+        else { playTone(700, 0.12, 'triangle', 0.17, 0, 1180); }
+        mole.classList.add('hit');
+        mole.classList.remove('up');
+        mole.querySelectorAll('.star-spin').forEach(s => { s.setAttribute('opacity', '1'); });
+        createParticles(hole, golden);
+        showFloatText(hole, '+' + points, golden);
+        setTimeout(() => { mole.classList.remove('hit'); mole.querySelectorAll('.star-spin').forEach(s => s.setAttribute('opacity', '0')); }, 260);
+      }
+      function popMole() {
+        if (activeIndex !== -1 && !moleHit) { combo = 0; updateCombo(); }
+        holes.forEach(h => h.mole.classList.remove('up'));
+        let idx;
+        do { idx = Math.floor(Math.random() * holes.length); } while (idx === lastIndex);
+        lastIndex = idx;
+        activeIndex = idx;
+        moleHit = false;
+        const golden = Math.random() < 0.12;
+        const accessories = ['sprout', 'sprout', 'flower', 'helmet', 'shades', 'none'];
+        const acc = accessories[Math.floor(Math.random() * accessories.length)];
+        const { mole } = holes[idx];
+        mole.dataset.golden = golden ? '1' : '0';
+        mole.innerHTML = moleSVG(golden, acc);
+        playTone(280 + Math.random() * 60, 0.06, 'sine', 0.05);
+        requestAnimationFrame(() => requestAnimationFrame(() => mole.classList.add('up')));
+      }
+      function scheduleMole() {
+        holeTimer = setTimeout(() => {
+          if (!gameRunning) return;
+          popMole();
+          interval = Math.max(settings.minInterval, interval * settings.speedUp);
+          scheduleMole();
+        }, interval);
+      }
+      function updateTimeUI() {
+        const shown = Math.max(0, Math.ceil(timeLeft));
+        timeDisplay.textContent = shown;
+        timeDisplay.classList.toggle('time-low', timeLeft <= 5.5);
+        timeBarFill.style.width = Math.max(0, (timeLeft / settings.duration) * 100) + '%';
+        timeBarFill.classList.toggle('low', timeLeft <= 5.5);
+      }
+      function countdown(done) {
+        countingDown = true;
+        let n = 3;
+        countdownOverlay.style.display = 'flex';
+        const showNum = () => {
+          countdownNum.textContent = n;
+          countdownNum.style.animation = 'none';
+          void countdownNum.offsetWidth;
+          countdownNum.style.animation = '';
+          playTone(620, 0.09, 'sine', 0.13);
+        };
+        showNum();
+        const step = () => {
+          n--;
+          if (n > 0) { showNum(); setTimeout(step, 620); }
+          else {
+            countdownNum.textContent = 'START!';
+            countdownNum.style.animation = 'none';
+            void countdownNum.offsetWidth;
+            countdownNum.style.animation = '';
+            playTone(920, 0.2, 'triangle', 0.17);
+            setTimeout(() => { countdownOverlay.style.display = 'none'; countingDown = false; done(); }, 520);
+          }
+        };
+        setTimeout(step, 620);
+      }
+      function setDifficulty(diff) {
+        if (gameRunning || countingDown) return;
+        currentDifficulty = diff;
+        settings = DIFFICULTIES[diff];
+        timeLeft = settings.duration;
+        updateTimeUI();
+        [...difficultySelect.children].forEach(btn => btn.classList.toggle('selected', btn.dataset.diff === diff));
+      }
+      difficultySelect.addEventListener('click', (e) => {
+        const btn = e.target.closest('.diff-btn');
+        if (btn) setDifficulty(btn.dataset.diff);
+      });
+      function startGame() {
+        ensureAudio();
+        score = 0; combo = 0; maxCombo = 0; hits = 0; attempts = 0;
+        settings = DIFFICULTIES[currentDifficulty];
+        timeLeft = settings.duration;
+        interval = settings.startInterval;
+        activeIndex = -1; lastIndex = -1; moleHit = true;
+        scoreDisplay.textContent = '0';
+        updateCombo();
+        updateTimeUI();
+        startButton.disabled = true;
+        startButton.textContent = 'プレイ中…';
+        [...difficultySelect.children].forEach(btn => btn.disabled = true);
+        countdown(() => {
+          gameRunning = true;
+          popMole();
+          scheduleMole();
+          let lastTickSec = Math.ceil(timeLeft);
+          tickTimer = setInterval(() => {
+            timeLeft -= 0.1;
+            const sec = Math.ceil(timeLeft);
+            if (sec !== lastTickSec) {
+              lastTickSec = sec;
+              if (sec <= 3 && sec > 0) playTone(660, 0.07, 'sine', 0.11);
+            }
+            updateTimeUI();
+            if (timeLeft <= 0) endGame();
+          }, 100);
+        });
+      }
+      function endGame() {
+        clearInterval(tickTimer);
+        clearTimeout(holeTimer);
+        gameRunning = false;
+        timeLeft = 0;
+        updateTimeUI();
+        holes.forEach(h => h.mole.classList.remove('up'));
+        startButton.disabled = false;
+        startButton.textContent = 'ゲームスタート';
+        [...difficultySelect.children].forEach(btn => btn.disabled = false);
+        playTone(523, 0.14, 'triangle', 0.15, 0);
+        playTone(659, 0.14, 'triangle', 0.15, 0.14);
+        playTone(784, 0.16, 'triangle', 0.16, 0.28);
+        playTone(1046, 0.3, 'triangle', 0.16, 0.42);
+        const isRecord = score > sessionHigh;
+        if (isRecord) sessionHigh = score;
+        highScoreDisplay.textContent = sessionHigh;
+        resultScore.textContent = score;
+        resultHits.textContent = hits;
+        resultMaxCombo.textContent = maxCombo;
+        resultAccuracy.textContent = attempts > 0 ? Math.round((hits / attempts) * 100) + '%' : '–';
+        resultHighScore.textContent = 'ハイスコア: ' + sessionHigh;
+        newRecordBadge.style.display = isRecord && score > 0 ? 'block' : 'none';
+        setTimeout(() => { resultOverlay.style.display = 'flex'; retryButton.focus(); }, 480);
+      }
+      retryButton.addEventListener('click', () => { resultOverlay.style.display = 'none'; startGame(); });
+      closeResultButton.addEventListener('click', () => { resultOverlay.style.display = 'none'; startButton.focus(); });
+      startButton.addEventListener('click', startGame);
 
-  function startGame() {
-    ensureAudio();
-    score = 0;
-    combo = 0;
-    settings = DIFFICULTIES[currentDifficulty];
-    time = settings.duration;
-    interval = settings.startInterval;
-    activeIndex = -1;
-    moleHit = true;
-
-    scoreDisplay.textContent = 0;
-    updateCombo();
-    timeDisplay.textContent = time;
-    timeBarFill.style.width = '100%';
-
-    startButton.disabled = true;
-    [...difficultySelect.children].forEach(btn => btn.disabled = true);
-
-    countdown(() => {
-      gameRunning = true;
-      scheduleMole();
-      timerId = setInterval(tick, 1000);
-    });
-  }
-
-  function tick() {
-    time--;
-    timeDisplay.textContent = time;
-    timeBarFill.style.width = `${Math.max(0, (time / settings.duration) * 100)}%`;
-    if (time <= 3 && time > 0) playTone(660, 0.07, 'sine', 0.12);
-    if (time <= 0) endGame();
-  }
-
-  function formatDate(d) {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const date = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${year}/${month}/${date} ${hours}:${minutes}`;
-  }
-
-  function buildShareText() {
-    const diffLabel = DIFFICULTIES[currentDifficulty].label;
-    const dateStr = gameEndedDate ? formatDate(gameEndedDate) : formatDate(new Date());
-    return `ネオンモグラで ${score}点 を獲得しました！\n(難易度: ${diffLabel} / 日時: ${dateStr})\n#ネオンモグラ\n`;
-  }
-
-  function endGame() {
-    clearInterval(timerId);
-    clearTimeout(holeTimer);
-    gameRunning = false;
-    gameEndedDate = new Date();
-    holes.forEach(h => h.mole.classList.remove('up', 'golden'));
-    startButton.disabled = false;
-    [...difficultySelect.children].forEach(btn => btn.disabled = false);
-
-    playTone(523, 0.15, 'triangle', 0.16, 0);
-    playTone(659, 0.15, 'triangle', 0.16, 0.15);
-    playTone(784, 0.25, 'triangle', 0.18, 0.3);
-
-    const prevHigh = Number(localStorage.getItem(highScoreKey) || 0);
-    const isRecord = score > prevHigh;
-    if (isRecord) localStorage.setItem(highScoreKey, score);
-    highScoreDisplay.textContent = localStorage.getItem(highScoreKey);
-
-    resultScore.textContent = score;
-    resultHighScore.textContent = `ハイスコア: ${localStorage.getItem(highScoreKey)}`;
-    newRecordBadge.style.display = isRecord ? 'block' : 'none';
-    resultOverlay.style.display = 'flex';
-  }
-
-  shareXBtn.addEventListener('click', () => {
-    const text = buildShareText();
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
-    window.open(url, '_blank', 'noopener');
-  });
-
-  shareLineBtn.addEventListener('click', () => {
-    const text = buildShareText() + window.location.href;
-    const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank', 'noopener');
-  });
-
-  retryButton.addEventListener('click', () => {
-    resultOverlay.style.display = 'none';
-    startGame();
-  });
-
-  startButton.addEventListener('click', startGame);
-  createBoard();
-</script>
-</body>
+      createBoard();
+      updateTimeUI();
+    </script>
+  </body>
 </html>

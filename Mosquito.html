@@ -22,6 +22,54 @@
 			--success: #2ee59d;
 			--shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 			--radius: 22px;
+			--accent-rgb: 91, 231, 255;
+			--glow-a: rgba(91, 231, 255, 0.16);
+			--glow-b: rgba(255, 179, 71, 0.18);
+			--blob-a: rgba(91, 231, 255, 0.35);
+			--blob-b: rgba(255, 179, 71, 0.32);
+			--panel-bg: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+			--soft-bg: rgba(255, 255, 255, 0.04);
+			--soft-border: rgba(255, 255, 255, 0.08);
+			--field-bg: rgba(255, 255, 255, 0.06);
+			--track-bg: rgba(255, 255, 255, 0.08);
+			--pill-bg: rgba(10, 16, 28, 0.45);
+			--pill-border: rgba(255, 255, 255, 0.12);
+			--select-bg: rgba(255, 255, 255, 0.08);
+			--select-text: #ffffff;
+			--btn-text: #072031;
+			--primary-soft: #b9fbff;
+		}
+
+		body.theme-base {
+			--bg-start: #fff7ed;
+			--bg-end: #fef08a;
+			--card-bg: rgba(255, 255, 255, 0.95);
+			--card-border: #fed7aa;
+			--primary: #f97316;
+			--primary-strong: #ea580c;
+			--primary-soft: #fed7aa;
+			--heading: #c2410c;
+			--secondary: #facc15;
+			--text: #44403c;
+			--muted: #78716c;
+			--danger: #ef4444;
+			--success: #22c55e;
+			--shadow: 0 10px 25px rgba(180, 150, 120, 0.15);
+			--accent-rgb: 249, 115, 22;
+			--glow-a: rgba(251, 146, 60, 0.18);
+			--glow-b: rgba(250, 204, 21, 0.20);
+			--blob-a: rgba(253, 186, 116, 0.45);
+			--blob-b: rgba(253, 224, 71, 0.40);
+			--panel-bg: rgba(255, 247, 237, 0.7);
+			--soft-bg: rgba(255, 247, 237, 0.7);
+			--soft-border: #ffedd5;
+			--field-bg: #ffffff;
+			--track-bg: #ffedd5;
+			--pill-bg: rgba(255, 255, 255, 0.9);
+			--pill-border: #fed7aa;
+			--select-bg: #ffffff;
+			--select-text: #44403c;
+			--btn-text: #431407;
 		}
 
 		body.theme-cute {
@@ -79,8 +127,8 @@
 			font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
 			color: var(--text);
 			background:
-				radial-gradient(circle at top left, rgba(91, 231, 255, 0.16), transparent 32%),
-				radial-gradient(circle at bottom right, rgba(255, 179, 71, 0.18), transparent 28%),
+				radial-gradient(circle at top left, var(--glow-a), transparent 32%),
+				radial-gradient(circle at bottom right, var(--glow-b), transparent 28%),
 				linear-gradient(145deg, var(--bg-start), var(--bg-end));
 			display: flex;
 			flex-direction: column;
@@ -105,13 +153,13 @@
 		body::before {
 			top: -7rem;
 			left: -7rem;
-			background: rgba(91, 231, 255, 0.35);
+			background: var(--blob-a);
 		}
 
 		body::after {
 			bottom: -8rem;
 			right: -6rem;
-			background: rgba(255, 179, 71, 0.32);
+			background: var(--blob-b);
 		}
 
 		.back-link {
@@ -136,6 +184,21 @@
 			border-color: rgba(91, 231, 255, 0.45);
 		}
 
+		.menu-btn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			font-size: 11px;
+			color: #71716a;
+			text-decoration: none;
+			background: rgba(255, 255, 255, 0.9);
+			padding: 4px 10px;
+			border-radius: 999px;
+			border: 1.5px solid #e4e4e7;
+			font-weight: bold;
+			z-index: 1000;
+		}
+
 		.theme-controls {
 			width: min(980px, calc(100% - 24px));
 			margin: 0 0 12px;
@@ -149,8 +212,8 @@
 			gap: 10px;
 			padding: 10px 14px;
 			border-radius: 999px;
-			background: rgba(10, 16, 28, 0.45);
-			border: 1px solid rgba(255, 255, 255, 0.12);
+			background: var(--pill-bg);
+			border: 1px solid var(--pill-border);
 			backdrop-filter: blur(12px);
 		}
 
@@ -161,9 +224,9 @@
 		}
 
 		.theme-select {
-			border: 1px solid rgba(91, 231, 255, 0.25);
-			background: rgba(255, 255, 255, 0.08);
-			color: #ffffff;
+			border: 1px solid rgba(var(--accent-rgb), 0.25);
+			background: var(--select-bg);
+			color: var(--select-text);
 			border-radius: 999px;
 			padding: 8px 12px;
 			font-weight: 700;
@@ -185,9 +248,9 @@
 			display: inline-block;
 			padding: 6px 12px;
 			border-radius: 999px;
-			background: rgba(91, 231, 255, 0.12);
-			color: var(--primary);
-			border: 1px solid rgba(91, 231, 255, 0.22);
+			background: rgba(var(--accent-rgb), 0.12);
+			color: var(--heading, var(--primary));
+			border: 1px solid rgba(var(--accent-rgb), 0.22);
 			font-size: 0.85rem;
 			letter-spacing: 0.08em;
 		}
@@ -208,6 +271,9 @@
 		}
 
 		
+		body.theme-base h1 {
+			background: linear-gradient(135deg, #f97316, #ea580c);
+		}
 		body.theme-cute h1 {
 			background: linear-gradient(135deg, #ff85a2, #ff477e);
 		}
@@ -246,15 +312,15 @@
 
 		.panel {
 			border-radius: 18px;
-			background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-			border: 1px solid rgba(255, 255, 255, 0.08);
+			background: var(--panel-bg);
+			border: 1px solid var(--soft-border);
 			padding: 18px;
 		}
 
 		.panel h2 {
 			margin: 0 0 14px;
 			font-size: 1.15rem;
-			color: var(--primary);
+			color: var(--heading, var(--primary));
 			letter-spacing: 0.04em;
 		}
 
@@ -287,9 +353,9 @@
 		.stepper-btn {
 			width: 42px;
 			height: 42px;
-			border: 1px solid rgba(91, 231, 255, 0.28);
+			border: 1px solid rgba(var(--accent-rgb), 0.28);
 			border-radius: 999px;
-			background: rgba(255, 255, 255, 0.08);
+			background: var(--track-bg);
 			color: var(--text);
 			font-size: 1.1rem;
 			font-weight: 900;
@@ -299,8 +365,8 @@
 
 		.stepper-btn:hover {
 			transform: translateY(-1px);
-			background: rgba(91, 231, 255, 0.14);
-			border-color: rgba(91, 231, 255, 0.55);
+			background: rgba(var(--accent-rgb), 0.14);
+			border-color: rgba(var(--accent-rgb), 0.55);
 		}
 
 		.stepper-btn:active {
@@ -313,8 +379,8 @@
 			font-size: 1.5rem;
 			font-weight: 800;
 			color: var(--text);
-			background: rgba(255, 255, 255, 0.06);
-			border: 1px solid rgba(91, 231, 255, 0.35);
+			background: var(--field-bg);
+			border: 1px solid rgba(var(--accent-rgb), 0.35);
 			border-radius: 16px;
 			padding: 14px 16px;
 			outline: none;
@@ -323,8 +389,8 @@
 		}
 
 		.age-input:focus {
-			border-color: rgba(91, 231, 255, 0.7);
-			box-shadow: 0 0 0 4px rgba(91, 231, 255, 0.15);
+			border-color: rgba(var(--accent-rgb), 0.7);
+			box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15);
 			transform: translateY(-1px);
 		}
 
@@ -349,7 +415,7 @@
 			font-size: 1rem;
 			font-weight: 800;
 			letter-spacing: 0.04em;
-			color: #072031;
+			color: var(--btn-text);
 			cursor: pointer;
 			transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
 			box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
@@ -365,7 +431,7 @@
 		}
 
 		.btn-primary {
-			background: linear-gradient(135deg, var(--primary), #b9fbff);
+			background: linear-gradient(135deg, var(--primary), var(--primary-soft));
 		}
 
 		.btn-secondary {
@@ -392,8 +458,8 @@
 		.status-card {
 			padding: 16px;
 			border-radius: 18px;
-			background: linear-gradient(180deg, rgba(91, 231, 255, 0.08), rgba(255, 255, 255, 0.03));
-			border: 1px solid rgba(91, 231, 255, 0.18);
+			background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08), rgba(255, 255, 255, 0.03));
+			border: 1px solid rgba(var(--accent-rgb), 0.18);
 		}
 
 		.status-label {
@@ -419,14 +485,14 @@
 			margin-top: 18px;
 			padding: 16px;
 			border-radius: 18px;
-			background: rgba(255, 255, 255, 0.04);
-			border: 1px solid rgba(255, 255, 255, 0.08);
+			background: var(--soft-bg);
+			border: 1px solid var(--soft-border);
 		}
 
 		.guideline-box h3 {
 			margin: 0 0 10px;
 			font-size: 1rem;
-			color: var(--primary);
+			color: var(--heading, var(--primary));
 		}
 
 		.guideline-box p {
@@ -452,8 +518,8 @@
 			height: 14px;
 			border-radius: 999px;
 			overflow: hidden;
-			background: rgba(255, 255, 255, 0.08);
-			border: 1px solid rgba(255, 255, 255, 0.08);
+			background: var(--track-bg);
+			border: 1px solid var(--soft-border);
 			margin-top: 12px;
 		}
 
@@ -517,7 +583,7 @@
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
-	<a href="menu.html" style="position: absolute; top: 20px; right: 20px; font-size: 16px; color: #ffffff; text-decoration: none; background: #222222; border: 1px solid #555555; padding: 6px 12px; z-index: 1000; font-weight: bold;">メニューに戻る</a>
+	<a href="menu.html" class="menu-btn">メニューに戻る</a>
 
 	<header>
 		<h1>モスキート音ジェネレーター</h1>
@@ -527,6 +593,7 @@
 		<div class="theme-select-wrap">
 			<label class="theme-select-label" for="themeSelect">カラーテーマ</label>
 			<select id="themeSelect" class="theme-select" aria-label="カラーテーマ選択">
+				<option value="base">オレンジ</option>
 				<option value="cool">クール</option>
 				<option value="cute">かわいい</option>
 				<option value="beautiful">キレイ</option>
@@ -695,15 +762,15 @@
 
 		function getSavedTheme() {
 			try {
-				return localStorage.getItem(themeKey) || "cool";
+				return localStorage.getItem(themeKey) || "base";
 			} catch (error) {
 				console.warn("テーマの復元に失敗しました", error);
-				return "cool";
+				return "base";
 			}
 		}
 
 		function applyTheme(theme) {
-			document.body.classList.remove("theme-cute", "theme-beautiful", "theme-stylish");
+			document.body.classList.remove("theme-base", "theme-cute", "theme-beautiful", "theme-stylish");
 			if (theme !== "cool") {
 				document.body.classList.add("theme-" + theme);
 			}

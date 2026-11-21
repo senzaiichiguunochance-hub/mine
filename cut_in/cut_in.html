@@ -1,129 +1,260 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>戦国スライドアニメーション</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #1a1a1a;
-            color: #fff;
-            font-family: sans-serif;
-            padding: 20px;
-        }
-        .container {
-            position: relative;
-            width: 900px;
-            max-width: 100%;
-            aspect-ratio: 16 / 9;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            cursor: pointer;
-        }
-        .bg-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .char-image {
-            position: absolute;
-            bottom: 0;
-            right: 10%;
-            height: 80%;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>戦国スライドアニメーション</title>
+  <style>
+    /* === 共通カラー変数・基本設定（base.html準拠） === */
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --card-border: #fed7aa;
+      --primary: #f97316;
+      --primary-dark: #c2410c;
+      --primary-border: #ea580c;
+      --sub-bg: rgba(255, 247, 237, 0.7);
+      --sub-border: #ffedd5;
+      --text: #44403c;
+      --text-muted: #78716c;
+    }
 
-        /* 右からスライドイン用クラス */
-        .char-image.slide-from-right {
-            animation: slideInRight 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* 左からスライドイン用クラス */
-        .char-image.slide-from-left {
-            animation: slideInLeft 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-        }
+    body {
+      font-family: sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
 
-        @keyframes slideInRight {
-            0% {
-                transform: translateX(200%); /* 画面右外側から */
-                opacity: 0;
-            }
-            100% {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
+    /* === 右上：メニューに戻るボタン === */
+    .menu-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 11px;
+      color: #71716a;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1.5px solid #e4e4e7;
+      font-weight: bold;
+      z-index: 1000;
+    }
 
-        @keyframes slideInLeft {
-            0% {
-                transform: translateX(-200%); /* 画面左外側から */
-                opacity: 0;
-            }
-            100% {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
+    /* === メインコンテナ・見出し === */
+    .card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      border: 2px solid var(--card-border);
+      box-shadow: 0 10px 25px rgba(180, 150, 120, 0.15);
+      padding: 16px;
+      width: 932px;
+      max-width: 100%;
+    }
 
-        .hint {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #aaa;
-        }
-    </style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+    h1 {
+      text-align: center;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    /* === ステージ（アニメーション表示部） === */
+    .container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 12px;
+      border: 1px solid var(--sub-border);
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(180, 150, 120, 0.25);
+      cursor: pointer;
+    }
+    .bg-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .char-image {
+      position: absolute;
+      bottom: 0;
+      right: 10%;
+      height: 80%;
+    }
+
+    /* 右からスライドイン用クラス */
+    .char-image.slide-from-right {
+      animation: slideInRight 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    /* 左からスライドイン用クラス */
+    .char-image.slide-from-left {
+      animation: slideInLeft 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+
+    @keyframes slideInRight {
+      0% {
+        transform: translateX(200%); /* 画面右外側から */
+        opacity: 0;
+      }
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideInLeft {
+      0% {
+        transform: translateX(-200%); /* 画面左外側から */
+        opacity: 0;
+      }
+      100% {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    /* 上からスライドイン */
+    .char-image.slide-from-top {
+      animation: slideInTop 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes slideInTop {
+      0%   { transform: translateY(-200%); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* 下からスライドイン */
+    .char-image.slide-from-bottom {
+      animation: slideInBottom 0.35s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes slideInBottom {
+      0%   { transform: translateY(200%); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ズームイン（小さい→通常、少し弾む） */
+    .char-image.zoom-in {
+      transform-origin: bottom center;
+      animation: zoomIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes zoomIn {
+      0%   { transform: scale(0); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ズームアウト（大きい→通常、迫ってくる感じ） */
+    .char-image.zoom-out {
+      transform-origin: bottom center;
+      animation: zoomOut 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes zoomOut {
+      0%   { transform: scale(3); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 回転しながら登場 */
+    .char-image.rotate-in {
+      transform-origin: center bottom;
+      animation: rotateIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes rotateIn {
+      0%   { transform: rotate(-360deg) scale(0); opacity: 0; }
+      100% { transform: rotate(0) scale(1); opacity: 1; }
+    }
+
+    /* 横向きに回転して登場（フリップ） */
+    .char-image.flip-in {
+      animation: flipIn 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+    }
+    @keyframes flipIn {
+      0%   { transform: perspective(800px) rotateY(90deg); opacity: 0; }
+      100% { transform: perspective(800px) rotateY(0); opacity: 1; }
+    }
+
+    /* === ヒント表示 === */
+    .box-sub {
+      background: var(--sub-bg);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--sub-border);
+      margin-top: 12px;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+  </style>
+  <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
-<a href="..\menu.html" style="position:absolute;top:10px;right:10px;font-size:12px;color:#333;text-decoration:none;background:rgba(255,255,255,.8);padding:5px 10px;border-radius:4px;z-index:1000;border:1px solid #ddd;">メニューに戻る</a>
+  <a href="..\menu.html" class="menu-btn">メニューに戻る</a>
+
+  <div class="card">
+    <h1>戦国スライドアニメーション</h1>
 
     <div class="container" id="stage">
-        <!-- 固定背景 -->
-        <img src="background.jpg" alt="背景" class="bg-image">
-        <!-- 初期表示 -->
-        <img src="001.png" alt="キャラクター" class="char-image slide-from-right" id="chara">
+      <!-- 固定背景 -->
+      <img src="background.jpg" alt="背景" class="bg-image">
+      <!-- 初期表示 -->
+      <img src="001.png" alt="キャラクター" class="char-image slide-from-right" id="chara">
     </div>
-    <div class="hint">画面をクリックすると、左右ランダムでランダムキャラクターが登場します</div>
 
-<script>
-        const maxImages = 10; // 実際の枚数より多く設定していてもOKになります
-        const stage = document.getElementById('stage');
-        const charaImg = document.getElementById('chara');
+    <div class="box-sub">
+      <div class="hint">画面をクリックすると、ランダムなキャラクターがランダムな演出（スライド・ズーム・回転など）で登場します</div>
+    </div>
+  </div>
 
-        stage.addEventListener('click', () => {
-            const randomNum = Math.floor(Math.random() * maxImages) + 1;
-            const paddedNum = String(randomNum).padStart(3, '0');
-            const nextSrc = paddedNum + ".png";
+  <script>
+    const maxImages = 10; // 実際の枚数より多く設定していてもOKになります
+    const animClasses = [
+      'slide-from-left', 'slide-from-right',
+      'slide-from-top', 'slide-from-bottom',
+      'zoom-in', 'zoom-out',
+      'rotate-in', 'flip-in'
+    ];
+    const stage = document.getElementById('stage');
+    const charaImg = document.getElementById('chara');
 
-            // 90%の確率で左、10%で右
-            const isLeft = Math.random() <= 0.5;
-            const animClass = isLeft ? 'slide-from-left' : 'slide-from-right';
+    stage.addEventListener('click', () => {
+      const randomNum = Math.floor(Math.random() * maxImages) + 1;
+      const paddedNum = String(randomNum).padStart(3, '0');
+      const nextSrc = paddedNum + ".png";
 
-            const testImg = new Image();
-            testImg.src = nextSrc;
-            
-            testImg.onload = function() {
-                // ファイルが存在する場合
-                charaImg.className = 'char-image';
-                charaImg.src = nextSrc;
-                void charaImg.offsetWidth;
-                charaImg.classList.add(animClass);
-            };
+      // 登場アニメーションをランダムに選ぶ（使いたくないものは配列から消せばOK）
+      const animClass = animClasses[Math.floor(Math.random() * animClasses.length)];
 
-            testImg.onerror = function() {
-                // 【修正】ファイルが無い場合も、001.pngにしつつ、決めた方向（animClass）を維持する！
-                charaImg.className = 'char-image';
-                charaImg.src = "001.png";
-                void charaImg.offsetWidth;
-                charaImg.classList.add(animClass); // ← ここを右固定から変更！
-            };
-        });
-    </script>
+      const testImg = new Image();
+      testImg.src = nextSrc;
+
+      testImg.onload = function() {
+        // ファイルが存在する場合
+        charaImg.className = 'char-image';
+        charaImg.src = nextSrc;
+        void charaImg.offsetWidth;
+        charaImg.classList.add(animClass);
+      };
+
+      testImg.onerror = function() {
+        // ファイルが無い場合は001.pngにしつつ、決めた方向（animClass）を維持
+        charaImg.className = 'char-image';
+        charaImg.src = "001.png";
+        void charaImg.offsetWidth;
+        charaImg.classList.add(animClass);
+      };
+    });
+  </script>
 </body>
 </html>
