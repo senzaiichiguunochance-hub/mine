@@ -1,170 +1,767 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>三並べ</title>
-<style>
-:root{--bg:#f6f5f1;--fg:#222;--card:#fff;--line:#d8d5cc;--a:#f28c28;--b:#2e86e4;--hl:#ffd166;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1c1e;--fg:#eee;--card:#2a2a2d;--line:#444;--hl:#b8860b}}
-:root[data-theme="dark"]{--bg:#1c1c1e;--fg:#eee;--card:#2a2a2d;--line:#444;--hl:#b8860b}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px 12px}
-h1{font-size:1.3rem;margin:0 0 12px}
-.ctl{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
-select,button.rs{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)}
-#status{font-size:1.05rem;min-height:2.6em;text-align:center;margin:6px 0;font-weight:600}
-#info{font-size:.85rem;opacity:.75;margin-bottom:10px}
-#board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(92vw,360px)}
-.cell{aspect-ratio:1;background:var(--card);border:2px solid var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.cell.sel{outline:4px solid var(--hl)}
-.cell.win{background:var(--hl)}
-.pc{width:64%;height:64%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:min(10vw,42px);line-height:1;box-shadow:inset 0 0 0 3px rgba(255,255,255,.55)}
-.share-row{display:none;gap:8px;width:min(92vw,360px);margin-top:14px}
-.share-row.show{display:flex}
-.btn-share{flex:1;font:inherit;font-weight:600;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
-.pc.X{background:var(--a)}.pc.O{background:var(--b)}
-details{max-width:360px;margin-top:18px;font-size:.85rem;line-height:1.6}
-</style>
-<script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
-</head>
-<body>
-<a href="menu.html" style="position: absolute; top: 10px; right: 10px; font-size: 12px; color: #333; text-decoration: none; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; z-index: 1000; border: 1px solid #ddd;">メニューに戻る</a>
-<h1>三並べ</h1>
-<div class="ctl">
-  <select id="mode">
-    <option value="pvp">2人対戦</option>
-    <option value="cpuO">CPU対戦（あなたが先攻）</option>
-    <option value="cpuX">CPU対戦（あなたが後攻）</option>
-  </select>
-  <select id="lv">
-    <option value="1">CPU：弱い</option>
-    <option value="3" selected>CPU：普通</option>
-    <option value="6">CPU：強い</option>
-  </select>
-  <button class="rs" id="reset">リセット</button>
-</div>
-<div id="status"></div>
-<div id="info"></div>
-<div id="board"></div>
-<div class="share-row" id="share">
-  <button class="btn-share" id="share-x" type="button">Xでシェア</button>
-  <button class="btn-share" id="share-line" type="button">LINEでシェア</button>
-</div>
-<details><summary>ルール</summary>
-3つずつ交互に置き、揃わなければコマを好きな空きマスへ自由に移動。縦・横・斜めに3つ並べたら勝ち。先攻 <span style="color:var(--a)">●</span>、後攻 <span style="color:var(--b)">●</span>。
-</details>
-<script>
-const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-const NAME={X:"先攻",O:"後攻"};
-const ICONS=['🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦉','🐺','🐴','🐝','🐢','🐍','🦎','🐙','🦑','🦀','🐠','🐬','🦈','🐊','🐅','🦓','🐘','🦒','🐕','🐈','🦃','🦢','🐇','🦔'];
-const KEY="mitsunarabe-settings";
-let S;
-function pickChars(){
-  const a=Math.floor(Math.random()*ICONS.length);
-  let b=Math.floor(Math.random()*(ICONS.length-1));if(b>=a)b++;
-  return{X:ICONS[a],O:ICONS[b]};
-}
-function loadSettings(){
-  let v=null;
-  try{v=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-  const ok=(id,val)=>[...$(id).options].some(o=>o.value===val);
-  $("mode").value=v&&ok("mode",v.mode)?v.mode:"cpuO";
-  $("lv").value=v&&ok("lv",v.lv)?v.lv:"3";
-}
-function saveSettings(){
-  try{localStorage.setItem(KEY,JSON.stringify({mode:$("mode").value,lv:$("lv").value}))}catch(e){}
-}
-const $=id=>document.getElementById(id);
-const opp=t=>t==="X"?"O":"X";
-function winLine(b){for(const l of L){const[a,c,d]=l;if(b[a]&&b[a]===b[c]&&b[a]===b[d])return l}return null}
-function moves(b,pl,t){
-  const e=[];b.forEach((v,i)=>{if(!v)e.push(i)});
-  if(pl[t]<3)return e.map(to=>({from:null,to}));
-  const r=[];b.forEach((v,i)=>{if(v===t)for(const to of e)r.push({from:i,to})});
-  return r;
-}
-function apply(b,pl,t,m){
-  const nb=b.slice(),np={...pl};
-  if(m.from===null)np[t]++;else nb[m.from]=null;
-  nb[m.to]=t;return[nb,np];
-}
-function search(b,pl,t,d,a,be){
-  if(d===0)return 0;
-  let best=-Infinity;
-  for(const m of moves(b,pl,t)){
-    const[nb,np]=apply(b,pl,t,m);
-    const s=winLine(nb)?50+d:-search(nb,np,opp(t),d-1,-be,-a);
-    if(s>best)best=s;if(best>a)a=best;if(a>=be)break;
-  }
-  return best;
-}
-function cpuMove(){
-  const depth=+$("lv").value,ms=moves(S.b,S.pl,S.t);let best=-Infinity,pool=[];
-  for(const m of ms){
-    const[nb,np]=apply(S.b,S.pl,S.t,m);
-    const s=winLine(nb)?50+depth:-search(nb,np,opp(S.t),depth-1,-Infinity,Infinity);
-    if(s>best){best=s;pool=[m]}else if(s===best)pool.push(m);
-  }
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-function init(){
-  S={b:Array(9).fill(null),pl:{X:0,O:0},t:"X",sel:null,over:false,line:null,ch:pickChars()};
-  render();maybeCpu();
-}
-const isCpu=t=>{const m=$("mode").value;return m==="cpuO"&&t==="O"||m==="cpuX"&&t==="X"};
-function play(m){
-  [S.b,S.pl]=apply(S.b,S.pl,S.t,m);S.sel=null;
-  const l=winLine(S.b);
-  if(l){S.over=true;S.line=l}else S.t=opp(S.t);
-  render();maybeCpu();
-}
-function maybeCpu(){
-  if(!S.over&&isCpu(S.t))setTimeout(()=>{if(!S.over&&isCpu(S.t))play(cpuMove())},550);
-}
-function click(i){
-  if(S.over||isCpu(S.t))return;
-  const placing=S.pl[S.t]<3;
-  if(placing){if(!S.b[i])play({from:null,to:i});return}
-  if(S.b[i]===S.t){S.sel=S.sel===i?null:i;render();return}
-  if(!S.b[i]&&S.sel!==null)play({from:S.sel,to:i});
-}
-function render(){
-  const bd=$("board");bd.innerHTML="";
-  S.b.forEach((v,i)=>{
-    const c=document.createElement("button");
-    c.className="cell"+(S.sel===i?" sel":"")+(S.line&&S.line.includes(i)?" win":"");
-    c.setAttribute("aria-label",`マス${i+1}`);
-    if(v){const p=document.createElement("div");p.className="pc "+v;p.textContent=S.ch[v];c.appendChild(p)}
-    c.onclick=()=>click(i);bd.appendChild(c);
-  });
-  const who=t=>NAME[t]+(isCpu(t)?"（CPU）":"");
-  let st;
-  if(S.over)st=`${who(S.t)}の勝ち！`;
-  else if(isCpu(S.t))st=`${who(S.t)}が考え中…`;
-  else st=`${who(S.t)}の番：`+(S.pl[S.t]<3?"空きマスにコマを置く":(S.sel===null?"動かすコマを選ぶ":"移動先の空きマスを選ぶ"));
-  $("status").textContent=st;
-  $("info").textContent=`持ちコマ　先攻 ${S.ch.X} ${3-S.pl.X}／後攻 ${S.ch.O} ${3-S.pl.O}`;
-  $("share").classList.toggle("show",S.over);
-}
-function shareText(){
-  const m=$("mode").value,w=S.t,lv={1:"弱い",3:"普通",6:"強い"}[$("lv").value];
-  const head=m==="pvp"?`2人対戦で${NAME[w]}${S.ch[w]}が勝ちました！`
-    :isCpu(w)?`CPU（${lv}）に負けました…`:`CPU（${lv}）に勝ちました！`;
-  return `三並べ ${S.ch.X} vs ${S.ch.O}\n${head}\n#三並べ\n`;
-}
-$("share-x").onclick=()=>{
-  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText())}&url=${encodeURIComponent(location.href)}`,"_blank","noopener");
-};
-$("share-line").onclick=()=>{
-  window.open(`https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(shareText()+location.href)}`,"_blank","noopener");
-};
-$("reset").onclick=init;
-$("mode").onchange=()=>{saveSettings();init()};
-$("lv").onchange=saveSettings;
-loadSettings();
-init();
-</script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>三並べ</title>
+    <!-- GoatCounter アクセス解析（base.htmlと同形） -->
+    <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet" />
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2rem; }
+
+      :root {
+        --bg-grad: linear-gradient(135deg, #fff7ed, #ffedd5 55%, #fef08a);
+        --card-bg: rgba(255, 255, 255, 0.96);
+        --card-border: #fed7aa;
+        --card-shadow: 0 12px 30px rgba(180, 130, 70, 0.20), 0 2px 6px rgba(180, 130, 70, 0.12);
+        --text: #44403c;
+        --muted: #8a7f72;
+        --primary: #f97316;
+        --primary-dark: #c2410c;
+        --board-bg: linear-gradient(160deg, #ffedd5, #fed7aa);
+        --board-border: #f2bd7e;
+        --cell-bg: linear-gradient(180deg, #fffdf8, #fff6e8);
+        --cell-border: #f0d9b5;
+        --cell-lip: rgba(196, 141, 74, 0.45);
+        --x1: #fdba74; --x2: #f97316; --x3: #ea580c; --x-soft: #ffedd5; --x-line: #f59e0b;
+        --o1: #7dd3fc; --o2: #2e86e4; --o3: #1e63b6; --o-soft: #dbeafe;
+        --win-bg: linear-gradient(180deg, #fef9c3, #fde68a);
+        --win-border: #f59e0b;
+        --seg-bg: #fff7ed;
+        --seg-border: #ffedd5;
+        --tray-bg: #fffbf3;
+        --status-bg: #fff7ed;
+        --status-border: #ffedd5;
+        --gold: #facc15;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-grad: linear-gradient(135deg, #1c1917, #292524 55%, #3a2403);
+          --card-bg: rgba(43, 38, 35, 0.97);
+          --card-border: #7c4a21;
+          --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+          --text: #f5efe8;
+          --muted: #b3a696;
+          --board-bg: linear-gradient(160deg, #40301d, #332619);
+          --board-border: #7c4a21;
+          --cell-bg: linear-gradient(180deg, #3f3a36, #332f2b);
+          --cell-border: #5b524a;
+          --cell-lip: rgba(0, 0, 0, 0.5);
+          --x-soft: #431407;
+          --o-soft: #16283f;
+          --win-bg: linear-gradient(180deg, #713f12, #854d0e);
+          --seg-bg: #211d1a;
+          --seg-border: #44403c;
+          --tray-bg: #332e2a;
+          --status-bg: #211d1a;
+          --status-border: #44403c;
+        }
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+        background: var(--bg-grad);
+        background-attachment: fixed;
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 44px 12px 20px;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* === 右上：メニューに戻るボタン（base.htmlと同形） === */
+      .menu-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 11px;
+        color: #71716a;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 4px 10px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1.5px solid #e4e4e7;
+        font-weight: bold;
+        z-index: 1000;
+      }
+
+      .container {
+        position: relative;
+        background: var(--card-bg);
+        border-radius: 24px;
+        border: 2px solid var(--card-border);
+        box-shadow: var(--card-shadow);
+        padding: 18px 16px 16px;
+        width: 100%;
+        max-width: 460px;
+        overflow: hidden;
+      }
+
+      h1 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 1.45rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        color: var(--primary);
+        margin-bottom: 4px;
+      }
+      .logo-dots { display: inline-flex; gap: 4px; }
+      .logo-dots i {
+        width: 11px; height: 11px; border-radius: 50%; display: block;
+        box-shadow: inset 0 -2px 3px rgba(0,0,0,0.22), inset 0 1px 2px rgba(255,255,255,0.7), 0 1px 2px rgba(0,0,0,0.15);
+      }
+      .logo-dots .dx { background: radial-gradient(circle at 32% 30%, var(--x1), var(--x2) 70%); }
+      .logo-dots .dm { background: radial-gradient(circle at 32% 30%, #fef08a, var(--gold) 70%); }
+      .logo-dots .do { background: radial-gradient(circle at 32% 30%, var(--o1), var(--o2) 70%); }
+      .tagline { text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 14px; letter-spacing: 0.04em; }
+
+      /* === プレイヤートレイ === */
+      .trays { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+      .tray {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 11px; border-radius: 16px;
+        background: var(--tray-bg);
+        border: 2px solid var(--seg-border);
+        transition: box-shadow 0.25s, border-color 0.25s, transform 0.25s;
+        min-width: 0;
+      }
+      .tray.tx { border-color: #fdba74; }
+      .tray.to { border-color: #93c5fd; }
+      @media (prefers-color-scheme: dark) {
+        .tray.tx { border-color: #9a3412; }
+        .tray.to { border-color: #1e40af; }
+      }
+      .tray.active { box-shadow: 0 0 0 3px var(--gold), 0 8px 16px rgba(217, 160, 30, 0.25); transform: translateY(-1px); }
+      .tray.winner { box-shadow: 0 0 0 3px var(--gold), 0 0 22px rgba(250, 204, 21, 0.55); }
+      .avatar {
+        flex: 0 0 auto; width: 48px; height: 48px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,0.6), inset 0 -6px 9px rgba(0,0,0,0.18), 0 3px 6px rgba(0,0,0,0.18);
+        overflow: hidden;
+      }
+      .avatar.ax { background: radial-gradient(circle at 32% 28%, var(--x1), var(--x2) 62%, var(--x3)); }
+      .avatar.ao { background: radial-gradient(circle at 32% 28%, var(--o1), var(--o2) 62%, var(--o3)); }
+      .avatar svg { width: 94%; height: 94%; display: block; }
+      .tmeta { min-width: 0; }
+      .tname { font-weight: 800; font-size: 0.95rem; line-height: 1.25; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .win-pill {
+        font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em;
+        background: linear-gradient(180deg, #fde047, var(--gold));
+        color: #713f12; padding: 2px 7px; border-radius: 999px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      }
+      .role-pill {
+        font-size: 0.62rem; font-weight: 800; letter-spacing: 0.04em;
+        background: var(--status-bg); color: var(--muted);
+        border: 1.5px solid var(--status-border);
+        padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+      }
+      .tsub { font-size: 0.72rem; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pips { display: flex; gap: 4px; margin-top: 4px; align-items: center; }
+      .pip { width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 -2px 3px rgba(0,0,0,0.2); }
+      .pip.px { background: var(--x2); } .pip.po { background: var(--o2); }
+      .pip.off { opacity: 0.16; box-shadow: none; }
+      .pips-label { font-size: 0.66rem; font-weight: 700; color: var(--muted); margin-left: 2px; }
+
+      /* === ステータス === */
+      #status {
+        min-height: 2.9em;
+        display: flex; align-items: center; justify-content: center;
+        text-align: center;
+        font-weight: 800; font-size: 1.0rem; line-height: 1.4;
+        background: var(--status-bg);
+        border: 1.5px solid var(--status-border);
+        border-radius: 14px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+      }
+      #status.thinking::after { content: ""; animation: dots 1.1s steps(4) infinite; }
+      @keyframes dots { 0% { content: ""; } 25% { content: "．"; } 50% { content: "．．"; } 75% { content: "．．．"; } }
+      .phase-row { display: flex; justify-content: center; margin-bottom: 10px; }
+      .phase-chip {
+        font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+        color: var(--primary-dark);
+        background: var(--x-soft);
+        border: 1.5px solid #fdba74;
+        padding: 4px 12px; border-radius: 999px;
+      }
+      @media (prefers-color-scheme: dark) { .phase-chip { color: #fdba74; border-color: #9a3412; } }
+      .phase-chip.move { color: #1d4ed8; background: var(--o-soft); border-color: #93c5fd; }
+      @media (prefers-color-scheme: dark) { .phase-chip.move { color: #7dd3fc; border-color: #1e40af; } }
+      .phase-chip.end { color: #713f12; background: #fef08a; border-color: var(--gold); }
+
+      /* === 盤面 === */
+      .board-wrap { position: relative; width: min(100%, 372px); margin: 0 auto; }
+      #board {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px;
+        padding: 11px; border-radius: 22px;
+        background: var(--board-bg);
+        border: 2px solid var(--board-border);
+        box-shadow: inset 0 2px 5px rgba(255,255,255,0.55), inset 0 -10px 18px rgba(146, 64, 14, 0.16), 0 10px 22px rgba(180, 120, 60, 0.20);
+      }
+      .cell {
+        aspect-ratio: 1; border-radius: 16px;
+        border: 2px solid var(--cell-border);
+        background: var(--cell-bg);
+        box-shadow: 0 3px 0 var(--cell-lip), inset 0 1px 0 rgba(255,255,255,0.8);
+        cursor: pointer; padding: 0; position: relative;
+        display: flex; align-items: center; justify-content: center;
+        font: inherit;
+        transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+      }
+      .cell:hover { transform: translateY(-2px); }
+      .cell:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--cell-lip); }
+      .cell:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+      .cell.sel {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--gold), 0 8px 14px rgba(0,0,0,0.18);
+        transform: translateY(-3px) scale(1.03);
+        z-index: 2;
+      }
+      .cell.win { background: var(--win-bg); border-color: var(--win-border); }
+      .cell.dim { opacity: 0.42; }
+      .cell .ghost {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.15s; pointer-events: none;
+      }
+      .cell:hover .ghost, .cell:focus-visible .ghost { opacity: 0.35; }
+
+      .pc {
+        width: 78%; height: 78%; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: inset 0 0 0 3px rgba(255,255,255,0.6), inset 0 -7px 11px rgba(0,0,0,0.20), inset 0 4px 7px rgba(255,255,255,0.35), 0 5px 9px rgba(0,0,0,0.22);
+        position: relative; z-index: 1;
+      }
+      .pc.X { background: radial-gradient(circle at 32% 28%, var(--x1), var(--x2) 62%, var(--x3)); }
+      .pc.O { background: radial-gradient(circle at 32% 28%, var(--o1), var(--o2) 62%, var(--o3)); }
+      .pc svg { width: 95%; height: 95%; display: block; }
+      .pc.pop { animation: pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
+      @keyframes pop { 0% { transform: scale(0.3); } 60% { transform: scale(1.13); } 100% { transform: scale(1); } }
+      .cell.movable .pc { animation: bob 1.3s ease-in-out infinite; }
+      @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+      #winSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 3; }
+      #winSvg line { stroke-linecap: round; }
+      .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 24px; z-index: 5; }
+      .confetti i { position: absolute; top: -14px; border-radius: 2px; display: block; }
+
+      /* === 操作系 === */
+      .controls { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+      .ctl-group { display: flex; align-items: center; gap: 10px; }
+      .ctl-label { flex: 0 0 4.6em; font-size: 0.74rem; font-weight: 800; color: var(--primary); letter-spacing: 0.03em; }
+      .seg {
+        flex: 1; display: flex; gap: 3px; padding: 3px;
+        background: var(--seg-bg); border: 1.5px solid var(--seg-border); border-radius: 12px;
+        transition: opacity 0.2s;
+      }
+      .seg button {
+        flex: 1; border: none; background: transparent; cursor: pointer;
+        font: inherit; font-size: 0.8rem; font-weight: 700; color: var(--muted);
+        padding: 8px 2px; border-radius: 9px; min-height: 40px;
+        transition: background 0.15s, color 0.15s;
+      }
+      .seg button.on { background: var(--primary); color: #fff; box-shadow: 0 2px 0 var(--primary-dark); }
+      .seg.disabled { opacity: 0.4; pointer-events: none; }
+      .btn-row { display: flex; gap: 10px; }
+      .btn-primary {
+        flex: 1;
+        background: var(--primary); color: #fff; border: none; border-radius: 12px;
+        padding: 11px 10px; font: inherit; font-size: 0.92rem; font-weight: 800;
+        cursor: pointer; box-shadow: 0 3px 0 var(--primary-dark);
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        min-height: 46px;
+      }
+      .btn-primary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-dark); }
+      .btn-icon {
+        flex: 0 0 46px; width: 46px; min-height: 46px;
+        background: var(--card-bg); color: var(--text);
+        border: 1.5px solid var(--seg-border); border-radius: 12px; cursor: pointer;
+        box-shadow: 0 2px 0 var(--cell-lip);
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .btn-icon:active { transform: translateY(2px); box-shadow: none; }
+      .btn-icon svg { width: 22px; height: 22px; }
+
+      /* === ルール === */
+      details.rules {
+        margin-top: 14px; font-size: 0.83rem; line-height: 1.7;
+        background: var(--seg-bg); border: 1.5px solid var(--seg-border); border-radius: 14px;
+        padding: 4px 14px 10px;
+      }
+      details.rules summary { font-weight: 800; color: var(--primary); cursor: pointer; padding: 8px 0 4px; min-height: 36px; }
+      details.rules ol { padding-left: 1.4em; margin-top: 4px; }
+      details.rules .dotx { color: var(--x2); font-weight: 800; }
+      details.rules .doto { color: var(--o2); font-weight: 800; }
+
+      @media (max-width: 380px) {
+        .tray { padding: 8px; gap: 7px; }
+        .avatar { width: 42px; height: 42px; }
+        .tname { font-size: 0.86rem; }
+        .ctl-label { flex-basis: 4.2em; font-size: 0.7rem; }
+        .seg button { font-size: 0.74rem; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pc.pop, .cell.movable .pc, #status.thinking::after { animation: none; }
+        .cell, .tray { transition: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+    <main class="container">
+      <div class="confetti" id="confetti" aria-hidden="true"></div>
+      <h1><span class="logo-dots" aria-hidden="true"><i class="dx"></i><i class="dm"></i><i class="do"></i></span>三並べ</h1>
+      <p class="tagline">置いて、動かして、3つ並べた方の勝ち</p>
+
+      <div class="trays">
+        <div class="tray tx" id="trayX">
+          <div class="avatar ax" id="avatarX"></div>
+          <div class="tmeta">
+            <div class="tname">先攻<span class="role-pill" id="roleX" hidden></span><span class="win-pill" id="winX" hidden>WINNER</span></div>
+            <div class="tsub" id="subX"></div>
+            <div class="pips" id="pipsX"></div>
+          </div>
+        </div>
+        <div class="tray to" id="trayO">
+          <div class="avatar ao" id="avatarO"></div>
+          <div class="tmeta">
+            <div class="tname">後攻<span class="role-pill" id="roleO" hidden></span><span class="win-pill" id="winO" hidden>WINNER</span></div>
+            <div class="tsub" id="subO"></div>
+            <div class="pips" id="pipsO"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="status" role="status" aria-live="polite"></div>
+      <div class="phase-row"><span class="phase-chip" id="phase"></span></div>
+
+      <div class="board-wrap">
+        <div id="board" role="group" aria-label="三並べの盤面"></div>
+        <svg id="winSvg" aria-hidden="true"></svg>
+      </div>
+
+      <div class="controls">
+        <div class="ctl-group">
+          <span class="ctl-label" id="modeLabel">対戦</span>
+          <div class="seg" id="modeSeg" role="group" aria-labelledby="modeLabel">
+            <button type="button" data-mode="pvp">2人対戦</button>
+            <button type="button" data-mode="cpuO">CPU・先攻</button>
+            <button type="button" data-mode="cpuX">CPU・後攻</button>
+          </div>
+        </div>
+        <div class="ctl-group">
+          <span class="ctl-label" id="lvLabel">CPUの強さ</span>
+          <div class="seg" id="lvSeg" role="group" aria-labelledby="lvLabel">
+            <button type="button" data-lv="1">弱い</button>
+            <button type="button" data-lv="3">普通</button>
+            <button type="button" data-lv="6">強い</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" id="reset" type="button">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            はじめから
+          </button>
+          <button class="btn-icon" id="soundBtn" type="button" aria-label="サウンドのオン・オフ">
+            <svg id="soundOnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.4 5.6a9 9 0 0 1 0 12.8"/></svg>
+            <svg id="soundOffIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><line x1="16" y1="9" x2="22" y2="15"/><line x1="22" y1="9" x2="16" y2="15"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <details class="rules">
+        <summary>遊び方・ルール</summary>
+        <ol>
+          <li><span class="dotx">先攻（オレンジ）</span>と<span class="doto">後攻（ブルー）</span>が交互に、空きマスへコマを1つずつ置きます（各3個まで）。</li>
+          <li>3個置き終わっても揃わなかったら、自分のコマを1つ選んで、好きな空きマスへ自由に動かせます。</li>
+          <li>縦・横・斜めのどれかに自分のコマを3つ並べたら勝ちです。</li>
+        </ol>
+      </details>
+    </main>
+
+    <script>
+      "use strict";
+      /* ============ 動物コマ（SVG描き起こし） ============ */
+      function face(ears, head, extra) {
+        return '<svg viewBox="0 0 96 96" aria-hidden="true">' + ears + head + extra + '</svg>';
+      }
+      var EYES = '<ellipse cx="36" cy="51" rx="3.8" ry="4.6" fill="#3a2a20"/><ellipse cx="60" cy="51" rx="3.8" ry="4.6" fill="#3a2a20"/><circle cx="37.4" cy="49.4" r="1.4" fill="#fff"/><circle cx="61.4" cy="49.4" r="1.4" fill="#fff"/>';
+      var ANIMALS = [
+        { id: "hamster", name: "ハムスター", svg: face(
+          '<circle cx="25" cy="27" r="11" fill="#e8a05c"/><circle cx="71" cy="27" r="11" fill="#e8a05c"/><circle cx="25" cy="27" r="5.5" fill="#ffb3a7"/><circle cx="71" cy="27" r="5.5" fill="#ffb3a7"/>',
+          '<ellipse cx="48" cy="55" rx="34" ry="30" fill="#f2b26b"/><ellipse cx="25" cy="63" rx="12" ry="9" fill="#ffd9a8"/><ellipse cx="71" cy="63" rx="12" ry="9" fill="#ffd9a8"/><ellipse cx="48" cy="67" rx="16" ry="12" fill="#fff3df"/>',
+          EYES + '<ellipse cx="48" cy="60" rx="3.2" ry="2.3" fill="#e2725b"/><rect x="44.8" y="63.5" width="6.4" height="6.5" rx="1.4" fill="#fff" stroke="#d8cfc4" stroke-width="0.8"/><path d="M48 62.5 V65 M48 65 q-3.5 3 -7 1 M48 65 q3.5 3 7 1" stroke="#a9743f" stroke-width="1.7" fill="none" stroke-linecap="round"/>') },
+        { id: "rabbit", name: "ウサギ", svg: face(
+          '<g transform="rotate(-8 34 20)"><ellipse cx="34" cy="19" rx="7.5" ry="17" fill="#e9e4de"/><ellipse cx="34" cy="21" rx="3.6" ry="11" fill="#ffb3c1"/></g><g transform="rotate(8 62 20)"><ellipse cx="62" cy="19" rx="7.5" ry="17" fill="#e9e4de"/><ellipse cx="62" cy="21" rx="3.6" ry="11" fill="#ffb3c1"/></g>',
+          '<ellipse cx="48" cy="59" rx="30" ry="27" fill="#f5f1ec"/><ellipse cx="28" cy="66" rx="7" ry="5" fill="#ffc7d1" opacity="0.75"/><ellipse cx="68" cy="66" rx="7" ry="5" fill="#ffc7d1" opacity="0.75"/>',
+          EYES + '<ellipse cx="48" cy="62" rx="3.6" ry="2.7" fill="#f28ba8"/><rect x="44.9" y="66" width="6.2" height="6" rx="1.4" fill="#fff" stroke="#ddd5cc" stroke-width="0.8"/><path d="M48 64.8 V67 M48 67 q-3.5 3 -7 1 M48 67 q3.5 3 7 1" stroke="#b09a8a" stroke-width="1.7" fill="none" stroke-linecap="round"/>') },
+        { id: "fox", name: "キツネ", svg: face(
+          '<polygon points="21,36 29,9 45,27" fill="#e87f2e"/><polygon points="27,31 31,17 40,27" fill="#ffd9a8"/><polygon points="75,36 67,9 51,27" fill="#e87f2e"/><polygon points="69,31 65,17 56,27" fill="#ffd9a8"/>',
+          '<ellipse cx="48" cy="56" rx="32" ry="29" fill="#f08c3a"/><polygon points="15,58 24,74 33,62" fill="#f08c3a"/><polygon points="81,58 72,74 63,62" fill="#f08c3a"/><ellipse cx="48" cy="71" rx="20" ry="13" fill="#fff6ea"/>',
+          EYES + '<ellipse cx="48" cy="66" rx="4.2" ry="3.1" fill="#4a2f22"/><path d="M48 69.2 V72 M48 72 q-3.5 3 -7 1 M48 72 q3.5 3 7 1" stroke="#b45f1d" stroke-width="1.7" fill="none" stroke-linecap="round"/>') },
+        { id: "bear", name: "クマ", svg: face(
+          '<circle cx="23" cy="29" r="10.5" fill="#a06a3f"/><circle cx="73" cy="29" r="10.5" fill="#a06a3f"/><circle cx="23" cy="29" r="5" fill="#d9a066"/><circle cx="73" cy="29" r="5" fill="#d9a066"/>',
+          '<ellipse cx="48" cy="55" rx="33" ry="30" fill="#b57e4e"/><ellipse cx="48" cy="67" rx="15.5" ry="11.5" fill="#eccd97"/>',
+          EYES + '<ellipse cx="48" cy="61" rx="5" ry="3.7" fill="#4a2f22"/><path d="M48 64.8 V68 M48 68 q-3.5 3.4 -7.5 1.2 M48 68 q3.5 3.4 7.5 1.2" stroke="#6d4525" stroke-width="1.8" fill="none" stroke-linecap="round"/>') },
+        { id: "panda", name: "パンダ", svg: face(
+          '<circle cx="23" cy="29" r="11" fill="#3c3a38"/><circle cx="73" cy="29" r="11" fill="#3c3a38"/><circle cx="23" cy="29" r="5" fill="#5d5a57"/><circle cx="73" cy="29" r="5" fill="#5d5a57"/>',
+          '<ellipse cx="48" cy="55" rx="33" ry="30" fill="#ffffff"/><ellipse cx="48" cy="55" rx="33" ry="30" fill="none" stroke="#e3ded6" stroke-width="1.6"/>',
+          '<g transform="rotate(-18 35 51)"><ellipse cx="35" cy="51" rx="7.5" ry="10.5" fill="#3c3a38"/></g><g transform="rotate(18 61 51)"><ellipse cx="61" cy="51" rx="7.5" ry="10.5" fill="#3c3a38"/></g><circle cx="35.5" cy="50" r="3.1" fill="#fff"/><circle cx="60.5" cy="50" r="3.1" fill="#fff"/><circle cx="35.8" cy="50.6" r="1.7" fill="#26241f"/><circle cx="60.2" cy="50.6" r="1.7" fill="#26241f"/><ellipse cx="48" cy="64" rx="4.2" ry="3" fill="#3c3a38"/><path d="M48 67.2 V69.5 M48 69.5 q-3.2 2.8 -6.8 1 M48 69.5 q3.2 2.8 6.8 1" stroke="#8a857e" stroke-width="1.7" fill="none" stroke-linecap="round"/>') },
+        { id: "koala", name: "コアラ", svg: face(
+          '<circle cx="17" cy="45" r="13.5" fill="#aeb4bf"/><circle cx="79" cy="45" r="13.5" fill="#aeb4bf"/><circle cx="17" cy="45" r="7.5" fill="#e6eaef"/><circle cx="79" cy="45" r="7.5" fill="#e6eaef"/>',
+          '<ellipse cx="48" cy="55" rx="30" ry="28" fill="#c9ced6"/>',
+          '<ellipse cx="33" cy="49" rx="3.6" ry="4.4" fill="#3a3f47"/><ellipse cx="63" cy="49" rx="3.6" ry="4.4" fill="#3a3f47"/><circle cx="34.3" cy="47.5" r="1.3" fill="#fff"/><circle cx="64.3" cy="47.5" r="1.3" fill="#fff"/><ellipse cx="48" cy="60" rx="7.2" ry="10" fill="#6e7683"/><ellipse cx="45.6" cy="55.5" rx="2.4" ry="3.6" fill="#98a0ac"/><path d="M44 73.5 q4 3 8 0" stroke="#7d8593" stroke-width="1.8" fill="none" stroke-linecap="round"/>') },
+        { id: "cat", name: "ネコ", svg: face(
+          '<polygon points="22,37 27,11 45,27" fill="#f2a950"/><polygon points="27.5,31 30,18 40,27" fill="#ffc4b2"/><polygon points="74,37 69,11 51,27" fill="#f2a950"/><polygon points="68.5,31 66,18 56,27" fill="#ffc4b2"/>',
+          '<ellipse cx="48" cy="57" rx="31" ry="28" fill="#f6b45e"/><ellipse cx="48" cy="71" rx="15" ry="10" fill="#fff3df"/><path d="M40 33 v7 M48 31.5 V39 M56 33 v7" stroke="#dd8a2b" stroke-width="2.6" stroke-linecap="round"/>',
+          EYES + '<path d="M14 60 h13 M16 68 l12 -3 M82 60 H69 M80 68 l-12 -3" stroke="#cbb99e" stroke-width="1.7" stroke-linecap="round"/><ellipse cx="48" cy="66" rx="3.6" ry="2.6" fill="#f28ba8"/><path d="M48 68.8 V71 M48 71 q-3.2 2.8 -6.8 1 M48 71 q3.2 2.8 6.8 1" stroke="#c07a24" stroke-width="1.7" fill="none" stroke-linecap="round"/>') },
+        { id: "frog", name: "カエル", svg: face(
+          '<circle cx="29" cy="31" r="11" fill="#69b44c"/><circle cx="67" cy="31" r="11" fill="#69b44c"/><circle cx="29" cy="30" r="6.8" fill="#fff"/><circle cx="67" cy="30" r="6.8" fill="#fff"/><circle cx="29.5" cy="31" r="3.6" fill="#2e4423"/><circle cx="67.5" cy="31" r="3.6" fill="#2e4423"/><circle cx="30.8" cy="29.4" r="1.3" fill="#fff"/><circle cx="68.8" cy="29.4" r="1.3" fill="#fff"/>',
+          '<ellipse cx="48" cy="59" rx="34" ry="27" fill="#7cc45e"/><ellipse cx="48" cy="71" rx="20" ry="11.5" fill="#dcf0c6"/>',
+          '<ellipse cx="24" cy="64" rx="6" ry="4.2" fill="#ffb3a7" opacity="0.8"/><ellipse cx="72" cy="64" rx="6" ry="4.2" fill="#ffb3a7" opacity="0.8"/><path d="M33 63 q15 11 30 0" stroke="#3f7a2e" stroke-width="2.4" fill="none" stroke-linecap="round"/>') }
+      ];
+
+      /* ============ ゲームロジック（元の仕様どおり） ============ */
+      var L = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      var NAME = { X: "先攻", O: "後攻" };
+      var $ = function (id) { return document.getElementById(id); };
+      var opp = function (t) { return t === "X" ? "O" : "X"; };
+
+      var MODE = "cpuO";   // pvp | cpuO（あなたが先攻） | cpuX（あなたが後攻）
+      var LV = 3;          // 探索の深さ 1:弱い 3:普通 6:強い
+      var S = null;
+      var lastAction = null; // {type:'place'|'move', from, to}
+
+      function pickChars() {
+        var a = Math.floor(Math.random() * ANIMALS.length);
+        var b = Math.floor(Math.random() * (ANIMALS.length - 1));
+        if (b >= a) b++;
+        return { X: ANIMALS[a], O: ANIMALS[b] };
+      }
+      function winLine(b) {
+        for (var k = 0; k < L.length; k++) {
+          var l = L[k], a = l[0], c = l[1], d = l[2];
+          if (b[a] && b[a] === b[c] && b[a] === b[d]) return l;
+        }
+        return null;
+      }
+      function moves(b, pl, t) {
+        var e = [];
+        b.forEach(function (v, i) { if (!v) e.push(i); });
+        if (pl[t] < 3) return e.map(function (to) { return { from: null, to: to }; });
+        var r = [];
+        b.forEach(function (v, i) {
+          if (v === t) for (var j = 0; j < e.length; j++) r.push({ from: i, to: e[j] });
+        });
+        return r;
+      }
+      function apply(b, pl, t, m) {
+        var nb = b.slice(), np = { X: pl.X, O: pl.O };
+        if (m.from === null) np[t]++; else nb[m.from] = null;
+        nb[m.to] = t;
+        return [nb, np];
+      }
+      function search(b, pl, t, d, a, be) {
+        if (d === 0) return 0;
+        var best = -Infinity;
+        var ms = moves(b, pl, t);
+        for (var i = 0; i < ms.length; i++) {
+          var r = apply(b, pl, t, ms[i]);
+          var s = winLine(r[0]) ? 50 + d : -search(r[0], r[1], opp(t), d - 1, -be, -a);
+          if (s > best) best = s;
+          if (best > a) a = best;
+          if (a >= be) break;
+        }
+        return best;
+      }
+      function cpuMove() {
+        var depth = LV, ms = moves(S.b, S.pl, S.t), best = -Infinity, pool = [];
+        for (var i = 0; i < ms.length; i++) {
+          var r = apply(S.b, S.pl, S.t, ms[i]);
+          var s = winLine(r[0]) ? 50 + depth : -search(r[0], r[1], opp(S.t), depth - 1, -Infinity, Infinity);
+          if (s > best) { best = s; pool = [ms[i]]; } else if (s === best) pool.push(ms[i]);
+        }
+        return pool[Math.floor(Math.random() * pool.length)];
+      }
+      function isCpu(t) {
+        return (MODE === "cpuO" && t === "O") || (MODE === "cpuX" && t === "X");
+      }
+
+      /* ============ サウンド（WebAudio合成） ============ */
+      var AC = null, soundOn = true;
+      function tone(freq, delay, dur, type, vol, slideTo) {
+        if (!soundOn) return;
+        try {
+          AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+          if (AC.state === "suspended") AC.resume();
+          var t0 = AC.currentTime + delay;
+          var o = AC.createOscillator(), g = AC.createGain();
+          o.type = type || "sine";
+          o.frequency.setValueAtTime(freq, t0);
+          if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(vol || 0.14, t0 + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          o.connect(g); g.connect(AC.destination);
+          o.start(t0); o.stop(t0 + dur + 0.05);
+        } catch (e) { /* 音が出ない環境では無音で続行 */ }
+      }
+      var sfx = {
+        select: function () { tone(520, 0, 0.07, "triangle", 0.08); },
+        place: function () { tone(590, 0, 0.1, "sine", 0.16); tone(880, 0.05, 0.12, "sine", 0.12); },
+        move: function () { tone(340, 0, 0.18, "sine", 0.13, 660); },
+        win: function () { [523, 659, 784, 1046].forEach(function (f, i) { tone(f, i * 0.11, 0.22, "triangle", 0.15); }); }
+      };
+
+      /* ============ 進行 ============ */
+      function init() {
+        S = { b: Array(9).fill(null), pl: { X: 0, O: 0 }, t: "X", sel: null, over: false, line: null, ch: pickChars() };
+        lastAction = null;
+        $("winSvg").innerHTML = "";
+        render();
+        maybeCpu();
+      }
+      function play(m) {
+        var wasWin = false;
+        var prev = S.b.slice();
+        var res = apply(S.b, S.pl, S.t, m);
+        S.b = res[0]; S.pl = res[1]; S.sel = null;
+        lastAction = { type: m.from === null ? "place" : "move", from: m.from, to: m.to, prev: prev };
+        var l = winLine(S.b);
+        if (l) { S.over = true; S.line = l; wasWin = true; } else S.t = opp(S.t);
+        if (wasWin) sfx.win(); else if (m.from === null) sfx.place(); else sfx.move();
+        render();
+        if (wasWin) spawnConfetti();
+        maybeCpu();
+      }
+      function maybeCpu() {
+        if (!S.over && isCpu(S.t)) {
+          setTimeout(function () { if (!S.over && isCpu(S.t)) play(cpuMove()); }, 600);
+        }
+      }
+      function click(i) {
+        if (S.over || isCpu(S.t)) return;
+        var placing = S.pl[S.t] < 3;
+        if (placing) { if (!S.b[i]) play({ from: null, to: i }); return; }
+        if (S.b[i] === S.t) {
+          if (S.sel !== i) sfx.select();
+          S.sel = S.sel === i ? null : i;
+          render();
+          return;
+        }
+        if (!S.b[i] && S.sel !== null) play({ from: S.sel, to: i });
+      }
+
+      /* ============ 描画 ============ */
+      function pieceEl(t, cls) {
+        var p = document.createElement("div");
+        p.className = "pc " + t + (cls ? " " + cls : "");
+        p.innerHTML = S.ch[t].svg;
+        return p;
+      }
+      function render() {
+        var bd = $("board");
+        bd.innerHTML = "";
+        var humanTurn = !S.over && !isCpu(S.t);
+        var placing = S.pl[S.t] < 3;
+        S.b.forEach(function (v, i) {
+          var c = document.createElement("button");
+          c.type = "button";
+          c.className = "cell"
+            + (S.sel === i ? " sel" : "")
+            + (S.line && S.line.indexOf(i) >= 0 ? " win" : "")
+            + (S.over && v && !(S.line && S.line.indexOf(i) >= 0) ? " dim" : "")
+            + (!S.over && humanTurn && !placing && S.sel === null && v === S.t ? " movable" : "");
+          var label = "マス" + (i + 1);
+          if (v) label += "：" + NAME[v] + "の" + S.ch[v].name;
+          else label += "：空き";
+          c.setAttribute("aria-label", label);
+          if (v) {
+            var isNew = lastAction && lastAction.to === i && lastAction.type === "place";
+            c.appendChild(pieceEl(v, isNew ? "pop" : ""));
+          } else if (humanTurn && (placing || S.sel !== null)) {
+            var g = document.createElement("span");
+            g.className = "ghost";
+            g.appendChild(pieceEl(S.t, ""));
+            c.appendChild(g);
+          }
+          c.addEventListener("click", function () { click(i); });
+          bd.appendChild(c);
+        });
+
+        /* FLIP：移動したコマを元の位置から滑らかに運ぶ */
+        if (lastAction && lastAction.type === "move") {
+          var cells = bd.children;
+          var toCell = cells[lastAction.to], fromCell = cells[lastAction.from];
+          var pc = toCell ? toCell.querySelector(".pc") : null;
+          if (pc && toCell && fromCell && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            var dx = fromCell.offsetLeft - toCell.offsetLeft;
+            var dy = fromCell.offsetTop - toCell.offsetTop;
+            pc.animate(
+              [{ transform: "translate(" + dx + "px," + dy + "px) scale(0.92)" }, { transform: "translate(0,0) scale(1)" }],
+              { duration: 300, easing: "cubic-bezier(.3,.7,.3,1)" }
+            );
+          }
+        }
+        lastAction = null;
+
+        renderTrays();
+        renderStatus();
+        drawWinLine();
+        syncSegs();
+      }
+      function renderTrays() {
+        ["X", "O"].forEach(function (t) {
+          $("avatar" + t).innerHTML = S.ch[t].svg;
+          $("sub" + t).textContent = S.ch[t].name;
+          var rp = $("role" + t);
+          if (MODE === "pvp") { rp.hidden = true; rp.textContent = ""; }
+          else { rp.hidden = false; rp.textContent = isCpu(t) ? "CPU" : "あなた"; }
+          var pips = "";
+          for (var i = 0; i < 3; i++) {
+            pips += '<span class="pip p' + t.toLowerCase() + (i < 3 - S.pl[t] ? "" : " off") + '"></span>';
+          }
+          $("pips" + t).innerHTML = pips + '<span class="pips-label">手元 ' + (3 - S.pl[t]) + '</span>';
+          $("tray" + t).classList.toggle("active", !S.over && S.t === t);
+          $("tray" + t).classList.toggle("winner", S.over && S.t === t);
+          $("win" + t).hidden = !(S.over && S.t === t);
+        });
+      }
+      function renderStatus() {
+        var who = function (t) { return NAME[t] + (isCpu(t) ? "（CPU）" : ""); };
+        var st = $("status");
+        st.classList.remove("thinking");
+        if (S.over) {
+          st.textContent = who(S.t) + "の勝ち！";
+        } else if (isCpu(S.t)) {
+          st.textContent = who(S.t) + "が考え中";
+          st.classList.add("thinking");
+        } else {
+          st.textContent = who(S.t) + "の番：" + (S.pl[S.t] < 3 ? "空きマスにコマを置く" : (S.sel === null ? "動かすコマを選ぶ" : "移動先の空きマスを選ぶ"));
+        }
+        var ph = $("phase");
+        if (S.over) { ph.textContent = "対局終了"; ph.className = "phase-chip end"; }
+        else if (S.pl.X < 3 || S.pl.O < 3) { ph.textContent = "配置フェーズ"; ph.className = "phase-chip"; }
+        else { ph.textContent = "移動フェーズ"; ph.className = "phase-chip move"; }
+      }
+      function drawWinLine() {
+        var svg = $("winSvg");
+        svg.innerHTML = "";
+        if (!S.line) return;
+        requestAnimationFrame(function () {
+          var bd = $("board");
+          var wrap = bd.parentElement.getBoundingClientRect();
+          var cells = bd.children;
+          var center = function (idx) {
+            var r = cells[idx].getBoundingClientRect();
+            return { x: r.left - wrap.left + r.width / 2, y: r.top - wrap.top + r.height / 2 };
+          };
+          var a = center(S.line[0]), b = center(S.line[2]);
+          var dx = b.x - a.x, dy = b.y - a.y;
+          var len = Math.sqrt(dx * dx + dy * dy) || 1;
+          var ext = 16;
+          var x1 = a.x - dx / len * ext, y1 = a.y - dy / len * ext;
+          var x2 = b.x + dx / len * ext, y2 = b.y + dy / len * ext;
+          svg.setAttribute("viewBox", "0 0 " + wrap.width + " " + wrap.height);
+          var mk = function (w, stroke, op) {
+            var ln = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            ln.setAttribute("x1", x1); ln.setAttribute("y1", y1);
+            ln.setAttribute("x2", x2); ln.setAttribute("y2", y2);
+            ln.setAttribute("stroke", stroke);
+            ln.setAttribute("stroke-width", w);
+            ln.setAttribute("opacity", op);
+            return ln;
+          };
+          var under = mk(15, "#ffffff", 0.85);
+          var main = mk(8, "#f59e0b", 1);
+          svg.appendChild(under); svg.appendChild(main);
+          if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            [under, main].forEach(function (ln) {
+              var L2 = ln.getTotalLength();
+              ln.style.strokeDasharray = L2;
+              ln.style.strokeDashoffset = L2;
+              ln.getBoundingClientRect();
+              ln.style.transition = "stroke-dashoffset .45s ease .1s";
+              ln.style.strokeDashoffset = "0";
+            });
+          }
+        });
+      }
+      function spawnConfetti() {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        var box = $("confetti");
+        var colors = ["#f97316", "#2e86e4", "#facc15", "#7cc45e", "#f28ba8", "#fdba74"];
+        var W = box.clientWidth || 400;
+        for (var i = 0; i < 30; i++) {
+          var p = document.createElement("i");
+          var sz = 6 + Math.random() * 6;
+          p.style.width = sz + "px";
+          p.style.height = sz * (0.5 + Math.random() * 0.9) + "px";
+          p.style.left = Math.random() * W + "px";
+          p.style.background = colors[i % colors.length];
+          box.appendChild(p);
+          var drift = (Math.random() - 0.5) * 140;
+          var rot = (Math.random() - 0.5) * 720;
+          var anim = p.animate(
+            [{ transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+             { transform: "translate(" + drift + "px," + (box.clientHeight + 40) + "px) rotate(" + rot + "deg)", opacity: 0.85 }],
+            { duration: 1500 + Math.random() * 1100, delay: Math.random() * 350, easing: "cubic-bezier(.2,.6,.4,1)" }
+          );
+          (function (el, an) { an.onfinish = function () { el.remove(); }; })(p, anim);
+        }
+      }
+
+      /* ============ 操作系の結線 ============ */
+      function syncSegs() {
+        var mb = $("modeSeg").querySelectorAll("button");
+        mb.forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-mode") === MODE); });
+        var lb = $("lvSeg").querySelectorAll("button");
+        lb.forEach(function (b) { b.classList.toggle("on", +b.getAttribute("data-lv") === LV); });
+        $("lvSeg").classList.toggle("disabled", MODE === "pvp");
+        $("lvSeg").setAttribute("aria-disabled", MODE === "pvp" ? "true" : "false");
+      }
+      $("modeSeg").addEventListener("click", function (e) {
+        var b = e.target.closest("button");
+        if (!b) return;
+        MODE = b.getAttribute("data-mode");
+        sfx.select();
+        init();
+      });
+      $("lvSeg").addEventListener("click", function (e) {
+        var b = e.target.closest("button");
+        if (!b) return;
+        LV = +b.getAttribute("data-lv");
+        sfx.select();
+        syncSegs();
+      });
+      $("reset").addEventListener("click", function () { sfx.select(); init(); });
+      $("soundBtn").addEventListener("click", function () {
+        soundOn = !soundOn;
+        $("soundOnIcon").style.display = soundOn ? "" : "none";
+        $("soundOffIcon").style.display = soundOn ? "none" : "";
+        if (soundOn) sfx.select();
+      });
+      window.addEventListener("resize", drawWinLine);
+
+      init();
+    </script>
+  </body>
 </html>
