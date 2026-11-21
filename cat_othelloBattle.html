@@ -111,10 +111,38 @@
             100% { transform: scale(1); opacity: 1; }
         }
         .animate-pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        /* 猫カットイン */
+        #cat-cutin-layer {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 900;
+        }
+        .cat-cutin {
+            position: absolute;
+            bottom: 0;
+            right: 10%;
+            height: 60%;
+            max-width: 90%;
+            object-fit: contain;
+        }
+        .cat-cutin.slide-from-right { animation: catSlideInRight 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .cat-cutin.slide-from-left  { animation: catSlideInLeft 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        @keyframes catSlideInRight {
+            0%   { transform: translateX(200%); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes catSlideInLeft {
+            0%   { transform: translateX(-200%); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
     </style>
 <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body class="flex items-center justify-center p-4">
+
+    <div id="cat-cutin-layer"></div>
 
     <div id="notification-center" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col gap-3 w-full max-w-sm"></div>
 
@@ -309,8 +337,29 @@
             document.getElementById('current-cat-rate-display').textContent = `${Math.round(catMischiefRate * 100)}%`;
         }
 
+        const CAT_IMAGE_COUNT = 9; // cat/cat_001.png - cat_009.png
+        let catCutinTimer = null;
+
+        function showCatCutin() {
+            const layer = document.getElementById('cat-cutin-layer');
+            clearTimeout(catCutinTimer);
+            layer.innerHTML = '';
+
+            const num = String(Math.floor(Math.random() * CAT_IMAGE_COUNT) + 1).padStart(3, '0');
+            const img = document.createElement('img');
+            img.className = 'cat-cutin ' + (Math.random() < 0.5 ? 'slide-from-left' : 'slide-from-right');
+            img.alt = '猫';
+            img.onerror = () => { layer.innerHTML = ''; };
+            img.src = `cat/cat_${num}.png`;
+            layer.appendChild(img);
+
+            // 1秒後に自動で消える
+            catCutinTimer = setTimeout(() => { layer.innerHTML = ''; }, 1000);
+        }
+
         function playOriginalCatSound(soundPath) {
             try {
+                showCatCutin();
                 const audio = new Audio(soundPath);
                 const gameWrapper = document.getElementById('game-wrapper');
                 
