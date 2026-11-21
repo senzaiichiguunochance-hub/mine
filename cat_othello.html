@@ -426,8 +426,10 @@
 
         // ================= 演出のヘルパー =================
         // 演出の速さ(ミリ秒)。通常の鳴き声(単発)はゆっくり、威嚇は速めに分けている
-        const TELEGRAPH_MS = 400;          // 威嚇: 予兆(石が震える)の長さ
-        const SINGLE_TELEGRAPH_MS = 800;   // 通常: 予兆の長さ
+        // ※ 鳴き声は予兆の開始と同時に鳴る。予兆が長いほど「声が先・猫が後」にズレるので短めにしている
+        const TELEGRAPH_MS = 250;          // 威嚇: 予兆(石が震える)の長さ
+        const SINGLE_TELEGRAPH_MS = 250;   // 通常: 予兆の長さ
+        const CAT_SOUND_DELAY_MS = 500;    // 鳴き声を鳴らし始めるまでの遅延(猫の登場より声が早いときに増やす)
         const SINGLE_TOTAL_MS = 1800;      // 通常: 猫が飛んでくる～飛び去るまで(着地はちょうど半分の時点)
         const SINGLE_SLIDE_MS = 1100;      // 通常: 石が滑る長さ
 
@@ -669,7 +671,8 @@
             const moves = planMischief(isDouble ? 2 : 1);
             if (moves.length === 0) return false; // 動かせる石がなければ何も起こさない
 
-            playCatSound(soundPath);
+            // 鳴き声は演出の開始からCAT_SOUND_DELAY_MS遅らせて再生(リセットされた場合は鳴らさない)
+            setTimeout(() => { if (epoch === gameEpoch) playCatSound(soundPath); }, CAT_SOUND_DELAY_MS);
 
             const layer = document.getElementById('cat-cutin-layer');
             const dim = document.getElementById('cat-dim');
