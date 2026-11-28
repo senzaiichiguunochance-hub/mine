@@ -447,6 +447,90 @@
 
       .actions-row { display: flex; justify-content: flex-end; margin-top: 14px; }
       .hidden { display: none !important; }
+
+      .share-box {
+        background: var(--ticket-bg);
+        border: 1.5px solid var(--card-border);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .share-box .share-lead {
+        font-size: 0.8rem;
+        line-height: 1.7;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
+      .share-textarea {
+        width: 100%;
+        min-height: 118px;
+        font-size: 0.86rem;
+        line-height: 1.75;
+        padding: 11px 12px;
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        background: var(--input-bg);
+        color: var(--text);
+        resize: vertical;
+        font-family: inherit;
+        white-space: pre-wrap;
+      }
+      .share-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+      .share-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .btn-share {
+        flex: 1 1 140px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        font-size: 0.88rem;
+        font-weight: 900;
+        padding: 11px 12px;
+        border-radius: 11px;
+        cursor: pointer;
+        border: none;
+        min-height: 2.9rem;
+        text-decoration: none;
+      }
+      .btn-share:active { transform: translateY(1px); }
+      .btn-share:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+      .btn-x { background: #000; color: #fff; box-shadow: 0 3px 0 #333; }
+      @media (prefers-color-scheme: dark) { .btn-x { background: #fff; color: #000; box-shadow: 0 3px 0 #999; } }
+      .btn-line { background: #06c755; color: #fff; box-shadow: 0 3px 0 #059641; }
+      .btn-copy-share { background: var(--chip-bg); color: var(--text); border: 1.5px solid var(--line); box-shadow: 0 2px 0 var(--line); }
+      .share-feedback {
+        font-size: 0.78rem;
+        font-weight: bold;
+        color: var(--good);
+        min-height: 1.2em;
+        margin-top: 8px;
+      }
+      .share-options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin-top: 10px;
+        font-size: 0.78rem;
+      }
+      .share-options label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+        font-weight: bold;
+      }
     </style>
     <!-- GoatCounter アクセス解析 -->
     <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
@@ -577,6 +661,29 @@
 
         <div class="field"><label>賞ごとの当選本数（通算）</label></div>
         <div class="prize-counts" id="prizeCounts"></div>
+
+        <h3 class="section-title">SNSに投稿する</h3>
+        <div class="share-box" id="shareBox">
+          <p class="share-lead">条件と結果を短くまとめた投稿文です。投稿時にURLが付きます。文面は書き換えられます。</p>
+          <textarea class="share-textarea" id="shareText" aria-label="SNS投稿文"></textarea>
+          <div class="share-meta">
+            <span>X・LINEは別タブで開きます</span>
+            <span id="shareCharCount">0文字</span>
+          </div>
+          <div class="share-options" role="group" aria-label="投稿文に含める内容">
+            <label><input type="checkbox" id="shareOptHashtag" checked /> ハッシュタグを含める</label>
+          </div>
+          <div class="share-actions">
+            <button type="button" class="btn-share btn-x" id="shareXBtn" disabled>
+              <span aria-hidden="true" style="font-size:1.05rem;line-height:1;">𝕏</span> Xでポストする
+            </button>
+            <button type="button" class="btn-share btn-line" id="shareLineBtn" disabled>
+              LINEで送る
+            </button>
+            <button type="button" class="btn-share btn-copy-share" id="shareCopyBtn" disabled>投稿文をコピー</button>
+          </div>
+          <div class="share-feedback" id="shareFeedback" aria-live="polite"></div>
+        </div>
 
         <h3 class="section-title">抽選の履歴</h3>
         <div class="chips" id="logFilter" role="group" aria-label="履歴の表示切り替え">
@@ -753,6 +860,7 @@
           countInput.value = count;
           syncFromCount();
           state.tickets = generateTickets(count, state.buyType);
+          shareEdited = false;
           state.lastHitsByIndex = {};
           state.rounds.push({
             id: state.rounds.length + 1,
@@ -964,6 +1072,7 @@
         }
 
         function finishBatch(batch) {
+          shareEdited = false;
           state.lastHitsByIndex = batch.lastHitsByIndex;
           renderTickets();
           var round = currentRound();
@@ -1062,6 +1171,73 @@
             var c = state.prizeCounts[r.key];
             return '<span class="prize-count' + (c > 0 ? " has" : "") + '">' + r.name + "：" + fmt(c) + "本</span>";
           }).join("");
+          updateShareText(false);
+        }
+
+        // ---------- SNS投稿 ----------
+        var shareEdited = false;
+        function siteUrl() { return window.location.href; }
+        function buildShareText() {
+          var round = currentRound();
+          var includeHash = $("shareOptHashtag") ? $("shareOptHashtag").checked : true;
+
+          if (!round) {
+            return "宝くじシミュレーション\nまだ買っていません" + (includeHash ? "\n#宝くじ" : "");
+          }
+          var totalDraws = 0, totalWin = 0, totalBest = 0;
+          state.rounds.forEach(function (r) {
+            totalDraws += r.draws;
+            totalWin += r.win;
+            if (r.best > totalBest) totalBest = r.best;
+          });
+          var typeLabel = round.type === "renban" ? "連番" : "バラ";
+
+          var lines = [];
+          lines.push("宝くじシミュレーション");
+          var cond = fmt(round.count) + "枚 " + fmtYen(round.cost) + "・" + typeLabel;
+          if (state.rounds.length > 1) cond += "（全" + fmt(state.rounds.length) + "R）";
+          cond += "／抽選" + fmt(totalDraws) + "回";
+          lines.push(cond);
+          if (totalDraws === 0) {
+            lines.push("まだ抽選していません");
+          } else {
+            lines.push("当選金：" + fmtYen(totalWin));
+            lines.push("いちばん当たった1回：" + fmtYen(totalBest));
+          }
+          if (includeHash) {
+            lines.push("#宝くじ");
+          }
+          return lines.join("\n");
+        }
+        function updateShareText(force) {
+          var ta = $("shareText");
+          if (!ta) return;
+          if (shareEdited && !force) { updateShareCharCount(); return; }
+          // 編集中（フォーカス中）は上書きしない
+          if (!force && document.activeElement === ta) { updateShareCharCount(); return; }
+          ta.value = buildShareText();
+          updateShareCharCount();
+          updateShareButtons();
+        }
+        function updateShareCharCount() {
+          var ta = $("shareText");
+          var cc = $("shareCharCount");
+          if (ta && cc) cc.textContent = fmt(ta.value.length) + "文字";
+          updateShareButtons();
+        }
+        function updateShareButtons() {
+          var ta = $("shareText");
+          var hasRound = !!currentRound();
+          var hasText = ta && ta.value.trim().length > 0;
+          var enabled = hasRound && hasText;
+          // 購入前でもコピーだけはできるようにし、X/LINEは購入後に有効化
+          if ($("shareXBtn")) $("shareXBtn").disabled = !enabled;
+          if ($("shareLineBtn")) $("shareLineBtn").disabled = !enabled;
+          if ($("shareCopyBtn")) $("shareCopyBtn").disabled = !hasText;
+        }
+        function currentShareText() {
+          var ta = $("shareText");
+          return ta ? ta.value.trim() : buildShareText();
         }
 
         $("logFilter").addEventListener("click", function (e) {
@@ -1123,6 +1299,62 @@
           list.innerHTML = rows.join("");
         }
 
+        // SNSボタンの動作
+        if ($("shareText")) {
+          $("shareText").addEventListener("input", function () {
+            shareEdited = true;
+            updateShareCharCount();
+            if ($("shareFeedback")) $("shareFeedback").textContent = "";
+          });
+          $("shareText").addEventListener("blur", function () {
+            // フォーカスを外したら、次回の結果更新で自動反映できるようにする
+            // ただし手入力した文面は保持したい場合はそのまま。自動更新は結果変化時のみ。
+          });
+        }
+        ["shareOptHashtag"].forEach(function (id) {
+          var el = $(id);
+          if (el) el.addEventListener("change", function () { shareEdited = false; updateShareText(true); });
+        });
+        if ($("shareXBtn")) {
+          $("shareXBtn").addEventListener("click", function () {
+            var text = currentShareText();
+            if (!text) return;
+            window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(siteUrl()), "_blank", "noopener,noreferrer");
+            if ($("shareFeedback")) $("shareFeedback").textContent = "Xの投稿画面を開きました。内容を確認してポストしてください。";
+          });
+        }
+        if ($("shareLineBtn")) {
+          $("shareLineBtn").addEventListener("click", function () {
+            var text = currentShareText();
+            if (!text) return;
+            window.open("https://line.me/R/msg/text/?" + encodeURIComponent(text + "\n" + siteUrl()), "_blank", "noopener,noreferrer");
+            if ($("shareFeedback")) $("shareFeedback").textContent = "LINEの送信画面を開きました。送り先を選んで送信してください。";
+          });
+        }
+        if ($("shareCopyBtn")) {
+          $("shareCopyBtn").addEventListener("click", function () {
+            var baseText = currentShareText();
+            if (!baseText) return;
+            var text = baseText + "\n" + siteUrl();
+            var done = function () { if ($("shareFeedback")) $("shareFeedback").textContent = "投稿文とURLをコピーしました。SNSに貼り付けて投稿できます。"; };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+            } else {
+              fallbackCopy(text); done();
+            }
+          });
+        }
+        function fallbackCopy(text) {
+          var ta = $("shareText");
+          if (!ta) return;
+          var prev = ta.value;
+          ta.value = text;
+          ta.focus();
+          ta.select();
+          try { document.execCommand("copy"); } catch (e) {}
+          ta.value = prev;
+        }
+
         $("resetBtn").addEventListener("click", function () {
           if (state.drawing) return;
           state.tickets = [];
@@ -1141,9 +1373,12 @@
           var drawBtn = $("drawBtn");
           drawBtn.disabled = true;
           drawBtn.textContent = "まずは宝くじを買ってください";
+          shareEdited = false;
+          if ($("shareFeedback")) $("shareFeedback").textContent = "";
           renderStats();
           renderLog();
           renderRounds();
+          updateShareText(true);
         });
 
         syncFromCount();
