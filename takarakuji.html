@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>宝くじシミュレーション</title>
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+    </style>
+    <style>
+      :root {
+        --bg-gradient: linear-gradient(135deg, #fff7ed, #ffedd5, #fef08a);
+        --card-bg: rgba(255, 255, 255, 0.96);
+        --card-border: #fed7aa;
+        --primary: #f97316;
+        --primary-dark: #c2410c;
+        --primary-border: #ea580c;
+        --sub-bg: rgba(255, 247, 237, 0.75);
+        --sub-border: #ffedd5;
+        --text: #44403c;
+        --text-muted: #78716c;
+        --line: #e7e5e4;
+        --ticket-bg: #ffffff;
+        --ticket-head: #fff7ed;
+        --gold: #b45309;
+        --gold-bg: #fef3c7;
+        --win-bg: #fffbeb;
+        --good: #15803d;
+        --bad: #dc2626;
+        --chip-bg: #ffffff;
+        --input-bg: #ffffff;
+        --shadow: 0 10px 25px rgba(180, 150, 120, 0.15);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-gradient: linear-gradient(135deg, #1c1210, #2a1a10, #33270f);
+          --card-bg: rgba(38, 28, 20, 0.97);
+          --card-border: #7c4a21;
+          --primary: #fb923c;
+          --primary-dark: #c2410c;
+          --primary-border: #ea580c;
+          --sub-bg: rgba(60, 42, 24, 0.65);
+          --sub-border: #57391d;
+          --text: #f3ece5;
+          --text-muted: #c9b8a6;
+          --line: #57453a;
+          --ticket-bg: #2e2119;
+          --ticket-head: #3a2a1c;
+          --gold: #fbbf24;
+          --gold-bg: #4a3512;
+          --win-bg: #3a2c10;
+          --good: #4ade80;
+          --bad: #f87171;
+          --chip-bg: #2e2119;
+          --input-bg: #241a13;
+          --shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+        }
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", sans-serif;
+        background: var(--bg-gradient);
+        background-attachment: fixed;
+        color: var(--text);
+        min-height: 100vh;
+        padding: 14px 12px 40px;
+      }
+
+      .menu-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 11px;
+        color: #71716a;
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1.5px solid #e4e4e7;
+        font-weight: bold;
+        z-index: 1000;
+      }
+
+      .container {
+        background: var(--card-bg);
+        border-radius: 24px;
+        border: 2px solid var(--card-border);
+        box-shadow: var(--shadow);
+        padding: 20px 18px 22px;
+        width: 100%;
+        max-width: 880px;
+        margin: 26px auto 0;
+      }
+
+      h1 {
+        text-align: center;
+        font-size: 1.45rem;
+        font-weight: 900;
+        color: var(--primary);
+        margin-bottom: 6px;
+        letter-spacing: 0.02em;
+      }
+      .intro {
+        text-align: center;
+        font-size: 0.83rem;
+        line-height: 1.7;
+        color: var(--text-muted);
+        max-width: 620px;
+        margin: 0 auto 18px;
+      }
+      .intro strong { color: var(--text); }
+
+      .phase {
+        border: 1px solid var(--sub-border);
+        background: var(--sub-bg);
+        border-radius: 16px;
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+      .phase-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .phase-num {
+        flex: 0 0 auto;
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 900;
+        font-size: 1rem;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 2px 0 var(--primary-dark);
+      }
+      .phase-head h2 { font-size: 1.05rem; font-weight: 900; }
+      .phase-head .phase-sub { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; text-align: right; }
+
+      .field-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .field { flex: 1 1 150px; }
+      .field label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: bold;
+        color: var(--primary);
+        margin-bottom: 5px;
+      }
+      .field input[type="number"] {
+        width: 100%;
+        font-size: 1.05rem;
+        font-weight: bold;
+        padding: 8px 10px;
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        background: var(--input-bg);
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .field .unit-note { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
+      .amount-display {
+        font-size: 1.05rem;
+        font-weight: 900;
+        padding: 9px 10px;
+        border: 1.5px dashed var(--card-border);
+        border-radius: 10px;
+        background: var(--ticket-head);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+      .chip {
+        background: var(--chip-bg);
+        border: 1.5px solid var(--line);
+        color: var(--text);
+        font-size: 0.8rem;
+        font-weight: bold;
+        padding: 6px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        min-height: 2.25rem;
+      }
+      .chip:active { transform: translateY(1px); }
+      .chip.selected {
+        background: var(--primary);
+        border-color: var(--primary-border);
+        color: #fff;
+      }
+
+      .seg { display: flex; gap: 8px; margin-bottom: 12px; }
+      .seg button {
+        flex: 1;
+        background: var(--chip-bg);
+        border: 1.5px solid var(--line);
+        color: var(--text);
+        font-size: 0.85rem;
+        font-weight: bold;
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .seg button.selected {
+        background: var(--primary);
+        border-color: var(--primary-border);
+        color: #fff;
+        box-shadow: 0 2px 0 var(--primary-dark);
+      }
+      .seg .seg-desc { display: block; font-size: 0.68rem; font-weight: normal; opacity: 0.85; margin-top: 2px; }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 3px 0 var(--primary-dark);
+        width: 100%;
+        min-height: 3rem;
+      }
+      .btn-primary:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--primary-dark); }
+      .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+      .btn-secondary {
+        background: var(--chip-bg);
+        border: 1px solid var(--line);
+        color: var(--text);
+        font-size: 0.8rem;
+        font-weight: bold;
+        padding: 8px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+        box-shadow: 0 2px 0 var(--line);
+        min-height: 2.5rem;
+      }
+      .btn-secondary:active { transform: translateY(2px); box-shadow: none; }
+
+      .ticket-meta {
+        display: flex; flex-wrap: wrap; gap: 6px 16px;
+        font-size: 0.8rem; font-weight: bold;
+        margin: 12px 0 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .ticket-meta span b { color: var(--primary-dark); }
+      @media (prefers-color-scheme: dark) { .ticket-meta span b { color: var(--primary); } }
+
+      .ticket-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+        gap: 8px;
+      }
+      .ticket {
+        background: var(--ticket-bg);
+        border: 1.5px solid var(--card-border);
+        border-radius: 8px;
+        padding: 7px 9px 8px;
+        position: relative;
+        overflow: hidden;
+      }
+      .ticket::before {
+        content: "";
+        position: absolute; left: 0; top: 0; bottom: 0;
+        width: 5px;
+        background: repeating-linear-gradient(180deg, var(--primary) 0 6px, transparent 6px, transparent 11px);
+        opacity: 0.75;
+      }
+      .ticket .t-no { font-size: 0.62rem; color: var(--text-muted); padding-left: 6px; }
+      .ticket .t-main {
+        padding-left: 6px;
+        font-size: 0.98rem;
+        font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .ticket .t-main .t-num { color: var(--primary-dark); }
+      @media (prefers-color-scheme: dark) { .ticket .t-main .t-num { color: var(--primary); } }
+      .ticket.hit { border-color: var(--gold); background: var(--gold-bg); }
+      .ticket .t-badge {
+        position: absolute; top: 5px; right: 5px;
+        background: var(--gold);
+        color: #fff;
+        font-size: 0.6rem; font-weight: 900;
+        padding: 2px 6px;
+        border-radius: 999px;
+      }
+      .empty-note {
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        text-align: center;
+        padding: 18px 8px;
+        border: 1.5px dashed var(--line);
+        border-radius: 12px;
+        line-height: 1.7;
+      }
+      .more-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+      .win-panel {
+        background: var(--ticket-bg);
+        border: 2px solid var(--card-border);
+        border-radius: 14px;
+        padding: 12px;
+        margin-bottom: 12px;
+      }
+      .win-panel .win-title { font-size: 0.78rem; font-weight: 900; color: var(--primary); margin-bottom: 10px; }
+      .win-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 8px;
+      }
+      .win-cell {
+        background: var(--ticket-head);
+        border-radius: 10px;
+        padding: 8px 10px;
+      }
+      .win-cell .w-rank { font-size: 0.68rem; font-weight: bold; color: var(--text-muted); }
+      .win-cell .w-val {
+        font-size: 1.02rem; font-weight: 900;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .win-cell.main-cell { background: var(--gold-bg); border: 1.5px solid var(--gold); }
+      .win-cell.main-cell .w-val { color: var(--gold); font-size: 1.12rem; }
+
+      .progress-wrap {
+        height: 10px;
+        background: var(--line);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 10px 0;
+        display: none;
+      }
+      .progress-bar { height: 100%; width: 0%; background: var(--primary); transition: width 0.1s linear; }
+
+      .batch-result {
+        display: none;
+        border-radius: 12px;
+        padding: 12px;
+        margin-top: 12px;
+        font-size: 0.85rem;
+        line-height: 1.8;
+        background: var(--win-bg);
+        border: 1.5px solid var(--gold);
+        font-variant-numeric: tabular-nums;
+      }
+      .batch-result .big-win { font-size: 1.25rem; font-weight: 900; color: var(--gold); }
+      .batch-result.none-hit { background: var(--sub-bg); border-color: var(--line); }
+
+      .hit-list { margin-top: 8px; font-size: 0.8rem; line-height: 1.9; font-variant-numeric: tabular-nums; }
+      .hit-list .hit-row b { color: var(--gold); }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .stat-cell {
+        background: var(--ticket-bg);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+      .stat-cell .s-label { font-size: 0.68rem; font-weight: bold; color: var(--text-muted); margin-bottom: 3px; }
+      .stat-cell .s-value { font-size: 1.08rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+      .stat-cell .s-value.plus { color: var(--good); }
+      .stat-cell .s-value.minus { color: var(--bad); }
+      .stat-cell .s-note { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+
+      .prize-counts {
+        display: flex; flex-wrap: wrap; gap: 6px;
+        margin-bottom: 4px;
+      }
+      .prize-count {
+        font-size: 0.72rem; font-weight: bold;
+        background: var(--ticket-head);
+        border: 1px solid var(--sub-border);
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .prize-count.has { background: var(--gold-bg); border-color: var(--gold); color: var(--gold); }
+
+      h3.section-title {
+        font-size: 0.95rem; font-weight: 900;
+        margin: 18px 0 10px;
+        padding-left: 9px;
+        border-left: 5px solid var(--primary);
+      }
+
+      .log-list { display: flex; flex-direction: column; gap: 6px; }
+      .log-row {
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+        background: var(--ticket-bg);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px 11px;
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+      }
+      .log-row .l-id { font-weight: 900; color: var(--text-muted); font-size: 0.7rem; }
+      .log-row .l-win { font-weight: bold; }
+      .log-row .l-amount { margin-left: auto; font-weight: 900; }
+      .log-row.is-hit { border-color: var(--gold); background: var(--win-bg); }
+      .log-row.is-hit .l-amount { color: var(--gold); }
+      .log-row .l-hits { width: 100%; font-size: 0.72rem; color: var(--text-muted); }
+      .log-row.is-hit .l-hits { color: var(--gold); font-weight: bold; }
+
+      .round-row {
+        display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: baseline;
+        font-size: 0.8rem;
+        padding: 9px 11px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--ticket-bg);
+        font-variant-numeric: tabular-nums;
+      }
+      .round-row .r-id { font-weight: 900; }
+      .round-row .r-win { margin-left: auto; font-weight: 900; }
+
+      table.prize-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82rem;
+        font-variant-numeric: tabular-nums;
+      }
+      table.prize-table th, table.prize-table td {
+        padding: 8px 9px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      table.prize-table th { font-size: 0.7rem; color: var(--text-muted); }
+      table.prize-table td.prize-yen { text-align: right; font-weight: 900; white-space: nowrap; }
+      table.prize-table td.rank-name { font-weight: 900; white-space: nowrap; }
+      .spec-note { font-size: 0.75rem; color: var(--text-muted); line-height: 1.8; margin-top: 10px; }
+
+      .actions-row { display: flex; justify-content: flex-end; margin-top: 14px; }
+      .hidden { display: none !important; }
+    </style>
+    <!-- GoatCounter アクセス解析 -->
+    <script data-goatcounter="https://senzaiichiguunochance.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+  </head>
+  <body>
+    <a href="menu.html" class="menu-btn">メニューに戻る</a>
+
+    <main class="container">
+      <h1>宝くじシミュレーション</h1>
+      <p class="intro">
+        ジャンボ宝くじ（1枚300円／組と6桁の番号）を乱数で買って、抽選するシミュレーションです。
+        現実では「買う1回につき抽選は1回」ですが、ここでは<strong>同じ券で何回でも抽選（1対N）</strong>でき、
+        さらに<strong>買い直して何ラウンドでも繰り返せます</strong>。
+      </p>
+
+      <!-- ===== フェーズ1：買う ===== -->
+      <section class="phase" aria-label="買うフェーズ">
+        <div class="phase-head">
+          <div class="phase-num">1</div>
+          <h2>買うフェーズ</h2>
+          <div class="phase-sub">組：01〜100組<br />番号：100000〜199999番</div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="countInput">購入枚数（枚）</label>
+            <input type="number" id="countInput" value="10" min="1" max="10000" step="1" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label for="amountInput">購入金額（円）</label>
+            <input type="number" id="amountInput" value="3000" min="300" step="300" inputmode="numeric" />
+            <div class="unit-note">1枚300円。金額を変えると枚数に換算します（300円未満は切り捨て）。</div>
+          </div>
+          <div class="field">
+            <label>購入金額（確定）</label>
+            <div class="amount-display" id="amountDisplay">3,000円</div>
+          </div>
+        </div>
+
+        <div class="chips" id="countChips" role="group" aria-label="枚数のショートカット">
+          <button type="button" class="chip" data-count="10">10枚</button>
+          <button type="button" class="chip" data-count="30">30枚</button>
+          <button type="button" class="chip" data-count="100">100枚</button>
+          <button type="button" class="chip" data-count="300">300枚</button>
+          <button type="button" class="chip" data-count="1000">1,000枚</button>
+        </div>
+
+        <div class="field">
+          <label>買い方</label>
+          <div class="seg" id="typeSeg">
+            <button type="button" data-type="bara" class="selected">バラ（ランダム）<span class="seg-desc">組も番号もすべて乱数</span></button>
+            <button type="button" data-type="renban">連番<span class="seg-desc">同じ組で番号が続き番号</span></button>
+          </div>
+        </div>
+
+        <button type="button" class="btn-primary" id="buyBtn">宝くじを買う（ラウンド開始）</button>
+
+        <div class="ticket-meta hidden" id="ticketMeta">
+          <span>ラウンド <b id="metaRound">-</b></span>
+          <span>購入枚数 <b id="metaCount">-</b></span>
+          <span>購入金額 <b id="metaCost">-</b></span>
+          <span>買い方 <b id="metaType">-</b></span>
+        </div>
+        <div class="empty-note" id="ticketEmpty">まだ買っていません。「宝くじを買う」を押すと、乱数で決まった組と番号がここに並びます。</div>
+        <div class="ticket-grid" id="ticketGrid"></div>
+        <div class="more-note hidden" id="ticketMore"></div>
+      </section>
+
+      <!-- ===== フェーズ2：抽選 ===== -->
+      <section class="phase" aria-label="抽選フェーズ">
+        <div class="phase-head">
+          <div class="phase-num">2</div>
+          <h2>抽選フェーズ</h2>
+          <div class="phase-sub">同じ券で何回でも<br />抽選できます（1対N）</div>
+        </div>
+
+        <div class="field">
+          <label>1回の実行で抽選する回数 N</label>
+          <div class="chips" id="drawChips" role="group" aria-label="抽選回数のショートカット">
+            <button type="button" class="chip selected" data-draws="1">1回</button>
+            <button type="button" class="chip" data-draws="10">10回</button>
+            <button type="button" class="chip" data-draws="100">100回</button>
+            <button type="button" class="chip" data-draws="1000">1,000回</button>
+            <button type="button" class="chip" data-draws="10000">10,000回</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="drawInput">抽選回数（直接入力もできます）</label>
+            <input type="number" id="drawInput" value="1" min="1" max="10000" step="1" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="win-panel hidden" id="winPanel">
+          <div class="win-title" id="winTitle">当選番号</div>
+          <div class="win-grid" id="winGrid"></div>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+
+        <button type="button" class="btn-primary" id="drawBtn" disabled>まずは宝くじを買ってください</button>
+
+        <div class="batch-result" id="batchResult"></div>
+      </section>
+
+      <!-- ===== 結果・通算 ===== -->
+      <section aria-label="結果と通算">
+        <h3 class="section-title">このラウンドの結果</h3>
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="s-label">抽選した回数</div><div class="s-value" id="rDraws">0回</div></div>
+          <div class="stat-cell"><div class="s-label">当選金の合計</div><div class="s-value" id="rWin">0円</div></div>
+          <div class="stat-cell"><div class="s-label">いちばん当たった1回</div><div class="s-value" id="rBest">0円</div></div>
+          <div class="stat-cell"><div class="s-label">回収率（現実換算）</div><div class="s-value" id="rRateReal">―</div><div class="s-note">毎回買い直したと仮定</div></div>
+          <div class="stat-cell"><div class="s-label">回収率（夢モード）</div><div class="s-value" id="rRateDream">―</div><div class="s-note">購入は1回分だけで計算</div></div>
+        </div>
+
+        <h3 class="section-title">通算（全ラウンド）</h3>
+        <div class="stats-grid">
+          <div class="stat-cell"><div class="s-label">ラウンド数</div><div class="s-value" id="tRounds">0</div></div>
+          <div class="stat-cell"><div class="s-label">総抽選回数</div><div class="s-value" id="tDraws">0回</div></div>
+          <div class="stat-cell"><div class="s-label">総購入金額（現実換算）</div><div class="s-value" id="tSpent">0円</div><div class="s-note">抽選のたびに買い直したと仮定</div></div>
+          <div class="stat-cell"><div class="s-label">総当選金</div><div class="s-value" id="tWin">0円</div></div>
+          <div class="stat-cell"><div class="s-label">収支（現実換算）</div><div class="s-value" id="tBalance">0円</div></div>
+          <div class="stat-cell"><div class="s-label">回収率（現実換算）</div><div class="s-value" id="tRate">―</div></div>
+          <div class="stat-cell"><div class="s-label">最高の当選（1枚）</div><div class="s-value" id="tBestTicket">―</div></div>
+          <div class="stat-cell"><div class="s-label">収支（夢モード）</div><div class="s-value" id="tBalanceDream">0円</div><div class="s-note">買い直しなし・購入は各ラウンド1回分</div></div>
+        </div>
+
+        <div class="field"><label>賞ごとの当選本数（通算）</label></div>
+        <div class="prize-counts" id="prizeCounts"></div>
+
+        <h3 class="section-title">抽選の履歴</h3>
+        <div class="chips" id="logFilter" role="group" aria-label="履歴の表示切り替え">
+          <button type="button" class="chip selected" data-filter="all">すべて</button>
+          <button type="button" class="chip" data-filter="hit">当たりのみ</button>
+        </div>
+        <div class="log-list" id="logList">
+          <div class="empty-note">まだ抽選していません。</div>
+        </div>
+        <div class="more-note hidden" id="logMore"></div>
+
+        <h3 class="section-title">ラウンドの履歴</h3>
+        <div class="log-list" id="roundList">
+          <div class="empty-note">まだラウンドがありません。</div>
+        </div>
+
+        <div class="actions-row">
+          <button type="button" class="btn-secondary" id="resetBtn">すべてリセット</button>
+        </div>
+      </section>
+
+      <!-- ===== 賞金表と抽選の仕組み ===== -->
+      <section aria-label="賞金表と抽選の仕組み">
+        <h3 class="section-title">賞金表と抽選の仕組み（ジャンボ宝くじに近い形）</h3>
+        <table class="prize-table">
+          <thead>
+            <tr><th>賞</th><th>当選の条件</th><th style="text-align:right;">賞金</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="rank-name">1等</td><td>組も番号も、1等の当選番号と完全一致</td><td class="prize-yen">3億円</td></tr>
+            <tr><td class="rank-name">1等前後賞</td><td>組が一致し、番号が1等の当選番号の前後の番号</td><td class="prize-yen">1億円</td></tr>
+            <tr><td class="rank-name">1等組違い賞</td><td>番号が1等と完全一致し、組だけが違う</td><td class="prize-yen">10万円</td></tr>
+            <tr><td class="rank-name">2等</td><td>組も番号も、2等の当選番号と完全一致（1等とは別に抽選）</td><td class="prize-yen">1,000万円</td></tr>
+            <tr><td class="rank-name">3等</td><td>組も番号も、3等の当選番号と完全一致（別に抽選）</td><td class="prize-yen">100万円</td></tr>
+            <tr><td class="rank-name">4等</td><td>番号の下4桁が当選番号と一致（組は不問）</td><td class="prize-yen">5万円</td></tr>
+            <tr><td class="rank-name">5等</td><td>番号の下3桁が当選番号と一致（組は不問）</td><td class="prize-yen">1万円</td></tr>
+            <tr><td class="rank-name">6等</td><td>番号の下2桁が当選番号と一致（組は不問）</td><td class="prize-yen">3,000円</td></tr>
+            <tr><td class="rank-name">7等</td><td>番号の下1桁が当選番号と一致（組は不問）</td><td class="prize-yen">300円</td></tr>
+          </tbody>
+        </table>
+        <p class="spec-note">
+          抽選の仕組み：現実のジャンボ宝くじと同じく、抽選のたびに「1等・2等・3等の組と番号」と「下4桁・下3桁・下2桁・下1桁の当選数字」をそれぞれ新しく引き直します。
+          1枚の券が複数の賞に当てはまる場合は、いちばん高い賞だけが当選になります。
+          賞金額はジャンボ宝くじの一般的な構成をもとにしたシミュレーション用の設定で、実際の回の賞金とは異なる場合があります。
+          組は01組〜100組、番号は100000番〜199999番、1枚300円です。
+        </p>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+        var PRICE = 300;
+        var GROUP_MAX = 100;
+        var NUM_MIN = 100000;
+        var NUM_MAX = 199999;
+        var RENDER_CAP = 600;
+        var LOG_RENDER = 40;
+        var LOG_KEEP = 500;
+
+        var RANKS = [
+          { key: "first",  name: "1等",         prize: 300000000 },
+          { key: "adj",    name: "1等前後賞",   prize: 100000000 },
+          { key: "diff",   name: "1等組違い賞", prize: 100000 },
+          { key: "second", name: "2等",         prize: 10000000 },
+          { key: "third",  name: "3等",         prize: 1000000 },
+          { key: "r4",     name: "4等",         prize: 50000 },
+          { key: "r5",     name: "5等",         prize: 10000 },
+          { key: "r6",     name: "6等",         prize: 3000 },
+          { key: "r7",     name: "7等",         prize: 300 }
+        ];
+        var RANK_BY_KEY = {};
+        RANKS.forEach(function (r) { RANK_BY_KEY[r.key] = r; });
+
+        var state = {
+          buyType: "bara",
+          tickets: [],
+          rounds: [],        // {id, count, cost, type, draws, win, best}
+          history: [],       // {roundId, seq, winDraw, hits:[{g,n,rankKey}], amount}
+          drawSeq: 0,
+          prizeCounts: {},
+          bestTicketPrize: 0,
+          drawing: false,
+          logFilter: "all",
+          lastHitsByIndex: {} // ticket index -> rankKey (latest draw only)
+        };
+        RANKS.forEach(function (r) { state.prizeCounts[r.key] = 0; });
+
+        function $(id) { return document.getElementById(id); }
+        function randInt(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+        function fmt(n) { return n.toLocaleString("ja-JP"); }
+        function fmtYen(n) { return fmt(n) + "円"; }
+        function pad2(n) { return (n < 10 ? "0" : "") + n; }
+        function pad(n, len) { var s = String(n); while (s.length < len) s = "0" + s; return s; }
+        function currentRound() { return state.rounds.length ? state.rounds[state.rounds.length - 1] : null; }
+
+        // ---------- 購入フォームの連動 ----------
+        var countInput = $("countInput"), amountInput = $("amountInput"), amountDisplay = $("amountDisplay");
+
+        function clampCount(v) {
+          v = Math.floor(Number(v) || 0);
+          if (v < 1) v = 1;
+          if (v > 10000) v = 10000;
+          return v;
+        }
+        function syncFromCount() {
+          var c = clampCount(countInput.value);
+          amountInput.value = c * PRICE;
+          amountDisplay.textContent = fmtYen(c * PRICE);
+          markChips($("countChips"), "count", String(c));
+        }
+        function syncFromAmount() {
+          var a = Math.floor((Number(amountInput.value) || 0) / PRICE);
+          var c = clampCount(a);
+          countInput.value = c;
+          amountDisplay.textContent = fmtYen(c * PRICE);
+          markChips($("countChips"), "count", String(c));
+        }
+        countInput.addEventListener("input", syncFromCount);
+        countInput.addEventListener("change", function () { countInput.value = clampCount(countInput.value); syncFromCount(); });
+        amountInput.addEventListener("input", syncFromAmount);
+        amountInput.addEventListener("change", function () { amountInput.value = clampCount(countInput.value) * PRICE; });
+
+        function markChips(container, attr, value) {
+          var chips = container.querySelectorAll(".chip");
+          chips.forEach(function (ch) {
+            ch.classList.toggle("selected", ch.getAttribute("data-" + attr) === value);
+          });
+        }
+        $("countChips").addEventListener("click", function (e) {
+          var btn = e.target.closest(".chip");
+          if (!btn) return;
+          countInput.value = btn.getAttribute("data-count");
+          syncFromCount();
+        });
+
+        $("typeSeg").addEventListener("click", function (e) {
+          var btn = e.target.closest("button[data-type]");
+          if (!btn) return;
+          state.buyType = btn.getAttribute("data-type");
+          $("typeSeg").querySelectorAll("button").forEach(function (b) {
+            b.classList.toggle("selected", b === btn);
+          });
+        });
+
+        // ---------- 買う ----------
+        function generateTickets(count, type) {
+          var tickets = [];
+          if (type === "renban") {
+            var g = randInt(1, GROUP_MAX);
+            var start = randInt(NUM_MIN, NUM_MAX);
+            for (var i = 0; i < count; i++) {
+              var n = start + i;
+              if (n > NUM_MAX) n = NUM_MIN + (n - NUM_MAX - 1);
+              tickets.push({ g: g, n: n });
+            }
+          } else {
+            var seen = {};
+            while (tickets.length < count) {
+              var gg = randInt(1, GROUP_MAX);
+              var nn = randInt(NUM_MIN, NUM_MAX);
+              var key = gg + "-" + nn;
+              if (seen[key]) continue;
+              seen[key] = true;
+              tickets.push({ g: gg, n: nn });
+            }
+          }
+          return tickets;
+        }
+
+        $("buyBtn").addEventListener("click", function () {
+          if (state.drawing) return;
+          var count = clampCount(countInput.value);
+          countInput.value = count;
+          syncFromCount();
+          state.tickets = generateTickets(count, state.buyType);
+          state.lastHitsByIndex = {};
+          state.rounds.push({
+            id: state.rounds.length + 1,
+            count: count,
+            cost: count * PRICE,
+            type: state.buyType,
+            draws: 0,
+            win: 0,
+            best: 0
+          });
+          renderTickets();
+          renderStats();
+          renderRounds();
+          var drawBtn = $("drawBtn");
+          drawBtn.disabled = false;
+          drawBtn.textContent = "抽選する";
+          $("batchResult").style.display = "none";
+          $("winPanel").classList.add("hidden");
+          $("ticketEmpty").classList.add("hidden");
+          $("ticketMeta").classList.remove("hidden");
+          var r = currentRound();
+          $("metaRound").textContent = "第" + r.id + "ラウンド";
+          $("metaCount").textContent = fmt(r.count) + "枚";
+          $("metaCost").textContent = fmtYen(r.cost);
+          $("metaType").textContent = r.type === "renban" ? "連番" : "バラ（ランダム）";
+        });
+
+        function renderTickets() {
+          var grid = $("ticketGrid");
+          grid.innerHTML = "";
+          var show = Math.min(state.tickets.length, RENDER_CAP);
+          var frag = document.createDocumentFragment();
+          for (var i = 0; i < show; i++) {
+            var t = state.tickets[i];
+            var div = document.createElement("div");
+            div.className = "ticket";
+            div.setAttribute("data-idx", i);
+            var rankKey = state.lastHitsByIndex[i];
+            var badge = "";
+            if (rankKey) {
+              div.classList.add("hit");
+              badge = '<span class="t-badge">' + RANK_BY_KEY[rankKey].name + "</span>";
+            }
+            div.innerHTML = '<div class="t-no">No.' + (i + 1) + "</div>" +
+              '<div class="t-main">' + pad2(t.g) + '組 <span class="t-num">' + t.n + "番</span></div>" + badge;
+            frag.appendChild(div);
+          }
+          grid.appendChild(frag);
+          var more = $("ticketMore");
+          if (state.tickets.length > RENDER_CAP) {
+            more.textContent = "ほか " + fmt(state.tickets.length - RENDER_CAP) + " 枚は表示を省略しています（抽選の判定は全枚数が対象です）。";
+            more.classList.remove("hidden");
+          } else {
+            more.classList.add("hidden");
+          }
+        }
+
+        // ---------- 抽選 ----------
+        var drawInput = $("drawInput");
+        $("drawChips").addEventListener("click", function (e) {
+          var btn = e.target.closest(".chip");
+          if (!btn) return;
+          drawInput.value = btn.getAttribute("data-draws");
+          markChips($("drawChips"), "draws", drawInput.value);
+        });
+        drawInput.addEventListener("input", function () {
+          markChips($("drawChips"), "draws", String(drawInput.value));
+        });
+        function clampDraws(v) {
+          v = Math.floor(Number(v) || 0);
+          if (v < 1) v = 1;
+          if (v > 10000) v = 10000;
+          return v;
+        }
+
+        function drawWinning() {
+          return {
+            first:  { g: randInt(1, GROUP_MAX), n: randInt(NUM_MIN, NUM_MAX) },
+            second: { g: randInt(1, GROUP_MAX), n: randInt(NUM_MIN, NUM_MAX) },
+            third:  { g: randInt(1, GROUP_MAX), n: randInt(NUM_MIN, NUM_MAX) },
+            d4: randInt(0, 9999),
+            d3: randInt(0, 999),
+            d2: randInt(0, 99),
+            d1: randInt(0, 9)
+          };
+        }
+
+        function evaluateTicket(t, w) {
+          if (t.g === w.first.g && t.n === w.first.n) return "first";
+          if (t.g === w.first.g && (t.n === w.first.n - 1 || t.n === w.first.n + 1)) return "adj";
+          if (t.n === w.first.n && t.g !== w.first.g) return "diff";
+          if (t.g === w.second.g && t.n === w.second.n) return "second";
+          if (t.g === w.third.g && t.n === w.third.n) return "third";
+          if (t.n % 10000 === w.d4) return "r4";
+          if (t.n % 1000 === w.d3) return "r5";
+          if (t.n % 100 === w.d2) return "r6";
+          if (t.n % 10 === w.d1) return "r7";
+          return null;
+        }
+
+        function renderWinning(w, title) {
+          $("winPanel").classList.remove("hidden");
+          $("winTitle").textContent = title;
+          var cells = [
+            { rank: "1等", val: pad2(w.first.g) + "組 " + w.first.n + "番", main: true },
+            { rank: "2等", val: pad2(w.second.g) + "組 " + w.second.n + "番", main: false },
+            { rank: "3等", val: pad2(w.third.g) + "組 " + w.third.n + "番", main: false },
+            { rank: "4等（下4桁）", val: pad(w.d4, 4), main: false },
+            { rank: "5等（下3桁）", val: pad(w.d3, 3), main: false },
+            { rank: "6等（下2桁）", val: pad(w.d2, 2), main: false },
+            { rank: "7等（下1桁）", val: String(w.d1), main: false }
+          ];
+          $("winGrid").innerHTML = cells.map(function (c) {
+            return '<div class="win-cell' + (c.main ? " main-cell" : "") + '"><div class="w-rank">' +
+              c.rank + '</div><div class="w-val">' + c.val + "</div></div>";
+          }).join("");
+        }
+
+        function spinAnimation(done) {
+          var ticks = 0;
+          var timer = setInterval(function () {
+            ticks++;
+            renderWinning(drawWinning(), "抽選中…（当選番号を引いています）");
+            if (ticks >= 12) {
+              clearInterval(timer);
+              done();
+            }
+          }, 70);
+        }
+
+        $("drawBtn").addEventListener("click", function () {
+          if (state.drawing || !state.tickets.length) return;
+          var total = clampDraws(drawInput.value);
+          drawInput.value = total;
+          if (total === 1) {
+            state.drawing = true;
+            setControlsEnabled(false);
+            spinAnimation(function () {
+              processDraws(1, finishBatch);
+            });
+          } else {
+            processDraws(total, finishBatch);
+          }
+        });
+
+        function setControlsEnabled(on) {
+          $("buyBtn").disabled = !on;
+          $("drawBtn").disabled = !on || !state.tickets.length;
+        }
+
+        function processDraws(total, onDone) {
+          state.drawing = true;
+          setControlsEnabled(false);
+          var wrap = $("progressWrap"), bar = $("progressBar");
+          wrap.style.display = total > 1 ? "block" : "none";
+          bar.style.width = "0%";
+
+          var round = currentRound();
+          var batch = { draws: 0, win: 0, counts: {}, best: 0, lastWin: null, lastHits: [], lastHitsByIndex: {} };
+          RANKS.forEach(function (r) { batch.counts[r.key] = 0; });
+          var done = 0;
+          var perChunk = Math.max(1, Math.min(400, Math.floor(250000 / Math.max(1, state.tickets.length))));
+
+          function step() {
+            var upto = Math.min(total, done + perChunk);
+            for (; done < upto; done++) {
+              var w = drawWinning();
+              var hits = [];
+              var hitsByIndex = {};
+              var sum = 0;
+              for (var i = 0; i < state.tickets.length; i++) {
+                var rk = evaluateTicket(state.tickets[i], w);
+                if (rk) {
+                  var rank = RANK_BY_KEY[rk];
+                  hits.push({ g: state.tickets[i].g, n: state.tickets[i].n, rankKey: rk });
+                  hitsByIndex[i] = rk;
+                  sum += rank.prize;
+                  batch.counts[rk]++;
+                  state.prizeCounts[rk]++;
+                  if (rank.prize > state.bestTicketPrize) state.bestTicketPrize = rank.prize;
+                }
+              }
+              state.drawSeq++;
+              state.history.unshift({
+                roundId: round.id, seq: state.drawSeq, winDraw: w, hits: hits, amount: sum
+              });
+              if (state.history.length > LOG_KEEP) state.history.length = LOG_KEEP;
+              round.draws++;
+              round.win += sum;
+              if (sum > round.best) round.best = sum;
+              batch.draws++;
+              batch.win += sum;
+              if (sum > batch.best) batch.best = sum;
+              batch.lastWin = w;
+              batch.lastHits = hits;
+              batch.lastHitsByIndex = hitsByIndex;
+            }
+            bar.style.width = Math.round((done / total) * 100) + "%";
+            if (done < total) {
+              setTimeout(step, 0);
+            } else {
+              state.drawing = false;
+              wrap.style.display = "none";
+              setControlsEnabled(true);
+              onDone(batch);
+            }
+          }
+          step();
+        }
+
+        function finishBatch(batch) {
+          state.lastHitsByIndex = batch.lastHitsByIndex;
+          renderTickets();
+          var round = currentRound();
+          var title = batch.draws === 1
+            ? "当選番号（第" + round.id + "ラウンド）"
+            : "当選番号（最後の抽選／第" + round.id + "ラウンド）";
+          renderWinning(batch.lastWin, title);
+          renderBatchResult(batch);
+          renderStats();
+          renderLog();
+          renderRounds();
+        }
+
+        function renderBatchResult(batch) {
+          var box = $("batchResult");
+          box.style.display = "block";
+          var parts = [];
+          if (batch.draws === 1) {
+            if (batch.lastHits.length) {
+              parts.push('<span class="big-win">' + fmtYen(batch.win) + " 当選！</span>");
+              parts.push(hitListHtml(batch.lastHits));
+            } else {
+              parts.push("この抽選では当たりがありませんでした。同じ券でもう一度抽選できます。");
+            }
+          } else {
+            parts.push("抽選 " + fmt(batch.draws) + " 回の合計当選金：<span class='big-win'>" + fmtYen(batch.win) + "</span>");
+            var hitDrawsNote = "（いちばん当たった1回：" + fmtYen(batch.best) + "）";
+            parts.push(hitDrawsNote);
+            var countParts = [];
+            RANKS.forEach(function (r) {
+              if (batch.counts[r.key] > 0) countParts.push(r.name + " " + fmt(batch.counts[r.key]) + "本");
+            });
+            parts.push(countParts.length ? "内訳：" + countParts.join("／") : "この回では当たりがありませんでした。");
+            if (batch.lastHits.length) {
+              parts.push("最後の抽選の当たり券：" + hitListHtml(batch.lastHits));
+            }
+          }
+          box.classList.toggle("none-hit", batch.win === 0);
+          box.innerHTML = parts.join("<br />");
+        }
+
+        function hitListHtml(hits) {
+          var show = hits.slice(0, 50);
+          var html = '<div class="hit-list">' + show.map(function (h) {
+            var r = RANK_BY_KEY[h.rankKey];
+            return '<div class="hit-row">' + pad2(h.g) + "組 " + h.n + "番 ― <b>" + r.name + " " + fmtYen(r.prize) + "</b></div>";
+          }).join("");
+          if (hits.length > show.length) html += '<div class="hit-row">ほか ' + fmt(hits.length - show.length) + "本</div>";
+          return html + "</div>";
+        }
+
+        // ---------- 統計・履歴の描画 ----------
+        function rateText(win, spent) {
+          if (!spent) return "―";
+          return (Math.round((win / spent) * 1000) / 10).toLocaleString("ja-JP") + "%";
+        }
+        function setBalance(el, v) {
+          el.textContent = (v > 0 ? "+" : "") + fmtYen(v);
+          el.classList.toggle("plus", v > 0);
+          el.classList.toggle("minus", v < 0);
+        }
+
+        function renderStats() {
+          var round = currentRound();
+          if (round) {
+            $("rDraws").textContent = fmt(round.draws) + "回";
+            $("rWin").textContent = fmtYen(round.win);
+            $("rBest").textContent = fmtYen(round.best);
+            $("rRateReal").textContent = round.draws ? rateText(round.win, round.cost * round.draws) : "―";
+            $("rRateDream").textContent = round.draws ? rateText(round.win, round.cost) : "―";
+          } else {
+            $("rDraws").textContent = "0回";
+            $("rWin").textContent = "0円";
+            $("rBest").textContent = "0円";
+            $("rRateReal").textContent = "―";
+            $("rRateDream").textContent = "―";
+          }
+
+          var totalDraws = 0, totalWin = 0, spentReal = 0, spentDream = 0;
+          state.rounds.forEach(function (r) {
+            totalDraws += r.draws;
+            totalWin += r.win;
+            spentDream += r.cost;
+            spentReal += r.cost * Math.max(1, r.draws);
+          });
+          $("tRounds").textContent = fmt(state.rounds.length);
+          $("tDraws").textContent = fmt(totalDraws) + "回";
+          $("tSpent").textContent = fmtYen(spentReal);
+          $("tWin").textContent = fmtYen(totalWin);
+          setBalance($("tBalance"), totalWin - spentReal);
+          setBalance($("tBalanceDream"), totalWin - spentDream);
+          $("tRate").textContent = totalDraws ? rateText(totalWin, spentReal) : "―";
+          $("tBestTicket").textContent = state.bestTicketPrize ? fmtYen(state.bestTicketPrize) : "―";
+
+          $("prizeCounts").innerHTML = RANKS.map(function (r) {
+            var c = state.prizeCounts[r.key];
+            return '<span class="prize-count' + (c > 0 ? " has" : "") + '">' + r.name + "：" + fmt(c) + "本</span>";
+          }).join("");
+        }
+
+        $("logFilter").addEventListener("click", function (e) {
+          var btn = e.target.closest(".chip");
+          if (!btn) return;
+          state.logFilter = btn.getAttribute("data-filter");
+          markChips($("logFilter"), "filter", state.logFilter);
+          renderLog();
+        });
+
+        function renderLog() {
+          var list = $("logList");
+          var items = state.history;
+          if (state.logFilter === "hit") items = items.filter(function (h) { return h.amount > 0; });
+          if (!items.length) {
+            list.innerHTML = '<div class="empty-note">' +
+              (state.history.length ? "当たりの抽選はまだありません。" : "まだ抽選していません。") + "</div>";
+            $("logMore").classList.add("hidden");
+            return;
+          }
+          var show = items.slice(0, LOG_RENDER);
+          list.innerHTML = show.map(function (h) {
+            var hitsText = h.hits.length
+              ? h.hits.slice(0, 6).map(function (x) {
+                  return pad2(x.g) + "組 " + x.n + "番（" + RANK_BY_KEY[x.rankKey].name + "）";
+                }).join("、") + (h.hits.length > 6 ? " ほか" + fmt(h.hits.length - 6) + "本" : "")
+              : "当たりなし";
+            return '<div class="log-row' + (h.amount > 0 ? " is-hit" : "") + '">' +
+              '<span class="l-id">第' + h.roundId + "ラウンド／通算" + fmt(h.seq) + "回目</span>" +
+              '<span class="l-win">1等当選：' + pad2(h.winDraw.first.g) + "組 " + h.winDraw.first.n + "番</span>" +
+              '<span class="l-amount">' + (h.amount > 0 ? fmtYen(h.amount) : "0円") + "</span>" +
+              '<span class="l-hits">' + hitsText + "</span></div>";
+          }).join("");
+          var more = $("logMore");
+          if (items.length > LOG_RENDER) {
+            more.textContent = "最新" + LOG_RENDER + "件を表示しています（全" + fmt(items.length) + "件）。";
+            more.classList.remove("hidden");
+          } else {
+            more.classList.add("hidden");
+          }
+        }
+
+        function renderRounds() {
+          var list = $("roundList");
+          if (!state.rounds.length) {
+            list.innerHTML = '<div class="empty-note">まだラウンドがありません。</div>';
+            return;
+          }
+          var rows = state.rounds.slice().reverse().map(function (r) {
+            var realCost = r.cost * Math.max(1, r.draws);
+            var rate = r.draws ? rateText(r.win, realCost) : "―";
+            return '<div class="round-row">' +
+              '<span class="r-id">第' + r.id + "ラウンド</span>" +
+              "<span>" + fmt(r.count) + "枚／" + fmtYen(r.cost) + "（" + (r.type === "renban" ? "連番" : "バラ") + "）</span>" +
+              "<span>抽選 " + fmt(r.draws) + "回</span>" +
+              "<span>回収率 " + rate + "</span>" +
+              '<span class="r-win">当選 ' + fmtYen(r.win) + "</span></div>";
+          });
+          list.innerHTML = rows.join("");
+        }
+
+        $("resetBtn").addEventListener("click", function () {
+          if (state.drawing) return;
+          state.tickets = [];
+          state.rounds = [];
+          state.history = [];
+          state.drawSeq = 0;
+          state.bestTicketPrize = 0;
+          state.lastHitsByIndex = {};
+          RANKS.forEach(function (r) { state.prizeCounts[r.key] = 0; });
+          $("ticketGrid").innerHTML = "";
+          $("ticketEmpty").classList.remove("hidden");
+          $("ticketMeta").classList.add("hidden");
+          $("ticketMore").classList.add("hidden");
+          $("winPanel").classList.add("hidden");
+          $("batchResult").style.display = "none";
+          var drawBtn = $("drawBtn");
+          drawBtn.disabled = true;
+          drawBtn.textContent = "まずは宝くじを買ってください";
+          renderStats();
+          renderLog();
+          renderRounds();
+        });
+
+        syncFromCount();
+        renderStats();
+        renderLog();
+        renderRounds();
+      })();
+    </script>
+  </body>
+</html>
